@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.26 2002/12/05 20:24:38 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.28 2003/05/02 12:55:23 rcaputo Exp $
 
 use strict;
 
@@ -37,7 +37,7 @@ unless (grep /^--default$/, @ARGV) {
 }
 
 ExtUtils::AutoInstall->import
-  ( -version => '0.32',
+  ( -version => '0.50',
     -core => [
         Carp                 => '',
         Exporter             => '',
@@ -107,7 +107,8 @@ ExtUtils::AutoInstall->import
 open(CHANGES, ">>CHANGES") and close CHANGES;
 
 sub MY::postamble {
-    return <<EOF;
+  return ExtUtils::AutoInstall::postamble() .
+    <<EOF;
 reportupload: poe_report.xml
 	$^X lib/reportupload.pl
 

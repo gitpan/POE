@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 29_sockfact6.t,v 1.7 2003/02/01 04:52:07 cwest Exp $
+# $Id: 29_sockfact6.t,v 1.8 2003/05/08 22:54:43 rcaputo Exp $
 
 # Exercises Client and Server TCP components, which exercise
 # SocketFactory in AF_INET6 mode.
@@ -29,6 +29,13 @@ my $tcp_server_port = 31909;
 # Congratulations! We made it this far!
 test_setup(5);
 ok(1);
+
+warn(
+  "***\n",
+  "*** This test may hang if your firewall blocks IPv6\n",
+  "*** packets across your localhost interface.\n",
+  "***\n",
+);
 
 ###############################################################################
 # Start the TCP server.

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 28_windows.t,v 1.4 2003/02/01 04:52:07 cwest Exp $
+# $Id: 28_windows.t,v 1.5 2003/03/16 07:46:10 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -31,7 +31,7 @@ POE::Session->create
   ( inline_states =>
     { _start => sub {
         $_[KERNEL]->sig(CHLD => "child_handler");
-        $_[KERNEL]->delay(timeout => 2);
+        $_[KERNEL]->delay(timeout => 5);
         open(FOO, "echo foo > nul:|") or die $!;
         open(FOO, "echo foo > nul:|") or die $!;
         my @x = <FOO>;

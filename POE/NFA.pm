@@ -1,11 +1,11 @@
-# $Id: NFA.pm,v 1.18 2002/10/20 20:55:20 rcaputo Exp $
+# $Id: NFA.pm,v 1.19 2003/04/29 15:52:57 rcaputo Exp $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.18 $ ))[1];
+$VERSION = (qw($Revision: 1.19 $ ))[1];
 
 use Carp qw(carp croak confess);
 
@@ -224,7 +224,7 @@ sub _invoke_state {
 
   # Stop request has come through the queue.  Shut us down.
   if ($event eq NFA_EN_STOP) {
-    $POE::Kernel::poe_kernel->session_free( $self );
+    $POE::Kernel::poe_kernel->_data_ses_free( $self );
     return;
   }
 

@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm,v 1.42 2003/01/21 22:22:35 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.43 2003/02/27 00:10:35 cwest Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.42 $ ))[1];
+$VERSION = (qw($Revision: 1.43 $ ))[1];
 
 use Carp;
 use Symbol;
@@ -103,8 +103,10 @@ sub new {
     @start_stat = stat($filename);
   }
 
-  my $poll_interval = $params{PollInterval} || 1;
-  my $seek_back     = $params{SeekBack} || 4096;
+  my $poll_interval = defined($params{PollInterval}) ?
+                        $params{PollInterval} : 1;
+  my $seek_back     = defined($params{SeekBack}) ?
+                        $params{SeekBack} : 4096;
   $seek_back = 0 if $seek_back < 0;
 
   my $self = bless

@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.233 2003/02/05 16:22:11 rcaputo Exp $
+# $Id: Kernel.pm,v 1.240 2003/04/29 22:18:31 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.233 $ ))[1];
+$VERSION = (qw($Revision: 1.240 $ ))[1];
 
 use POE::Queue::Array;
 use POSIX qw(errno_h fcntl_h sys_wait_h);
@@ -36,10 +36,21 @@ BEGIN {
   local $SIG{'__DIE__'} = 'DEFAULT';
 
   # POE runs better with Time::HiRes, but it also runs without it.
+  { no strict 'refs';
+
+    # allow users to turn off Time::HiRes usage for whatever reason
+    my $time_hires_default = 1;
+    $time_hires_default = $ENV{USE_TIME_HIRES}if defined $ENV{USE_TIME_HIRES};
+    if(defined &USE_TIME_HIRES) {
+        $time_hires_default = USE_TIME_HIRES();
+    } else {
+        eval "sub USE_TIME_HIRES () { $time_hires_default }";
+    }
+  }
   eval {
     require Time::HiRes;
     Time::HiRes->import(qw(time sleep));
-  };
+  } if USE_TIME_HIRES();
 
   # http://support.microsoft.com/support/kb/articles/Q150/5/37.asp
   # defines EINPROGRESS as 10035.  We provide it here because some
@@ -699,6 +710,7 @@ sub _data_sig_free_terminated_sessions {
   }
   else {
     foreach my $touched_session (@kr_signaled_sessions) {
+      next unless $self->_data_ses_exists($touched_session);
       $self->_data_ses_collect_garbage($touched_session);
     }
   }
@@ -2526,12 +2538,29 @@ sub _dispatch_event {
   }
 
   # Post-dispatch processing.  This is a user event (but not a call),
-  # so garbage collect it.  Also garbage collect the sender, if needed.
+  # so garbage collect it.  Also garbage collect the sender, if
+  # needed.  Avoid collecting garbage on the source session if it's
+  # already died somewhere else.  -><- I'm not sure that's the best
+  # solution; a better one might avoid the double free situation
+  # altogether.
+
+  # Maybe we should defer all garbage collection until the current
+  # event handler returns.  That may simplify a lot of things; just
+  # touch the ones that need to be GC'd and then run through them all
+  # at once.  No, probably not, since GC triggers _stop, which may
+  # trigger other GC. -><-
+
+  # Need to test $session for existence because POE::NFA->stop() may
+  # have discarded it already.  -><- This is rapidly becoming a
+  # mess, and some sort of mark/sweep may clean it up.
 
   if ($type & ET_USER) {
-    $self->_data_ses_collect_garbage($session);
+    $self->_data_ses_collect_garbage($session)
+      if $self->_data_ses_exists($session);
     $self->_data_ses_collect_garbage($source_session)
-      unless $session == $source_session;
+      if ( $session != $source_session and
+           $self->_data_ses_exists($source_session)
+         );
   }
 
   # A new session has started.  Tell its parent.  Incidental _start
@@ -4103,6 +4132,12 @@ If Time::HiRes is installed, POE::Kernel will use it to increase the
 accuracy of timed events.  The kernel will use the less accurate
 built-in time() if Time::HiRes isn't available.
 
+If the use of Time::HiRes is not desired, for whatever reason, it can
+be disabled like so:
+
+    sub POE::Kernel::USE_TIME_HIRES () { 0 }
+    use POE;
+
 =over 2
 
 =item alarm EVENT_NAME, EPOCH_TIME, PARAMETER_LIST
@@ -5014,7 +5049,9 @@ code in large scale clients and servers.
 =item Tk's Event Loop
 
 This loop allows POE to work in graphical programs using the Tk-Perl
-library.
+library.  When using Tk with POE, POE supplies an already-created
+$poe_main_window variable to use for your main window.  Calling Tk's
+MainWindow->new() often has an undesired outcome.
 
   use Tk;
   use POE;

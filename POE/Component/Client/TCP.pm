@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.30 2003/02/07 05:03:42 hachi Exp $
+# $Id: TCP.pm,v 1.31 2003/03/05 17:20:13 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.30 $ ))[1];
+$VERSION = (qw($Revision: 1.31 $ ))[1];
 
 use Carp qw(carp croak);
 use POSIX qw(ETIMEDOUT);
@@ -229,11 +229,13 @@ sub new {
         },
 
         shutdown => sub {
-          my $heap = $_[HEAP];
+          my ($kernel, $heap) = @_[KERNEL, HEAP];
           $heap->{shutdown} = 1;
 
-          $_[KERNEL]->alarm_remove( delete $heap->{ctimeout_id} )
+          $kernel->alarm_remove( delete $heap->{ctimeout_id} )
             if exists $heap->{ctimeout_id};
+
+          $kernel->alias_remove($alias) if defined $alias;
 
           if ($heap->{connected}) {
             if (defined $heap->{server}) {

@@ -1,4 +1,4 @@
-# $Id: Select.pm,v 1.42 2002/10/26 11:59:37 rcaputo Exp $
+# $Id: Select.pm,v 1.44 2003/03/03 15:51:46 sungo Exp $
 
 # Select loop bridge for POE::Kernel.
 
@@ -8,7 +8,7 @@ package POE::Loop::Select;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.42 $ ))[1];
+$VERSION = (qw($Revision: 1.44 $ ))[1];
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -31,8 +31,14 @@ sub POE_LOOP () { LOOP_SELECT }
 # anyway (it's happened), the select() function is restarted and will
 # block indefinitely.  Set the minimum select() timeout to 1us on
 # Linux systems.
+
+# sungo: this appears no longer necessary and speeds up events per second
+# on linux. basically, the smallest timeout possible on linux is 20ms. 
+# With no timeout, the select loop is not limited to this incredibly large
+# default timeout.
 BEGIN {
-  my $timeout = ($^O eq 'linux') ? 0.001 : 0;
+#  my $timeout = ($^O eq 'linux') ? 0.001 : 0;
+  my $timeout = 0;
   eval "sub MINIMUM_SELECT_TIMEOUT () { $timeout }";
 };
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 23_nfa.t,v 1.5 2003/02/01 04:52:07 cwest Exp $
+# $Id: 23_nfa.t,v 1.6 2003/04/29 15:52:59 rcaputo Exp $
 
 # Tests NFA sessions.
 
@@ -55,6 +55,18 @@ POE::NFA->spawn
      },
     },
   )->goto_state( initial => 'start' );  # enter the initial state
+
+### This NFA uses the stop() method.  Gabriel Kihlman discovered that
+### POE::NFA lags behind POE::Kernel after 0.24, and stop() wasn't
+### fixed to use the new _data_ses_free() method of POE::Kernel.
+
+POE::NFA->spawn
+  ( inline_states =>
+    { initial =>
+      { start => sub { $_[MACHINE]->stop() }
+      }
+    }
+  )->goto_state(initial => 'start');
 
 ### A plain session to interact with the switch.  It's in its own
 ### package to avoid conflicting constants.  This simulates a causal
