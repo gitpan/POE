@@ -1,4 +1,4 @@
-$Id: CHANGES,v 1.42 2001/08/29 13:45:02 rcaputo Exp $
+$Id: CHANGES,v 1.44 2001/08/29 21:29:04 rcaputo Exp $
 
 Revision history for POE
 ========================
@@ -22,6 +22,27 @@ Version numbers have four fields: X.YYZZAAB
 | cvs tag -Rc v0_11   .
 | cvs tag -Rc v0_1009 .
 `------------------------------------------------------------------------------
+
+
+0.17 2001.08.29
+---------------
+
+This is the second release today.  It fixes a test failure on Linux.
+
+Brian Knox discovered (the hard way) that POE::Wheel::Run wasn't
+flushing STDOUT and STDERR when executing coderefs.  Added auto-flush
+to those handles and explicit close() calls after the coderef was run.
+
+Added coral's idea and algorithm for timesliced code to TODO.
+
+Fixed POE::Pipe's custom socketpair on Linux.  Calling getpeername on
+a connecting socket returns a value that does not equal accept's
+return value, despite both ends of the socket being on the same
+machine, in the same program.
+
+Added dynweb's Solaris test results for 0.16.  Added my own test
+results for 0.17 on FreeBSD and Linux.
+
 
 0.16 2001.08.29
 ---------------
