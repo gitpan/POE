@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.44 2004/01/15 22:18:44 rcaputo Exp $
+# $Id: TCP.pm,v 1.45 2004/02/12 03:51:22 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.44 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.45 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa AF_UNIX PF_UNIX);
@@ -590,7 +590,7 @@ name, and the remaining items will be constructor parameters for the
 filter.  For example, this changes the line separator to a vertical
 bar:
 
-  ClientFilter => [ "POE::Filter::Line", InputLiteral => "|" ],
+  ClientFilter => [ "POE::Filter::Line", Literal => "|" ],
 
 ClientFilter is optional.  The component will supply a
 "POE::Filter::Line" instance if none is specified.  If you supply a
@@ -612,7 +612,7 @@ Filter modules are required at runtime, and if either fails to be
 loaded, it will fall back to the defaults as if no ClientFilter
 option was defined.
 
-  ClientInputFilter  => [ "POE::Filter::Line", InputLiteral => "|" ],
+  ClientInputFilter  => [ "POE::Filter::Line", Literal => "|" ],
   ClientOutputFilter => "POE::Filter::Stream",
 
 =item ClientInput

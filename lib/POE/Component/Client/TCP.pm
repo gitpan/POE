@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.39 2003/11/26 03:52:07 rcaputo Exp $
+# $Id: TCP.pm,v 1.41 2004/02/12 03:51:22 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.39 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.41 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -389,8 +389,9 @@ POE::Component::Client::TCP - a simplified TCP client
 
   # Accepted public events.
 
-  $kernel->yield( "shutdown" )   # shut down a connection
-  $kernel->yield( "reconnect" )  # reconnect to a server
+  $kernel->yield( "connect", $host, $port )  # connect to a new host/port
+  $kernel->yield( "reconnect" )  # reconnect to the previous host/port
+  $kernel->yield( "shutdown" )   # shut down a connection gracefully
 
   # Responding to a server.
 
@@ -534,7 +535,7 @@ name, and the remaining items will be constructor parameters for the
 filter.  For example, this changes the line separator to a vertical
 pipe:
 
-  Filter => [ "POE::Filter::Line", InputLiteral => "|" ],
+  Filter => [ "POE::Filter::Line", Literal => "|" ],
 
 Filter is optional.  The component will supply a "POE::Filter::Line"
 instance none is specified.  If you supply a different value for
@@ -613,6 +614,13 @@ the component.
 =head1 Public Events
 
 =over 2
+
+=item connect
+
+Cause the TCP client to connect, optionally providing a new RemoteHost
+and RemotePort (which will also be used for subsequent "reconnect"s.
+If the client is already connected, it will disconnect harshly, as
+with reconnect, discarding any pending input or output.
 
 =item reconnect
 

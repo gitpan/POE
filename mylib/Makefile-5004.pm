@@ -1,7 +1,9 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.20 2004/02/02 17:24:51 rcaputo Exp $
+# $Id: Makefile-5004.pm,v 1.21 2004/04/20 00:52:13 sungo Exp $
 
 use ExtUtils::MakeMaker;
+use File::Find;
+use File::Spec;
 
 # Add a new target.
 
@@ -25,6 +27,18 @@ poe_report.xml: Makefile
 EOF
 }
 
+my @tests;
+
+find( 
+  sub { 
+    /\.t$/ && 
+    push @tests, File::Spec->catfile($File::Find::dir,$_) 
+  },
+  't/',
+);
+
+my $test_str = join " ", sort @tests;
+
 # Touch generated files so they exist.
 open(TOUCH, ">>CHANGES") and close TOUCH;
 open(TOUCH, ">>META.yml") and close TOUCH;
@@ -40,7 +54,7 @@ WriteMakefile
                     'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
                   ),
     },
-    test           => { TESTS => 't/*/*.t t/*.t' },
+    test           => { TESTS => $test_str },
     PREREQ_PM      => { Carp               => 0,
                         Exporter           => 0,
                         IO                 => 0,

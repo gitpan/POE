@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm,v 1.67 2004/01/25 01:54:58 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.68 2004/04/20 00:15:55 sungo Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.67 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.68 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -80,31 +80,6 @@ sub new {
 
   my $driver = delete $params{Driver};
   $driver = POE::Driver::SysRW->new() unless defined $driver;
-
-  # STATE-EVENT
-  if (exists $params{HighState}) {
-    croak "HighState is deprecated.  Use HighEvent";
-  }
-
-  # STATE-EVENT
-  if (exists $params{LowState}) {
-    croak "LowState is deprecated.  Use LowEvent.";
-  }
-
-  # STATE-EVENT
-  if (exists $params{InputState}) {
-    croak "InputState is deprecated.  Use InputEvent";
-  }
-
-  # STATE-EVENT
-  if (exists $params{ErrorState}) {
-    croak "ErrorState is deprecated.  Use ErrorEvent";
-  }
-
-  # STATE-EVENT
-  if (exists $params{FlushedState}) {
-    croak "FlushedState is deprecated.  Use FlushedEvent";
-  }
 
   { my $mark_errors = 0;
     if (defined($params{HighMark}) xor defined($params{LowMark})) {
@@ -358,11 +333,6 @@ sub event {
 
   while (@_) {
     my ($name, $event) = splice(@_, 0, 2);
-
-    # STATE-EVENT
-    if ($name =~ /^(.*?)State$/) {
-      croak "$name is deprecated.  Use $1Event";
-    }
 
     if ($name eq 'InputEvent') {
       $self->[EVENT_INPUT] = $event;

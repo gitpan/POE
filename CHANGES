@@ -1,3 +1,166 @@
+============================
+2004-04-27 01:21:19 untagged
+============================
+
+  2004-04-27 01:21:19 by rcaputo; lib/POE.pm 1.174
+
+    Fix the version number so CPAN won't index it. 
+
+  2004-04-27 01:19:29 by rcaputo; mylib/coverage.perl 1.11
+
+    Turn off the debugging. 
+
+  2004-04-26 22:37:14 by rcaputo; mylib/coverage.perl 1.10
+
+    Fix the coverage reporting tool to find the source files in their new
+    locations. 
+
+===========================
+2004-04-26 06:17:30 v0_2804
+===========================
+
+  2004-04-26 06:17:30 by rcaputo; t/08_errors.t 1.54
+
+    Removed a workaround for older builds of ActivePerl. 
+
+  2004-04-25 17:50:19 by rcaputo; README 1.106
+
+    Tweak for the impending release. 
+
+  2004-04-25 15:05:36 by rcaputo; mylib/cvs-log.perl 1.7
+
+    Add command line switches, and normalize whitespace so the results
+    are more machine friendly. 
+
+  2004-04-25 14:58:34 by rcaputo; lib/POE.pm 1.173
+
+    Increase version number for release candidate. 
+
+  2004-04-25 14:43:48 by rcaputo; samples/README.samples 1.2
+
+    Remove the dead files. 
+
+  2004-04-20 00:52:13 by sungo; mylib/Makefile-5004.pm 1.21
+
+    find the tests in a different (less shell dependent) way so that
+    tools like testreport work as expected 
+
+  2004-04-20 00:15:55 by sungo; lib/POE/Wheel/FollowTail.pm 1.50;
+  lib/POE/Wheel/ListenAccept.pm 1.29; lib/POE/Wheel/ReadWrite.pm 1.68;
+  lib/POE/Wheel/SocketFactory.pm 1.75
+
+    (!!) complete XyzState to XyzEvent transition. This removes all
+    errors and warnings caused by use of the old State parameters in
+    Wheels. all tests pass in 5.004_005, 5.005_004, 5.6.2, and 5.8.3 
+
+  2004-04-19 23:29:40 by sungo; t/01_sessions.t 1.30
+
+    mod the test suite so tests pass despite evil nasty garbage
+    collection bug in perls older than 5.6. the workarounds are commented
+    with nice blocks explaining the problem. the only real solution is to
+    get a perl without the bug. sorry folks. there's only so much i can
+    do. 
+
+  2004-04-18 22:31:22 by sungo; lib/POE/Session.pm 1.99
+
+    merge in lotr's try_alloc patch. closes rt #6045 
+
+  2004-04-18 19:21:34 by sungo; t/30_filter_httpd.t 1.9
+
+    yet more "older perls" support fixes. only run the tests that require
+    qr// on perls that support qr//. tested on 5.004 and 5.8.3 
+
+  2004-04-18 18:56:30 by sungo
+  lib/POE/Kernel.pm 1.283; lib/POE/Session.pm 1.98; t/01_sessions.t 1.29
+
+    unfortunately there are really two patches in here. first, remove the
+    "no warnings" calls that were breaking poe on perls older than 5.6.
+    replace them with $^W invocations as suggested by perllexwarn.
+    second, fix the TRACE_FILE magic that was causing older perls to lose
+    their mind. the comments here explain this in detail so i wont bother
+    explaining it here. its kind of magic but works well. i have tested
+    all this on 5.004 and 5.8.3 and all is well there (at least in
+    relation to this patch - theres more to come in 5.004 land) 
+
+  2004-04-17 17:20:36 by sungo; lib/POE.pm 1.172; lib/POE/Loop.pm 1.4
+
+    fix some pod issues that pod2man was complaining about 
+
+  2004-04-17 17:11:14 by sungo; Build.PL 1.10; lib/POE/API/Ctl.pm 1.2;
+  lib/POE/Resource/Controls.pm 1.2; mylib/cpan-test.perl 1.4;
+  mylib/cvs-log.perl 1.6; mylib/events_per_second.pl 1.2;
+  mylib/reportupload.pl 1.4; t/30_filter_httpd.t 1.8
+
+    remove 'use warnings' everywhere to keep stuff from breaking on older
+    perls 
+
+  2004-04-17 16:58:42 by sungo; lib/POE.pm 1.171
+
+    update my email address 
+
+  2004-04-17 14:17:53 by sungo; MANIFEST 1.99; lib/POE/API/Ctl.pm 1.1;
+  lib/POE/Kernel.pm 1.282; lib/POE/Resource/Controls.pm 1.1;
+  lib/POE/Resources.pm 1.8; t/api/ctl.t 1.1; t/res/controls.t 1.1
+
+    add in the new POE::Resource::Controls and POE::API::Ctl modules. yay
+    ra 
+
+  2004-04-17 03:27:25 by rcaputo; lib/POE/Resources.pm 1.7
+
+    The redo statement is excessively clever. Commented it a little, per
+    sungo's suggestion. 
+
+  2004-04-09 01:45:41 by sungo; Build.PL 1.9
+
+    test 
+
+  2004-04-09 01:40:48 by sungo; Build.PL 1.6
+
+    cia cvs stats test 
+
+  2004-03-13 03:07:52 by sungo; lib/POE/Kernel.pm 1.281
+
+    expose kr_active_event 
+
+  2004-03-13 01:55:39 by sungo; lib/POE.pm 1.170
+
+    up poe version for development 
+
+  2004-03-13 01:54:29 by sungo; lib/POE/Kernel.pm 1.280
+
+    add kr_run_warning into the kernel so it is usable outside of
+    Kernel.pm. all tests pass. 
+
+  2004-02-17 18:27:48 by rcaputo
+  MANIFEST 1.98; samples/README.samples 1.1
+
+    Removed several of the sample programs. These are ones with
+    equivalents on POE's cookbook page. 
+
+  2004-02-14 03:45:51 by rcaputo; lib/POE/Kernel.pm 1.279
+
+    Philip Gwyn pointed out that the signal() documentation doesn't match
+    the full feature set of the method itself. You can send extra
+    parameters along with a fake signal, and now the docs reflect that. 
+
+  2004-02-12 07:30:11 by rcaputo; lib/POE/Kernel.pm 1.278
+
+    Applied Scott's patch to speed up call(), which in turn makes wheels
+    run something like 20% faster. It's not his ideal patch, but it's a
+    good compromise. We're still hashing out details on the mailing list
+    of his other patch. I think we're done except for the new function's
+    name. 
+
+  2004-02-12 03:51:22 by rcaputo; lib/POE/Component/Client/TCP.pm 1.41;
+  lib/POE/Component/Server/TCP.pm 1.45
+
+    Jay Strauss pointed out that we're using InputLiteral instead of
+    Literal in the I/O filter examples in the docs here. Fix that. 
+
+  2004-02-02 22:37:47 by rcaputo; lib/POE/Component/Client/TCP.pm 1.40
+
+    Apply Corwin's doc patch exposing the "connect" event to the public. 
+
 ===========================
 2004-02-02 17:32:12 v0_2802
 ===========================
@@ -38,7 +201,7 @@
   samples/queue.perl 1.2; samples/selects.perl 1.13;
   samples/sessions.perl 1.20; samples/signals.perl 1.14;
   samples/tcp_watermarks.perl 1.3; samples/thrash.perl 1.13;
-  samples/tk.perl 1.9; samples/udp.perl 1.5; samples/watermarks.perl 1.5;
+  samples/tk.perl 1.9; samples/watermarks.perl 1.5;
   samples/wheels.perl 1.9; samples/wheels2.perl 1.6; t/001_queue.t 1.7;
   t/00_coverage.t 1.21; t/01_sessions.t 1.28; t/02_alarms.t 1.17;
   t/03_aliases.t 1.16; t/04_selects.t 1.21; t/05_macros.t 1.10;
@@ -65,21 +228,20 @@
   2004-01-28 23:24:43 by rcaputo; MANIFEST 1.96; Makefile.PL 1.27;
   NEEDS 1.9; mylib/Makefile-5004.pm 1.17; mylib/Makefile-5005.pm 1.35;
   mylib/coverage.perl 1.9; mylib/reportupload.pl 1.3;
-  mylib/testreport.pl 1.12; samples/socketfactory.perl 1.18;
-  t/001_queue.t 1.6; t/00_coverage.t 1.20; t/01_sessions.t 1.27;
-  t/02_alarms.t 1.16; t/03_aliases.t 1.15; t/04_selects.t 1.20;
-  t/05_macros.t 1.9; t/06_tk.t 1.46; t/07_event.t 1.19;
-  t/08_errors.t 1.52; t/09_wheels_unix.t 1.17; t/10_wheels_tcp.t 1.16;
-  t/11_signals_poe.t 1.27; t/12_signals_ev.t 1.20; t/13_wheels_udp.t 1.7;
-  t/14_wheels_ft.t 1.15; t/15_filter_block.t 1.9;
-  t/16_filter_stream.t 1.6; t/17_filter_ref.t 1.9;
-  t/18_filter_line.t 1.10; t/19_filterchange.t 1.14; t/20_accept.t 1.8;
-  t/21_gtk.t 1.21; t/22_wheel_run.t 1.34; t/23_nfa.t 1.9;
-  t/24_filter_stack.t 1.6; t/25_detach.t 1.7; t/26_comp_tcp.t 1.6;
-  t/27_poll.t 1.9; t/28_windows.t 1.8; t/29_sockfact6.t 1.12;
-  t/res/aliases.t 1.8; t/res/events.t 1.5; t/res/extrefs.t 1.9;
-  t/res/filehandles.t 1.7; t/res/sessions.t 1.5; t/res/sids.t 1.4;
-  t/res/signals.t 1.4
+  mylib/testreport.pl 1.12; t/001_queue.t 1.6; t/00_coverage.t 1.20;
+  t/01_sessions.t 1.27; t/02_alarms.t 1.16; t/03_aliases.t 1.15;
+  t/04_selects.t 1.20; t/05_macros.t 1.9; t/06_tk.t 1.46;
+  t/07_event.t 1.19; t/08_errors.t 1.52; t/09_wheels_unix.t 1.17;
+  t/10_wheels_tcp.t 1.16; t/11_signals_poe.t 1.27;
+  t/12_signals_ev.t 1.20; t/13_wheels_udp.t 1.7; t/14_wheels_ft.t 1.15;
+  t/15_filter_block.t 1.9; t/16_filter_stream.t 1.6;
+  t/17_filter_ref.t 1.9; t/18_filter_line.t 1.10;
+  t/19_filterchange.t 1.14; t/20_accept.t 1.8; t/21_gtk.t 1.21;
+  t/22_wheel_run.t 1.34; t/23_nfa.t 1.9; t/24_filter_stack.t 1.6;
+  t/25_detach.t 1.7; t/26_comp_tcp.t 1.6; t/27_poll.t 1.9;
+  t/28_windows.t 1.8; t/29_sockfact6.t 1.12; t/res/aliases.t 1.8;
+  t/res/events.t 1.5; t/res/extrefs.t 1.9; t/res/filehandles.t 1.7;
+  t/res/sessions.t 1.5; t/res/sids.t 1.4; t/res/signals.t 1.4
 
     Hopefully this patch fixes all the paths to point to mylib instead of
     lib. Developers and just plain folk who have CVS trees will need to
@@ -115,7 +277,7 @@
     commit patches lib/Build.PL to find POE.pm in its current location.
     It also patches Makfile-5005.pm so that "make dist" does not generate
     a META.yml. Finally it commits a working META.yml.
-
+    
     In the future, META.yml should come out of cvs, and "make dist"
     should generate a proper one. 
 
@@ -412,7 +574,7 @@
     Client::HTTP's tests stopped exiting on their own. Tracked it back to
     Client::DNS, reproduced it there, and used its test suite to verify
     the error back home in POE::Resource::Extrefs. Whee!
-
+    
     Oh, right. This commit backs out that prior "optimization". 
 
   2003-11-22 04:55:27 by sungo; t/21_gtk.t 1.20
@@ -519,7 +681,7 @@
     input and output filters for client sessions at the outset. To be
     sure, you may still set different filters on $heap->{client}
     directly, but this avoids the extra step.
-
+    
     Applied Damir Dzeko's patch to support UNIX sockets, but this is
     neither a documented nor permanent patch. A better solution will
     probably be to abstract most of Server::TCP into a base class and
@@ -577,7 +739,7 @@
     the remote end might not be there. "Apocalypse" discovered this
     condition during load testing and was nice enough to track it down.
     Thanks!
-
+    
     The other two files have whitespace changes. Darn CVS for wanting to
     commit them, but what can y'do? 
 
@@ -669,10 +831,6 @@
 
     Andrew Chen pointed out that the -9 signal doesn't work. Corrected it
     to 9 in the docs. 
-
-  2003-09-01 04:16:35 by rcaputo; samples/readline.perl 1.5
-
-    James March's "UNIX Clients" recipe uses POE::Wheel::Readline. 
 
   2003-08-31 02:43:10 by sungo; Build.PL 1.1; MANIFEST 1.90
 
@@ -1288,7 +1446,7 @@
 
     Applied Nick Williams' patch to avoid internal inconsistency problems
     with signals use:
-
+    
     > When using the kernel's signal() method to send a user-defined >
     signal, it's possible to get a signal dispatched to a session which >
     is in the process of shutting down (i.e. about to call the _stop >
@@ -1302,227 +1460,6 @@
 
     Fix POE::NFA's stop() method. Previously it was using POE::Kernel's
     session_free() method, which was recently renamed. 
-
-  2003-04-21 14:54:36 by rcaputo; lib/POE/Kernel.pm 1.238
-
-    Work around the persistent double-GC problem by avoiding a second GC
-    on a defunct session. 
-
-  2003-04-08 01:01:44 by rcaputo; lib/POE/Kernel.pm 1.237
-
-    Applied Brandon Beamer's POD patch for $poe_main_window when using Tk
-    with POE. 
-
-  2003-04-07 06:19:28 by rcaputo; mylib/ExtUtils/AutoInstall.pm 1.3
-
-    Update to version 0.50. 
-
-  2003-04-07 04:22:02 by rcaputo; lib/POE/Wheel/SocketFactory.pm 1.70
-
-    Fixed a leak discovered by dynweb. In client mode, SocketFactory
-    would did release its grip on the socket until destroyed. He found
-    the leak in a program that passed the socket to
-    $kernel->select_read() without destroying the SocketFactory. 
-
-  2003-04-05 06:45:37 by rcaputo; t/08_errors.t 1.44
-
-    Commit Alan Hastings' more proper patch for Cygwin support. 
-
-  2003-04-03 04:01:56 by rcaputo; lib/POE/Wheel/Run.pm 1.46
-
-    Apply Alan Hastings' Cygwin support patch. 
-
-  2003-04-03 04:00:47 by rcaputo; lib/POE/Wheel/SocketFactory.pm 1.69
-
-    Patch the documentation for the Reuse parameter. Also support another
-    reasonable alternative. It might be best, however, to trust the user
-    to supply a proper Perl boolean value. 
-
-  2003-03-24 16:48:58 by rcaputo
-  lib/POE/Wheel/Run.pm 1.45; t/22_wheel_run.t 1.31
-
-    Applied and documented Dmitri Tikhonov's patch for the ProgramArgs
-    feature. This lets master programs specify parameters for
-    code/programs that are forked off, avoiding closures and the possible
-    memory leaks created by them. The tests were extended to exercise the
-    new feature. 
-
-  2003-03-24 16:46:32 by rcaputo; mylib/cvs-log.perl 1.4
-
-    It seems impossible to avoid duplicate tags (identical timestamp) for
-    the initial import of a source tree into CVS. The usual convention is
-    to tag the first import as "start", so we ignore any other tags that
-    coincide with that. 
-
-  2003-03-16 07:46:10 by rcaputo; t/28_windows.t 1.5
-
-    The two-second timeout was too slow for the 486 I'm using to test
-    Windows NT. Increased the timeout to five seconds so that the test
-    doesn't trigger false failures on slow machines. 
-
-  2003-03-05 17:22:23 by rcaputo; lib/POE/Kernel.pm 1.236
-
-    Hachi's double-free fix leaves the code in this file, but it's
-    commented out. I'm commenting it so archaeologists will know what he
-    was thinking. 
-
-  2003-03-05 17:20:13 by rcaputo; lib/POE/Component/Client/TCP.pm 1.31
-
-    Clear the Client::TCP component's alias on shutdown. Otherwise, if
-    something else in the program is active, the Client will disconnect
-    but its internal session won't _stop. "Buzz Darkyear" on MagNet #poe
-    reported this one. 
-
-  2003-03-03 16:27:01 by sungo; lib/POE/Kernel.pm 1.235
-
-    add the ability to disable Time::HiRes usage via a constant. document
-    this interface 
-
-  2003-03-03 15:51:46 by sungo; lib/POE/Loop/Select.pm 1.44
-
-    oops. still need to set a minumum select timeout 
-
-  2003-03-03 15:47:18 by sungo; lib/POE/Loop/Select.pm 1.43
-
-    comment out the linux select timeout workaround and comment why 
-
-  2003-03-02 07:20:40 by hachi; lib/POE/Kernel.pm 1.234
-
-    Bug squashing attempt, sessions that used postbacks may in the past
-    get garbage collected twice, there was an internal consistency check
-    to this effect which made a confess() call.
-
-    I hope I wasn't supposed to increment the version to .2502 or
-    something before committing. 
-
-  2003-02-28 22:40:47 by rcaputo; Makefile.PL 1.26
-
-    <sky> what happens is that the code is compiled twice, and the first
-
-    time in the same scope as the ST_TIME <dngnand> This is the 0.22 bug?
-    <sky> yes <sky> the bug exists in non threaded and threaded perl
-    <sky> but because threaded perl keeps constants on the pad, it
-
-    actually shows <dngnand> Oh! Does it also do this in blead, then?
-    <sky> no, but maintblead <sky> blead fixes it <sky> but blead has
-    mucho rewritten pad handling <dngnand> Do you think this is something
-    that will bite regular
-
-    POE/Perl users? <sky> not in 0.23+ <dngnand> I'll remove the warning
-    from Makefile.PL, then. 
-
-  2003-02-27 00:10:35 by cwest; lib/POE/Wheel/FollowTail.pm 1.43
-
-    From the mailing list:
-
-    Date: Tue, 25 Feb 2003 16:28:11 -0800
-
-    From: Jim Westfall <jwestfall@surrealistic.net>
-
-    To: poe@perl.org
-
-    Subject: FollowTail behavior change with SeekBack
-
-    I recently upgraded to 0.25 from 0.23 and noticed there is a
-
-    behavior change to FollowTail with the SeekBack option. A
-
-    'SeekBack' => 0 is now causing it to seek back instead of seeking to
-
-    the EOF like one would expect. The code was as follows
-
-    my $seek_back = ( (defined $params{SeekBack})
-
-    ? $params{SeekBack}
-
-    : 4096
-
-    );
-
-    and has been changed to
-
-    my $seek_back = $params{SeekBack} || 4096;
-
-    so now if $params{SeekBack} is undefined or set to 0 it will make
-
-    $seek_back 4096. simple workaround on my part is to set SeekBack to
-
-    -1.
-
-    A simular situation exists with the PollInterval option, tho I dunno
-
-    if 0 would be a valid option for it.
-
-    __END__
-
-    This was a short sided change. The old behaviour is correct and has
-    been restored. 
-
-  2003-02-22 03:00:35 by sungo; mylib/events_per_second.pl 1.1
-
-    first stab at a benchmark of various event loops. run with --help
-    option for usage 
-
-  2003-02-18 15:08:55 by rcaputo; t/08_errors.t 1.43
-
-    Cygwin doesn't give us warnings when creating this bogus
-    SocketFactory. This patch works around Cygwin's strange behavior in a
-    most unsatisfying way. 
-
-  2003-02-07 19:34:20 by rcaputo; lib/POE.pm 1.156
-
-    Bump the version to the next "CVS" number. 
-
-=========================
-2003-02-07 17:48:47 v0_25
-=========================
-
-  2003-02-07 17:48:47 by rcaputo; README 1.103; lib/POE.pm 1.155
-
-    Finalize things for the imminent 0.25 release. 
-
-  2003-02-07 05:03:43 by hachi; lib/POE/Component/Client/TCP.pm 1.30;
-  lib/POE/Component/Server/TCP.pm 1.35
-
-    Documentation cleanup in PoCo::Client::TCP and PoCo::Server::TCP
-
-    First time I committed CVS (outside of my own hard drive) Yay me! 
-
-  2003-02-06 20:07:15 by rcaputo; t/04_selects.t 1.17
-
-    This fix is against against revision 1.14. Forcing that new test to
-    use "inet" pipes breaks on systems where localhost is firewalled.
-    Tweaked the test to use whichever pipes it can under non-Windows
-    operating systems, and forced it to "inet" for MSWin32. A real
-    solution would be to skip the test entirely if the pipe can't be
-    built. I suspect we'll need to revisit this later. 
-
-  2003-02-06 03:30:38 by rcaputo; t/06_tk.t 1.40
-
-    It is unfortunate, but a bug in ActivePerl 5.8.0's version of Tk
-    prevents us from supporting Tk at all in this build. We regret the
-    inconvenience and hope that support can resume in a future ActivePerl
-    build. Meanwhile, you may follow the status of the bug at
-    http://bugs.activestate.com/show_bug.cgi?id=22619 
-
-  2003-02-06 03:25:52 by rcaputo; lib/POE/Loop/Tk.pm 1.39
-
-    Collateral refactoring while trying to work around ActivePerl's
-    problem with Tk, and Tk's problem with my preferred workaround. 
-
-  2003-02-05 16:22:11 by rcaputo; lib/POE/Kernel.pm 1.233
-
-    Nancy Grady pointed out that Randal Schwartz's listing at
-    http://www.stonehenge.com/merlyn/LinuxMag/col41.listing.txt was not
-    exiting when it was done. This turned out to be a missing garbage
-    collection test in POE::Kernel, introduced during the Great
-    Refactoring of 2002. This fix adds back the GC test that was removed. 
-
-  2003-02-04 03:32:01 by rcaputo; lib/POE/Pipe.pm 1.9
-
-    Bad Rocco! Always verify copied/pasted/tweaked code has actually been
-    tweaked, or you'll keep doing things like what was fixed here.
-    Luckily it hadn't caused any trouble to speak of. 
 
 =============================
 Beginning of Recorded History

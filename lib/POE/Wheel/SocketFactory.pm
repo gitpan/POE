@@ -1,4 +1,4 @@
-# $Id: SocketFactory.pm,v 1.74 2003/11/26 03:52:07 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.75 2004/04/20 00:15:55 sungo Exp $
 
 package POE::Wheel::SocketFactory;
 use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
@@ -6,7 +6,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.74 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.75 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use Symbol;
@@ -388,11 +388,6 @@ sub event {
   while (@_) {
     my ($name, $event) = splice(@_, 0, 2);
 
-    # STATE-EVENT
-    if ($name =~ /^(.*?)State$/) {
-      croak "$name is deprecated.  Use $1Event";
-    }
-
     if ($name eq 'SuccessEvent') {
       if (defined $event) {
         if (ref($event)) {
@@ -468,16 +463,6 @@ sub new {
   # The calling convention experienced a hard deprecation.
   croak "wheels no longer require a kernel reference as their first parameter"
     if (@_ && (ref($_[0]) eq 'POE::Kernel'));
-
-  # STATE-EVENT
-  if (exists $params{SuccessState}) {
-    croak "SuccessState is deprecated.  Use SuccessEvent";
-  }
-
-  # STATE-EVENT
-  if (exists $params{FailureState}) {
-    croak "FailureState is deprecated.  Use FailureEvent";
-  }
 
   # Ensure some of the basic things are present.
   croak "$type requires a working Kernel" unless (defined $poe_kernel);

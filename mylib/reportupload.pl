@@ -6,7 +6,7 @@ reportupload.pl - upload an xml test report
 
 =head1 VERSION
 
-$Revision: 1.3 $
+$Revision: 1.4 $
 
 =head1 USAGE
 
@@ -23,7 +23,6 @@ This program was written by Matt Cashner.
 =cut
 
 use IO::Socket::INET;
-use warnings;
 use strict;
 local $/;
 

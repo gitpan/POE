@@ -1,4 +1,4 @@
-# $Id: POE.pm,v 1.169 2004/02/02 17:32:12 rcaputo Exp $
+# $Id: POE.pm,v 1.174 2004/04/27 01:21:19 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,8 +7,8 @@ use strict;
 use Carp;
 
 use vars qw($VERSION $REVISION);
-$VERSION = '0.2802';
-$REVISION = do {my@r=(q$Revision: 1.169 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = '0.28_04';
+$REVISION = do {my@r=(q$Revision: 1.174 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 sub import {
   my $self = shift;
@@ -189,7 +189,7 @@ examples, documentation, and more.
 
 The developers of POE strive to make it as portable as possible.  If
 you discover a problem, please e-mail a report to
-<bug-POE@rt.cpan.org>.  If you can, include error messages, perl -V
+<bug-POE@rt.cpan.org>.  If you can, include error messages, C<perl -V>
 output, and/or test cases.  The more information you can provide, the
 quicker we can turn around a fix.  Patches are also welcome, of
 course.
@@ -411,7 +411,7 @@ the POE::Components for TCP clients and servers.
 
 =item Matt Cashner
 
-Matt Cashner is <eek@eekeek.org>, aka C<sungo>.  Matt is one of POE's
+Matt Cashner is <sungo@pobox.com>, aka C<sungo>.  Matt is one of POE's
 core developers.  He's spearheaded the movement to simplify POE for
 new users, flattening the learning curve and making the system more
 accessible to everyone.  He uses the system in mission critical

@@ -1,7 +1,6 @@
 #!/usr/bin/perl
-# $Id: Build.PL,v 1.5 2004/02/02 17:03:07 rcaputo Exp $
+# $Id: Build.PL,v 1.10 2004/04/17 17:10:57 sungo Exp $
 
-use warnings;
 use strict;
 use Module::Build;
 

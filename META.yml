@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: POE
-version: 0.2802
+version: 0.28_04
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: |-
@@ -16,7 +16,10 @@ conflicts: {}
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.2802
+    version: 0.28_04
+  POE::API::Ctl:
+    file: lib/POE/API/Ctl.pm
+    version: 1.0002
   POE::API::ResLoader:
     file: lib/POE/API/ResLoader.pm
     version: 1.0003
@@ -25,10 +28,10 @@ provides:
     version: 1.0006
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
-    version: 1.0039
+    version: 1.0041
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.0044
+    version: 1.0045
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.0015
@@ -70,7 +73,7 @@ provides:
     version: 1.0010
   POE::Loop:
     file: lib/POE/Loop.pm
-    version: 1.0003
+    version: 1.0004
   POE::Loop::Event:
     file: lib/POE/Loop/Event.pm
     version: 1.0037
@@ -121,10 +124,13 @@ provides:
     version: 1.0003
   POE::Resources:
     file: lib/POE/Resources.pm
-    version: 1.0006
+    version: 1.0008
   POE::Resources::Aliases:
     file: lib/POE/Resource/Aliases.pm
     version: 1.0010
+  POE::Resources::Controls:
+    file: lib/POE/Resource/Controls.pm
+    version: 1.0002
   POE::Resources::Events:
     file: lib/POE/Resource/Events.pm
     version: 1.0010
@@ -148,7 +154,7 @@ provides:
     version: 1.0001
   POE::Session:
     file: lib/POE/Session.pm
-    version: 1.0097
+    version: 1.0099
   POE::Wheel:
     file: lib/POE/Wheel.pm
     version: 1.0018
@@ -157,20 +163,20 @@ provides:
     version: 1.0011
   POE::Wheel::FollowTail:
     file: lib/POE/Wheel/FollowTail.pm
-    version: 1.0049
+    version: 1.0050
   POE::Wheel::ListenAccept:
     file: lib/POE/Wheel/ListenAccept.pm
-    version: 1.0028
+    version: 1.0029
   POE::Wheel::ReadLine:
     file: lib/POE/Wheel/ReadLine.pm
     version: 1.0031
   POE::Wheel::ReadWrite:
     file: lib/POE/Wheel/ReadWrite.pm
-    version: 1.0067
+    version: 1.0068
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
     version: 1.0058
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
-    version: 1.0074
+    version: 1.0075
 generated_by: Module::Build version 0.22

@@ -1,9 +1,8 @@
 #!/usr/bin/perl
-# $Id: cpan-test.perl,v 1.3 2004/01/31 06:58:29 rcaputo Exp $
+# $Id: cpan-test.perl,v 1.4 2004/04/17 17:10:59 sungo Exp $
 
 # Fetch and test all the /^POE::/ distributions on CPAN.
 
-use warnings;
 use strict;
 
 use CPANPLUS::Configure;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: coverage.perl,v 1.9 2004/01/28 23:24:00 rcaputo Exp $
+# $Id: coverage.perl,v 1.11 2004/04/27 01:19:29 rcaputo Exp $
 
 # Runs t/*.t with the custom Devel::Trace to check for source
 # coverage.
@@ -95,6 +95,8 @@ foreach my $test_file (@test_files) {
   while (<R>) {
     chomp;
     my ($file, $line, $count, $sub, $source) = split /\t/;
+
+    $file =~ s/^lib\///;
 
     my $report_source = $source;
     $source =~ s/\s+/ /g;

@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.277 2004/01/21 17:27:00 rcaputo Exp $
+# $Id: Kernel.pm,v 1.283 2004/04/18 18:56:30 sungo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.277 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.283 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(fcntl_h sys_wait_h);
@@ -103,6 +103,8 @@ sub KR_SESSION_IDS    () {  7 } #   \%kr_session_ids,
 sub KR_SID_SEQ        () {  8 } #   \$kr_sid_seq,
 sub KR_EXTRA_REFS     () {  9 } #   \$kr_extra_refs,
 sub KR_SIZE           () { 10 } #   XXX UNUSED ???
+sub KR_RUN            () { 11 } #   \$kr_run_warning
+sub KR_ACTIVE_EVENT   () { 12 } #   \$kr_active_event
                                 # ]
 
 # This flag indicates that POE::Kernel's run() method was called.
@@ -244,7 +246,8 @@ BEGIN {
     $value =~ tr['"][]d;
     $value = qq("$value") if $value =~ /\D/;
 
-    no warnings;
+    BEGIN { $^W = 0; }
+
     eval "sub $const () { $value }";
     die if $@;
   }
@@ -262,7 +265,6 @@ BEGIN {
       *TRACE_FILE = *STDERR;
     }
   }
-
   # TRACE_DEFAULT changes the default value for other TRACE_*
   # constants.  Since define_trace() uses TRACE_DEFAULT internally, it
   # can't be used to define TRACE_DEFAULT itself.
@@ -300,44 +302,101 @@ BEGIN {
 # trace file we're using today.  _trap is reserved for internal
 # errors.
 
+{ 
+  # This block abstracts away a particular piece of voodoo, since we're about 
+  # to call it many times. This is all a big closure around the following two 
+  # variables, allowing us to swap out and replace handlers without the need 
+  # for mucking up the namespace or the kernel itself.
+  my ($orig_warn_handler, $orig_die_handler);
+
+  # _trap_death replaces the current __WARN__ and __DIE__ handlers with our own.
+  # We keep the defaults around so we can put them back when we're done.
+  # Specifically this is necessary, it seems, for older perls that don't 
+  # respect the C< local *STDERR = *TRACE_FILE >. 
+  sub _trap_death {
+    $orig_warn_handler = $SIG{__WARN__};
+    $orig_die_handler = $SIG{__DIE__};
+
+    $SIG{__WARN__} = sub { print TRACE_FILE $_[0] };
+    $SIG{__DIE__} = sub { print TRACE_FILE $_[0]; die $@; };
+ 
+  }
+
+  # _release_death puts the original __WARN__ and __DIE__ handlers back in 
+  # place. Hopefully this is zero-impact camping. The hope is that we can 
+  # do our trace magic without impacting anyone else.
+  sub _release_death {
+    $SIG{__WARN__} = $orig_warn_handler; 
+    $SIG{__DIE__} = $orig_die_handler;
+  }
+}
+
+
 sub _trap {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = *TRACE_FILE;
+  
+  _trap_death();
+  
   confess(
     "Please mail the following information to bug-POE\@rt.cpan.org:\n@_"
   );
+
+  _release_death();
 }
 
 sub _croak {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = *TRACE_FILE;
+  
+  _trap_death();
+  
   croak @_;
+  
+  _release_death();
+  
 }
 
 sub _confess {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = *TRACE_FILE;
+  _trap_death();
   confess @_;
+  _release_death();
 }
 
 sub _cluck {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = *TRACE_FILE;
+  
+  _trap_death();
+  
   cluck @_;
+  
+  _release_death();
 }
 
 sub _carp {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = *TRACE_FILE;
+
+  _trap_death();
+
   carp @_;
+
+  _release_death();
 }
 
 sub _warn {
   my ($package, $file, $line) = caller();
   my $message = join("", @_);
   $message .= " at $file line $line\n" unless $message =~ /\n$/;
-  local *STDERR = *TRACE_FILE;
+ 
+  _trap_death();
+ 
   warn $message;
+ 
+  _release_death();
 }
 
 sub _die {
@@ -345,7 +404,12 @@ sub _die {
   my $message = join("", @_);
   $message .= " at $file line $line\n" unless $message =~ /\n$/;
   local *STDERR = *TRACE_FILE;
+ 
+  _trap_death();
+ 
   die $message;
+ 
+  _release_death();
 }
 
 #------------------------------------------------------------------------------
@@ -633,6 +697,10 @@ sub new {
         undef,               # KR_ID 
         undef,               # KR_SESSION_IDS - loaded from POE::Resource::SIDS
         undef,               # KR_SID_SEQ - loaded from POE::Resource::SIDS - is a scalar ref
+        undef,               # KR_EXTRA_REFS
+        undef,               # KR_SIZE
+        \$kr_run_warning,    # KR_RUN 
+        \$kr_active_event,   # KR_ACTIVE_EVENT
       ], $type;
 
     POE::Resources->initialize();
@@ -659,6 +727,7 @@ sub new {
     $self->_initialize_kernel_session();
     $self->_data_stat_initialize() if TRACE_STATISTICS;
     $self->_data_sig_initialize();
+    $self->_data_magic_initialize();
 
     # These other subsystems don't have strange interactions.
     $self->_data_handle_initialize($kr_queue);
@@ -979,6 +1048,7 @@ sub finalize_kernel {
   $self->_data_ev_finalize();
   $self->_data_ses_finalize();
   $self->_data_stat_finalize() if TRACE_PROFILE or TRACE_STATISTICS;
+  $self->_data_magic_finalize();
 }
 
 sub run_one_timeslice {
@@ -1449,7 +1519,9 @@ sub call {
   my $return_value;
   if (wantarray) {
     $return_value = [
-      $self->_dispatch_event(
+      $session == $kr_active_session
+      ? $session->_invoke_state($session, $event_name, \@etc, (caller)[1,2])
+      : $self->_dispatch_event(
         $session, $kr_active_session,
         $event_name, ET_CALL, \@etc,
         (caller)[1,2], time(), -__LINE__
@@ -1457,10 +1529,14 @@ sub call {
     ];
   }
   else {
-    $return_value = $self->_dispatch_event(
-      $session, $kr_active_session,
-      $event_name, ET_CALL, \@etc,
-      (caller)[1,2], time(), -__LINE__
+    $return_value = (
+      $session == $kr_active_session
+      ? $session->_invoke_state($session, $event_name, \@etc, (caller)[1,2])
+      : $self->_dispatch_event(
+        $session, $kr_active_session,
+        $event_name, ET_CALL, \@etc,
+        (caller)[1,2], time(), -__LINE__
+      )
     );
   }
 
@@ -2346,7 +2422,7 @@ Signal watcher and generator methods:
 
   # Post a signal through POE rather than through the underlying OS.
   # This only works within the same process.
-  $kernel->signal( $session, $signal_name );
+  $kernel->signal( $session, $signal_name, @optional_args );
 
 State (event handler) management methods:
 
@@ -3181,14 +3257,14 @@ POE also recognizes "non-maskable" signals.  These will terminate a
 program even when they are handled.  The signal that indicates user
 interface destruction is just such a non-maskable signal.
 
-Event handlers use C<sig_handled()> to tell POE when a signal has been
+Event handlers use sig_handled() to tell POE when a signal has been
 handled.  Some unhandled signals will terminate a program.  Handling
 them is important if that is not desired.
 
 Event handlers can also implicitly tell POE when a signal has been
 handled, simply by returning some true value.  This is deprecated,
 however, because it has been the source of constant trouble in the
-past.  Please use C<sig_handled()> in its place.
+past.  Please use sig_handled() in its place.
 
 Handled signals will continue to propagate through the parent/child
 hierarchy.
@@ -3313,6 +3389,8 @@ The sig() method does not return a meaningful value.
 
 sig_handled() informs POE that a signal was handled.  It is only
 meaningful within event handlers that are triggered by signals.
+
+=item signal SESSION, SIGNAL_NAME, OPTIONAL_ARGS
 
 =item signal SESSION, SIGNAL_NAME
 

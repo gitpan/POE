@@ -1,11 +1,11 @@
-# $Id: Session.pm,v 1.97 2004/01/05 22:37:36 rcaputo Exp $
+# $Id: Session.pm,v 1.99 2004/04/18 22:31:22 sungo Exp $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.97 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.99 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Errno qw(ENOSYS);
@@ -39,8 +39,10 @@ sub EN_SIGNAL       () { '_signal' }
 sub define_assert {
   no strict 'refs';
   foreach my $name (@_) {
+    
+    BEGIN { $^W = 0 };
+
     next if defined *{"ASSERT_$name"}{CODE};
-    no warnings;
     if (defined *{"POE::Kernel::ASSERT_$name"}{CODE}) {
       eval(
         "sub ASSERT_$name () { " .
@@ -59,9 +61,11 @@ sub define_assert {
 # Shorthand for defining a trace constant.
 sub define_trace {
   no strict 'refs';
+ 
+  BEGIN { $^W = 0 };
+
   foreach my $name (@_) {
     next if defined *{"TRACE_$name"}{CODE};
-    no warnings;
     if (defined *{"POE::Kernel::TRACE_$name"}{CODE}) {
       eval(
         "sub TRACE_$name () { " .
@@ -155,6 +159,26 @@ sub import {
   *{ $package . '::ARG9'    } = \&ARG9;
   *{ $package . '::CALLER_FILE' } = \&CALLER_FILE;
   *{ $package . '::CALLER_LINE' } = \&CALLER_LINE;
+}
+
+sub try_alloc {
+  my ($self, @args) = @_;
+  # Verify that the session has a special start state, otherwise how
+  # do we know what to do?  Don't even bother registering the session
+  # if the start state doesn't exist.
+
+  if (exists $self->[SE_STATES]->{+EN_START}) {
+    $POE::Kernel::poe_kernel->session_alloc($self, @args);
+  }
+  else {
+    carp( "discarding session ",
+          $POE::Kernel::poe_kernel->ID_session_to_id($self),
+          " - no '_start' state"
+        );
+    $self = undef;
+  }
+
+  $self;
 }
 
 #------------------------------------------------------------------------------
@@ -324,22 +348,7 @@ sub new {
     croak "odd number of parameters in POE::Session->new call";
   }
 
-  # Verfiy that the session has a special start state, otherwise how
-  # do we know what to do?  Don't even bother registering the session
-  # if the start state doesn't exist.
-
-  if (exists $self->[SE_STATES]->{+EN_START}) {
-    $POE::Kernel::poe_kernel->session_alloc($self, @args);
-  }
-  else {
-    carp( "discarding session ",
-          $POE::Kernel::poe_kernel->ID_session_to_id($self),
-          " - no '_start' state"
-        );
-    $self = undef;
-  }
-
-  $self;
+  return $self->try_alloc (@args);
 }
 
 #------------------------------------------------------------------------------
@@ -520,22 +529,7 @@ sub create {
     }
   }
 
-  # Verfiy that the session has a special start state, otherwise how
-  # do we know what to do?  Don't even bother registering the session
-  # if the start state doesn't exist.
-
-  if (exists $self->[SE_STATES]->{+EN_START}) {
-    $POE::Kernel::poe_kernel->session_alloc($self, @args);
-  }
-  else {
-    carp( "discarding session ",
-          $POE::Kernel::poe_kernel->ID_session_to_id($self),
-          " - no '_start' event handler"
-        );
-    $self = undef;
-  }
-
-  $self;
+  return $self->try_alloc (@args);
 }
 
 #------------------------------------------------------------------------------

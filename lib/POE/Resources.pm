@@ -3,7 +3,7 @@ package POE::Resources;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 my @resources = qw(
   POE::XS::Resource::Aliases
@@ -14,6 +14,7 @@ my @resources = qw(
   POE::XS::Resource::Sessions
   POE::XS::Resource::Signals
   POE::XS::Resource::Statistics
+  POE::XS::Resource::Controls
 );
 
 sub initialize {
@@ -22,6 +23,8 @@ sub initialize {
   foreach my $resource (@resources) {
     eval "package $package; use $resource";
     if ($@) {
+      # Retry the resource, removing XS:: if it couldn't be loaded.
+      # If there's no XS:: to be removed, fall through and die.
       redo if $@ =~ /^Can't locate/ and $resource =~ s/::XS::/::/;
       die;
     }

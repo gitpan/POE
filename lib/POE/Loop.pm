@@ -1,11 +1,11 @@
-# $Id: Loop.pm,v 1.3 2003/11/21 05:08:25 rcaputo Exp $
+# $Id: Loop.pm,v 1.4 2004/04/17 17:20:36 sungo Exp $
 
 package POE::Loop;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -66,7 +66,7 @@ functions are proper POE::Kernel methods.
 Each bridge first defines its own namespace and version within it.
 This way CPAN and other things can track its version.
 
-  # $Id: Loop.pm,v 1.3 2003/11/21 05:08:25 rcaputo Exp $
+  # $Id: Loop.pm,v 1.4 2004/04/17 17:20:36 sungo Exp $
 
   use strict;
 
@@ -75,7 +75,7 @@ This way CPAN and other things can track its version.
   package POE::Loop::YourToolkit;
 
   use vars qw($VERSION);
-  $VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+  $VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
   package POE::Kernel;
 
@@ -105,7 +105,7 @@ Bridges often employ private functions as callbacks from their event
 loops.  The Event, Gtk, and Tk bridges do this.
 
 Developers should look at existing bridges to get a feel for things.
-The -m flag for perldoc will show a module in its entirety.
+The C<-m> flag for perldoc will show a module in its entirety.
 
   perldoc -m POE::Loop::Select
   perldoc -m POE::Loop::Gtk

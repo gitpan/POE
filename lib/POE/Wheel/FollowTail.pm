@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm,v 1.49 2004/01/28 23:19:11 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.50 2004/04/20 00:15:54 sungo Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.49 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.50 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use Symbol;
@@ -61,16 +61,6 @@ sub new {
     if (@_ && (ref($_[0]) eq 'POE::Kernel'));
 
   croak "$type requires a working Kernel" unless (defined $poe_kernel);
-
-  # STATE-EVENT
-  if (exists $params{InputState}) {
-    croak "InputState is deprecated.  Use InputEvent";
-  }
-
-  # STATE-EVENT
-  if (exists $params{ErrorState}) {
-    croak "ErrorState is deprecated.  Use ErrorEvent";
-  }
 
   croak "FollowTail requires a Handle or Filename parameter, but not both"
     unless $params{Handle} xor defined $params{Filename};
@@ -412,11 +402,6 @@ sub event {
 
   while (@_) {
     my ($name, $event) = splice(@_, 0, 2);
-
-    # STATE-EVENT
-    if ($name =~ /^(.*?)State$/) {
-      croak "$name is deprecated.  Use $1Event";
-    }
 
     if ($name eq 'InputEvent') {
       if (defined $event) {

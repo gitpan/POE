@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.53 2004/01/31 06:58:30 rcaputo Exp $
+# $Id: 08_errors.t,v 1.54 2004/04/26 06:17:30 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -192,12 +192,7 @@ print "ok 19\n";
       Nonexistent => 'woobly',
     );
 
-  if ($^O eq "MSWin32") {
-    print "not " unless $warnings == 15;
-  }
-  else {
-    print "not " unless $warnings == 1;
-  }
+  print "not " unless $warnings == 1;
   print "ok 20\n";
 }
 

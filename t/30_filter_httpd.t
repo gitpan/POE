@@ -1,10 +1,9 @@
 #!/usr/bin/perl
-# $Id: 30_filter_httpd.t,v 1.7 2004/01/31 06:58:30 rcaputo Exp $
+# $Id: 30_filter_httpd.t,v 1.9 2004/04/18 19:21:34 sungo Exp $
 
 # Test Filter::HTTPD by itself
 # See other (forthcoming) for more complex interactions
 
-use warnings;
 use strict;
 
 use lib qw(./mylib ../mylib ../lib ./lib);
@@ -213,10 +212,20 @@ SKIP: { # simple put {{{
     is($req->url, 'http://localhost/foo.mhtml',
         'multipart form data: HTTP::Request object contains proper URI');
 
-    like($req->header('Content-Type'), qr#multipart/form-data#,
-        'multipart form data: HTTP::Request object contains proper Content-Type header');
+    if($] >= '5.006') {
+        eval "
+        like(\$req->header('Content-Type'), qr#multipart/form-data#,
+            'multipart form data: HTTP::Request object contains proper Content-Type header');
 
-    like($req->content, qr#&results;.*?exit;#s,
+        like(\$req->content, qr#&results;.*?exit;#s,
             'multipart form data: content seems to contain all data sent');
+        ";
+    } else {
+        SKIP: {
+            skip("Need qr// support for these tests",2);
+            ok(1);
+            ok(1);
+        }
+    } 
 
 } # }}}
