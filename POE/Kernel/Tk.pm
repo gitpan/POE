@@ -1,4 +1,4 @@
-# $Id: Tk.pm,v 1.22 2002/06/07 04:13:18 rcaputo Exp $
+# $Id: Tk.pm,v 1.23 2002/06/25 07:12:15 rcaputo Exp $
 
 # Tk-Perl substrate for POE::Kernel.
 
@@ -6,7 +6,7 @@
 package POE::Kernel::Tk;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.22 $ ))[1];
+$VERSION = (qw($Revision: 1.23 $ ))[1];
 
 BEGIN {
   die "POE's Tk support requires version Tk 800.021 or higher.\n"
@@ -127,7 +127,7 @@ macro substrate_resume_time_watcher {
   my $next_time = $kr_events[0]->[ST_TIME] - time();
   $next_time = 0 if $next_time < 0;
   $self->[KR_WATCHER_TIMER] =
-    $poe_main_window->after( $next_time * 1000, \&_substrate_event_callback );
+    $poe_main_window->after($next_time * 1000, [\&_substrate_event_callback]);
 }
 
 macro substrate_reset_time_watcher {
@@ -282,20 +282,21 @@ macro substrate_define_callbacks {
 
       $self->[KR_WATCHER_TIMER] =
         $poe_main_window->afterIdle
-          ( sub {
-              $self->[KR_WATCHER_TIMER]->cancel();
-              $self->[KR_WATCHER_TIMER] = undef;
+          ( [ sub {
+                $self->[KR_WATCHER_TIMER]->cancel();
+                $self->[KR_WATCHER_TIMER] = undef;
 
-              if (@kr_events) {
-                my $next_time = $kr_events[0]->[ST_TIME] - time();
-                $next_time = 0 if $next_time < 0;
+                if (@kr_events) {
+                  my $next_time = $kr_events[0]->[ST_TIME] - time();
+                  $next_time = 0 if $next_time < 0;
 
-                $self->[KR_WATCHER_TIMER] =
-                  $poe_main_window->after( $next_time * 1000,
-                                           \&_substrate_event_callback
-                                         );
+                  $self->[KR_WATCHER_TIMER] =
+                    $poe_main_window->after( $next_time * 1000,
+                                             [\&_substrate_event_callback]
+                                           );
+                }
               }
-            }
+            ],
           );
     }
 

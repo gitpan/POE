@@ -1,4 +1,4 @@
-# $Id: TwoWay.pm,v 1.11 2002/03/04 23:52:55 rcaputo Exp $
+# $Id: TwoWay.pm,v 1.12 2002/06/22 06:15:33 rcaputo Exp $
 
 # Portable two-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::TwoWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.11 $ ))[1];
+$VERSION = (qw($Revision: 1.12 $ ))[1];
 
 use Symbol qw(gensym);
 use IO::Socket;
@@ -17,7 +17,7 @@ use POE::Pipe;
 @POE::Pipe::TwoWay::ISA = qw( POE::Pipe );
 
 sub DEBUG () { 0 }
-sub RUNNING_IN_HELL () { $^O eq 'MSWin32' }
+sub RUNNING_IN_HELL () { $^O eq 'MSWin32' or $^O eq 'MacOS' }
 
 # This flag is set true/false after the first attempt at using plain
 # INET sockets as pipes.

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.18 2002/05/28 01:59:48 rcaputo Exp $
+# $Id: 01_sessions.t,v 1.19 2002/06/22 06:21:29 rcaputo Exp $
 
 # Tests basic compilation and events.
 
@@ -401,9 +401,9 @@ for (my $i=0; $i<$machine_count; $i++) {
 }
 
 # Were all the signals caught?
-if ($^O eq 'MSWin32') {
-  print "ok 11 # skipped: Windows doesn't support signals\n";
-  print "ok 12 # skipped: Windows doesn't support signals\n";
+if ($^O eq 'MSWin32' or $^O eq 'MacOS') {
+  print "ok 11 # skipped: $^O doesn't support signals\n";
+  print "ok 12 # skipped: $^O doesn't support signals\n";
 }
 else {
   print 'not ' unless $sigalrm_caught == $event_count;

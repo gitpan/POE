@@ -1,4 +1,4 @@
-# $Id: OneWay.pm,v 1.9 2002/03/04 23:52:55 rcaputo Exp $
+# $Id: OneWay.pm,v 1.10 2002/06/22 06:15:33 rcaputo Exp $
 
 # Portable one-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::OneWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.9 $ ))[1];
+$VERSION = (qw($Revision: 1.10 $ ))[1];
 
 use Symbol qw(gensym);
 use IO::Socket;
@@ -17,7 +17,7 @@ use POE::Pipe;
 @POE::Pipe::OneWay::ISA = qw( POE::Pipe );
 
 sub DEBUG () { 0 }
-sub RUNNING_IN_HELL () { $^O eq 'MSWin32' }
+sub RUNNING_IN_HELL () { $^O eq 'MSWin32' or $^O eq 'MacOS' }
 
 # This flag is set true/false after the first attempt at using plain
 # INET sockets as pipes.

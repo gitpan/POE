@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 28_windows.t,v 1.1 2002/06/01 22:04:25 rcaputo Exp $
+# $Id: 28_windows.t,v 1.2 2002/06/22 06:21:29 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -8,7 +8,12 @@ use strict;
 use lib qw(./lib ../lib);
 use TestSetup;
 
-&test_setup(1);
+BEGIN {
+  test_setup(0, "Windows tests aren't necessary or $^O")
+    if $^O eq 'MacOS';
+};
+
+test_setup(1);
 
 # Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

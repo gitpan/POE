@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.34 2002/05/30 06:40:13 rcaputo Exp $
+# $Id: 08_errors.t,v 1.36 2002/07/01 15:57:43 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -484,8 +484,8 @@ if ($^O ne 'MSWin32' and $^O ne 'MacOS') {
   print 'not ' unless defined $@ and length $@;
   print "ok 54\n";
 
-  my $pwrun =
-    eval 'POE::Wheel::Run->new( Program => 1, StdinEvent => 1, Filter => 1 )';
+  my $pwrun = eval
+    'POE::Wheel::Run->new( Program => 1, StdinEvent => 1, StdinFilter => 1 )';
   print 'not ' if defined $@ and length $@;
   print "ok 55\n";
 
@@ -507,7 +507,7 @@ if ($^O ne 'MSWin32' and $^O ne 'MacOS') {
 }
 else {
   for (53..59) {
-    print "ok $_ # skipped: Wheel::Run not working on Win32 today\n";
+    print "ok $_ # skipped: Wheel::Run currently unsupported on $^O\n";
   }
 }
 

@@ -1,4 +1,4 @@
-# $Id: POE.pm,v 1.140 2002/06/19 17:24:58 rcaputo Exp $
+# $Id: POE.pm,v 1.143 2002/07/04 03:10:05 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,7 +7,7 @@ use strict;
 use Carp;
 
 use vars qw($VERSION);
-$VERSION = '0.21';
+$VERSION = '0.22';
 
 sub import {
   my $self = shift;
@@ -318,12 +318,12 @@ have added interesting features like newline autodetection.
 
 =item POE::Filter::Reference
 
-The Reference filter is used to sond Perl structures between POE
+The Reference filter is used to send Perl structures between POE
 programs or between POE and other Perl programs.  On the input side,
-frozen data (via Storable, FreezeThaw, or some other data mechanism)
-is thawed into Perl data structures.  On output, references given to
-the filter are frozen.  Data may also be compressed on request if
-Compress::Zlib is installed.
+frozen data (via Storable, FreezeThaw, YAML, or some other data
+mechanism) is thawed into Perl data structures.  On output, references
+given to the filter are frozen.  Data may also be compressed on
+request if Compress::Zlib is installed.
 
 =item POE::Filter::Stream
 
@@ -358,9 +358,12 @@ POE::Component::IRC (not included) performs nearly all the functions
 of a full-featured IRC client.  POE::Component::UserBase (not
 included) is a user authentication and data persistence servlet.
 
-Components tend to be highly reusable core libraries that handle
-tedious tasks, freeing programmers to focus on more interesting
-things.  This should be true for any library, though.
+Components tend to be highly reusable libraries that handle tedious
+tasks, freeing programmers to focus on more interesting things.  This
+should be true for any library, though.
+
+A list of released POE::Component modules is at:
+http://search.cpan.org/search?mode=module&query=POE%3A%3AComponent
 
 =over 2
 

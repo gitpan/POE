@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 00_coverage.t,v 1.11 2002/06/10 17:53:18 rcaputo Exp $
+# $Id: 00_coverage.t,v 1.12 2002/06/22 06:21:29 rcaputo Exp $
 
 # This test merely loads as many modules as possible so that the
 # coverage tester will see them.  It's performs a similar function as
@@ -28,6 +28,9 @@ sub load_optional_module {
   }
   elsif ($reason =~ /Can\'t find a valid termcap file/) {
     $reason = "Term::Cap can't find a valid termcap file";
+  }
+  elsif ($reason =~ /^[^\/]*does not support[^\/]*/) {
+    $reason =~ s/\s*\/.+$//g;
   }
 
   print( "ok $test_number",

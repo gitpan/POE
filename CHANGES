@@ -1,3 +1,117 @@
+2002-07-04 03:10  rcaputo
+
+	* POE.pm: All the mentioned problems in 0.2101 were fixed.  Looks
+	like it's clean.  Bump the version to 0.22 for release.
+
+2002-07-01 15:57  rcaputo
+
+	* t/08_errors.t: Cleared up a warning about Filter being
+	deprecated.  Thanks to ignatz for pointing it out.
+
+2002-07-01 04:26  rcaputo
+
+	* POE.pm: Bump version to 0.2101 for release.
+
+2002-07-01 02:16  rcaputo
+
+	* POE/Wheel/Run.pm: Todd Caine requested a "Driver" parameter for
+	Wheel::Run.  While I was adding one, I realized that STDIN, STDOUT
+	*and* STDERR were all sharing a single internal driver instance. 
+	That's bad because three handles cannot reliably share a single
+	driver (which can only read on one handle and write on one handle
+	reliably).  This may have uncovered a nasty bug in Wheel::Run. 
+	Thankfully, 0.22 has not yet been released.
+
+2002-06-30 21:37  rcaputo
+
+	* lib/ExtUtils/AutoInstall.pm: Updated to ExtUtils::AutoInstall
+	0.33.
+
+2002-06-30 21:14  rcaputo
+
+	* POE/Driver/SysRW.pm: Document why SysRW does not use BlockSize
+	for syswrite(), and fix the BlockSize documentation so that it does
+	not apply to syswrite().
+
+2002-06-30 20:24  rcaputo
+
+	* POE/Kernel/Poll.pm, t/27_poll.t: As I once learned long ago,
+	IO::Foo tends to be slow.  In the old case, it was IO::Select.	Now
+	I've discovered that IO::Poll is slow as well.	This is the price
+	one pays for using generic modules, however.  I researched IO::Poll
+	and discovered its internal _poll function, which is written in XS.
+	 POE::Kernel::Poll was revised to use that directly rather than
+	incurring overhead from using the public interface.  I only hope I
+	can keep up with IO::Poll changes.  POE::Kernel::Poll should really
+	be better than select() now regarding latency and scalability, if
+	only a little bit.
+
+2002-06-28 02:22  rcaputo
+
+	* POE/Kernel.pm: Matt Sergeant noticed that POE::Wheel::Run
+	sometimes creates defunct (zombie) processes.  I suspected that it
+	was a race between program shutdown and POE::Kernel's reaper.  Matt
+	was able to verify this by adding some non-blocking reaper code
+	after run() was called.  I added code to POE::Kernel that keeps it
+	alive as long as there are outstanding child processes.  This will
+	ensure that they're reaped (no more defunct zombies).
+
+2002-06-28 02:17  rcaputo
+
+	* POE.pm: Clean up the overview of Filter::Reference after someone
+	(I forget! Baud? Kane?) pointed out a typo.  Thanks, whoever you
+	are.
+
+2002-06-25 07:12  rcaputo
+
+	* POE/Kernel/Tk.pm: Worked around a memory leak in Tk 800.023. 
+	Thanks to Zoltan Kandi for reporting the leak (usenet
+	message-ID:3D16D3B2.11FC919E@tellabs.com) and Slaven Rezic (usenet
+	message-ID:87elevetz9.fsf@vran.herceg.de) for the way to avoid it.
+
+2002-06-22 06:39  rcaputo
+
+	* POE/Wheel/Run.pm: Update the documentation and carps and croaks
+	to guide people away from the deprecated Filter parameter.
+
+2002-06-22 06:24  rcaputo
+
+	* POE/Wheel/Run.pm, t/22_wheel_run.t: (!!!) POE::Wheel::Run's
+	Filter parameter was broken as designed.  A single Filter instance
+	cannot possibly filter three filehandles!  The fix was to replace
+	Filter with StdioFilter, which only filters STDIN and STDOUT. 
+	StderrFilter must be specified separately.  It's easy to write code
+	that is compatible with the old and new interfaces (for a module,
+	for example).  Just use StdinFilter, StdoutFilter, and StderrFilter
+	explicitly.
+
+2002-06-22 06:21  rcaputo
+
+	* t/: 00_coverage.t, 01_sessions.t, 08_errors.t, 09_wheels_unix.t,
+	28_windows.t: Iain Chalmers reported 0.20 test failures under MacOS
+	9.1.  These changes address some of the the issues he discovered. 
+	They mainly fall under the categories of signals, UNIX sockets,
+	socketpair(), and fork() incompatibilities between UNIX systems and
+	MacOS pre-X.
+
+2002-06-22 06:18  rcaputo
+
+	* POE/Kernel/Poll.pm, lib/Makefile-5005.pm, t/27_poll.t: Richard
+	Soderberg pointed out a couple things, which are now fixed.  First,
+	it's possible to run the IO::Poll tests with an older version by
+	saying "no" to installing a newer one.	That leads to test failures
+	later on.  The work-around is to add checks in POE::Kernel::Poll
+	and t/27_poll.t for the proper IO::Poll version.  Second, he
+	pointed out that a few dependencies were missing from the
+	installer.  Added!
+
+2002-06-22 06:15  rcaputo
+
+	* POE/: Pipe.pm, Pipe/OneWay.pm, Pipe/TwoWay.pm: Skip socketpair()
+	and pipe() on MacOS pre-X.  Even with a vastly improved Perl build,
+	these systems seem to have strange problems with non-blocking
+	socketpair() and pipe().
+
 2002-06-19 17:24  rcaputo
 
 	* POE.pm: Increase the version number to 0.21.
@@ -1843,39 +1957,4 @@
 2001-07-15 19:23  rcaputo
 
 	* CHANGES: add 0.15 release info
-
-2001-07-02 20:17  rcaputo
-
-	* README: fix the test results
-
-2001-07-02 20:16  rcaputo
-
-	* CHANGES: set the release date
-
-2001-07-02 20:16  rcaputo
-
-	* POE.pm: bump the version
-
-2001-07-02 04:44  rcaputo
-
-	* CHANGES: document changes
-
-2001-07-02 04:43  rcaputo
-
-	* t/00_coverage.t: squelch diagnostics when optional modules fail
-	to load
-
-2001-07-02 04:42  rcaputo
-
-	* POE/: Session.pm, NFA.pm: remove Exporter usage; turn off tracing
-	and debugging options if they're set to 0
-
-2001-07-02 04:41  rcaputo
-
-	* TODO: document the need for better inheritance; yield's bad name
-
-2001-06-20 20:43  rcaputo
-
-	* TODO: try to be clearer about the document's general form and
-	purpose
 

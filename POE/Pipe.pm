@@ -1,4 +1,4 @@
-# $Id: Pipe.pm,v 1.4 2002/03/04 23:52:55 rcaputo Exp $
+# $Id: Pipe.pm,v 1.5 2002/06/22 06:15:33 rcaputo Exp $
 
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
@@ -9,7 +9,7 @@ package POE::Pipe;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.4 $ ))[1];
+$VERSION = (qw($Revision: 1.5 $ ))[1];
 
 use Symbol qw(gensym);
 use IO::Socket;
@@ -46,14 +46,14 @@ sub _stop_blocking {
            0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
            $set_it
          )
-      or die "ioctl: $!";
+      or die "ioctl fails: $!";
   }
 
   # Do it the way everyone else does.
   else {
-    my $flags = fcntl($socket_handle, F_GETFL, 0) or die "getfl: $!";
+    my $flags = fcntl($socket_handle, F_GETFL, 0) or die "getfl fails: $!";
     $flags = fcntl($socket_handle, F_SETFL, $flags | O_NONBLOCK)
-      or die "setfl: $!";
+      or die "setfl fails: $!";
   }
 }
 
@@ -72,14 +72,14 @@ sub _start_blocking {
            0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
            $unset_it
          )
-      or die "ioctl: $!";
+      or die "ioctl fails: $!";
   }
 
   # Do it the way everyone else does.
   else {
-    my $flags = fcntl($socket_handle, F_GETFL, 0) or die "getfl: $!";
+    my $flags = fcntl($socket_handle, F_GETFL, 0) or die "getfl fails: $!";
     $flags = fcntl($socket_handle, F_SETFL, $flags & ~O_NONBLOCK)
-      or die "setfl: $!";
+      or die "setfl fails: $!";
   }
 }
 

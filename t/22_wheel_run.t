@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 22_wheel_run.t,v 1.23 2002/05/28 01:59:48 rcaputo Exp $
+# $Id: 22_wheel_run.t,v 1.24 2002/06/22 06:24:52 rcaputo Exp $
 
 # Test the portable pipe classes and Wheel::Run, which uses them.
 
@@ -160,12 +160,13 @@ $program =~ tr[\'][\"] if $^O eq "MSWin32";
 
           # Run a child process.
           $heap->{wheel} = POE::Wheel::Run->new
-            ( Program     => $program,
-              Filter      => POE::Filter::Line->new( Literal => "!" ),
-              StdoutEvent => 'stdout_nonexistent',
-              StderrEvent => 'stderr_nonexistent',
-              ErrorEvent  => 'error_nonexistent',
-              StdinEvent  => 'stdin_nonexistent',
+            ( Program      => $program,
+              StdioFilter  => POE::Filter::Line->new( Literal => "!" ),
+              StderrFilter => POE::Filter::Line->new( Literal => "!" ),
+              StdoutEvent  => 'stdout_nonexistent',
+              StderrEvent  => 'stderr_nonexistent',
+              ErrorEvent   => 'error_nonexistent',
+              StdinEvent   => 'stdin_nonexistent',
             );
 
           # Test event changing.
@@ -234,12 +235,13 @@ my $coderef_flush_count = 0;
 
           # Run a child process.
           $heap->{wheel} = POE::Wheel::Run->new
-            ( Program     => $program,
-              Filter      => POE::Filter::Line->new( Literal => "!" ),
-              StdoutEvent => 'stdout_nonexistent',
-              StderrEvent => 'stderr_nonexistent',
-              ErrorEvent  => 'error_nonexistent',
-              StdinEvent  => 'stdin_nonexistent',
+            ( Program      => $program,
+              StdioFilter  => POE::Filter::Line->new( Literal => "!" ),
+              StderrFilter => POE::Filter::Line->new( Literal => "!" ),
+              StdoutEvent  => 'stdout_nonexistent',
+              StderrEvent  => 'stderr_nonexistent',
+              ErrorEvent   => 'error_nonexistent',
+              StdinEvent   => 'stdin_nonexistent',
             );
 
           # Test event changing.
@@ -295,12 +297,12 @@ if (POE::Wheel::Run::PTY_AVAILABLE) {
 
           # Run a child process.
           $heap->{wheel} = POE::Wheel::Run->new
-            ( Program     => $program,
-              Filter      => POE::Filter::Line->new( Literal => "!" ),
-              StdoutEvent => 'stdout_nonexistent',
-              ErrorEvent  => 'error_nonexistent',
-              StdinEvent  => 'stdin_nonexistent',
-              Conduit     => 'pty',
+            ( Program      => $program,
+              StdioFilter  => POE::Filter::Line->new( Literal => "!" ),
+              StdoutEvent  => 'stdout_nonexistent',
+              ErrorEvent   => 'error_nonexistent',
+              StdinEvent   => 'stdin_nonexistent',
+              Conduit      => 'pty',
             );
 
           # Test event changing.
