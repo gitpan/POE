@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: POE
-version: 0.28_08
+version: 0.29
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: |-
@@ -16,7 +16,7 @@ conflicts: {}
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.28_08
+    version: 0.29
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.0002
@@ -139,7 +139,7 @@ provides:
     version: 1.0009
   POE::Resources::FileHandles:
     file: lib/POE/Resource/FileHandles.pm
-    version: 1.0009
+    version: 1.0010
   POE::Resources::SIDs:
     file: lib/POE/Resource/SIDs.pm
     version: 1.0009
