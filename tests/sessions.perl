@@ -1,106 +1,184 @@
 #!perl -w -I..
-# $Id: sessions.perl,v 1.10 1998/11/30 15:19:41 troc Exp $
+# $Id: sessions.perl,v 1.14 1999/01/20 21:10:12 troc Exp $
+
+# This is the first test program written for POE.  It originally was
+# written to test POE's ability to dispatch events to inline sessions
+# (which was the only kind of sessions at the time).  It was later
+# amended to test directly calling event handlers, delayed garbage
+# collection, and some other things that new developers probably don't
+# need to know. :)
 
 use strict;
 
-use POE; # Kernel and Session are always included
+# use POE always includes POE::Kernel and POE::Session, since they are
+# the fundamental POE classes and universally used.  POE::Kernel
+# exports the $kernel global, a reference to the process' Kernel
+# instance.  POE::Session exports a number of constants for event
+# handler parameter offsets.  Some of the offsets are KERNEL, HEAP,
+# SESSION, and ARG0-ARG9.
 
-my $kernel = new POE::Kernel();
+use POE;
+                                        # stupid scope trick, part 1 of 3 parts
+my $session_name;
+
+#==============================================================================
+# This section defines the event handler (or state) subs for the
+# sessions that this program calls "child" sessions.  Each sub does
+# just one thing, possibly passing execution to other event handlers
+# through one of the supported event-passing mechanims.
+
+#------------------------------------------------------------------------------
+# Newly created sessions are not ready to run until the kernel
+# registers them in its internal data structures.  The kernel sends
+# every new session a _start event to tell them when they may begin.
+
+sub child_start {
+  my ($kernel, $heap) = @_[KERNEL, HEAP];
+                                        # stupid scope trick, part 2 of 3 parts
+  $heap->{'name'} = $session_name;
+  $kernel->sig('INT', 'sigint');
+  print "Session $heap->{'name'} started.\n";
+
+  return "i am $heap->{'name'}";
+}
+
+#------------------------------------------------------------------------------
+# Every session receives a _stop event just prior to being removed
+# from memory.  This allows sessions to perform last-minute cleanup.
+
+sub child_stop {
+  my $heap = $_[HEAP];
+  print "Session ", $heap->{'name'}, " stopped.\n";
+}
+
+#------------------------------------------------------------------------------
+# This sub handles a developer-supplied event.  It accepts a name and
+# a count, increments the count, and displays some information.  If
+# the count is small enough, it feeds back on itself by posting
+# another "increment" message.
+
+sub child_increment {
+  my ($kernel, $me, $name, $count) =
+    @_[KERNEL, SESSION, ARG0, ARG1];
+
+  $count++;
+
+  print "Session $name, iteration $count...\n";
+
+  my $ret = $kernel->call($me, 'display_one', $name, $count);
+  print "\t(display one returns: $ret)\n";
+
+  $ret = $kernel->call($me, 'display_two', $name, $count);
+  print "\t(display two returns: $ret)\n";
+
+  if ($count < 5) {
+    $kernel->post($me, 'increment', $name, $count);
+  }
+}
+
+#------------------------------------------------------------------------------
+# This sub handles a developer-supplied event.  It is called (not
+# posted) immediately by the "increment" event handler.  It displays
+# some information about its parameters, and returns a value.  It is
+# included to test that $kernel->call() works properly.
+
+sub child_display_one {
+  my ($name, $count) = @_[ARG0, ARG1];
+  print "\t(display one, $name, iteration $count)\n";
+  return $count * 2;
+}
+
+#------------------------------------------------------------------------------
+# This sub handles a developer-supplied event.  It is called (not
+# posted) immediately by the "increment" event handler.  It displays
+# some information about its parameters, and returns a value.  It is
+# included to test that $kernel->call() works properly.
+
+sub child_display_two {
+  my ($name, $count) = @_[ARG0, ARG1];
+  print "\t(display two, $name, iteration $count)\n";
+  return $count * 3;
+}
+
+#------------------------------------------------------------------------------
+# This event handler is a helper for child sessions.  It returns the
+# session's name.  Parent sessions should call it directly.
+
+sub child_fetch_name {
+  $_[HEAP]->{'name'};
+}
+
+#==============================================================================
+# This section defines the event handler (or state) subs for the
+# sessions that this program calls "parent" sessions.  Each sub does
+# just one thing, possibly passing execution to other event handlers
+# through one of the supported event-passing mechanisms.
+
+#------------------------------------------------------------------------------
+# Newly created sessions are not ready to run until the kernel
+# registers them in its internal data structures.  The kernel sends
+# every new session a _start event to tell them when they may begin.
+
+sub main_start {
+  my ($kernel, $heap) = @_[KERNEL, HEAP];
+                                        # start ten child sessions
+  foreach my $name (qw(one two three four five six seven eight nine ten)) {
+                                        # stupid scope trick, part 3 of 3 parts
+    $session_name = $name;
+    my $session = new POE::Session
+      ( _start      => \&child_start,
+        _stop       => \&child_stop,
+        increment   => \&child_increment,
+        display_one => \&child_display_one,
+        display_two => \&child_display_two,
+        fetch_name  => \&child_fetch_name,
+      );
+
+    # Normally, sessions are stopped if they have nothing to do.  The
+    # only exception to this rule is newly created sessions.  Their
+    # garbage collection is delayed slightly, so that parent sessions
+    # may send them "bootstrap" events.  The following post() call is
+    # such a bootstrap event.
+
+    $kernel->post($session, 'increment', $name, 0);
+  }
+}
+
+#------------------------------------------------------------------------------
+# POE's _stop events are not mandatory.
+
+sub main_stop {
+  print "*** Main session stopped.\n";
+}
+
+#------------------------------------------------------------------------------
+# POE sends a _child event whenever a child session is about to
+# receive a _stop event (or has received a _start event).  The
+# direction argument is either 'gain', 'lose' or 'create', to signify
+# whether the child is being given to, taken away from, or created by
+# the session (respectively).
+
+sub main_child {
+  my ($kernel, $me, $direction, $child, $return) =
+    @_[KERNEL, SESSION, ARG0, ARG1, ARG2];
+
+  print( "*** Main session ${direction}s child ",
+         $kernel->call($child, 'fetch_name'),
+         (($direction eq 'create') ? " (child returns: $return)" : ''),
+         "\n"
+       );
+}
+
+#==============================================================================
+# Start the main (parent) session, and begin processing events.
+# Kernel::run() will continue until there is nothing left to do.
 
 new POE::Session
-  ( $kernel,
-    '_start' => sub
-    { my ($k, $me) = @_;
-      new POE::Session
-        ( $kernel,
-          '_start' => sub
-          { my ($k, $me) = @_;
-
-            foreach my $session_name (
-              qw(one two three four five six seven eight nine ten)
-            ) {
-              my $session = new POE::Session
-                ( $kernel,
-                  '_start' => sub
-                  {
-                    my ($k, $me, $from) = @_;
-                    $me->{'name'} = $session_name;
-                    $k->sig('INT', 'sigint');
-                    print "Session $session_name started.\n";
-                  },
-                  '_stop' => sub
-                  {
-                    my ($k, $me, $from) = @_;
-                    print "Session ", $me->{'name'}, " stopped.\n";
-                  },
-                  '_default' => sub
-                  {
-                    my ($k, $me, $from, $state, @etc) = @_;
-                    print $me->{'name'}, " _default got state ($state) ",
-                         "from ($from) parameters (", join(', ', @etc), ")\n";
-                    return 0;
-                  },
-                  'increment' => sub
-                  {
-                    my ($k, $me, $from, $session_name, $counter) = @_;
-                    $counter++;
-                    my $ret = $k->call($me, 'display one',
-                                       $session_name, $counter
-                                      );
-                    print "(display one returns: $ret)\n";
-                    $ret = $k->call($me, 'display two',
-                                    $session_name, $counter
-                                   );
-                    print "(display two returns: $ret)\n";
-                                        # post the session last, to test that
-                                        # call() doesn't GC
-                    if ($counter < 5) {
-                      $k->post($me, 'increment', $session_name, $counter);
-                    }
-                  },
-                  'display one' => sub 
-                  {
-                    my ($k, $me, $from, $session_name, $counter) = @_;
-                    print "Session $session_name, iteration $counter (one).\n";
-                    return $counter * 2;
-                  },
-                  'display two' => sub 
-                  {
-                    my ($k, $me, $from, $session_name, $counter) = @_;
-                    print "Session $session_name, iteration $counter (two).\n";
-                    return $counter * 3;
-                  },
-                );
-                                        # tests delayed garbage-collection
-              $k->post($session, 'increment', $session_name, 0);
-            }
-          },
-          '_stop' => sub
-          { my ($k, $me) = @_;
-            print "*** Trunk session stopping (one-ten should be dead now)\n";
-          },
-          '_parent' => sub
-          { my ($k, $me, $from) = @_;
-            print "*** Parent changed to ($from) for trunk session ???!\n";
-          },
-          '_child' => sub
-          { my ($k, $me, $from) = @_;
-            print "*** Child of trunk session ($from) has stopped\n";
-          }
-        );
-    },
-    '_stop' => sub
-    { my ($k, $me) = @_;
-      print "*** Root session stopping (only kernel should be alive)\n";
-    },
-    '_parent' => sub
-    { my ($k, $me, $from) = @_;
-      print "*** Parent changed to ($from) for root session ???!\n";
-    },
-    '_child' => sub
-    { my ($k, $me, $from) = @_;
-      print "*** Child of root session ($from) has stopped\n";
-    }
+  ( _start => \&main_start,
+    _stop  => \&main_stop,
+    _child => \&main_child,
   );
-      
-$kernel->run();
+
+$poe_kernel->run();
+
+exit;

@@ -1,5 +1,8 @@
-# $Id: SysRW.pm,v 1.3 1998/08/18 15:50:08 troc Exp $
-# Documentation exists after __END__
+# $Id: SysRW.pm,v 1.6 1999/01/28 03:35:57 troc Exp $
+
+# Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
+# This program is free software; you can redistribute it and/or modify
+# it under the same terms as Perl itself.
 
 package POE::Driver::SysRW;
 
@@ -20,14 +23,14 @@ sub new {
 #------------------------------------------------------------------------------
 
 sub put {
-  my $self = shift;
-  my $unit = join('', @_);
-  my $queue_length = push @{$self->{'out queue'}}, $unit;
-  if ($queue_length == 1) {
-    $self->{'bytes left'} = length($unit);
+  my ($self, $chunks) = @_;
+  my $old_queue_length = @{$self->{'out queue'}};
+  my $new_queue_length = push @{$self->{'out queue'}}, @$chunks;
+  if ($new_queue_length && (!$old_queue_length)) {
+    $self->{'bytes left'} = length($self->{'out queue'}->[0]);
     $self->{'bytes done'} = 0;
   }
-  $queue_length;
+  $new_queue_length;
 }
 
 #------------------------------------------------------------------------------
@@ -35,7 +38,7 @@ sub put {
 sub get {
   my ($self, $handle) = @_;
 
-  my $result = sysread($handle, my $buffer = '', 1024);
+  my $result = sysread($handle, my $buffer = '', 512);
   if ($result || ($! == EAGAIN)) {
     $! = 0;
     [ $buffer ];
@@ -50,14 +53,18 @@ sub get {
 sub flush {
   my ($self, $handle) = @_;
                                         # syswrite it, like we're supposed to
-  my $wrote_count = syswrite($handle,
-                             $self->{'out queue'}->[0],
-                             $self->{'bytes left'},
-                             $self->{'bytes done'}
-                            );
+  while (@{$self->{'out queue'}}) {
+    my $wrote_count = syswrite($handle,
+                               $self->{'out queue'}->[0],
+                               $self->{'bytes left'},
+                               $self->{'bytes done'}
+                              );
 
-  if ($wrote_count || ($! == EAGAIN)) {
-    $! = 0;
+    unless ($wrote_count) {
+      $! = 0 if ($! == EAGAIN);
+      last;
+    }
+
     $self->{'bytes done'} += $wrote_count;
     unless ($self->{'bytes left'} -= $wrote_count) {
       shift(@{$self->{'out queue'}});
@@ -76,41 +83,3 @@ sub flush {
 
 ###############################################################################
 1;
-__END__
-
-=head1 NAME
-
-POE::Driver::SysRW - boilerplate sysread and syswrite
-
-=head1 SYNOPSIS
-
-  $sysrw = new POE::Driver::SysRW();     # create the SysRW driver
-  \@input_chunks = $sysrw->get($handle); # sysread from $handle
-  $result = $sysrw->put($output_chunk);  # add chunk to output buffer
-  $result = $sysrw->flush($handle);      # syswrite from output buffer
-
-=head1 DESCRIPTION
-
-Basic non-blocking sysread and syswrite with error checking and buffering that
-is compatible with C<POE::Kernel>'s non-blocking C<select(2)> logic.  Ignores
-C<EAGAIN>.
-
-=head1 PUBLIC METHODS
-
-Please see C<POE::Driver> for explanations.
-
-=head1 EXAMPLES
-
-Please see tests/selects.perl for examples of C<POE::Driver::SysRW>.
-
-=head1 BUGS
-
-None known.
-
-=head1 CONTACT AND COPYRIGHT
-
-Copyright 1998 Rocco Caputo E<lt>troc@netrus.netE<gt>.  All rights reserved.
-This program is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
-
-=cut

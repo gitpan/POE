@@ -1,10 +1,10 @@
-# $Id: Line.pm,v 1.5 1999/01/28 03:37:18 troc Exp $
+# $Id: Stream.pm,v 1.3 1999/01/28 03:37:41 troc Exp $
 
 # Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
 # This program is free software; you can redistribute it and/or modify
 # it under the same terms as Perl itself.
 
-package POE::Filter::Line;
+package POE::Filter::Stream;
 
 use strict;
 
@@ -12,7 +12,7 @@ use strict;
 
 sub new {
   my $type = shift;
-  my $self = bless { 'framing buffer' => '' }, $type;
+  my $self = bless { }, $type;
   $self;
 }
 
@@ -20,22 +20,15 @@ sub new {
 
 sub get {
   my ($self, $stream) = @_;
-  $self->{'framing buffer'} .= join('', @$stream);
-  my @result;
-  while (
-         $self->{'framing buffer'} =~ s/^([^\x0D\x0A]*)(\x0D\x0A?|\x0A\x0D?)//
-  ) {
-    push(@result, $1);
-  }
-  \@result;
+  my $buffer = join('', @$stream);
+  [ $buffer ];
 }
 
 #------------------------------------------------------------------------------
 
 sub put {
-  my ($self, $lines) = @_;
-  my @raw = map { $_ . "\x0D\x0A" } @$lines;
-  \@raw;
+  my ($self, $chunks) = @_;
+  $chunks;
 }
 
 ###############################################################################
