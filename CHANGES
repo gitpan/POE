@@ -1,4 +1,21 @@
 ===========================
+2004-11-25 21:10:41 v0_3002
+===========================
+
+  2004-11-25 21:10:41 by rcaputo; lib/POE.pm 1.183
+
+    Clean cup! Clean cup! Move down! Move down!
+    
+    In this case, move up. Move the version up for another release. 
+
+  2004-11-25 21:09:02 by rcaputo; mylib/testreport.pl 1.15
+
+    I broke the test report tool when I renamed the test directories.
+    Furthermore, the tool checked in Makefile, and the whole point of
+    renaming the directory was to get them OUT of Makefile. It should be
+    fixed now. 
+
+===========================
 2004-11-25 20:11:19 v0_3001
 ===========================
 

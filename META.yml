@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: POE
-version: 0.3001
+version: 0.3002
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: |-
@@ -14,7 +14,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.3001
+    version: 0.3002
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.0002
