@@ -1,19 +1,19 @@
-# $Id: Kernel.pm,v 1.308 2004/11/16 07:50:15 teknikill Exp $
+# $Id: Kernel.pm,v 1.309 2004/12/02 00:20:55 apocal Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.308 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.309 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
-use POSIX qw(fcntl_h sys_wait_h);
+use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
 use Carp qw(carp croak confess cluck);
 use Sys::Hostname qw(hostname);
-use IO::Handle;
-use File::Spec;
+use IO::Handle ();
+use File::Spec ();
 
 # People expect these to be lexical.
 

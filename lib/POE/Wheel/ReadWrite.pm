@@ -1,13 +1,13 @@
-# $Id: ReadWrite.pm,v 1.69 2004/11/16 07:13:04 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.70 2004/12/02 00:20:59 apocal Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.69 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.70 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
-use Carp;
+use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
 
 # Offsets into $self.

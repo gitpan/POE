@@ -1,17 +1,17 @@
-# $Id: FollowTail.pm,v 1.51 2004/11/16 07:12:46 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.52 2004/12/02 00:20:58 apocal Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.51 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.52 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
-use Carp;
-use Symbol;
+use Carp qw( croak carp );
+use Symbol qw( gensym );
 use POSIX qw(SEEK_SET SEEK_CUR SEEK_END);
 use POE qw(Wheel Driver::SysRW Filter::Line);
-use IO::Handle;
+use IO::Handle ();
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 

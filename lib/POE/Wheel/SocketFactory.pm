@@ -1,4 +1,4 @@
-# $Id: SocketFactory.pm,v 1.78 2004/10/14 04:24:20 hachi Exp $
+# $Id: SocketFactory.pm,v 1.79 2004/12/02 00:20:59 apocal Exp $
 
 package POE::Wheel::SocketFactory;
 use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
@@ -6,16 +6,20 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.78 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.79 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
-use Carp;
-use Symbol;
+use Carp qw( carp croak );
+use Symbol qw( gensym );
 
-use POSIX qw(fcntl_h);
+use POSIX qw(:fcntl_h);
 use Errno qw(EWOULDBLOCK EADDRNOTAVAIL EINPROGRESS EADDRINUSE);
-use Socket;
-use IO::Handle;
-use POE qw(Wheel);
+use Socket qw(	AF_INET SOCK_STREAM SOL_SOCKET AF_UNIX PF_UNIX 
+		PF_INET SOCK_DGRAM SO_ERROR unpack_sockaddr_in 
+		unpack_sockaddr_un PF_UNSPEC SO_REUSEADDR INADDR_ANY 
+		pack_sockaddr_in pack_sockaddr_un inet_aton SOMAXCONN
+	);
+use IO::Handle ();
+use POE qw( Wheel );
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 sub DEBUG () { 0 }

@@ -1,11 +1,11 @@
-# $Id: Preprocessor.pm,v 1.34 2004/11/16 07:12:42 rcaputo Exp $
+# $Id: Preprocessor.pm,v 1.35 2004/12/18 04:24:57 rcaputo Exp $
 
 package POE::Preprocessor;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.34 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.35 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 use Filter::Util::Call;
@@ -924,7 +924,7 @@ This is the working equivalent:
 
   # Choose one of the following, depending on your event loop.
   use POE::Loop::Select;   # Usually this one.
-  use POE::Loop::Poll;
+  use POE::Loop::IO_Poll;
   use POE::Loop::Event;
   use POE::Loop::Tk;
   use POE::Loop::Gtk;

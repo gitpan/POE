@@ -1,4 +1,73 @@
 ===========================
+2004-12-30 20:35:45 v0_3005
+===========================
+
+  2004-12-30 20:35:45 by rcaputo; lib/POE.pm 1.188
+
+    Bump version to 0.3005 for release. 
+
+  2004-12-30 16:25:24 by rcaputo; mylib/PoeBuildInfo.pm 1.3
+
+    Because there's a behavioral difference between Test::More releases,
+    require the one the tests have been verified to work with. 
+
+  2004-12-30 16:22:48 by rcaputo
+  tests/20_resources/00_base/signals.pm 1.3
+
+    Khisanth on IRC reported a problem with the signals test. Somni
+    tracked the problem down to a change in Test::More behavior. Once I
+    knew the source of the problem, I was able to reproduce it easily
+    (upgrade Test::More). Now it's fixed. Thanks! 
+
+  2004-12-18 04:24:57 by rcaputo
+  lib/POE.pm 1.187; lib/POE/Loop.pm 1.6; lib/POE/Preprocessor.pm 1.35
+
+    Mike Castle found references to the old POE::Loop::Poll in the
+    documentation. Now they are corrected to refer to POE::Loop::IO_Poll. 
+
+  2004-12-03 03:35:36 by rcaputo; lib/POE/NFA.pm 1.31
+
+    Tom Klein pointed out a typo in one of the POE::NFA error messages.
+    This commit fixes it, and also undoes the emacs-centric (also known
+    as "funky groupers") grouping and indenting in the code and
+    documentation. 
+
+  2004-12-02 16:21:20 by rcaputo; lib/POE/Session.pm 1.106
+
+    Point the user at the RT ticket 8462, which is the umbrella for all
+    the tasks in the deprecation. 
+
+  2004-12-02 07:30:27 by apocal; lib/POE/Session.pm 1.105
+
+    Actually document the new() deprecation as per RT#8469 
+
+  2004-12-02 00:20:59 by apocal; lib/POE.pm 1.186;
+  lib/POE/API/Ctl.pm 1.3; lib/POE/Filter/HTTPD.pm 1.37;
+  lib/POE/Kernel.pm 1.309; lib/POE/Pipe.pm 1.13;
+  lib/POE/Pipe/OneWay.pm 1.14; lib/POE/Pipe/TwoWay.pm 1.17;
+  lib/POE/Resource/Controls.pm 1.4; lib/POE/Wheel/Curses.pm 1.12;
+  lib/POE/Wheel/FollowTail.pm 1.52; lib/POE/Wheel/ListenAccept.pm 1.30;
+  lib/POE/Wheel/ReadLine.pm 1.36; lib/POE/Wheel/ReadWrite.pm 1.70;
+  lib/POE/Wheel/SocketFactory.pm 1.79
+
+    This patch is the beginning of RT#1692, hopefully I got them all,
+    help me test, test, test! 
+
+  2004-11-27 16:52:13 by rcaputo; MANIFEST 1.113;
+  lib/POE/Wheel/Run.pm 1.61; tests/90_regression/rt1648-tied-stderr.t 1.1
+
+    Resolve rt.cpan.org #1648. Tied STDOUT, STDERR would cause
+    POE::Wheel::Run child processes to eat output, never sending it back
+    to the parent. This change unties STDOUT, STDERR if they're tied,
+    griping at the user in the process. So to speak. 
+
+  2004-11-27 16:25:03 by rcaputo; lib/POE.pm 1.185
+
+    POE 0.3003 seems to be stable. The first couple CPAN testers' reports
+    came back PASS rather than FAIL, anyway. Bump the version te 0.3004
+    for CVS development. 
+
+===========================
 2004-11-26 22:25:25 v0_3003
 ===========================
 
@@ -1453,70 +1522,6 @@
 
     Matt Cashner pointed out that ^D on an empty line should throw an
     exception. This commit adds the "eot" exception to do just that. 
-
-  2003-12-20 19:40:02 by rcaputo; lib/POE/Kernel.pm 1.272
-
-    While discussing libevent, I realized that a POE::XS::Loop::Libevent
-    would not have a trigger module. There would be no IO::Poll-like
-    module that causes POE::Kernel to autoload it. So this patch tweaks
-    the loop autoloader to honor explicitly loaded event loops and not
-    try to load the default select loop. 
-
-  2003-12-18 15:37:00 by rcaputo; lib/POE/Session.pm 1.96
-
-    Applied Alex Avriette's documentation patch. This mentions the return
-    values from new() and create(). 
-
-  2003-12-18 04:29:05 by rcaputo; lib/POE/Wheel/Run.pm 1.56
-
-    Applied Gerald Richter's patch to allow setting the child process'
-    window size if it's run in a pty. 
-
-  2003-12-16 04:58:46 by rcaputo; lib/POE/Kernel.pm 1.271
-
-    Improve error detection in the POE::XS::Loop loader. Add autoloading
-    for POE::XS::Loop::Select. 
-
-  2003-12-16 04:56:49 by rcaputo; lib/POE/Loop/Select.pm 1.54
-
-    Reorder the timeout calculation to reduce latency in select(). 
-
-  2003-12-16 04:55:42 by rcaputo; lib/POE/Resources.pm 1.4
-
-    Support auto-loading POE::XS::Resource::Foo if it's available. Fall
-    back to POE::Resource::Foo if the XS version isn't available or
-    cannot load. 
-
-  2003-12-13 05:37:29 by rcaputo
-  lib/POE/Kernel.pm 1.270; lib/POE/Resource/Sessions.pm 1.14
-
-    Event loops. Look for POE::XS::Loop::$something before
-    POE::Loop::$something. It should be possible to include arbitrary
-    event loops now (Gtk2, for example). Likewise, now people can start
-    writing XS versions of event loops. 
-
-  2003-12-12 04:05:06 by rcaputo; lib/POE/Kernel.pm 1.269;
-  lib/POE/Loop/Event.pm 1.35; lib/POE/Loop/Gtk.pm 1.42;
-  lib/POE/Loop/IO_Poll.pm 1.26; lib/POE/Loop/Select.pm 1.53;
-  lib/POE/Loop/Tk.pm 1.43; lib/POE/Loop/TkActiveState.pm 1.7;
-  lib/POE/Loop/TkCommon.pm 1.4
-
-    Remove the hardcoding for POE::Loop classes. Now POE::Kernel will
-    walk %INC and compare each module against the files in ./Loop (where
-    "." is wherever POE::Kernel is, according to __FILE__). 
-
-  2003-12-11 18:06:21 by rcaputo; mylib/cvs-log.perl 1.5
-
-    Add a (commented out) option to go back farther in time. What's
-    really needed here is some sort of command-line flag. 
-
-  2003-12-04 23:15:19 by rcaputo; lib/POE/Session.pm 1.95
-
-    Applied a POD typo correction from Alex. 
-
-  2003-11-28 17:12:08 by rcaputo; lib/POE/Kernel.pm 1.268
-
-    Applied Scott Beck's patch to add a hard POE::Kernel stop. 
 
 =============================
 Beginning of Recorded History

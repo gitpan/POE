@@ -1,14 +1,14 @@
-# $Id: POE.pm,v 1.184 2004/11/26 22:25:25 rcaputo Exp $
+# $Id: POE.pm,v 1.188 2004/12/30 20:35:45 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
 
 use strict;
-use Carp;
+use Carp qw( croak );
 
 use vars qw($VERSION $REVISION);
-$VERSION = '0.3003';
-$REVISION = do {my@r=(q$Revision: 1.184 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = '0.3005';
+$REVISION = do {my@r=(q$Revision: 1.188 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 sub import {
   my $self = shift;
@@ -371,7 +371,7 @@ POE::Filter::Stackable, POE::Filter::Stream
 POE::Component, POE::Component::Client::TCP,
 POE::Component::Server::TCP
 
-POE::Loop, POE::Loop::Event, POE::Loop::Gtk, POE::Loop::Poll,
+POE::Loop, POE::Loop::Event, POE::Loop::Gtk, POE::Loop::IO_Poll,
 POE::Loop::Select, POE::Loop::Tk
 
 POE::Pipe, POE::Pipe::OneWay, POE::Pipe::TwoWay
@@ -505,7 +505,8 @@ problem relating to anonymous subs, scope and @{} processing.
 =item Matt Sergeant
 
 Matt contributed POE::Kernel::Poll, a more efficient way to watch
-multiple files than select().
+multiple files than select().  It's since been moved to
+POE::Loop::IO_Poll.
 
 =item Richard Soderberg
 

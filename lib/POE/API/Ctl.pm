@@ -1,16 +1,16 @@
-#$Id: Ctl.pm,v 1.2 2004/04/17 17:10:58 sungo Exp $
+#$Id: Ctl.pm,v 1.3 2004/12/02 00:20:56 apocal Exp $
 
 package POE::API::Ctl;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.2 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Kernel;
 use POE::Resource::Controls;
 
-use Carp;
+use Carp qw( carp );
 
 sub import {
     my $package = caller();

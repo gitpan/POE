@@ -1,15 +1,15 @@
-# $Id: Controls.pm,v 1.3 2004/07/16 01:12:28 rcaputo Exp $
+# $Id: Controls.pm,v 1.4 2004/12/02 00:20:58 apocal Exp $
 
 package POE::Resources::Controls;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # We fold all this stuff back into POE::Kernel
 package POE::Kernel;
 
 use strict;
-use Sys::Hostname;
+use Sys::Hostname qw( hostname );
 use Carp qw(croak);
 
 # %kr_magic = (

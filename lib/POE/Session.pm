@@ -1,11 +1,11 @@
-# $Id: Session.pm,v 1.104 2004/11/16 07:54:10 teknikill Exp $
+# $Id: Session.pm,v 1.106 2004/12/02 16:21:20 rcaputo Exp $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.104 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.106 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Errno qw(ENOSYS);
@@ -1173,6 +1173,12 @@ C<handler_twelve()> method.
 =back
 
 =item new LOTS_OF_STUFF
+
+WARNING: C<new()> will be deprecated as per POE's roadmap.  The actual
+schedule can be seen at
+L<http://poe.perl.org/?POE_RFCs/Change_procedures>.
+You can track the deprecation by visiting
+L<http://rt.cpan.org/Ticket/Display.html?id=8462>.
 
 C<new()> is Session's older constructor.  Its design was clever at the
 time, but it didn't expand well.  It's still useful for quick one-line

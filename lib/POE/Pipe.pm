@@ -1,4 +1,4 @@
-# $Id: Pipe.pm,v 1.12 2003/11/26 03:52:06 rcaputo Exp $
+# $Id: Pipe.pm,v 1.13 2004/12/02 00:20:56 apocal Exp $
 
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
@@ -9,11 +9,14 @@ package POE::Pipe;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.12 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.13 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Symbol qw(gensym);
-use IO::Socket;
-use POSIX qw(fcntl_h);
+use IO::Socket qw( 	PF_INET SOCK_STREAM SOL_SOCKET SO_REUSEADDR 
+			pack_sockaddr_in unpack_sockaddr_in inet_aton
+			SOMAXCONN SO_ERROR
+		);
+use POSIX qw(:fcntl_h);
 use Errno qw(EINPROGRESS EWOULDBLOCK);
 
 # CygWin seems to have a problem with socketpair() and exec().  When

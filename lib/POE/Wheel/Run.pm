@@ -1,11 +1,11 @@
-# $Id: Run.pm,v 1.60 2004/11/16 07:13:04 rcaputo Exp $
+# $Id: Run.pm,v 1.61 2004/11/27 16:52:13 rcaputo Exp $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.60 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.61 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -268,6 +268,16 @@ sub new {
 
   # Fork!  Woo-hoo!
   my $pid = fork;
+
+  # Stdio should not be tied.  Resolves rt.cpan.org ticket 1648.
+  if (tied *STDOUT) {
+    carp "Cannot redirect into tied STDOUT.  Untying it";
+    untie *STDOUT;
+  }
+  if (tied *STDERR) {
+    carp "Cannot redirect into tied STDERR.  Untying it";
+    untie *STDERR;
+  }
 
   # Child.  Parent side continues after this block.
   unless ($pid) {

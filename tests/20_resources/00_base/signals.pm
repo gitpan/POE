@@ -1,4 +1,4 @@
-# $Id: signals.pm,v 1.2 2004/09/08 05:59:58 rcaputo Exp $
+# $Id: signals.pm,v 1.3 2004/12/30 16:22:48 rcaputo Exp $
 
 use strict;
 
@@ -360,14 +360,14 @@ ok(
 
   $poe_kernel->_data_sig_handled();
 
-  my ($tot, $type, $ses) = $poe_kernel->_data_sig_handled_status();
+  my ($tot, $type, $touched_ses) = $poe_kernel->_data_sig_handled_status();
   ok($tot == 1, "SIGUIDESTROY handled by zero sessions");
   ok(
     $type == POE::Kernel::SIGTYPE_NONMASKABLE,
     "SIGUIDESTROY is not maskable"
   );
   ok(
-    eq_array($ses, [ $ses ]),
+    eq_array([ $ses ], $touched_ses),
     "SIGUIDESTROY touched session correct session"
   );
 
