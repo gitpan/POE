@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: names.perl,v 1.3 1999/01/22 15:05:35 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: names.perl,v 1.4 1999/05/14 06:06:13 rcaputo Exp $
 
 # Aliases were originally called Names.
 

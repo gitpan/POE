@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: refserver.perl,v 1.7 1999/02/03 14:34:34 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: refserver.perl,v 1.9 1999/05/14 06:06:14 rcaputo Exp $
 
 # This program is half of a test suite for POE::Filter::Reference.  It
 # implements a server that accepts frozen data, thaws it, and displays
@@ -163,12 +163,7 @@ sub server_start {
   DEBUG && print "Server starting.\n";
                                         # create a socket factory
   $heap->{wheel} = new POE::Wheel::SocketFactory
-    ( SocketDomain   => AF_INET,        # in the INET domain/address family
-      SocketType     => SOCK_STREAM,    # create stream sockets
-      SocketProtocol => 'tcp',          # using the tcp protocol
-      BindAddress    => INADDR_ANY,     # bound to any address
-      BindPort       => '31338',        # on the eleet++ port
-      ListenQueue    => 5,              # listen, with a 5-connection queue
+    ( BindPort       => '31338',        # on the eleet++ port
       Reuse          => 'yes',          # and allow immediate reuse of the port
       SuccessState   => 'accept',       # generating this event on connection
       FailureState   => 'error'         # generating this event on error

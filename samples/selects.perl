@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: selects.perl,v 1.8 1999/02/03 14:14:10 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: selects.perl,v 1.9 1999/05/14 06:06:14 rcaputo Exp $
 
 # This is an early, basic test of POE's filehandle selecting
 # mechanism.  It was written before POE::Wheel classes were conceived.

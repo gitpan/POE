@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: signals.perl,v 1.8 1999/01/20 21:24:53 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: signals.perl,v 1.9 1999/05/14 06:06:15 rcaputo Exp $
 
 # This program tests signals.  It tests OS signals (such as SIGINT),
 # soft signals to sessions, and soft signals to kernels.  Soft

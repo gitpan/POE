@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: preforkedserver.perl,v 1.5 1999/01/28 03:40:55 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: preforkedserver.perl,v 1.7 1999/05/14 06:06:13 rcaputo Exp $
 
 # This is a proof of concept for pre-forking POE servers.  It
 # maintains pool of five servers (one master; four slave).  At some
@@ -140,12 +140,7 @@ sub _start {
   my ($kernel, $heap, $processes) = @_[KERNEL, HEAP, ARG0];
                                         # create a socket factory
   $heap->{wheel} = new POE::Wheel::SocketFactory
-    ( SocketDomain   => AF_INET,        # in the INET domain/address family
-      SocketType     => SOCK_STREAM,    # create stream sockets
-      SocketProtocol => 'tcp',          # that use the 'tcp' protocol
-      BindAddress    => INADDR_ANY,     # bind to port 8888 of any address
-      BindPort       => 8888,
-      ListenQueue    => 5,              # listen, with a 5-connection queue
+    ( BindPort       => 8888,           # bind on this port
       SuccessState   => 'connection',   # generate this event for connections
       FailureState   => 'error'         # generate this event for errors
     );

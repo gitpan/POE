@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: refsender.perl,v 1.7 1999/02/03 14:14:10 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: refsender.perl,v 1.9 1999/05/14 06:06:14 rcaputo Exp $
 
 # This program is half of a test suite for POE::Filter::Reference.  It
 # implements a client that thaws referenced data and sends it to a
@@ -46,10 +46,7 @@ sub client_start {
   print "Client starting.\n";
                                         # create a socket factory
   $heap->{'wheel'} = new POE::Wheel::SocketFactory
-    ( SocketDomain   => AF_INET,        # in the INET domain/address family
-      SocketType     => SOCK_STREAM,    # create stream sockets
-      SocketProtocol => 'tcp',          # using the tcp protocol
-      RemoteAddress  => '127.0.0.1',    # connect to this address
+    ( RemoteAddress  => '127.0.0.1',    # connect to this address
       RemotePort     => 31338,          # connect to this port (eleet++)
       SuccessState   => 'connected',    # generating this event on success
       FailureState   => 'error'         # generating this event on failure

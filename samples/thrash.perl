@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: thrash.perl,v 1.3 1999/01/20 21:24:35 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: thrash.perl,v 1.6 1999/06/16 23:37:31 rcaputo Exp $
 
 # This program creates a server session and an infinitude of clients
 # that connect to it, all in the same process.  It's mainly used to
@@ -21,7 +21,7 @@ use POE qw(Wheel::ListenAccept Wheel::ReadWrite Driver::SysRW Filter::Line
 sub DEBUG () { 0 }
                                         # address and port the server binds to
 my $server_addr = '127.0.0.1';
-my $server_port = 12345;
+my $server_port = 31415;
 
 ###############################################################################
 # This is a single client session.  It uses two separater wheels: a
@@ -60,10 +60,7 @@ sub client_start {
   $kernel->sig('INT', 'signals');
                                         # create a socket factory
   $heap->{'wheel'} = new POE::Wheel::SocketFactory
-    ( SocketDomain   => AF_INET,        # in the INET domain/address family
-      SocketType     => SOCK_STREAM,    # create a stream socket
-      SocketProtocol => 'tcp',          # with the tcp protocol
-      RemoteAddress  => $server_addr,   # connecting to address $server_addr
+    ( RemoteAddress  => $server_addr,   # connecting to address $server_addr
       RemotePort     => $server_port,   # connecting to port $server_port
       SuccessState   => 'connected',    # generating this event when connected
       FailureState   => 'error',        # generating this event upon an error
@@ -386,12 +383,8 @@ sub server_start {
   $kernel->sig('QUIT', 'signals');
                                         # create a socket factory
   $heap->{'wheel'} = new POE::Wheel::SocketFactory
-    ( SocketDomain   => AF_INET,        # in the INET domain/address family
-      SocketType     => SOCK_STREAM,    # create stream sockets
-      SocketProtocol => 'tcp',          # with the tcp protocol
-      BindAddress    => $server_addr,   # bind the listener to this address
+    ( BindAddress    => $server_addr,   # bind the listener to this address
       BindPort       => $server_port,   # bind the listener to this port
-      ListenQueue    => 5,              # listen, with a 5-connection queue
       Reuse          => 'yes',          # and reuse the socket right away
       SuccessState   => 'accept_success', # generate this event for connections
       FailureState   => 'accept_error',   # generate this event for errors

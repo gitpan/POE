@@ -1,13 +1,35 @@
-# $Id: Makefile.PL,v 1.2 1998/08/15 20:34:09 troc Exp $
+#!/usr/bin/perl
+# $Id: Makefile.PL,v 1.8 1999/05/14 11:33:18 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
+
 # See lib/ExtUtils/MakeMaker.pm for details of how to influence
 # the contents of the Makefile that is written.
+
 WriteMakefile
-  (
-   'NAME'         => 'POE',
-   'VERSION_FROM' => 'POE.pm',
-   'dist'         => { 'COMPRESS' => 'gzip -9',
-                       'SUFFIX'   => 'gz',
-                     },
+  ( NAME         => 'POE',
+    AUTHOR       => 'Rocco Caputo <troc@netrus.net>',
+    ABSTRACT     => 'Event driven state machines and I/O abstractions.',
+    VERSION_FROM => 'POE.pm',
+    dist         => { 'COMPRESS' => 'gzip -9',
+                      'SUFFIX'   => 'gz',
+                    },
+    PREREQ_PM    => { Carp           => 0,
+                      Exporter       => 0,
+                      HTTP::Request  => 0,
+                      HTTP::Response => 0,
+                      HTTP::Status   => 0,
+                      IO             => 0,
+                      POSIX          => 0,
+                      Socket         => 0,
+                      Storable       => 0,
+                      Time::HiRes    => 0,
+                      URI::URL       => 0,
+                    },
   );
+
+__END__
+
+  DIR
+    Ref to array of subdirectories containing Makefile.PLs e.g. [ 'sdbm' ]
+    in ext/SDBM_File

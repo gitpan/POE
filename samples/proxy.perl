@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: proxy.perl,v 1.8 1999/02/03 14:34:34 troc Exp $
+# $Id: proxy.perl,v 1.11 1999/03/24 14:08:44 troc Exp $
 
 # This is a proof of concept for proxies, or other programs that
 # employ both client and server sockets in the same sesion.  Previous
@@ -26,9 +26,12 @@ my @redirects =
       127.0.0.1:7006-127.0.0.1:7007
       127.0.0.1:7007-127.0.0.1:7008
       127.0.0.1:7008-127.0.0.1:7009
-      127.0.0.1:7009-perl.org:daytime
+      127.0.0.1:7009-nexi.com:daytime
       127.0.0.1:7010-127.0.0.1:7010
       127.0.0.1:7777-127.0.0.1:12345
+      127.0.0.1:6667-nexi.com:1617
+      127.0.0.1:8000-127.0.0.1:32000
+      127.0.0.1:8888-bogusmachine.nowhere.land:80
     );
 
 ###############################################################################
@@ -68,6 +71,14 @@ sub session_start {
   $peer_host = inet_ntoa($peer_host);
   print "[$heap->{'log'}] Accepted connection from $peer_host:$peer_port\n";
 
+  $heap->{peer_host} = $peer_host;
+  $heap->{peer_port} = $peer_port;
+  $heap->{remote_addr} = $remote_addr;
+  $heap->{remote_port} = $remote_port;
+
+  $heap->{state} = 'connecting';
+  $heap->{queue} = [];
+
   $heap->{wheel_client} = new POE::Wheel::ReadWrite
     ( Handle     => $socket,
       Driver     => new POE::Driver::SysRW,
@@ -77,10 +88,7 @@ sub session_start {
     );
   
   $heap->{wheel_server} = new POE::Wheel::SocketFactory
-    ( SocketDomain   => AF_INET,
-      SocketType     => SOCK_STREAM,
-      SocketProtocol => 'tcp',
-      RemoteAddress  => $remote_addr,
+    ( RemoteAddress  => $remote_addr,
       RemotePort     => $remote_port,
       SuccessState   => 'server_connect',
       FailureState   => 'server_error',
@@ -104,7 +112,13 @@ sub session_stop {
 
 sub session_client_input {
   my ($heap, $input) = @_[HEAP, ARG0];
-  (exists $heap->{wheel_server}) && $heap->{wheel_server}->put($input);
+
+  if ($heap->{state} eq 'connecting') {
+    push @{$heap->{queue}}, $input;
+  }
+  else {
+    (exists $heap->{wheel_server}) && $heap->{wheel_server}->put($input);
+  }
 }
 
 #------------------------------------------------------------------------------
@@ -131,10 +145,27 @@ sub session_client_error {
 # Begin passing data through.
 
 sub session_server_connect {
-  my ($heap, $socket) = @_[HEAP, ARG0];
+  my ($kernel, $session, $heap, $socket) = @_[KERNEL, SESSION, HEAP, ARG0];
 
-  print "[$heap->{'log'}] Successfully connected to remote server.\n";
-  
+  my ($local_port, $local_addr) = unpack_sockaddr_in(getsockname($socket));
+  $local_addr = inet_ntoa($local_addr);
+  print( "[$heap->{'log'}] Established forward from local ",
+         "$local_addr:$local_port to remote ",
+         $heap->{remote_addr}, ':', $heap->{remote_port}, "\n"
+       );
+
+  # It's important here to delete the old server wheel before creating
+  # the new one.  Why?  Because otherwise the right side of the assign
+  # is evaluated first.  What's this mean?  It means that the
+  # ReadWrite wheel's selects get registered, and then the selects get
+  # taken away when the SocketFactory is destroyed.  In a nutshell:
+  # the ReadWrite never receives select events.
+
+  delete $heap->{wheel_server};
+
+  # It might be cleaner just to have three different wheels in this
+  # session, but I originally was trying to be clever.
+
   $heap->{wheel_server} = new POE::Wheel::ReadWrite
     ( Handle     => $socket,
       Driver     => new POE::Driver::SysRW,
@@ -142,6 +173,12 @@ sub session_server_connect {
       InputState => 'server_input',
       ErrorState => 'server_error',
     );
+
+  $heap->{state} = 'connected';
+  foreach my $pending (@{$heap->{queue}}) {
+    $kernel->call($session, 'client_input', $pending);
+  }
+  $heap->{queue} = [];
 }
 
 #------------------------------------------------------------------------------
@@ -149,6 +186,7 @@ sub session_server_connect {
 
 sub session_server_input {
   my ($heap, $input) = @_[HEAP, ARG0];
+
   (exists $heap->{wheel_client}) && $heap->{wheel_client}->put($input);
 }
 
@@ -205,12 +243,8 @@ sub server_start {
   $heap->{remote_port} = $remote_port;
                                         # create a socket factory
   $heap->{server_wheel} = new POE::Wheel::SocketFactory
-    ( SocketDomain   => AF_INET,          # in the INET domain/address family
-      SocketType     => SOCK_STREAM,      # create stream sockets
-      SocketProtocol => 'tcp',            # using the tcp protocol
-      BindAddress    => $local_addr,      # bind to this address
+    ( BindAddress    => $local_addr,      # bind to this address
       BindPort       => $local_port,      # and bind to this port
-      ListenQueue    => 5,                # listen, with a 5-connection queue
       Reuse          => 'yes',            # reuse immediately
       SuccessState   => 'accept_success', # generate this event on connection
       FailureState   => 'accept_failure', # generate this event on error

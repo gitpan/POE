@@ -1,12 +1,8 @@
-#!perl -w -I..
-# $Id: sessions.perl,v 1.14 1999/01/20 21:10:12 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: create.perl,v 1.2 1999/05/14 06:06:12 rcaputo Exp $
 
-# This is the first test program written for POE.  It originally was
-# written to test POE's ability to dispatch events to inline sessions
-# (which was the only kind of sessions at the time).  It was later
-# amended to test directly calling event handlers, delayed garbage
-# collection, and some other things that new developers probably don't
-# need to know. :)
+# This is a version of sessions.perl that uses the &Session::create
+# constructor.
 
 use strict;
 
@@ -125,13 +121,15 @@ sub main_start {
   foreach my $name (qw(one two three four five six seven eight nine ten)) {
                                         # stupid scope trick, part 3 of 3 parts
     $session_name = $name;
-    my $session = new POE::Session
-      ( _start      => \&child_start,
-        _stop       => \&child_stop,
-        increment   => \&child_increment,
-        display_one => \&child_display_one,
-        display_two => \&child_display_two,
-        fetch_name  => \&child_fetch_name,
+    my $session = create POE::Session
+      ( inline_states => 
+        { _start      => \&child_start,
+          _stop       => \&child_stop,
+          increment   => \&child_increment,
+          display_one => \&child_display_one,
+          display_two => \&child_display_two,
+          fetch_name  => \&child_fetch_name,
+        }
       );
 
     # Normally, sessions are stopped if they have nothing to do.  The
@@ -173,10 +171,12 @@ sub main_child {
 # Start the main (parent) session, and begin processing events.
 # Kernel::run() will continue until there is nothing left to do.
 
-new POE::Session
-  ( _start => \&main_start,
-    _stop  => \&main_stop,
-    _child => \&main_child,
+create POE::Session
+  ( inline_states => 
+    { _start => \&main_start,
+      _stop  => \&main_stop,
+      _child => \&main_child,
+    }
   );
 
 $poe_kernel->run();

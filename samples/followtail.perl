@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: followtail.perl,v 1.3 1999/02/03 14:14:10 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: followtail.perl,v 1.4 1999/05/14 06:06:12 rcaputo Exp $
 
 # This program tests Wheel::FollowTail.  The FollowTail wheel provides
 # a reusable "tail -f" behavior for drivers and filters.

@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: wheels.perl,v 1.3 1999/01/20 21:24:22 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: wheels.perl,v 1.4 1999/05/14 06:06:16 rcaputo Exp $
 
 # If wheels make you squeamish, see selects.perl.  It is about the
 # same program, but it doesn't use wheels.

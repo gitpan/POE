@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: socketfactory.perl,v 1.5 1999/02/03 14:14:10 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: socketfactory.perl,v 1.8 1999/05/14 06:06:15 rcaputo Exp $
 
 # This program tests POE::Wheel::SocketFactory.  Basically, it is
 # thrash.perl, but for AF_UNIX, AF_INET tcp, and AF_INET udp sockets.
@@ -295,9 +295,7 @@ sub _start {
                                         # start a socket factory
   $heap->{'wheel'} = new POE::Wheel::SocketFactory
     ( SocketDomain => AF_UNIX,          # in the Unix address family
-      SocketType   => SOCK_STREAM,      # create stream sockets
       BindAddress  => $unix_server,     # bound to this Unix address
-      ListenQueue  => 5,                # listen, with a 5-connection queue
       SuccessState => 'got_client',     # sending this message when connected
       FailureState => 'got_error',      # sending this message upon failure
     );
@@ -401,7 +399,6 @@ sub _start {
                                         # start a socket factory
   $heap->{'wheel'} = new POE::Wheel::SocketFactory
     ( SocketDomain  => AF_UNIX,           # in the Unix address family
-      SocketType    => SOCK_STREAM,       # create stream sockets
       BindAddress   => $heap->{'socket'}, # bind to this address
       RemoteAddress => $unix_server,      # connected to that Unix address
       SuccessState  => 'got_connection',  # sending this message when connected
@@ -509,12 +506,8 @@ sub _start {
   print "$object received _start.  Hi!\n";
                                         # start a socket factory
   $heap->{'wheel'} = new POE::Wheel::SocketFactory
-    ( SocketDomain   => AF_INET,        # in the AF_INET address family
-      SocketType     => SOCK_STREAM,    # create stream sockets
-      SocketProtocol => 'tcp',          # using the tcp protocol
-      BindAddress    => '127.0.0.1',    # bound to 127.0.0.1, port 30000
+    ( BindAddress    => '127.0.0.1',    # bound to 127.0.0.1, port 30000
       BindPort       => 30000,
-      ListenQueue    => 5,              # listen, with a 5-connection queue
       Reuse          => 'yes',          # reusing the address and port
       SuccessState   => 'got_client',   # sending this message when connected
       FailureState   => 'got_error',    # sending this message upon failure
@@ -593,10 +586,7 @@ sub _start {
   print "$object received _start.  Hi!\n";
                                         # start a socket factory
   $heap->{'wheel'} = new POE::Wheel::SocketFactory
-    ( SocketDomain    => AF_INET,          # in the Internet address family
-      SocketType      => SOCK_STREAM,      # create stream sockets
-      SocketProtocol  => 'tcp',            # using the tcp protocol
-      RemoteAddress   => '127.0.0.1',      # connected to 127.0.0.1, port 30000
+    ( RemoteAddress   => '127.0.0.1',      # connected to 127.0.0.1, port 30000
       RemotePort      => 30000,
       Reuse           => 'yes',            # reusing the address and port
       SuccessState    => 'got_connection', # send this message when connected

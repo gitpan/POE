@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: objsessions.perl,v 1.4 1999/01/22 15:06:27 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: objsessions.perl,v 1.7 1999/06/01 21:20:00 rcaputo Exp $
 
 # This is another simple functionality test.  It tests sessions that
 # are composed of objects (also called "object sessions").  It is
@@ -88,14 +88,34 @@ sub increment {
 
   $heap->{'counter'}++;
 
+  if ($heap->{counter} % 2) {
+    $kernel->state('runtime_state', $object);
+  }
+  else {
+    $kernel->state('runtime_state');
+  }
+
   print "Session $object->{'name'}, iteration $heap->{'counter'}.\n";
 
   if ($heap->{'counter'} < 5) {
     $kernel->post($session, 'increment');
+    $kernel->yield('runtime_state', $heap->{counter});
   }
   else {
     # no more events.  since there is nothing left to do, the session exits.
   }
+}
+
+#------------------------------------------------------------------------------
+# This state is added on every even count.  It's removed on every odd
+# one.  Every count posts an event here.
+
+sub runtime_state {
+  my ($self, $iteration) = @_[OBJECT, ARG0];
+  print( 'Session ', $self->{name},
+         ' received a runtime_state event during iteration ',
+         $iteration, "\n"
+       );
 }
 
 #==============================================================================
@@ -104,7 +124,7 @@ sub increment {
 package main;
 
 foreach my $name (qw(one two three four five six seven eight nine ten)) {
-  new POE::Session( new Counter($name),
+  new POE::Session( new Counter($name) =>
                     [ qw(_start _stop increment sigint) ]
                   );
 }

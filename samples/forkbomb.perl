@@ -1,5 +1,5 @@
-#!perl -w -I..
-# $Id: forkbomb.perl,v 1.9 1999/02/03 14:14:10 troc Exp $
+#!/usr/bin/perl -w -I..
+# $Id: forkbomb.perl,v 1.10 1999/05/14 06:06:12 rcaputo Exp $
 
 # This is another of the earlier test programs.  It creates a single
 # session whose job is to create more of itself.  There is a built-in

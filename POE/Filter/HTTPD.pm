@@ -1,15 +1,10 @@
-# $Id: HTTPD.pm,v 1.2 1999/01/28 03:36:53 troc Exp $
-# Documentation exists after __END__
+# $Id: HTTPD.pm,v 1.5 1999/06/18 17:35:46 rcaputo Exp $
 
-# Filter::HTTPD copyright 1998 Artur Bergman <artur@vogon.se>.
+# Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
 # Thanks go to Gisle Aas for his excellent HTTP::Daemon.  Some of the
 # get code was copied out if, unfournatly HTTP::Daemon is not easily
 # subclassed for POE because of the blocking nature.
-
-# Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
-# This program is free software; you can redistribute it and/or modify
-# it under the same terms as Perl itself.
 
 package POE::Filter::HTTPD;
 use HTTP::Status;
@@ -40,7 +35,7 @@ sub get {
 
 
   local($_);
-  
+
   if($self->{'finish'}) {
     die "Didn't want any more data\n";
   }
@@ -54,19 +49,19 @@ sub get {
     if(length($buf) >= $r->content_length()) {
       $r->content($buf);
       $self->{finish}++;
-      return [$r];      
+      return [$r];
     } else {
       print $r->content_length()." wanted, got ".length($buf)."\n";
     }
     return [];
   }
-     
 
 
-  
 
 
-  return [] unless($self->{buffer} =~/(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)/s);
+
+  return []
+    unless($self->{buffer} =~/(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)/s);
 
   my $buf = $self->{buffer};
 
@@ -95,13 +90,13 @@ sub get {
 	$val .= " $1";
       } else {
 	last HEADER;
-      }      
+      }
     }
     $r->push_header($key,$val) if($key);
   }
-  
 
-  $self->{header} = $r;   
+
+  $self->{header} = $r;
 
   if($r->method() eq 'GET') {
     $self->{finish}++;
@@ -117,7 +112,7 @@ sub get {
     if(length($buf) >= $r->content_length()) {
       $r->content($buf);
       $self->{finish}++;
-      return [$r];      
+      return [$r];
     }
   }
 
@@ -131,6 +126,16 @@ sub put {
   my @raw = map { 'HTTP ' . $_->as_string(); } @$responses;
   \@raw;
 }
+
+#------------------------------------------------------------------------------
+
+sub get_pending
+{
+    my($self)=@_;
+    warn ref($self)." does not support the get_pending() method\n";
+    return;
+}
+
 
 #------------------------------------------------------------------------------
 #function specific to HTTPD;
@@ -179,43 +184,47 @@ EOT
 
 ###############################################################################
 1;
+
 __END__
 
 =head1 NAME
 
-POE::Filter::HTTPD - Supports the HTTP 1.0 Protocol
+POE::Filter::HTTPD - POE HTTP 1.0 (Server Side) Protocol Abstraction
 
 =head1 SYNOPSIS
 
   $httpd = new POE::Filter::HTTPD();
-
-  $http_response_as_string = $httpd->put($full_http_response_object);
-
-  $http_request_object = $line->get($http_request_string);
-
+  $arrayref_with_http_response_as_string =
+    $httpd->put($full_http_response_object);
+  $arrayref_with_http_request_object =
+    $line->get($arrayref_of_raw_data_chunks_from_driver);
 
 =head1 DESCRIPTION
 
-Breaks up a httpstream into a HTTP::Request object, accepts a HTTP::Response object that it sends back to the client.
+The HTTPD filter parses the first HTTP 1.0 request from an incoming
+stream into an HTTP::Request object.  It accepts a single
+HTTP::Response object, and returns a HTTP 1.0 stream for sending.
 
-=head1 PUBLIC METHODS
+Please see the documentation for HTTP::Request and HTTP::Response.
 
-Please see C<POE::Filter> for explanations.
+=head1 PUBLIC FILTER METHODS
 
-=head1 EXAMPLES
+Please see POE::Filter.
 
-Please see tests/httptest.perl for examples of C<POE::Filter::HTTPD>.
+=head1 SEE ALSO
+
+POE::Filter; POE::Filter::Line; POE::Filter::Reference;
+POE::Filter::Stream; HTTP::Request; HTTP::Response
 
 =head1 BUGS
 
-None known.
+Keep-alive is not supported.
 
-=head1 CONTACT AND COPYRIGHT
+=head1 AUTHORS & COPYRIGHTS
 
-Copyright 1998 Rocco Caputo E<lt>troc@netrus.netE<gt>.  All rights reserved.
-This program is free software; you can redistribute it and/or modify
-it under the same terms as Perl itself.
+The HTTPD filter was contributed by Artur Bergman.
+
+Please see the POE manpage for more information about authors and
+contributors.
 
 =cut
-
-
