@@ -1,5 +1,5 @@
 #!perl -w -I..
-# $Id: selects.perl,v 1.5 1998/08/15 20:34:09 troc Exp $
+# $Id: selects.perl,v 1.6 1998/08/26 05:24:42 troc Exp $
 
 use strict;
 
@@ -54,6 +54,7 @@ new POE::Session
      my ($k, $me, $from, $state, @etc) = @_;
      print "Chargen server _default got state ($state) from ($from) ",
            "parameters(", join(', ', @etc), ")\n";
+     return 0;
    },
                                         # start soft states
    'accept' => sub
@@ -84,6 +85,7 @@ new POE::Session
             my ($k, $me, $from, $state, @etc) = @_;
             print "Chargen service _default got state ($state) from ($from) ",
                   "parameters(", join(', ', @etc), ")\n";
+            return 0;
           },
                                         # consume anything sent
           'read' => sub {
@@ -167,6 +169,7 @@ new POE::Session
      my ($k, $me, $from, $state, @etc) = @_;
      print "Chargen client _default got state ($state) from ($from) ",
            "parameters(", join(', ', @etc), ")\n";
+     return 0;
    },
    '_child' => sub
    {

@@ -1,24 +1,25 @@
-# $Id: MANIFEST,v 1.2 1998/08/18 15:46:18 troc Exp $
+# $Id: MANIFEST,v 1.4 1998/11/22 22:50:54 troc Exp $
 Changes
+HISTORY
 MANIFEST
 Makefile.PL
-POE.pm
 README
-HISTORY
+t/test.t
+POE.pm
 POE/Driver.pm
-POE/Driver/SysRW.pm
 POE/Filter.pm
-POE/Filter/Line.pm
 POE/Kernel.pm
 POE/Session.pm
 POE/Wheel.pm
+POE/Driver/SysRW.pm
+POE/Filter/Line.pm
+POE/Wheel/FollowTail.pm
 POE/Wheel/ListenAccept.pm
 POE/Wheel/ReadWrite.pm
-POE/Wheel/FollowTail.pm
-t/test.t
+tests/followtail.perl
 tests/forkbomb.perl
+tests/proxy.perl
 tests/selects.perl
 tests/sessions.perl
 tests/signals.perl
 tests/wheels.perl
-tests/followtail.perl

@@ -1,4 +1,4 @@
-# $Id: test.t,v 1.1 1998/08/15 20:19:35 troc Exp $
+# $Id: test.t,v 1.3 1998/11/23 05:34:16 troc Exp $
 # Before `make install' is performed this script should be runnable with
 # `make test'. After `make install' it should work as `perl test.pl'
 
@@ -16,4 +16,6 @@ print "ok 1\n";
 
 ######################### End of black magic.
 
-print STDERR "please see the programs in test/ for examples and tests\n";
+print STDERR "\n***\n*** ";
+print STDERR "please see the programs in tests/ for examples and tests\n";
+print STDERR "***\n";

@@ -1,5 +1,5 @@
 #!perl -w -I..
-# $Id: signals.perl,v 1.4 1998/08/18 15:51:08 troc Exp $
+# $Id: signals.perl,v 1.6 1998/11/16 18:03:58 troc Exp $
 
 use strict;
 
@@ -16,7 +16,8 @@ new POE::Session
    {
      my ($k, $me, $from) = @_;
      $k->sig('INT', 'signal handler');
-     print "Signal watcher started.  Send SIGINT: ";
+     print "Signal watcher started.  Send SIGINT or SIGTERM: ";
+     $me->{'done'} = '';
      $k->post($me, 'set an alarm');
    },
    '_stop' => sub
@@ -29,17 +30,20 @@ new POE::Session
      my ($k, $me, $from, $state, @etc) = @_;
      print "Signal watcher _default gets state ($state) from ($from) ",
            "parameters(", join(', ', @etc), ")\n";
+     return 0;
    },
    'set an alarm' => sub
    {
      my ($k, $me, $from) = @_;
      print ".";
-     $k->alarm('set an alarm', time()+1);
+     $k->delay('set an alarm', 0.5);
    },
    'signal handler' => sub
    {
      my ($k, $me, $from, $signal_name) = @_;
      print "\nSignal watcher caught SIG$signal_name.\n";
+                                        # remove the delay; stops session
+     $k->delay('set an alarm');
    },
   );
 

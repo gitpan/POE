@@ -1,6 +1,6 @@
-$Id: HISTORY,v 1.1 1998/08/16 23:13:11 troc Exp $
+$Id: HISTORY,v 1.3 1998/11/23 05:35:12 troc Exp $
 
-A brief history of POE's evolution.
+A brief, pointless history of POE's evolution.
 
 -------------------------------------------------------------------------------
 
@@ -286,6 +286,8 @@ Rocco
 <troc@shadow.net>
 
 -------------------------------------------------------------------------------
+
+This is a header from a program I was writing before I discovered Perl.
 
 // =========================================================================
 //  UBERSYS.H

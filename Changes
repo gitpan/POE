@@ -1,6 +1,30 @@
-$Id: Changes,v 1.1 1998/08/15 20:21:09 troc Exp $
+$Id: Changes,v 1.4 1998/11/22 23:18:20 troc Exp $
 
 Revision history for Perl extension POE.
 
-1.00  Sat Aug 15 13:35:20 1998
-	- original version; created by h2xs 1.18
+0.01  1998.08.15
+
+  - Initial release.  Implemented Kernel, Session, Wheel, Driver,
+  Filter.
+
+0.02  1998.11.22
+
+  - Rewrote signals.  Signals now propagate from parent to child
+  sessions.  "Terminal" signals now only kill sessions that don't
+  otherwise handle them.
+
+  - Allowed subsecond resolution in Kernel.pm if Time::HiRes is
+  available.  See the docs for POE::Kernel::alarm().
+
+  - Added POE::Kernel::delay() for "time() + $seconds" alarms.  Uses
+  Kernel's time(), which may be from Time::HiRes.
+
+  - Parent sessions will now wait around until all child sessions
+  finish, unless they're explicitly killed off.
+
+  - Fixed a blessing bleed that caused implicitly returned objects to
+  die in the wrong scope (confounding resource management).
+
+  - Added tests/proxy.perl, a simple line-based proxy example.
+
+-EOF-

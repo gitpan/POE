@@ -1,9 +1,9 @@
-# $Id: POE.pm,v 1.4 1998/08/18 15:48:41 troc Exp $
+# $Id: POE.pm,v 1.6 1998/11/22 22:43:41 troc Exp $
 # Documentation exists after __END__
 
 package POE;
 
-$VERSION = "0.01";
+$VERSION = "0.02";
 
 use strict;
 use Carp;
@@ -93,6 +93,12 @@ and the kernel will respond to SIGINT by killing everything and exiting.
 
 This is an excellent shakedown of parent/child relationships and signals.
 
+=item * F<tests/proxy.perl>
+
+This is a simple line-based TCP proxy.  It redirects connections from
+localhost:7777 to perl.com:echo.  It shows how to use two or more wheels
+from a single session.
+
 =item * F<tests/selects.perl>
 
 Starts two sessions, and runs until SIGINT.  The first session is a TCP chargen
@@ -115,16 +121,15 @@ exercise the C<POE::Kernel> event queue.
 
 One session that prints out a dot every second and recognizes SIGINT.
 
+=item * F<tests/curator.perl>
+
+Lame attempt to exercise C<POE::Curator>.
+
 =back
 
 =head1 BUGS
 
-C<POE::Kernel> will exit on some signals, even if they are caught by sessions.
-This behavior can be evil for things that don't especially want to go away, so
-don't depend on it, okay?  Thanks!
-
-Signals just go to sessions in willy-nilly order.  This may not be desirable,
-but it was quick to implement.
+None known.
 
 =head1 CONTACT AND COPYRIGHT
 

@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.6 1998/08/18 15:50:15 troc Exp $
+# $Id: Session.pm,v 1.9 1998/11/23 05:33:28 troc Exp $
 # Documentation exists after __END__
 
 package POE::Session;
@@ -27,7 +27,7 @@ sub new {
     carp "discarding session $self - no '_start' state";
   }
 
-  undef;
+  $self;
 }
 
 #------------------------------------------------------------------------------
@@ -49,15 +49,16 @@ sub _invoke_state {
   }
 
   if (exists $self->{'states'}->{$state}) {
-    &{$self->{'states'}->{$state}}($kernel, $self->{'namespace'},
-                                   $source_session, @$etc
-                                  );
+    return &{$self->{'states'}->{$state}}($kernel, $self->{'namespace'},
+                                          $source_session, @$etc
+                                         );
   }
   elsif (exists $self->{'states'}->{'_default'}) {
-    &{$self->{'states'}->{'_default'}}($kernel, $self->{'namespace'},
-                                       $source_session, $state, @$etc
-                                      );
+    return &{$self->{'states'}->{'_default'}}($kernel, $self->{'namespace'},
+                                              $source_session, $state, @$etc
+                                             );
   }
+  return 0;
 }
 
 #------------------------------------------------------------------------------
@@ -103,9 +104,11 @@ POE::Session - a state machine, driven by C<POE::Kernel>
     '_default' => sub {
       my ($k, $me, $from, $state, @etc) = @_;
       # catches states for which no handlers are registered
+      # returns 0 if the state is not handled; 1 if it is (for signal squelch)
+      return 0;
     },
   );
-                  
+
 =head1 DESCRIPTION
 
 C<POE::Session> builds an initial state table and registers it as a full
@@ -122,8 +125,9 @@ C<&$state_code_ref($kernel, $namespace, $source_session, @$etc)>.
 
 =item new POE::Session($kernel, 'state' => sub { ... }, ....);
 
-Build an initial state table, and register it with a C<$kernel>.  Returns undef
-always since C<$kernel> maintains it.
+Build an initial state table, and register it with a C<$kernel>.  Returns a
+reference to the new Session, which should be discarded promptly since the
+C<$kernel> will maintain it (and extra references prevent garbage collection).
 
 =back
 
@@ -177,6 +181,10 @@ is the state name that would have received the event.  C<@etc> are any
 additional parameters (other than C<$kernel>, C<$namespace> and C<$from>) that
 would have been sent to C<$state>.
 
+If the C<_default> state handles the event, return 1.  If the C<_default>
+state does not handle the event, return 0.  This allows default states to
+squelch signals by handling them.
+
 =item _child ($kernel, $namespace, $departing_session)
 
 Informs a C<POE::Session> that a session it created (or inherited) is about
@@ -210,15 +218,97 @@ management.  Construction, destruction, and parent/child relationships.
 These are states that have been registered as C<%SIG> handlers by
 C<POE::Kernel::sig(...)>.
 
+Signal states are invoked with these paramters:
+
+=over 4
+
+=item C<$kernel>
+
+This is the kernel that is managing this session.
+
+=item C<$namespace>
+
+This is a hash into which the session can store "persistent" data.  The
+C<$namespace> hash is preserved in the Kernel until the Session stops.
+
+=item $from
+
+This is the Session that generated this state.  Under normal circumstances,
+this will be the Kernel.
+
+=item $signal_name
+
+The name of the signal that caused this state event to be sent.  It does
+not include the "SIG" prefix (e.g., 'ZOMBIE'; not 'SIGZOMBIE').
+
+=back
+
+Signal states should return 0 if they do not handle the signal, or 1 if the
+signal is handled.  Sessions will be stopped if they do not handle terminal
+signals that they receive.  Terminal signals currently are defined as
+SIGQUIT, SIGTERM, SIGINT, SIGKILL and SIGHUP in F<Kernel.pm>.
+
+Note: C<_default> is also the default signal handle.  It can prevent most
+signals from terminating a Session.
+
+There is one "super-terminal" signal, SIGZOMBIE.  It is sent to all tasks when
+the Kernel detects that nothing can be done.  The session will be terminated
+after this signal is delivered, whether or not the signal is handled.
+
 =item Select States
 
 These states are registerd to C<signal(2)> logic by C<POE::Kernel::select(...)>
 and related functions.
 
+Select states are invoked with these parameters:
+
+=over 4
+
+=item C<$kernel>
+
+Same as it ever was.
+
+=item C<$namespace>
+
+Same as it ever was.
+
+=item C<$from>
+
+Same as it ever was.
+
+=item C<$handle>
+
+This is the C<IO::Handle> object that is ready for processing.  How it
+should be processed (read, write or exception) depends on the previous
+C<$kernel-E<gt>select(...)> call.
+
+=back
+
 =item Alarm States
 
 These are states that accept delayed events sent by C<POE::Kernel::alarm(...)>,
 but any state can do this, so why is it listed separately?
+
+=over 4
+
+=item C<$kernel>
+
+Same as it ever was.
+
+=item C<$namespace>
+
+Same as it ever was.
+
+=item C<$from>
+
+Same as it ever was.
+
+=item C<@etc>
+
+Parameters passed to C<$kernel-E<gt>alarm(...)> when it was called will be sent
+to the alarm handler here.
+
+=back
 
 =item Wheel States
 
@@ -236,7 +326,9 @@ session, or they can come and go depending on the current needs of a session.
 
 Called by C<POE::Kernel> to invoke state C<$state> generated from
 C<$source_session> with a list of optional parameters in C<\@etc>.
-Invokes the _defaul state if it exists and C<$state> does not.
+Invokes the _default state if it exists and C<$state> does not.
+
+Returns 1 if the event was dispatched, or 0 if the event had nowhere to go.
 
 =item $session->register_state($state, $handler)
 

@@ -1,5 +1,5 @@
 #!perl -w -I..
-# $Id: forkbomb.perl,v 1.5 1998/08/18 15:50:36 troc Exp $
+# $Id: forkbomb.perl,v 1.6 1998/08/26 05:24:26 troc Exp $
 
 package main;
 use strict;
@@ -45,11 +45,13 @@ sub forkbomb {
        my ($k, $me, $from, $state, @etc) = @_;
        print $me->{'id'}, ": _default got state ($state) from ($from) ",
              "parameters(", join(', ', @etc), ")\n";
+       return 0;
      },
      'signal handler' => sub
      {
        my ($k, $me, $from, $signal) = @_;
        print $me->{'id'}, ": caught SIG$signal\n";
+       return 0;
      },
      'fork' => sub
      {
