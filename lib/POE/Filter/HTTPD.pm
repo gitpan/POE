@@ -1,9 +1,9 @@
-# $Id: HTTPD.pm,v 1.35 2004/01/26 00:20:06 sungo Exp $
+# $Id: HTTPD.pm,v 1.36 2004/11/16 07:12:44 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
 # Thanks go to Gisle Aas for his excellent HTTP::Daemon.  Some of the
-# get code was copied out if, unfournatly HTTP::Daemon is not easily
+# get code was copied out if, unfortunately HTTP::Daemon is not easily
 # subclassed for POE because of the blocking nature.
 
 # 2001-07-27 RCC: This filter will not support the newer get_one()
@@ -17,7 +17,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.35 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.36 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 use HTTP::Status;

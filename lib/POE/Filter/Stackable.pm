@@ -11,7 +11,7 @@ package POE::Filter::Stackable;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -32,6 +32,32 @@ sub new {
 }
 
 #------------------------------------------------------------------------------
+
+sub get_one_start {
+  my ($self, $data) = @_;
+
+  $self->[FILTERS]->[0]->get_one_start ($data);
+}
+
+sub get_one {
+  my ($self) = @_;
+
+  if (@{$self->[FILTERS]} == 1) {
+    return $self->[FILTERS]->[0]->get_one;
+  }
+  my $result = [];
+  for (my $i = 1; $i < @{$self->[FILTERS]}; $i++) {
+    my $last = $self->[FILTERS]->[$i - 1];
+    my $this = $self->[FILTERS]->[$i];
+    do {
+      my $data = $last->get_one;
+      last unless (@$data);
+      $this->get_one_start ($data);
+      $result = $this->get_one;
+    } until (@$result > 0);
+  }
+  return $result;
+}
 
 sub get {
   my ($self, $data) = @_;

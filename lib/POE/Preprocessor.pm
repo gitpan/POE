@@ -1,11 +1,11 @@
-# $Id: Preprocessor.pm,v 1.32 2004/05/24 14:02:08 rcaputo Exp $
+# $Id: Preprocessor.pm,v 1.34 2004/11/16 07:12:42 rcaputo Exp $
 
 package POE::Preprocessor;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.32 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.34 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 use Filter::Util::Call;
@@ -585,7 +585,7 @@ sub import {
                 @{$macros{$package_name}->{$name}->[MAC_PARAMETERS]};
 
               if (@use_params != @mac_params) {
-                warn( "macro $name paramter count (",
+                warn( "macro $name parameter count (",
                       scalar(@use_params),
                       ") doesn't match defined count (",
                       scalar(@mac_params),
@@ -775,7 +775,7 @@ The C<const> command defines a constant.
   const CONSTANT_NAME    'constant value'
   const ANOTHER_CONSTANT 23
 
-Enumerations are defined with the C<emun> command.  Enumerations start
+Enumerations are defined with the C<enum> command.  Enumerations start
 from zero by default:
 
   enum ZEROTH FIRST SECOND ...
@@ -828,7 +828,7 @@ they are.
 
 This method of calling Preprocessor causes the macros and constants of
 C<POE::SomeModule> to be imported for use in the current namespace.
-These macros and constants can be overriden simply by defining items
+These macros and constants can be overridden simply by defining items
 in the current namespace of the same name.
 
 Note: if the macros in C<POE::SomeModule> require additional perl
@@ -922,6 +922,13 @@ This is the working equivalent:
   use POE::Resource::Signals;
   use POE::Resource::Statistics;
 
+  # Choose one of the following, depending on your event loop.
+  use POE::Loop::Select;   # Usually this one.
+  use POE::Loop::Poll;
+  use POE::Loop::Event;
+  use POE::Loop::Tk;
+  use POE::Loop::Gtk;
+
   # Dynamically required by POE.pm.
   use POE::Kernel;
   use POE::Session;
@@ -930,10 +937,14 @@ This is the working equivalent:
   use POE::B;
   use POE::C;
 
-PerlApp does not support POE::Processor or any other source filter, so
-it's necessary to generate a static version of the files to be
-included.  Setting the C<POE_PREPROC_DUMP> environment variable will
-cause POE::Preprocessor to dump a processed version of the file.
+We recommend that you use PAR.  PAR understands source code filters
+like POE::Preprocessor.  You can skip the rest of this section if
+you're using it.
+
+PerlApp and Perl2EXE do not support POE::Processor or any other source
+filter, so it's necessary to generate a static version of the files to
+be included.  Setting the C<POE_PREPROC_DUMP> environment variable
+will cause POE::Preprocessor to dump a processed version of the file.
 
   set POE_PREPROC_DUMP=c:\rocco\preproc
 
@@ -945,7 +956,7 @@ be placed in subdirectories under L<POE_PREPROC_DUMP>.
 The preprocessed files must now be found, and their parent directory
 must be placed in the PERL5LIB environment variable.
 
-  C:\rocco\POE-0.20>dir /b /a:d /s c:\rocco\preproc
+  C:\rocco\POE-0.30>dir /b /a:d /s c:\rocco\preproc
 
 Might show these directories:
 
@@ -972,6 +983,8 @@ Zoltan Kandi for testing and documenting this.
 Lance Braswell for pointing out the POE::Resource classes need to be
 loaded.
 
+Autrijus Tang, for writing PAR.
+
 =head1 BUGS
 
 Source filters are line-based, and so is the macro language.  The only
@@ -996,13 +1009,15 @@ POE_PREPROC_DUMP environment variable.
 =head1 SEE ALSO
 
 The regexp optimizer is based on code in Ilya Zakharevich's
-Text::Trie.
+L<Text::Trie>.
+
+L<PAR> is a fine Perl archiver.  Use it.
 
 =head1 AUTHOR & COPYRIGHT
 
-POE::Preprocessor is Copyright 2000 Rocco Caputo.  Some parts are
+POE::Preprocessor is Copyright 2000-2004 Rocco Caputo.  Some parts are
 Copyright 2001 Matt Cashner. All rights reserved.  POE::Preprocessor
-is free software; you may redistribute it and/or modify it under
-the same terms as Perl itself.
+is free software; you may redistribute it and/or modify it under the
+same terms as Perl itself.
 
 =cut

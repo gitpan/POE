@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.28 2003/11/21 05:08:25 rcaputo Exp $
+# $Id: Reference.pm,v 1.32 2004/11/25 19:37:23 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -9,7 +9,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.28 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.32 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 
@@ -36,9 +36,7 @@ sub _include_zlib {
   local $SIG{'__DIE__'} = 'DEFAULT';
 
   unless (defined $zlib_status) {
-    eval { require 'Compress::Zlib';
-           import Compress::Zlib qw(compress uncompress);
-         };
+    eval "use Compress::Zlib qw(compress uncompress)";
     if ($@) {
       $zlib_status = $@;
       eval <<'      EOE';
@@ -55,46 +53,52 @@ sub _include_zlib {
 }
 
 #------------------------------------------------------------------------------
+sub _get_methods
+{
+    my($freezer)=@_;
+    my $freeze=$freezer->can('nfreeze') || $freezer->can('freeze');
+    my $thaw=$freezer->can('thaw');
+    return unless $freeze and $thaw;
+    return ($freeze, $thaw);
+}
+
+#------------------------------------------------------------------------------
 
 sub new {
   my($type, $freezer, $compression) = @_;
   $freezer ||= _default_freezer();
 
+  my($freeze, $thaw)=_get_methods($freezer);
+
   # not a reference... maybe a package?
-  unless(ref $freezer) {
-    my $symtable=$::{"main::"};
+  # and if it's a package, does it have the methods we want?
+  # if not, we are going to try to load it
 
-    # find out of the package was loaded
-    my $loaded=1;
-    foreach my $p (split /::/, $freezer) {
-      unless(exists $symtable->{"$p\::"}) {
-        $loaded=0;
-        last;
-      }
-      $symtable=$symtable->{"$p\::"};
-    }
+  unless(ref $freezer and $freeze and $thaw) {
+    my $package = $freezer;
 
-    unless($loaded) {
-      my $q=$freezer;
-      $q=~s(::)(/)g;
-      eval {require "$q.pm"; import $freezer ();};
-      croak $@ if $@;
-    }
+    $package =~ s(::)(\/)g;
+    delete $INC{$package . ".pm"};
+
+    eval {local $^W=0; require "$package.pm"; import $freezer ();};
+    carp $@ if $@;
+
+    ($freeze, $thaw)=_get_methods($freezer);
   }
 
-  # Now get the methodes we want
-  my $freeze=$freezer->can('nfreeze') || $freezer->can('freeze');
+  # Now get the methods we want
   carp "$freezer doesn't have a freeze or nfreeze method" unless $freeze;
-  my $thaw=$freezer->can('thaw');
   carp "$freezer doesn't have a thaw method" unless $thaw;
-
+  # Rocco, shouldn't ->new() return undef() it if fails to find the methods
+  # it wants?
+  return unless $freeze and $thaw;
 
   # If it's an object, we use closures to create a $self->method()
-  my $tf=$freeze;
-  my $tt=$thaw;
+  my $truefreeze=$freeze;
+  my $truethaw=$thaw;
   if(ref $freezer) {
-    $tf=sub {$freeze->($freezer, @_)};
-    $tt=sub {$thaw->($freezer, @_)};
+    $truefreeze=sub {$freeze->($freezer, @_)};
+    $truethaw=sub {$thaw->($freezer, @_)};
   }
 
   # Compression
@@ -110,8 +114,8 @@ sub new {
 
   my $self = bless { buffer    => '',
                      expecting => undef,
-                     thaw      => $tt,
-                     freeze    => $tf,
+                     thaw      => $truethaw,
+                     freeze    => $truefreeze,
                      compress  => $compression,
                    }, $type;
   $self;
@@ -242,7 +246,7 @@ new() creates and initializes a reference filter.  It accepts two
 optional parameters: A serializer and a flag that determines whether
 Compress::Zlib will be used to compress serialized data.
 
-Serializers are modelled after Storable.  Storable has a nfreeze()
+Serializers are modeled after Storable.  Storable has a nfreeze()
 function which translates referenced data into strings suitable for
 shipping across sockets.  It also contains a freeze() method which is
 less desirable since it doesn't take network byte ordering into
@@ -253,7 +257,7 @@ SERIALIZER may be a package name or an object reference, or it may be
 omitted altogether.
 
 If SERIALIZER is a package name, it is assumed that the package will
-have a thaw() function as well as etither an nfreeze() or a freeze()
+have a thaw() function as well as either an nfreeze() or a freeze()
 function.
 
   # Use Storable explicitly, specified by package name.

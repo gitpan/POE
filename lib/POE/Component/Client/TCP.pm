@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.41 2004/02/12 03:51:22 rcaputo Exp $
+# $Id: TCP.pm,v 1.42 2004/07/15 14:01:38 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.41 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.42 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -333,7 +333,7 @@ POE::Component::Client::TCP - a simplified TCP client
       SessionParams => [ options => { debug => 1 } ], # Optional.
 
       Started        => \&handle_starting,   # Optional.
-      Args           => [ "arg0", "arg1" ],  # Optional.  Started args.
+      Args           => [ "arg0", "arg1" ],  # Optional.  Start args.
 
       Connected      => \&handle_connect,
       ConnectError   => \&handle_connect_error,
@@ -443,8 +443,8 @@ as trace and debug. See L<POE::Session> for an example list of options.
 =item Args LISTREF
 
 Args passes the contents of a LISTREF to the Started callback via
-@_[ARG0..$#_].  It allows you to pass extra information to the session
-created to handle the client connection.
+@_[ARG0..$#_].  It allows a program to pass extra information to the
+session created to handle the client connection.
 
 =item BindAddress
 
@@ -607,7 +607,8 @@ initialized but before a connection has been established.
 
 The Args parameter can be used to pass initialization values to the
 Started callback, eliminating the need for closures to get values into
-the component.
+the component.  These values are included in the @_[ARG0..$#_]
+parameters.
 
 =back
 

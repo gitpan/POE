@@ -5,7 +5,7 @@ package POE::Filter::Grep;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -51,7 +51,7 @@ sub get {
 
 #------------------------------------------------------------------------------
 # 2001-07-27 RCC: The get_one variant of get() allows Wheel::Xyz to
-# retrieven one filtered record at a time.  This is necessary for
+# retrieve one filtered record at a time.  This is necessary for
 # filter changing and proper input flow control.
 
 sub get_one_start {

@@ -1,11 +1,11 @@
-# $Id: Loop.pm,v 1.4 2004/04/17 17:20:36 sungo Exp $
+# $Id: Loop.pm,v 1.5 2004/11/16 07:12:42 rcaputo Exp $
 
 package POE::Loop;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -66,7 +66,7 @@ functions are proper POE::Kernel methods.
 Each bridge first defines its own namespace and version within it.
 This way CPAN and other things can track its version.
 
-  # $Id: Loop.pm,v 1.4 2004/04/17 17:20:36 sungo Exp $
+  # $Id: Loop.pm,v 1.5 2004/11/16 07:12:42 rcaputo Exp $
 
   use strict;
 
@@ -75,7 +75,7 @@ This way CPAN and other things can track its version.
   package POE::Loop::YourToolkit;
 
   use vars qw($VERSION);
-  $VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+  $VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
   package POE::Kernel;
 
@@ -324,7 +324,7 @@ It is often empty in bridges that implement their own event loops.
 
 =item loop_reset_time_watcher NEXT_EVENT_TIME
 
-Reset a time watcher, often by stoping or destroying an existing one
+Reset a time watcher, often by stopping or destroying an existing one
 and creating a new one in its place.  This function has the same
 semantics as (and is often implemented in terms of)
 loop_resume_time_watcher().  It is usually more expensive than that

@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm,v 1.68 2004/04/20 00:15:55 sungo Exp $
+# $Id: ReadWrite.pm,v 1.69 2004/11/16 07:13:04 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.68 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.69 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -874,7 +874,7 @@ LowEvent will not be emitted again until HighEvent is.  ReadWrite
 always starts in a low-water state.
 
 Sessions which stream output are encouraged to use these events for
-flow control.  Sessions can redure their transmission rates or stop
+flow control.  Sessions can reduce their transmission rates or stop
 transmitting altogether upon receipt of a HighEvent, and they can
 resume full-speed transmission once LowEvent arrives.
 

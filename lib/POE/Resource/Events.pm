@@ -1,11 +1,11 @@
-# $Id: Events.pm,v 1.10 2004/01/21 17:27:01 rcaputo Exp $
+# $Id: Events.pm,v 1.13 2004/11/16 07:54:11 teknikill Exp $
 
 # Data and accessors to manage POE's events.
 
 package POE::Resources::Events;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.13 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -52,7 +52,8 @@ sub _data_ev_finalize {
 
 sub _data_ev_enqueue {
   my (
-    $self, $session, $source_session, $event, $type, $etc, $file, $line, $time
+    $self, $session, $source_session, $event, $type, $etc, $file, $line,
+	$fromstate, $time
   ) = @_;
 
   if (ASSERT_DATA) {
@@ -64,7 +65,7 @@ sub _data_ev_enqueue {
   }
 
   # This is awkward, but faster than using the fields individually.
-  my $event_to_enqueue = [ @_[1..7] ];
+  my $event_to_enqueue = [ @_[1..8] ];
 
   my $old_head_priority = $kr_queue->get_next_priority();
   my $new_id = $kr_queue->enqueue($time, $event_to_enqueue);
@@ -84,6 +85,9 @@ sub _data_ev_enqueue {
   elsif ($time < $old_head_priority) {
     $self->loop_reset_time_watcher($time);
   }
+
+  # This is the counterpart to _data_ev_refcount_dec().  It's only
+  # used in one place, so it's not in its own function.
 
   $self->_data_ses_refcount_inc($session);
   $event_count{$session}++;
@@ -231,19 +235,25 @@ sub _data_ev_dispatch_due {
   my $now = time();
   while (defined(my $next_time = $kr_queue->get_next_priority())) {
     last if $next_time > $now;
-    my ($time, $id, $event) = $kr_queue->dequeue_next();
+
+    my ($due_time, $id, $event) = $kr_queue->dequeue_next();
 
     if (TRACE_EVENTS) {
       _warn("<ev> dispatching event $id ($event->[EV_NAME])");
     }
 
-    if ($time < $now) {
-        $self->_data_stat_add('blocked', 1);
-        $self->_data_stat_add('blocked_seconds', $now - $time);
+    # An event is "blocked" if its due time is earlier than the
+    # current time.  This means that the event has had to wait before
+    # being dispatched.  As far as I can tell, all events will be
+    # "blocked" according to these rules.
+
+    if ($due_time < $now) {
+      $self->_data_stat_add('blocked', 1);
+      $self->_data_stat_add('blocked_seconds', $now - $due_time);
     }
 
     $self->_data_ev_refcount_dec($event->[EV_SOURCE], $event->[EV_SESSION]);
-    $self->_dispatch_event(@$event, $time, $id);
+    $self->_dispatch_event(@$event, $due_time, $id);
   }
 }
 

@@ -1,4 +1,4 @@
-# $Id: Block.pm,v 1.14 2004/01/21 23:01:07 rcaputo Exp $
+# $Id: Block.pm,v 1.15 2004/11/16 07:12:43 rcaputo Exp $
 
 package POE::Filter::Block;
 use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
@@ -6,7 +6,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.15 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -50,7 +50,7 @@ sub new {
   else {
     my $codec = delete $params{LengthCodec};
     if ($codec) {
-      croak "LengthCodec must be an arrray reference"
+      croak "LengthCodec must be an array reference"
         unless ref($codec) eq "ARRAY";
       croak "LengthCodec must contain two items"
         unless @$codec == 2;

@@ -1,4 +1,4 @@
-# $Id: SysRW.pm,v 1.26 2003/11/26 03:52:07 rcaputo Exp $
+# $Id: SysRW.pm,v 1.30 2004/11/24 02:07:50 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
@@ -10,7 +10,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.26 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.30 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
@@ -80,7 +80,8 @@ sub get {
 
   my $result = sysread($handle, my $buffer = '', $self->[BLOCK_SIZE]);
 
-  # sysread() was sucessful.  Return whatever was read.
+  # sysread() returned a positive number of octets.  Return whatever
+  # was read.
   return [ $buffer ] if $result;
 
   # 18:01 <dngor> sysread() clears $! when it returns 0 for eof?
@@ -109,6 +110,11 @@ sub get {
   # Nonfatal sysread() error.  Return an empty list.
   return [ ] if $! == EAGAIN or $! == EWOULDBLOCK;
 
+  # In perl 5.005_04 on FreeBSD, $! is not set properly unless this
+  # silly no-op is executed.  TODO - Make it optimizable at compile
+  # time.
+  $result = "$result";
+
   # fatal sysread error
   undef;
 }
@@ -122,11 +128,15 @@ sub flush {
 
   # syswrite() it, like we're supposed to
   while (@{$self->[OUTPUT_QUEUE]}) {
-    my $wrote_count = syswrite($handle,
-                               $self->[OUTPUT_QUEUE]->[0],
-                               $self->[CURRENT_OCTETS_LEFT],
-                               $self->[CURRENT_OCTETS_DONE],
-                              );
+    my $wrote_count = syswrite(
+      $handle,
+      $self->[OUTPUT_QUEUE]->[0],
+      $self->[CURRENT_OCTETS_LEFT],
+      $self->[CURRENT_OCTETS_DONE],
+    );
+
+    # Errors only count if syswrite() failed.
+    $! = 0 if defined $wrote_count;
 
     unless ($wrote_count) {
       $! = 0 if $! == EAGAIN or $! == EWOULDBLOCK;

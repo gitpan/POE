@@ -1,4 +1,4 @@
-# $Id: POE.pm,v 1.177 2004/06/03 22:10:58 rcaputo Exp $
+# $Id: POE.pm,v 1.181 2004/11/25 19:44:12 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,15 +7,18 @@ use strict;
 use Carp;
 
 use vars qw($VERSION $REVISION);
-$VERSION = '0.29';
-$REVISION = do {my@r=(q$Revision: 1.177 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = '0.30';
+$REVISION = do {my@r=(q$Revision: 1.181 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 sub import {
   my $self = shift;
 
+  my @loops    = grep(/^Loop\:\:/, @_);
   my @sessions = grep(/^(Session|NFA)$/, @_);
-  my @modules = grep(!/^(Kernel|Session|NFA)$/, @_);
+  my @modules  = grep(!/^(Kernel|Session|NFA|Loop)$/, @_);
 
+  croak "can't use multiple event loops at once"
+    if (@loops > 1);
   croak "POE::Session and POE::NFA export conflicting constants"
     if grep(/^(Session|NFA)$/, @sessions) > 1;
 
@@ -27,16 +30,32 @@ sub import {
     unshift @modules, 'Session';
   }
 
-  # Add Kernel back in, whether anybody wanted it or not.  Ensure that
-  # it comes before any sessions, since the sessions need to refer to
-  # constants defined in Kernel's namespace.
-  unshift @modules, 'Kernel';
-
-  my $package = (caller())[0];
-
+  my $package = caller();
   my @failed;
+
+  # Load POE::Kernel in the caller's package.  This is separate
+  # because we need to push POE::Loop classes through POE::Kernel's
+  # import().
+
+  {
+    my $loop = "";
+    if (@loops) {
+      $loop = "{ loop => '" . shift (@loops) . "' }";
+    }
+    my $code = "package $package; use POE::Kernel $loop;";
+    # warn $code;
+    eval $code;
+    if ($@) {
+      warn $@;
+      push @failed, "Kernel"
+    };
+  }
+
+  # Load all the others.
+
   foreach my $module (@modules) {
     my $code = "package $package; use POE::$module;";
+    # warn $code;
     eval($code);
     if ($@) {
       warn $@;

@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm,v 1.50 2004/04/20 00:15:54 sungo Exp $
+# $Id: FollowTail.pm,v 1.51 2004/11/16 07:12:46 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.50 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.51 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use Symbol;
@@ -574,7 +574,7 @@ time.  Please be careful.
 The SeekBack parameter tells FollowTail how far back from the end of
 the file to start reading.  Its value is specified in bytes, and
 values greater than the file's current size will quietly cause
-FollowTail to ltart from the file's beginning.
+FollowTail to start from the file's beginning.
 
 A SeekBack parameter of 0 starts FollowTail at the end of the file.
 It's recommended to omit Seek and SeekBack to start from the end of a

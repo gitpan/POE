@@ -1,11 +1,11 @@
-# $Id: Run.pm,v 1.58 2004/01/28 23:19:13 rcaputo Exp $
+# $Id: Run.pm,v 1.60 2004/11/16 07:13:04 rcaputo Exp $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.58 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.60 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -862,14 +862,10 @@ sub shutdown_stdin {
   my $self = shift;
   return unless defined $self->[HANDLE_STDIN];
 
-  if ($self->[STDIO_TYPE] eq "pipe" or $self->[STDIO_TYPE] eq "pty") {
-    close $self->[HANDLE_STDIN];
-  }
-  else {
-    eval { local $^W = 0; shutdown($self->[HANDLE_STDIN], 1) };
-  }
-
   $poe_kernel->select_write($self->[HANDLE_STDIN], undef);
+
+  eval { local $^W = 0; shutdown($self->[HANDLE_STDIN], 1) };
+  close $self->[HANDLE_STDIN] if $@;
 }
 
 #------------------------------------------------------------------------------
@@ -1182,7 +1178,7 @@ session if any errors occur.  The event receives 5 parameters as
 follows: ARG0 = the return value of syscall(), ARG1 = errno() - the
 numeric value of the error generated, ARG2 = error() - a descriptive
 for the given error, ARG3 = the wheel id, and ARG4 = the handle on
-which the error ocurred (stdout, stderr, etc.)
+which the error occurred (stdout, stderr, etc.)
 
 Wheel::Run requires at least one of the following three events:
 

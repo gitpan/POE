@@ -1,4 +1,4 @@
-# $Id: TkCommon.pm,v 1.6 2004/01/21 17:27:01 rcaputo Exp $
+# $Id: TkCommon.pm,v 1.10 2004/11/16 07:12:45 rcaputo Exp $
 
 # The common bits of our system-specific Tk event loops.  This is
 # everything but file handling.
@@ -10,7 +10,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Tk 800.021;
 use 5.00503;
@@ -28,17 +28,17 @@ my $_watcher_timer;
 sub loop_attach_uidestroy {
   my ($self, $window) = @_;
 
-  $window->OnDestroy
-    ( sub {
-        if ($self->_data_ses_count()) {
-          $self->_dispatch_event
-            ( $self, $self,
-              EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
-              __FILE__, __LINE__, time(), -__LINE__
-            );
-        }
+  $window->OnDestroy(
+    sub {
+      if ($self->_data_ses_count()) {
+        $self->_dispatch_event(
+          $self, $self,
+          EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
+          __FILE__, __LINE__, time(), -__LINE__
+        );
       }
-    );
+    }
+  );
 }
 
 #------------------------------------------------------------------------------
@@ -73,6 +73,32 @@ sub loop_pause_time_watcher {
 # overhead of dispatching it, then no other events are processed.
 # That includes afterIdle and even internal Tk events.
 
+# TODO - Ton Hospel's Tk event loop doesn't mix alarms and immediate
+# events.  Rather, it keeps a list of immediate events and defers
+# queuing of alarms to something else.
+#
+#  sub loop {
+#      # Extra test without alarm handling makes alarm priority normal
+#      (@immediate && run_signals),
+#      DoOneEvent(DONT_WAIT | FILE_EVENTS | WINDOW_EVENTS) while 
+#          (@immediate && run_signals), !@loops && DoOneEvent;
+#      return shift @loops;
+#  }
+#
+# The immediate events are dispatched in a chunk between calls to Tk's
+# event loop.  He uses a double buffer: As events are processed in
+# @immediate, new ones go into a different list.  Once @immediate is
+# exhausted, the second list is copied in.
+#
+# The double buffered queue means that @immediate is alternately
+# exhausted and filled.  It's impossible to fill @immediate while it's
+# being processed, so sub handle_foo { yield("foo") } won't run
+# forever.
+#
+# This has a side effect of deferring any alarms until after
+# @immediate is exhausted.  I suspect the semantics are similar to
+# POE's queue anyway, however.
+
 # Tk timer callback to dispatch events.
 
 my $last_time = time();
@@ -80,7 +106,7 @@ my $last_time = time();
 sub _loop_event_callback {
   if (TRACE_STATISTICS) {
     # TODO - I'm pretty sure the startup time will count as an unfair
-    # amout of idleness.
+    # amount of idleness.
     #
     # TODO - Introducing many new time() syscalls.  Bleah.
     $poe_kernel->_data_stat_add('idle_seconds', time() - $last_time);
@@ -104,7 +130,21 @@ sub _loop_event_callback {
       undef $_watcher_timer;
     }
 
-    # Replace it with an idle event that will reset the alarm.
+    # Faster, more direct code is also broken since Tk alarms take
+    # precedence over everything else.
+
+#    my $next_time = $poe_kernel->get_next_event_time();
+#    if (defined $next_time) {
+#      $next_time -= time();
+#      $next_time = 0 if $next_time < 0;
+#
+#      $_watcher_timer = $poe_main_window->after(
+#        $next_time * 1000,
+#        [\&_loop_event_callback]
+#      );
+#    }
+
+    # Slower, indirect code works.
 
     $_watcher_timer = $poe_main_window->afterIdle(
       [
@@ -132,7 +172,7 @@ sub _loop_event_callback {
     # vs. kernel events, and GC the kernel when the user events drop
     # to 0.
 
-    if ($poe_kernel->get_event_count() == 1) {
+    if ($poe_kernel->get_event_count() == IDLE_QUEUE_SIZE) {
       $poe_kernel->_test_if_kernel_is_idle();
     }
   }
@@ -163,11 +203,11 @@ sub Tk::Error {
   POE::Kernel::_warn "Tk::Error: $error\n " . join("\n ",@_)."\n";
 
   if ($poe_kernel->_data_ses_count()) {
-    $poe_kernel->_dispatch_event
-      ( $poe_kernel, $poe_kernel,
-        EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
-        __FILE__, __LINE__, time(), -__LINE__
-      );
+    $poe_kernel->_dispatch_event(
+      $poe_kernel, $poe_kernel,
+      EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
+      __FILE__, __LINE__, time(), -__LINE__
+    );
   }
 }
 

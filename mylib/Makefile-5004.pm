@@ -1,72 +1,77 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.22 2004/05/22 05:16:59 rcaputo Exp $
+# $Id: Makefile-5004.pm,v 1.30 2004/11/25 07:04:24 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
-use File::Find;
-use File::Spec;
 
 # Add a new target.
-
-sub MY::test {
-  package MY;
-  "\ntest ::\n\t\$(FULLPERL) ./mylib/deptest.perl\n" . shift->SUPER::test(@_);
-}
 
 sub MY::postamble {
     return <<EOF;
 reportupload: poe_report.xml
-	perl mylib/reportupload.pl
+\cIperl mylib/reportupload.pl
 
 uploadreport: poe_report.xml
-	perl mylib/reportupload.pl
+\cIperl mylib/reportupload.pl
 
 testreport: poe_report.xml
 
 poe_report.xml: Makefile
-	perl mylib/testreport.pl
+\cIperl mylib/testreport.pl
+
+coverage: Makefile
+\cIperl mylib/coverage.perl
+
+cover: coverage
 EOF
 }
 
-my @tests;
+# Generate dynamic test files.
 
-find(
-  sub {
-    /\.t$/ &&
-    push @tests, File::Spec->catfile($File::Find::dir,$_)
-  },
-  't/',
-);
-
-my $test_str = join " ", sort @tests;
+system("perl", "mylib/gen-tests.perl") and die "couldn't generate tests: $!";
 
 # Touch generated files so they exist.
 open(TOUCH, ">>CHANGES") and close TOUCH;
 open(TOUCH, ">>META.yml") and close TOUCH;
 
-WriteMakefile
-  ( NAME           => 'POE',
-    VERSION_FROM   => 'lib/POE.pm',
+WriteMakefile(
+  NAME           => 'POE',
+  VERSION_FROM   => 'lib/POE.pm',
 
-    dist           =>
-    { COMPRESS => 'gzip -9f',
-      SUFFIX   => 'gz',
-      PREOP    => ( './mylib/cvs-log.perl | ' .
-                    'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
-                  ),
-    },
-    test           => { TESTS => $test_str },
-    PREREQ_PM      => { Carp               => 0,
-                        Exporter           => 0,
-                        IO                 => 0,
-                        POSIX              => 0,
-                        Socket             => 0,
-                        Filter::Util::Call => 1.04,
-                        Test::More         => 0,
-                      },
-    PL_FILES    => { },
-    clean => {
-        FILES => 'poe_report.xml test-output.err coverage.report',
-    }
-  );
+  dist           => {
+    COMPRESS => 'gzip -9f',
+    SUFFIX   => 'gz',
+    PREOP    => (
+      './mylib/cvs-log.perl | ' .
+      'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
+    ),
+  },
+  PREREQ_PM      => {
+    "Carp"               => 0,
+    "Exporter"           => 0,
+    "IO"                 => 1.20,
+    "POSIX"              => 1.02,
+    "Socket"             => 1.7,
+    "Filter::Util::Call" => 1.06,
+    "Test::More"         => 0.50,
+    "File::Spec"         => 3.01,
+    "Errno"              => 1.09,
+  },
+  PL_FILES    => { },
+  clean => {
+    FILES => (
+      "coverage.report " .
+      "poe_report.xml " .
+      "run_network_tests " .
+      "tests/20_resources/10_perl/* " .
+      "tests/20_resources/20_xs/* " .
+      "tests/30_loops/10_select/* " .
+      "tests/30_loops/20_poll/* " .
+      "tests/30_loops/30_event/* " .
+      "tests/30_loops/40_gtk/* " .
+      "tests/30_loops/50_tk/* " .
+      "test-output.err "
+    ),
+  }
+);
 
 1;

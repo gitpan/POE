@@ -1,11 +1,11 @@
-# $Id: NFA.pm,v 1.28 2004/01/05 22:37:36 rcaputo Exp $
+# $Id: NFA.pm,v 1.30 2004/11/16 07:54:10 teknikill Exp $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.28 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.30 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 
@@ -107,16 +107,17 @@ sub SENDER      () {  5 }
 sub STATE       () {  6 }
 sub CALLER_FILE () {  7 }
 sub CALLER_LINE () {  8 }
-sub ARG0        () {  9 }
-sub ARG1        () { 10 }
-sub ARG2        () { 11 }
-sub ARG3        () { 12 }
-sub ARG4        () { 13 }
-sub ARG5        () { 14 }
-sub ARG6        () { 15 }
-sub ARG7        () { 16 }
-sub ARG8        () { 17 }
-sub ARG9        () { 18 }
+sub CALLER_STATE () {  9 }
+sub ARG0        () { 10 }
+sub ARG1        () { 11 }
+sub ARG2        () { 12 }
+sub ARG3        () { 13 }
+sub ARG4        () { 14 }
+sub ARG5        () { 15 }
+sub ARG6        () { 16 }
+sub ARG7        () { 17 }
+sub ARG8        () { 18 }
+sub ARG9        () { 19 }
 
 sub import {
   my $package = caller();
@@ -222,7 +223,7 @@ sub DESTROY {
 #------------------------------------------------------------------------------
 
 sub _invoke_state {
-  my ($self, $sender, $event, $args, $file, $line) = @_;
+  my ($self, $sender, $event, $args, $file, $line, $fromstate) = @_;
 
   # Trace the state invocation if tracing is enabled.
 
@@ -267,7 +268,7 @@ sub _invoke_state {
     );
 
     # Invoke the current state's leave event, if one exists.
-    $self->_invoke_state( $self, 'leave', [], undef, undef )
+    $self->_invoke_state( $self, 'leave', [], undef, undef, undef )
       if exists $self->[SELF_CURRENT]->{leave};
 
     # Enter the new state.
@@ -275,7 +276,7 @@ sub _invoke_state {
     $self->[SELF_CURRENT_NAME] = $new_state;
 
     # Invoke the new state's enter event, if requested.
-    $self->_invoke_state( $self, $enter_event, \@enter_args, undef, undef )
+    $self->_invoke_state( $self, $enter_event, \@enter_args, undef, undef, undef )
       if defined $enter_event;
 
     return undef;
@@ -290,7 +291,7 @@ sub _invoke_state {
             shift(@args),               # STACK_EVENT
           ]
         );
-    $self->_invoke_state( $self, NFA_EN_GOTO_STATE, \@args, undef, undef );
+    $self->_invoke_state( $self, NFA_EN_GOTO_STATE, \@args, undef, undef, undef );
 
     return undef;
   }
@@ -308,7 +309,7 @@ sub _invoke_state {
       @{ pop @{ $self->[SELF_STATE_STACK] } };
     $self->_invoke_state( $self, NFA_EN_GOTO_STATE,
                           [ $previous_state, $previous_event, @$args ],
-                          undef, undef
+                          undef, undef, undef
                         );
 
     return undef;
@@ -376,6 +377,7 @@ sub _invoke_state {
         $self->[SELF_CURRENT_NAME], # STATE
         $file,                      # CALLER_FILE_NAME
         $line,                      # CALLER_FILE_LINE
+        $fromstate,                 # CALLER_STATE
         @$args                      # ARG0..
       );
   }
@@ -393,6 +395,7 @@ sub _invoke_state {
         $self->[SELF_CURRENT_NAME], # STATE
         $file,                      # CALLER_FILE_NAME
         $line,                      # CALLER_FILE_LINE
+        $fromstate,                 # CALLER_STATE
         @$args                      # ARG0..
       );
   }
@@ -916,7 +919,7 @@ information.
 =item RUNSTATE
 
 C<RUNSTATE> is equivalent to Session's C<HEAP> field.  It holds an
-anoymous hash reference which POE is guaranteed not to touch.  See
+anonymous hash reference which POE is guaranteed not to touch.  See
 POE::Session's C<HEAP> field for more information.
 
 =item STATE

@@ -1,7 +1,7 @@
 package POE::API::ResLoader;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 sub import {
     my $package = (caller())[0];
@@ -16,7 +16,7 @@ sub import {
 
 =head1 NAME
 
-POE::API::ResLoader - provides initalization interface for POE::Resources
+POE::API::ResLoader - provides initialization interface for POE::Resources
 
 =head1 SYNOPSIS
 

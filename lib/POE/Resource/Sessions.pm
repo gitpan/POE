@@ -1,11 +1,11 @@
-# $Id: Sessions.pm,v 1.14 2003/12/13 05:37:29 rcaputo Exp $
+# $Id: Sessions.pm,v 1.18 2004/07/16 01:10:16 rcaputo Exp $
 
 # Manage session data structures on behalf of POE::Kernel.
 
 package POE::Resources::Sessions;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.18 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -67,6 +67,13 @@ sub _data_ses_finalize {
 sub _data_ses_allocate {
   my ($self, $session, $sid, $parent) = @_;
 
+  if (ASSERT_DATA and defined($parent)) {
+    _trap "parent $parent does not exist"
+      unless exists $kr_sessions{$parent};
+    _trap "session $session is already allocated"
+      if exists $kr_sessions{$session};
+  }
+
   $kr_sessions{$session} =
     [ $session,  # SS_SESSION
       0,         # SS_REFCOUNT
@@ -81,12 +88,6 @@ sub _data_ses_allocate {
 
   # Manage parent/child relationship.
   if (defined $parent) {
-    if (ASSERT_DATA) {
-      unless (exists $kr_sessions{$parent}) {
-        _trap "parent $parent does not exist";
-      }
-    }
-
     if (TRACE_SESSIONS) {
       _warn(
         "<ss> ",
@@ -125,9 +126,11 @@ sub _data_ses_free {
 
   if (defined $parent) {
     if (ASSERT_DATA) {
-      if ($parent == $session) {
-        _trap "session is its own parent";
-      }
+      _trap "session is its own parent"
+        if $parent == $session;
+      _trap "session's parent ($parent) doesn't exist"
+        unless exists $kr_sessions{$parent};
+
       unless ($self->_data_ses_is_child($parent, $session)) {
         _trap(
           $self->_data_alias_loggable($session), " isn't a child of ",
@@ -136,15 +139,13 @@ sub _data_ses_free {
           ")"
         );
       }
-      unless (exists $kr_sessions{$parent}) {
-        _trap "internal inconsistency ($parent)";
-      }
     }
 
     # Remove the departing session from its parent.
 
     _trap "internal inconsistency ($parent/$session)"
       unless delete $kr_sessions{$parent}->[SS_CHILDREN]->{$session};
+
     undef $kr_sessions{$session}->[SS_PARENT];
 
     if (TRACE_SESSIONS) {
@@ -189,6 +190,13 @@ sub _data_ses_free {
 sub _data_ses_move_child {
   my ($self, $session, $new_parent) = @_;
 
+  if (ASSERT_DATA) {
+    _trap("moving nonexistent child to another parent")
+      unless exists $kr_sessions{$session};
+    _trap("moving child to a nonexistent parent")
+      unless exists $kr_sessions{$new_parent};
+  }
+
   if (TRACE_SESSIONS) {
     _warn(
       "<ss> moving ",
@@ -197,15 +205,11 @@ sub _data_ses_move_child {
     );
   }
 
-  if (ASSERT_DATA) {
-    _trap() unless exists $kr_sessions{$session};
-    _trap() unless exists $kr_sessions{$new_parent};
-  }
-
   my $old_parent = $self->_data_ses_get_parent($session);
 
   if (ASSERT_DATA) {
-    _trap() unless exists $kr_sessions{$old_parent};
+    _trap("moving child from a nonexistent parent")
+      unless exists $kr_sessions{$old_parent};
   }
 
   # Remove the session from its old parent.
@@ -319,20 +323,16 @@ sub _data_ses_resolve_to_id {
 sub _data_ses_refcount_dec {
   my ($self, $session) = @_;
 
+  if (ASSERT_DATA) {
+    _trap("decrementing refcount of a nonexistent session")
+      unless exists $kr_sessions{$session};
+  }
+
   if (TRACE_REFCNT) {
     _warn(
       "<rc> decrementing refcount for ",
       $self->_data_alias_loggable($session)
     );
-  }
-
-  # -><- Why do we return if the session does not exist, but then confess
-  # that there is a problem if the session does not exist?  One of
-  # these must go!
-  return unless exists $kr_sessions{$session};
-
-  if (ASSERT_DATA) {
-    _trap() unless exists $kr_sessions{$session};
   }
 
   $kr_sessions{$session}->[SS_REFCOUNT]--;
@@ -350,16 +350,16 @@ sub _data_ses_refcount_dec {
 sub _data_ses_refcount_inc {
   my ($self, $session) = @_;
 
+  if (ASSERT_DATA) {
+    _trap("incrementing refcount for nonexistent session")
+      unless exists $kr_sessions{$session};
+  }
+
   if (TRACE_REFCNT) {
     _warn(
       "<rc> incrementing refcount for ",
       $self->_data_alias_loggable($session)
     );
-  }
-
-  if (ASSERT_DATA) {
-    _trap "incrementing refcount for nonexistent session"
-      unless exists $kr_sessions{$session};
   }
 
   $kr_sessions{$session}->[SS_REFCOUNT]++;
@@ -378,19 +378,9 @@ sub _data_ses_refcount {
 sub _data_ses_collect_garbage {
   my ($self, $session) = @_;
 
-  if (TRACE_REFCNT) {
-    _warn(
-      "<rc> testing for idle ",
-      $self->_data_alias_loggable($session)
-    );
-  }
-
-  # The next line is necessary for some strange reason.  This feels
-  # like a kludge, but I'm currently not smart enough to figure out
-  # what it's working around.
-
   if (ASSERT_DATA) {
-    _trap() unless exists $kr_sessions{$session};
+    _trap("collecting garbage for a nonexistent session")
+      unless exists $kr_sessions{$session};
   }
 
   if (TRACE_REFCNT) {
@@ -458,12 +448,13 @@ sub _data_ses_count {
 sub _data_ses_stop {
   my ($self, $session) = @_;
 
-  if (TRACE_SESSIONS) {
-    _warn("<ss> stopping ", $self->_data_alias_loggable($session));
+  if (ASSERT_DATA) {
+    _trap("stopping a nonexistent session")
+      unless exists $kr_sessions{$session};
   }
 
-  if (ASSERT_DATA) {
-    _trap unless exists $kr_sessions{$session};
+  if (TRACE_SESSIONS) {
+    _warn("<ss> stopping ", $self->_data_alias_loggable($session));
   }
 
   # Maintain referential integrity between parents and children.
@@ -484,24 +475,24 @@ sub _data_ses_stop {
     );
   }
 
+  # Referential integrity has been dealt with.  Now notify the session
+  # that it has been stopped.
+  my $stop_return = $self->_dispatch_event(
+    $session, $self->get_active_session(),
+    EN_STOP, ET_STOP, [],
+    __FILE__, __LINE__, time(), -__LINE__
+  );
+
   # If the departing session has a parent, notify it that the session
   # is being lost.
 
   if (defined $parent) {
     $self->_dispatch_event(
       $parent, $self,
-      EN_CHILD, ET_CHILD, [ CHILD_LOSE, $session ],
+      EN_CHILD, ET_CHILD, [ CHILD_LOSE, $session, $stop_return ],
       __FILE__, __LINE__, time(), -__LINE__
     );
   }
-
-  # Referential integrity has been dealt with.  Now notify the session
-  # that it has been stopped.
-  $self->_dispatch_event(
-    $session, $self->get_active_session(),
-    EN_STOP, ET_STOP, [],
-    __FILE__, __LINE__, time(), -__LINE__
-  );
 
   # Deallocate the session.
   $self->_data_ses_free($session);

@@ -1,4 +1,4 @@
-# $Id: Array.pm,v 1.5 2003/11/26 03:52:07 rcaputo Exp $
+# $Id: Array.pm,v 1.8 2004/11/24 02:10:40 rcaputo Exp $
 # Copyrights and documentation are at the end.
 
 package POE::Queue::Array;
@@ -7,9 +7,10 @@ use strict;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(POE::Queue);
-$VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Errno qw(ESRCH EPERM);
+use Carp qw(confess);
 
 sub DEBUG () { 0 }
 
@@ -129,6 +130,15 @@ sub dequeue_next {
 }
 
 ### Return the next item's priority, undef if the queue is empty.
+
+# Ton Hospel suggests that assignment is relatively slow.  He proposed
+# this instead.  This is perhaps THE hottest function in POE, and the
+# result is an approximately 4% speed improvement in his benchmarks.
+#
+# return (shift->[0] || return undef)->[ITEM_PRIORITY];
+#
+# We can do similar in a lot of places, but at what cost to
+# maintainability?
 
 sub get_next_priority {
   my $self = shift;
@@ -395,14 +405,14 @@ sub _dump_splice {
   if ($index > 0) {
     my $before = $self->[$index-1]->[ITEM_PRIORITY];
     push @return, "before($before)";
-    Carp::confess "out of order: $before should be < $at" if $before > $at;
+    confess "out of order: $before should be < $at" if $before > $at;
   }
   push @return, "at($at)";
   if ($index < $#$self) {
     my $after = $self->[$index+1]->[ITEM_PRIORITY];
     push @return, "after($after)";
     my @priorities = map {$_->[ITEM_PRIORITY]} @$self;
-    Carp::confess "out of order: $at should be < $after (@priorities)"
+    confess "out of order: $at should be < $after (@priorities)"
       if $at >= $after;
   }
   return "@return";
@@ -433,7 +443,7 @@ sub _reinsert_item {
     return $new_priority;
   }
 
-  # Special case: The item blenogs at the head of the queue.
+  # Special case: The item belongs at the head of the queue.
   if ($new_priority < $self->[0]->[ITEM_PRIORITY]) {
     unshift @$self, $item;
     DEBUG and warn $self->_dump_splice(0);

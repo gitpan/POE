@@ -1,4 +1,4 @@
-# $Id: Statistics.pm,v 1.1 2004/01/21 17:27:01 rcaputo Exp $
+# $Id: Statistics.pm,v 1.3 2004/11/16 07:54:11 teknikill Exp $
 
 # Data and methods to collect runtime statistics about POE, allowing
 # clients to look at how much work their POE server is performing.
@@ -8,7 +8,7 @@
 package POE::Resources::Statistics;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.1 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # We fold all this stuff back into POE::Kernel
 package POE::Kernel;
@@ -23,8 +23,8 @@ use strict;
 my $_stat_metrics     = []; # the data itself
 my $_stat_interval    = 30; # how frequently we take readings
 my $_stat_window_size = 4;  # how many readings we average across
-my $_stat_wpos        = 0;  # where to currrently write metrics (circ. buffer)
-my $_stat_rpos        = 0;  # where to currrently write metrics (circ. buffer)
+my $_stat_wpos        = 0;  # where to currently write metrics (circ. buffer)
+my $_stat_rpos        = 0;  # where to currently write metrics (circ. buffer)
 my %average;
 
 # This is for collecting event frequencies if TRACE_PROFILE is
@@ -36,7 +36,7 @@ sub _data_stat_initialize {
     $self->_data_stat_reset;
     $self->_data_ev_enqueue(
       $self, $self, EN_STAT, ET_STAT, [ ],
-      __FILE__, __LINE__, time() + $_stat_interval
+      __FILE__, __LINE__, undef, time() + $_stat_interval
     );
 }
 
@@ -129,7 +129,7 @@ sub _data_stat_tick {
     $self->_data_stat_reset;
     $self->_data_ev_enqueue(
       $self, $self, EN_STAT, ET_STAT, [ ],
-      __FILE__, __LINE__, time() + $_stat_interval
+      __FILE__, __LINE__, undef, time() + $_stat_interval
     ) if $self->_data_ses_count() > 1;
 }
 
@@ -184,7 +184,7 @@ This module tracks runtime statistics for a POE program and provides
 accessors to them.  To enable this monitoring, the TRACE_STATISTICS
 flag must be true.  Otherwise no statistics will be gathered.
 
-The statistics counters are totalled every 30 seconds and a rolling
+The statistics counters are totaled every 30 seconds and a rolling
 average is maintained for the last two minutes worth of data. At any
 time the data can be retrieved using the stat_getdata() method of the
 POE::Kernel. On conclusion of the program, the statistics will be

@@ -1,4 +1,4 @@
-# $Id: Event.pm,v 1.38 2004/05/21 22:37:45 rcaputo Exp $
+# $Id: Event.pm,v 1.41 2004/11/16 07:54:11 teknikill Exp $
 
 # Event.pm event loop bridge for POE::Kernel.
 
@@ -8,7 +8,7 @@ package POE::Loop::Event;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.38 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.41 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -22,8 +22,16 @@ my %signal_watcher;
 #------------------------------------------------------------------------------
 # Loop construction and destruction.
 
+sub _our_event_exception_handler {
+  my ($event, $message) = @_;
+  warn $message;
+  exit 1;
+}
+
 sub loop_initialize {
   my $self = shift;
+
+  $Event::DIED = \&_our_event_exception_handler;
 
   $_watcher_timer = Event->timer(
     cb     => \&_loop_event_callback,
@@ -53,7 +61,7 @@ sub _loop_signal_handler_generic {
 
   $poe_kernel->_data_ev_enqueue(
     $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0]->w->signal ],
-    __FILE__, __LINE__, time(),
+    __FILE__, __LINE__, undef, time(),
   );
 }
 
@@ -65,7 +73,7 @@ sub _loop_signal_handler_pipe {
   $poe_kernel->_data_ev_enqueue(
     $poe_kernel->get_active_session(), $poe_kernel,
     EN_SIGNAL, ET_SIGNAL, [ $_[0]->w->signal ],
-    __FILE__, __LINE__, time(),
+    __FILE__, __LINE__, undef, time(),
   );
 }
 
@@ -76,7 +84,7 @@ sub _loop_signal_handler_child {
 
   $poe_kernel->_data_ev_enqueue(
     $poe_kernel, $poe_kernel, EN_SCPOLL, ET_SCPOLL, [ ],
-    __FILE__, __LINE__, time(),
+    __FILE__, __LINE__, undef, time(),
   );
 }
 
@@ -94,7 +102,7 @@ sub loop_watch_signal {
     $SIG{$signal} = 'DEFAULT';
     $self->_data_ev_enqueue(
       $self, $self, EN_SCPOLL, ET_SCPOLL, [ ],
-      __FILE__, __LINE__, time() + 1,
+      __FILE__, __LINE__, undef, time() + 1,
     ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
 
     return;
@@ -210,7 +218,7 @@ sub _loop_event_callback {
 
   if (TRACE_STATISTICS) {
     # TODO - I'm pretty sure the startup time will count as an unfair
-    # amout of idleness.
+    # amount of idleness.
     #
     # TODO - Introducing many new time() syscalls.  Bleah.
     $self->_data_stat_add('idle_seconds', time() - $last_time);
@@ -237,7 +245,7 @@ sub _loop_event_callback {
     }
   }
 
-  # Transfering control back to Event; this is idle time.
+  # Transferring control back to Event; this is idle time.
   $last_time = time() if TRACE_STATISTICS;
 }
 

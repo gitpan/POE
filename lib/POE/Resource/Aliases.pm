@@ -1,4 +1,4 @@
-# $Id: Aliases.pm,v 1.10 2003/11/21 05:08:26 rcaputo Exp $
+# $Id: Aliases.pm,v 1.11 2004/11/16 07:12:46 rcaputo Exp $
 
 # Manage the POE::Kernel data structures necessary to keep track of
 # session aliases.
@@ -6,7 +6,7 @@
 package POE::Resources::Aliases;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.11 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -33,7 +33,7 @@ sub _data_ses_initialize {
 }
 use POE::API::ResLoader \&_data_ses_initialize;
 
-### End-run leak checking.  Returns true if finazilation was ok, or
+### End-run leak checking.  Returns true if finalization was ok, or
 ### false if it failed.
 
 sub _data_alias_finalize {

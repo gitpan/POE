@@ -4,23 +4,96 @@ use strict;
 use ExtUtils::MakeMaker;
 use Config;
 
-eval "use 5.005_03";
+# Switch to default behavior if STDIN isn't a tty.
+unless (-t STDIN) {
+  warn(
+    "\n",
+    "====================================================================\n",
+    "\n",
+    "Assuming --default because standard input is not a terminal.\n",
+    "\n",
+    "====================================================================\n",
+    "\n",
+  );
+  push @ARGV, "--default";
+}
+
+unless (grep /^--default$/, @ARGV) {
+  warn(
+    "\n",
+    "====================================================================\n",
+    "\n",
+    "Prompts may be bypassed by running:\n",
+    "   $^X $0 --default\n",
+     "\n",
+    "Only necessary modules will be installed by default.\n",
+    "\n",
+    "====================================================================\n",
+    "\n",
+  );
+}
+
+
+my $prompt = qq|
+POE's test suite requires a functional network.
+However, we can skip those tests requiring network
+access if you would like.
+
+Would you like to skip the network tests?
+
+|;
+
+$prompt .= "(Any text other than Y or y will be taken as a no)";
+
+my $ret = "n";
+if (grep /^--default$/, @ARGV) {
+  print $prompt, " [n] n\n\n";
+}
+else {
+  $ret = prompt($prompt, "n");
+}
+
+my $marker = 'run_network_tests';
+
+if($ret =~ /^Y$/i) {
+    unlink $marker if $marker;
+} else {
+    open(TOUCH,"+>$marker") and close TOUCH;
+}
+
+eval "use 5.005_04";
 if ($@) {
-  warn( "\n",
-        "===============================================================\n",
-        "\n",
-        "Perl 5.005_03 or later is preferred, and versions before it are\n",
-        "deprecated.  Try installing POE with a newer version of Perl to\n",
-        "see what you're missing. :)\n",
-        "\n",
-        "===============================================================\n",
-        "\n",
-      );
+  warn(
+    "\n",
+    "===============================================================\n",
+    "\n",
+    "Please upgrade Perl to avoid lapses in support.  Perl 5.005_04\n",
+    "or newer is preferred.  Support for older versions will be\n",
+    "phased out in the future.\n",
+    "\n",
+    "Thank you.\n",
+    "\n",
+    "===============================================================\n",
+    "\n",
+  );
 
   require "./mylib/Makefile-5004.pm";
 }
 else {
   require "./mylib/Makefile-5005.pm";
 }
+
+print(
+  "\n",
+  "==================================================================\n",
+  "\n",
+  "Please consider running 'make uploadreport' to create and upload a\n",
+  "test report.  You can see samples of other test reports by visitng\n",
+  "http://eekeek.org/poe-tests/\n",
+  "\n",
+  "Thank you.\n",
+  "\n",
+  "==================================================================\n",
+);
 
 0;

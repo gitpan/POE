@@ -1,11 +1,11 @@
-# $Id: Session.pm,v 1.99 2004/04/18 22:31:22 sungo Exp $
+# $Id: Session.pm,v 1.104 2004/11/16 07:54:10 teknikill Exp $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.99 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.104 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Errno qw(ENOSYS);
@@ -39,7 +39,7 @@ sub EN_SIGNAL       () { '_signal' }
 sub define_assert {
   no strict 'refs';
   foreach my $name (@_) {
-    
+
     BEGIN { $^W = 0 };
 
     next if defined *{"ASSERT_$name"}{CODE};
@@ -61,7 +61,7 @@ sub define_assert {
 # Shorthand for defining a trace constant.
 sub define_trace {
   no strict 'refs';
- 
+
   BEGIN { $^W = 0 };
 
   foreach my $name (@_) {
@@ -127,16 +127,17 @@ sub SENDER  () {  5 }
 # NFA keeps its state in 6.  unused in session so that args match up.
 sub CALLER_FILE () { 7 }
 sub CALLER_LINE () { 8 }
-sub ARG0    () { 9 }
-sub ARG1    () { 10 }
-sub ARG2    () { 11 }
-sub ARG3    () { 12 }
-sub ARG4    () { 13 }
-sub ARG5    () { 14 }
-sub ARG6    () { 15 }
-sub ARG7    () { 16 }
-sub ARG8    () { 17 }
-sub ARG9    () { 18 }
+sub CALLER_STATE () { 9 }
+sub ARG0    () { 10 }
+sub ARG1    () { 11 }
+sub ARG2    () { 12 }
+sub ARG3    () { 13 }
+sub ARG4    () { 14 }
+sub ARG5    () { 15 }
+sub ARG6    () { 16 }
+sub ARG7    () { 17 }
+sub ARG8    () { 18 }
+sub ARG9    () { 19 }
 
 sub import {
   my $package = caller();
@@ -159,6 +160,7 @@ sub import {
   *{ $package . '::ARG9'    } = \&ARG9;
   *{ $package . '::CALLER_FILE' } = \&CALLER_FILE;
   *{ $package . '::CALLER_LINE' } = \&CALLER_LINE;
+  *{ $package . '::CALLER_STATE' } = \&CALLER_STATE;
 }
 
 sub try_alloc {
@@ -562,7 +564,7 @@ sub DESTROY {
 #------------------------------------------------------------------------------
 
 sub _invoke_state {
-  my ($self, $source_session, $state, $etc, $file, $line) = @_;
+  my ($self, $source_session, $state, $etc, $file, $line, $fromstate) = @_;
 
   # Trace the state invocation if tracing is enabled.
 
@@ -629,6 +631,7 @@ sub _invoke_state {
         undef,                          # unused #6
         $file,                          # caller file name
         $line,                          # caller file line
+		$fromstate,						# caller state
         @$etc                           # args
       );
   }
@@ -646,6 +649,7 @@ sub _invoke_state {
         undef,                          # unused #6
         $file,                          # caller file name
         $line,                          # caller file line
+		$fromstate,						# caller state
         @$etc                           # args
       );
 }
@@ -658,6 +662,11 @@ sub register_state {
   $method = $name unless defined $method;
 
   # Deprecate _signal.
+  # RC 2004-09-07 - Decided to leave this in because it blames
+  # problems with _signal on the user for using it.  It should
+  # probably go away after a little while, but not during the other
+  # deprecations.
+
   if ($name eq EN_SIGNAL) {
 
     # Report the problem outside POE.
@@ -1011,7 +1020,7 @@ IDs may collide after about 4.29 billion sessions have been created.
 =item create LOTS_OF_STUFF
 
 create() is the recommended Session constructor.  It binds states to
-their corresponding event names, initalizes other parts of the
+their corresponding event names, initializes other parts of the
 session, and then fires off its C<_start> state, possibly with some
 parameters.
 
@@ -1149,7 +1158,7 @@ method.
   [ Package => [ 'event_ten', 'event_eleven' ],
   ];
 
-The second form associates a hashref to each package n ame.  In turn,
+The second form associates a hashref to each package name.  In turn,
 the hashref maps each event name to a method in the package.  In this
 form, the package's method names needn't match the event names they'll
 handle.  For example, C<event_twelve> is handled by C<Package>'s
@@ -1195,7 +1204,7 @@ named methods.
 
   $object_two => { event_ten => 'method_foo', event_eleven => 'method_bar' },
 
-Packgae states are specified as package names mapped to list or hash
+Package states are specified as package names mapped to list or hash
 references.  Package names that are mapped to listrefs will handle
 events with identically named methods.
 
@@ -1589,9 +1598,12 @@ in cases where a single state handles several different events.
 
 =item CALLER_LINE
 
-    my ($caller_file, $caller_line) = @_[CALLER_FILE,CALLER_LINE];
+=item CALLER_STATE
 
-The file and line number from which this state was called.
+    my ($caller_file, $caller_line, $caller_state) =
+		@_[CALLER_FILE,CALLER_LINE,CALLER_STATE];
+
+The file, line number, and state from which this state was called.
 
 =back
 
@@ -1648,9 +1660,10 @@ even if the child is in its death throes, but it won't last long
 enough to receive posted events.  If the parent must interact with
 this child, it should do so with C<call()> or some other means.
 
-C<ARG2> is only valid when a new session has been created.  When
-C<ARG0> is 'create', this holds the new session's C<_start> state's
-return value.
+C<ARG2> is only valid when a new session has been created or an old
+one destroyed.  It holds the return value from the child session's
+C<_start> or C<_stop> state when C<ARG0> is 'create' or 'lose',
+respectively.
 
 =item _default
 
@@ -1687,7 +1700,7 @@ return false if the signals are expected to stop a program.  Otherwise
 only SIGKILL will work.
 
 L<POE::Kernel> discusses signal handlers in "Signal Watcher Methods".
-It also covers the pitfals of C<_default> states in more detail
+It also covers the pitfalls of C<_default> states in more detail
 
 =item _parent
 
@@ -1696,35 +1709,6 @@ in the process of changing.  It is the complement to C<_child>.
 
 C<ARG0> contains the session's previous parent, and C<ARG1> contains
 its new parent.
-
-=item _signal
-
-C<_signal> is a session's default signal handler.  Every signal not
-specified with C<sig()> will be delivered as a C<_signal> event.
-
-The C<_signal> event is deprecated as of POE 0.1901.  Programs should
-use C<sig()> to generate explicit events for the signals they are
-interested in.
-
-In all signal events...
-
-C<ARG0> contains the signal's name as it appears in Perl's %SIG hash.
-That is, it is the root name of the signal without the SIG prefix.
-
-Unhandled C<_signal> events will be forwarded to C<_default>.  In this
-case, the C<_default> handler's return value becomes significant.  Be
-careful: It's possible to accidentally write unkillable programs this
-way.  This is one of the reasons why C<_signal> is deprecated, as are
-signal handler return values.
-
-If C<_signal> and C<_default> handlers do not exist, then signals will
-always be unhandled.
-
-The "Signal Watcher Methods" section in L<POE::Kernel> is recommended
-reading before using C<_signal> or C<_default>.  It discusses the
-different signal levels, the mechanics of signal propagation, and why
-it is important to return an explicit value from a signal handler,
-among other things.
 
 =item _start
 
@@ -1760,6 +1744,17 @@ POE things done from a C<_stop> handler may not work.  For example,
 posting events from C<_stop> will be ineffective since part of the
 Session cleanup is removing posted events.
 
+=item Signal Events
+
+C<ARG0> contains the signal's name as it appears in Perl's %SIG hash.
+That is, it is the root name of the signal without the SIG prefix.
+POE::Kernel discusses exceptions to this, namely that CLD will be
+presented as CHLD.
+
+The "Signal Watcher Methods" section in L<POE::Kernel> is recommended
+reading before using signal events.  It discusses the different signal
+levels and the mechanics of signal propagation.
+
 =back
 
 =head1 MISCELLANEOUS CONCEPTS
@@ -1775,7 +1770,7 @@ Signal handlers' return values are significant.  L<POE::Kernel>'s
 
 States may not return references to objects in the "POE" namespace.
 The Kernel will stringify these references to prevent them from
-lingering and beraking its own garbage collection.
+lingering and breaking its own garbage collection.
 
 =head2 Resource Tracking
 

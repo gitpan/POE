@@ -1,4 +1,4 @@
-# $Id: PerlSignals.pm,v 1.4 2003/11/21 05:08:26 rcaputo Exp $
+# $Id: PerlSignals.pm,v 1.8 2004/11/16 07:54:12 teknikill Exp $
 
 # Plain Perl signal handling is something shared by several event
 # loops.  The invariant code has moved out here so that each loop may
@@ -10,7 +10,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -26,10 +26,10 @@ sub _loop_signal_handler_generic {
     POE::Kernel::_warn "<sg> Enqueuing generic SIG$_[0] event";
   }
 
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-      __FILE__, __LINE__, time()
-    );
+  $poe_kernel->_data_ev_enqueue(
+    $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
+    __FILE__, __LINE__, undef, time()
+  );
   $SIG{$_[0]} = \&_loop_signal_handler_generic;
 }
 
@@ -38,25 +38,11 @@ sub _loop_signal_handler_pipe {
     POE::Kernel::_warn "<sg> Enqueuing PIPE-like SIG$_[0] event";
   }
 
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-      __FILE__, __LINE__, time()
-    );
-    $SIG{$_[0]} = \&_loop_signal_handler_pipe;
-}
-
-# Special handler.  Stop watching for children; instead, start a loop
-# that polls for them.
-sub _loop_signal_handler_child {
-  if (TRACE_SIGNALS) {
-    POE::Kernel::_warn "<sg> Enqueuing CHLD-like SIG$_[0] event";
-  }
-
-  $SIG{$_[0]} = 'DEFAULT';
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SCPOLL, ET_SCPOLL, [ ],
-      __FILE__, __LINE__, time()
-    );
+  $poe_kernel->_data_ev_enqueue(
+    $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
+    __FILE__, __LINE__, undef, time()
+  );
+  $SIG{$_[0]} = \&_loop_signal_handler_pipe;
 }
 
 #------------------------------------------------------------------------------
@@ -71,10 +57,10 @@ sub loop_watch_signal {
     # Begin constant polling loop.  Only start it on CHLD or on CLD if
     # CHLD doesn't exist.
     $SIG{$signal} = 'DEFAULT';
-    $self->_data_ev_enqueue
-      ( $self, $self, EN_SCPOLL, ET_SCPOLL, [ ],
-        __FILE__, __LINE__, time() + 1
-      ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
+    $self->_data_ev_enqueue(
+      $self, $self, EN_SCPOLL, ET_SCPOLL, [ ],
+      __FILE__, __LINE__, undef, time() + 1
+    ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
 
     return;
   }
@@ -84,12 +70,6 @@ sub loop_watch_signal {
     $SIG{$signal} = \&_loop_signal_handler_pipe;
     return;
   }
-
-  # Artur Bergman (sky) noticed that xterm resizing can generate a LOT
-  # of WINCH signals.  That rapidly crashes perl, which, with the help
-  # of most libc's, can't handle signals well at all.  We ignore
-  # WINCH, therefore.
-  return if $signal eq 'WINCH';
 
   # Everything else.
   $SIG{$signal} = \&_loop_signal_handler_generic;

@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm,v 1.10 2004/06/03 18:40:24 rcaputo Exp $
+# $Id: FileHandles.pm,v 1.18 2004/11/22 00:08:06 rcaputo Exp $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,18 +6,30 @@
 package POE::Resources::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.18 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
 
 use strict;
 
+### Some portability things.
+
+# Provide dummy constants so things at least compile.  These constants
+# aren't used if we're RUNNING_IN_HELL, but Perl needs to see them.
+
+BEGIN {
+  if (RUNNING_IN_HELL) {
+    eval '*F_GETFL = sub { 0 };';
+    eval '*F_SETFL = sub { 0 };';
+  }
+}
+
 ### A local reference to POE::Kernel's queue.
 
 my $kr_queue;
 
-### Fileno structure.  This tracks the sessions that are watchin a
+### Fileno structure.  This tracks the sessions that are watching a
 ### file, by its file number.  It used to track by file handle, but
 ### several handles can point to the same underlying fileno.  This is
 ### more unique.
@@ -228,14 +240,14 @@ sub _data_handle_enqueue_ready {
     # Emit them.
 
     foreach my $select (@selects) {
-      $self->_data_ev_enqueue
-        ( $select->[HSS_SESSION], $select->[HSS_SESSION],
-          $select->[HSS_STATE], ET_SELECT,
-          [ $select->[HSS_HANDLE],  # EA_SEL_HANDLE
-            $mode,                  # EA_SEL_MODE
-          ],
-          __FILE__, __LINE__, time(),
-        );
+      $self->_data_ev_enqueue(
+        $select->[HSS_SESSION], $select->[HSS_SESSION],
+        $select->[HSS_STATE], ET_SELECT,
+        [ $select->[HSS_HANDLE],  # EA_SEL_HANDLE
+          $mode,                  # EA_SEL_MODE
+        ],
+        __FILE__, __LINE__, undef, time(),
+      );
 
       # Count the enqueued event.  This increments FMO_EV_COUNT
       # because an event has just been enqueued.  This makes sense.
@@ -315,21 +327,12 @@ sub _data_handle_add {
     # Turn off blocking unless it's tied or a plain file.
     unless (tied *$handle or -f $handle) {
 
-      # RCC 2002-12-19: ActiveState Perl 5.8.0 disliked the Win32 code
-      # to make a socket non-blocking, so we're trying IO::Handle's
-      # blocking(0) method.  Bonus: It does "the right thing" just
-      # about everywhere, so I don't need to add checks for AS Perl
-      # 5.8.0, AS Perl 5.6.1, and Everybody else.
-
-      # RCC 2003-01-20: Perl 5.005_03 doesn't like blocking(), so
-      # we'll only call it in Perl 5.8.0 and beyond.
-
-      if ($] >= 5.008) {
-        $handle->blocking(0);
-      }
-      else {
-        # Make the handle stop blocking, the POSIX way.
-        unless (RUNNING_IN_HELL) {
+      unless (RUNNING_IN_HELL) {
+        if ($] >= 5.008) {
+          $handle->blocking(0);
+        }
+        else {
+          # Long, drawn out, POSIX way.
           my $flags = fcntl($handle, F_GETFL, 0)
             or _trap "fcntl($handle, F_GETFL, etc.) fails: $!\n";
           until (fcntl($handle, F_SETFL, $flags | O_NONBLOCK)) {
@@ -337,17 +340,17 @@ sub _data_handle_add {
               unless $! == EAGAIN or $! == EWOULDBLOCK;
           }
         }
-        else {
-          # Do it the Win32 way.
-          my $set_it = "1";
+      }
+      else {
+        # Do it the Win32 way.
+        my $set_it = "1";
 
-          # 126 is FIONBIO (some docs say 0x7F << 16)
-          ioctl( $handle,
-                 0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
-                 $set_it
-               )
-            or _trap "ioctl($handle, FIONBIO, $set_it) fails: $!\n";
-        }
+        # 126 is FIONBIO (some docs say 0x7F << 16)
+        ioctl( $handle,
+               0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
+               $set_it
+             )
+          or _trap "ioctl($handle, FIONBIO, $set_it) fails: $!\n";
       }
     }
 
@@ -389,25 +392,32 @@ sub _data_handle_add {
     # have something registered for it here.
 
     else {
-      foreach my $hdl_rec (
-        values %{$kr_fno_rec->[FMO_SESSIONS]->{$session}}
-      ) {
-        my $other_handle = $hdl_rec->[HSS_HANDLE];
-        unless (defined(fileno $other_handle)) {
+      foreach my $watch_session (keys %{$kr_fno_rec->[FMO_SESSIONS]}) {
+        foreach my $hdl_rec (
+          values %{$kr_fno_rec->[FMO_SESSIONS]->{$watch_session}}
+        ) {
+          my $other_handle = $hdl_rec->[HSS_HANDLE];
+
+          my $why;
+          unless (defined(fileno $other_handle)) {
+            $why = "closed";
+          }
+          elsif (fileno($handle) == fileno($other_handle)) {
+            $why = "still open";
+          }
+          else {
+            $why = "open as different fd";
+          }
+
           _trap(
-            "can't watch $handle: $other_handle (closed) is still ",
-            "registered for that file descriptor in mode $mode"
+            $self->_data_alias_loggable($session),
+            " can't watch $handle in mode $mode: ",
+            $self->_data_alias_loggable($hdl_rec->[HSS_SESSION]),
+            " is already watching it as $other_handle ($why)"
           );
         }
-        if (fileno($handle) == fileno($other_handle)) {
-          _trap(
-            "can't watch $handle: $other_handle (open) is still ",
-            "registered for that descriptor in mode $mode"
-          );
-        }
-        _trap "internal inconsistency";
       }
-      _trap "can't watch the same handle in the same mode 2+ times yet";
+      _trap "internal inconsistency";
     }
   }
 

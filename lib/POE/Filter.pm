@@ -1,11 +1,11 @@
-# $Id: Filter.pm,v 1.13 2003/11/21 05:08:25 rcaputo Exp $
+# $Id: Filter.pm,v 1.14 2004/11/16 07:12:40 rcaputo Exp $
 
 package POE::Filter;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.13 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -84,7 +84,7 @@ nothing else.
 get_one() takes no parameters and returns an ARRAYREF of zero or more
 complete records from the filter's buffer.  Unlike the plain get()
 method, get_one() is not greedy.  It returns as few records as
-possible, preferrably just zero or one.
+possible, preferably just zero or one.
 
 get_one_start() and get_one() reduce or eliminate race conditions when
 switching filters in a wheel.
