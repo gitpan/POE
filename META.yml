@@ -1,20 +1,26 @@
 --- #YAML:1.0
 name: POE
-version: 0.3002
+version: 0.3003
 author:
   - Rocco Caputo <rcaputo@cpan.org>
-abstract: |-
-  portable multitasking and networking framework for Perl
+abstract: A portable networking and multitasking framework.
 license: perl
 requires:
-  Filter::Util::Call: 1.04
-  Test::More: 0
+  Carp: 0
+  Errno: 1.09
+  Exporter: 0
+  File::Spec: 0.87
+  Filter::Util::Call: 1.06
+  IO: 1.2
+  POSIX: 1.02
+  Socket: 1.7
+  Test::More: 0.47
 recommends:
-  Time::HiRes: 0
+  Time::HiRes: 1.59
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.3002
+    version: 0.3003
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.0002

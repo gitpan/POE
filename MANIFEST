@@ -1,5 +1,4 @@
-# $Id: MANIFEST,v 1.110 2004/11/25 07:04:21 rcaputo Exp $
-Build.PL
+# $Id: MANIFEST,v 1.112 2004/11/26 22:13:07 rcaputo Exp $
 CHANGES
 HISTORY
 MANIFEST
@@ -69,6 +68,7 @@ mylib/ExtUtils/AutoInstall.pm
 mylib/Makefile-5004.pm
 mylib/Makefile-5005.pm
 mylib/MyOtherFreezer.pm
+mylib/PoeBuildInfo.pm
 mylib/Test/Harness.pm
 mylib/Test/Harness/Assert.pm
 mylib/Test/Harness/Iterator.pm
@@ -78,6 +78,7 @@ mylib/coverage.perl
 mylib/cpan-test.perl
 mylib/cvs-log.perl
 mylib/events_per_second.pl
+mylib/gen-meta.perl
 mylib/gen-tests.perl
 mylib/reportupload.pl
 mylib/testreport.pl

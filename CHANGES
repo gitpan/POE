@@ -1,4 +1,72 @@
 ===========================
+2004-11-26 22:25:25 v0_3003
+===========================
+
+  2004-11-26 22:25:25 by rcaputo; lib/POE.pm 1.184
+
+    Increase minor version for another 0.30 fix release. Hopefully the
+    installer will succeed on more CPAN testers' machines. 
+
+  2004-11-26 22:13:07 by rcaputo; MANIFEST 1.112
+
+    Oh, and we'll need to distribute PoeBuildInfo.pm, so put it in
+    MANIFEST. 
+
+  2004-11-26 21:21:54 by rcaputo; mylib/Makefile-5004.pm 1.34;
+  mylib/Makefile-5005.pm 1.52; mylib/PoeBuildInfo.pm 1.2;
+  mylib/gen-meta.perl 1.2
+
+    Switch from variables to "constant" subroutines. Just because it
+    compiles, and it looks like it's runnig, doesn't mean it works. Check
+    the messages more carefully before committing next time. 
+
+  2004-11-26 19:02:19 by rcaputo; mylib/Makefile-5004.pm 1.33
+
+    Fix a syntax error, and have "make dist" fail all the time under old
+    versions of Perl. 
+
+  2004-11-26 18:53:12 by rcaputo; Makefile.PL 1.34
+
+    Add some comments. 
+
+  2004-11-26 18:51:21 by rcaputo
+  mylib/Makefile-5004.pm 1.32; mylib/Makefile-5005.pm 1.51
+
+    Use PoeBuildInfo.pm rather than hardcode common data in both versions
+    of Makefile.pm. 
+
+  2004-11-26 18:49:55 by rcaputo; mylib/PoeBuildInfo.pm 1.1
+
+    Moved prerequisites, recommended modules, file cleanup configuration,
+    and a few other bits into a common library. The same data is used by
+    the 5.004 and 5.005 versions of Makefile.PL, and it's also needed by
+    the new gen-meta.perl utility. 
+
+  2004-11-26 18:47:57 by rcaputo; mylib/gen-meta.perl 1.1
+
+    Moved the META.yml generation to a separate utility. This lets us
+    build a proper META.yml without Build.PL fouling up installation and
+    testing. It also avoids moving the Module::Build code into
+    Makefile.PL, where it would become a mandatory prerequisite. It's
+    only used during "make dist" anyway. 
+
+  2004-11-26 18:41:00 by rcaputo; MANIFEST 1.111
+
+    Remove Build.PL. CPANPLUS spots it and tries to build POE with it,
+    which wouldn't be so bad if Module::Build didn't eat test.pl's
+    STDOUT. Hilarity (such as this CPAN testers failure) ensues:
+    
+    test....FAILED before any test output arrived FAILED--1 test script
+    could be run, alas--no output ever seen 
+
+  2004-11-26 16:41:38 by rcaputo; mylib/Makefile-5004.pm 1.31
+
+    The test reports are generated based on which perl is running. The
+    5.004 makefile would run the reports under whichever perl was caught
+    first in the user's path. This commit propagates the perl version
+    that was used to run Makefile.PL down to the test report. 
+
+===========================
 2004-11-25 21:10:41 v0_3002
 ===========================
 
@@ -1084,7 +1152,7 @@
 
     fix some pod issues that pod2man was complaining about 
 
-  2004-04-17 17:11:14 by sungo; Build.PL 1.10; lib/POE/API/Ctl.pm 1.2;
+  2004-04-17 17:11:14 by sungo; lib/POE/API/Ctl.pm 1.2;
   lib/POE/Resource/Controls.pm 1.2; mylib/cpan-test.perl 1.4;
   mylib/cvs-log.perl 1.6; mylib/events_per_second.pl 1.2;
   mylib/reportupload.pl 1.4
@@ -1107,14 +1175,6 @@
 
     The redo statement is excessively clever. Commented it a little, per
     sungo's suggestion. 
-
-  2004-04-09 01:45:41 by sungo; Build.PL 1.9
-
-    test 
-
-  2004-04-09 01:40:48 by sungo; Build.PL 1.6
-
-    cia cvs stats test 
 
   2004-03-13 03:07:52 by sungo; lib/POE/Kernel.pm 1.281
 
@@ -1178,19 +1238,13 @@
     loins without META.yml existing. 
 
   2004-02-02 17:03:20 by rcaputo
-  Build.PL 1.5; mylib/Makefile-5004.pm 1.19; mylib/Makefile-5005.pm 1.37
+  mylib/Makefile-5004.pm 1.19; mylib/Makefile-5005.pm 1.37
 
     Make Build.PL and Makefile.PL play nicely together. The distribution
     build process still goes through Makefile.PL until I can figure out
     how to tweak the dist targets in Module::Build. 
 
-  2004-01-31 07:07:33 by rcaputo; Build.PL 1.4
-
-    Work around "Too early to specify a build action 'Build'. Do 'Build
-    Build' instead." per
-    http://www.mail-archive.com/module-authors@perl.org/msg00162.html 
-
-  2004-01-31 06:58:30 by rcaputo; Build.PL 1.3; MANIFEST 1.97;
+  2004-01-31 06:58:30 by rcaputo; MANIFEST 1.97;
   mylib/Makefile-5004.pm 1.18; mylib/Makefile-5005.pm 1.36;
   mylib/cpan-test.perl 1.3; samples/create.perl 1.7;
   samples/fakelogin.perl 1.9; samples/forkbomb.perl 1.14;
@@ -1237,8 +1291,7 @@
 
     Add more development artifacts. 
 
-  2004-01-27 20:09:27 by rcaputo
-  Build.PL 1.2; mylib/Makefile-5005.pm 1.34
+  2004-01-27 20:09:27 by rcaputo; mylib/Makefile-5005.pm 1.34
 
     The last commit DID modify META.yml. The new MakeMaker generates a
     Makefile clause that creates META.yml during "make dist". That
@@ -1464,17 +1517,6 @@
   2003-11-28 17:12:08 by rcaputo; lib/POE/Kernel.pm 1.268
 
     Applied Scott Beck's patch to add a hard POE::Kernel stop. 
-
-  2003-11-26 03:52:07 by rcaputo; lib/POE/Component/Client/TCP.pm 1.39;
-  lib/POE/Component/Server/TCP.pm 1.43; lib/POE/Driver/SysRW.pm 1.26;
-  lib/POE/Kernel.pm 1.267; lib/POE/Loop/IO_Poll.pm 1.25;
-  lib/POE/Loop/Select.pm 1.52; lib/POE/Pipe.pm 1.12;
-  lib/POE/Queue/Array.pm 1.5; lib/POE/Session.pm 1.94;
-  lib/POE/Wheel/ListenAccept.pm 1.28; lib/POE/Wheel/SocketFactory.pm 1.74
-
-    Replace POSIX errno constants with ones from Errno. The Errno module
-    has better errno support than POSIX in "special" environments like
-    ActivePerl. This commit addresses rt.cpan.org ticket #4476. 
 
 =============================
 Beginning of Recorded History

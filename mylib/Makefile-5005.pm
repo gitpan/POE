@@ -1,11 +1,27 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.50 2004/11/25 16:56:22 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.52 2004/11/26 21:21:54 rcaputo Exp $
 
 use strict;
 
-use lib qw(./mylib);
-
 use ExtUtils::MakeMaker;
+
+use lib qw(./mylib);
+use PoeBuildInfo qw(
+  CLEAN_FILES
+  CORE_REQUIREMENTS
+  DIST_ABSTRACT
+  DIST_AUTHOR
+  RECOMMENDED_TIME_HIRES
+);
+
+### Touch files that will be generated at "make dist" time.
+### ExtUtils::MakeMaker and Module::Build will complain about them if
+### they aren't present now.
+
+open(TOUCH, ">>CHANGES") and close TOUCH;
+open(TOUCH, ">>META.yml") and close TOUCH;
+
+### Ensure ExtUtils::AutoInstall is installed.
 
 eval "require ExtUtils::AutoInstall";
 if ($@) {
@@ -14,8 +30,9 @@ if ($@) {
     "====================================================================\n",
     "\n",
     "POE's installer magic requires ExtUtils::AutoInstall.  POE comes\n",
-    "with an older version, but it will not be installed.  You should\n",
-    "install the most recent ExtUtils::AutoInstall at your convenience.\n",
+    "with its own version, but it is usually out of date and won't be\n",
+    "installed.  You should install the most recent version at your\n",
+    "earliest convenience.\n",
     "\n",
     "====================================================================\n",
     "\n",
@@ -24,24 +41,14 @@ if ($@) {
   die if $@;
 }
 
-my %core_requirements = (
-  "Carp"               => 0,
-  "Exporter"           => 0,
-  "IO"                 => 1.20,
-  "POSIX"              => 1.02,
-  "Socket"             => 1.7,
-  "Filter::Util::Call" => 1.06,
-  "Test::More"         => 0.47,
-  "File::Spec"         => 0.87,
-  "Errno"              => 1.09,
-);
+### Prompt for additional modules.
 
 ExtUtils::AutoInstall->import(
   -version => '0.50',
-  -core => [ %core_requirements ],
+  -core => [ CORE_REQUIREMENTS ],
   "Recommended modules to increase timer/alarm/delay accuracy." => [
       -default      => 0,
-      'Time::HiRes' => '1.59',
+      RECOMMENDED_TIME_HIRES,
   ],
   "Optional modules to speed up large-scale clients/servers." => [
       -default   => 0,
@@ -88,13 +95,11 @@ ExtUtils::AutoInstall->import(
   ],
 );
 
-# Generate dynamic test files.
+### Generate dynamic test files.
 
 system($^X, "mylib/gen-tests.perl") and die "couldn't generate tests: $!";
 
-# Touch generated files so they exist.
-open(TOUCH, ">>CHANGES") and close TOUCH;
-open(TOUCH, ">>META.yml") and close TOUCH;
+### Generate Makefile.PL.
 
 sub MY::postamble {
   return ExtUtils::AutoInstall::postamble() .
@@ -130,8 +135,8 @@ WriteMakefile(
   (
     ($^O eq 'MacOS')
     ? ()
-    : ( AUTHOR   => 'Rocco Caputo <rcaputo@cpan.org>',
-        ABSTRACT => 'A highly portable networking and multitasking framework.',
+    : ( AUTHOR   => DIST_AUTHOR,
+        ABSTRACT => DIST_ABSTRACT,
       )
   ),
 
@@ -142,32 +147,19 @@ WriteMakefile(
     PREOP    => (
       './mylib/cvs-log.perl | ' .
       '/usr/bin/tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES; ' .
-      "$^X Build.PL; " .
-      './Build distmeta; ' .
+      "$^X mylib/gen-meta.perl; " .
       '/bin/cp -f ./META.yml ./$(DISTNAME)-$(VERSION)/META.yml'
     ),
   },
 
-  clean          => {
-    FILES => (
-      "coverage.report " .
-      "poe_report.xml " .
-      "run_network_tests " .
-      "tests/20_resources/10_perl/* " .
-      "tests/20_resources/20_xs/* " .
-      "tests/30_loops/10_select/* " .
-      "tests/30_loops/20_poll/* " .
-      "tests/30_loops/30_event/* " .
-      "tests/30_loops/40_gtk/* " .
-      "tests/30_loops/50_tk/* " .
-      "test-output.err "
-    ),
+  clean => {
+    FILES => CLEAN_FILES,
   },
 
   # More for META.yml than anything.
   PL_FILES       => { },
   NO_META        => 1,
-  PREREQ_PM      => \%core_requirements,
+  PREREQ_PM      => { CORE_REQUIREMENTS },
 );
 
 1;

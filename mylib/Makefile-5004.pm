@@ -1,37 +1,52 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.30 2004/11/25 07:04:24 rcaputo Exp $
+# $Id: Makefile-5004.pm,v 1.34 2004/11/26 21:21:54 rcaputo Exp $
+
+use strict;
 
 use ExtUtils::MakeMaker;
 
-# Add a new target.
+use lib qw(./mylib);
+use PoeBuildInfo qw(
+  CLEAN_FILES
+  CORE_REQUIREMENTS
+);
+
+### Touch files that will be generated at "make dist" time.
+### ExtUtils::MakeMaker and Module::Build will complain about them if
+### they aren't present now.
+
+open(TOUCH, ">>CHANGES") and close TOUCH;
+open(TOUCH, ">>META.yml") and close TOUCH;
+
+### Generate dynamic test files.
+
+system($^X, "mylib/gen-tests.perl") and die "couldn't generate tests: $!";
+
+### Generate Makefile.PL.
 
 sub MY::postamble {
     return <<EOF;
 reportupload: poe_report.xml
-\cIperl mylib/reportupload.pl
+\cI$^X mylib/reportupload.pl
 
 uploadreport: poe_report.xml
-\cIperl mylib/reportupload.pl
+\cI$^X mylib/reportupload.pl
 
 testreport: poe_report.xml
 
 poe_report.xml: Makefile
-\cIperl mylib/testreport.pl
+\cI$^X mylib/testreport.pl
 
 coverage: Makefile
-\cIperl mylib/coverage.perl
+\cI$^X mylib/coverage.perl
 
 cover: coverage
+
+ppmdist:
+\cIecho Use a modern version of Perl to build the PPM distribution.
+\cIfalse
 EOF
 }
-
-# Generate dynamic test files.
-
-system("perl", "mylib/gen-tests.perl") and die "couldn't generate tests: $!";
-
-# Touch generated files so they exist.
-open(TOUCH, ">>CHANGES") and close TOUCH;
-open(TOUCH, ">>META.yml") and close TOUCH;
 
 WriteMakefile(
   NAME           => 'POE',
@@ -41,37 +56,17 @@ WriteMakefile(
     COMPRESS => 'gzip -9f',
     SUFFIX   => 'gz',
     PREOP    => (
-      './mylib/cvs-log.perl | ' .
-      'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
+      'echo Use a modern version of Perl to build distributions.; ' .
+      'false'
     ),
   },
-  PREREQ_PM      => {
-    "Carp"               => 0,
-    "Exporter"           => 0,
-    "IO"                 => 1.20,
-    "POSIX"              => 1.02,
-    "Socket"             => 1.7,
-    "Filter::Util::Call" => 1.06,
-    "Test::More"         => 0.50,
-    "File::Spec"         => 3.01,
-    "Errno"              => 1.09,
-  },
-  PL_FILES    => { },
+
   clean => {
-    FILES => (
-      "coverage.report " .
-      "poe_report.xml " .
-      "run_network_tests " .
-      "tests/20_resources/10_perl/* " .
-      "tests/20_resources/20_xs/* " .
-      "tests/30_loops/10_select/* " .
-      "tests/30_loops/20_poll/* " .
-      "tests/30_loops/30_event/* " .
-      "tests/30_loops/40_gtk/* " .
-      "tests/30_loops/50_tk/* " .
-      "test-output.err "
-    ),
-  }
+    FILES => CLEAN_FILES,
+  },
+
+  PL_FILES    => { },
+  PREREQ_PM => { CORE_REQUIREMENTS },
 );
 
 1;
