@@ -1,35 +1,66 @@
 #!/usr/bin/perl -T -w
-# $Id: poing.perl,v 1.15 2000/01/23 19:35:57 rcaputo Exp $
+# $Id: poing.perl,v 1.20 2000/03/08 19:04:23 rcaputo Exp $
 
 # Whole huge chunks of poing.perl have been "adapted" from Net::Ping.
 
 use strict;
 use lib '..';
 use POE;
+use Socket;
 
-# This is the time (in seconds) to wait between ping sweeps.
-my $ping_timeout = 2;
+# This is the default time (in seconds) to wait between ping sweeps.
+my $ping_timeout = 5;
 
 # A host must be flatlined for at least this many seconds before it is
 # considered dead.  The actual amount of time is rounded up to the
 # next ping timeout interval.
-my $detect_host_death = 10;
+my $detect_host_death = 20;
 
 # A host must not be flatlined for at least this many seconds before
 # it is considered alive.  The actual amount of time is rounded up to
 # the next ping timeout interval.
-my $detect_host_life = 10;
+my $detect_host_life = 20;
+
+# You may write ups and downs to a log file.  It's off by default.
+my $log_filename = '';
 
 #------------------------------------------------------------------------------
-# Preprocess the detection times.
+# Helpful functions for displaying fractions.
 
-$detect_host_death /= $ping_timeout;
-$detect_host_death = int($detect_host_death) + 1
-  if ($detect_host_death =~ /\./);
+sub floor { my $x = int($_[0]); ($x<$_[0]) ? $x : $x-1; }
 
-$detect_host_life /= $ping_timeout;
-$detect_host_life = int($detect_host_life) + 1
-  if ($detect_host_life =~ /\./);
+sub dec_to_fract {
+  my $decimal = shift;
+  my ($epsilon, $numerator, $denominator) = (5e-11, 0, 1);
+
+  my $accumulator = $decimal;
+
+  while (abs(floor($decimal * $denominator + 0.5) - $decimal * $denominator)
+         >= $epsilon * $denominator
+  ) {
+    $accumulator = 1 / $accumulator;
+    ($numerator, $denominator) =
+      ($denominator, abs(int($accumulator)) * $denominator + $numerator);
+    $accumulator = $accumulator - int($accumulator);
+  }
+
+  floor($decimal * $denominator + 0.5) . "/" . $denominator;
+}
+
+sub simplify_fract {
+  my ($numerator, $denominator) = split(/\//, shift);
+  my $whole = 0;
+
+  if ($numerator >= $denominator) {
+    $whole = int($numerator / $denominator);
+    $numerator %= $denominator;
+  }
+
+  my @new_fract;
+  push @new_fract, $whole if $whole;
+  push @new_fract, join '/', $numerator, $denominator if $numerator;
+  return join ' ', @new_fract;
+}
 
 #------------------------------------------------------------------------------
 
@@ -154,9 +185,7 @@ sub net_checksum {
 ###############################################################################
 
 package main;
-use strict;
 use POE qw(Wheel::ReadWrite Driver::SysRW Filter::HTTPD Wheel::SocketFactory);
-use Socket;
 
 #------------------------------------------------------------------------------
 
@@ -164,6 +193,7 @@ sub HOST_NAME     () { 0 }
 sub HOST_RESPONSE () { 1 }
 sub HOST_TICKER   () { 2 }
 sub HOST_DEAD     () { 3 }
+sub HOST_ADDRESS  () { 4 }
 
 # What other environment variables define the screen extent?  Assume
 # 80 x 25 if nothing is availble.
@@ -183,25 +213,25 @@ my $rows = ( (exists $ENV{ROWS})
            );
 
 sub host_sort {
-  if ($a =~ /^\d+\.\d+\.\d+\.\d+$/) {
-    if ($b =~ /^\d+\.\d+\.\d+\.\d+$/) {
+  if ($a->[1] =~ /^\d+\.\d+\.\d+\.\d+$/) {
+    if ($b->[1] =~ /^\d+\.\d+\.\d+\.\d+$/) {
       # address / address compare
-      return ( join('.', map { sprintf "%03d", $_ } split(/\./, $a)) cmp
-               join('.', map { sprintf "%03d", $_ } split(/\./, $b))
+      return ( join('.', map { sprintf "%03d", $_ } split(/\./, $a->[1])) cmp
+               join('.', map { sprintf "%03d", $_ } split(/\./, $b->[1]))
              );
     }
     else {
-      return -1; # addresses come before hosts
+      return -1; # addresses come before everything
     }
   }
   else {
-    if ($b =~ /^\d+\.\d+\.\d+\.\d+$/) {
-      return 1; # addresses come before hosts
+    if ($b->[1] =~ /^\d+\.\d+\.\d+\.\d+$/) {
+      return 1; # addresses come before everything
     }
     else {
-      # host / host compare
-      return ( join('.', reverse(split(/\./, lc($a)))) cmp
-               join('.', reverse(split(/\./, lc($b))))
+      # host / host compare (may also be aliases)
+      return ( join('.', reverse(split(/\./, lc($a->[1])))) cmp
+               join('.', reverse(split(/\./, lc($b->[1]))))
              );
     }
   }
@@ -210,29 +240,45 @@ sub host_sort {
 sub pong_start {
   my ($kernel, $heap, $timeout, $hosts) = @_[KERNEL, HEAP, ARG0, ARG1];
 
-  print "Resolving hosts...\n";
-
   $heap->{timeout} = $timeout;
   $heap->{hosts} = [];
   $heap->{host_rec} = {};
   $heap->{count} = 0;
 
+  $heap->{timeout_fraction} = &simplify_fract(&dec_to_fract($timeout / 10));
+  if ($heap->{timeout_fraction} eq '1') {
+    $heap->{timeout_fraction} .= ' second';
+  }
+  else {
+    $heap->{timeout_fraction} .= ' seconds';
+  }
+
   foreach my $host (sort host_sort @$hosts) {
-    my $ip = inet_aton($host);
+    my ($ip, $hostname) = @$host;
     if (defined $ip) {
       push @{$heap->{hosts}}, $ip;
-      $heap->{host_rec}->{$ip} = [ $host,
+      $heap->{host_rec}->{$ip} = [ $hostname,
                                    undef,
-                                   ' ' x ($cols - length($host)),
-                                   0
+                                   ' ' x ($cols - length($hostname)),
+                                   0,
+                                   inet_ntoa($ip),
                                  ];
     }
   }
 
-  my $display = "\e[2J\e[0;0H" .
-    (($heap->{count} & 1) ? "\e[7m[" : '[') . "poing]\e[0m " .
-    scalar(localtime(time())) .
-    " (numbers represent ~" . ($heap->{timeout} / 10) . "s)\n\n";
+  if (open LOG, ">>$log_filename") {
+    my $now = gmtime(time()) . ' GMT';
+    print LOG "$now\tbegin\n";
+    close LOG;
+  }
+
+  my $display =
+    ( "\e[2J\e[0;0H" .
+      (($heap->{count} & 1) ? "\e[7m[" : '[') . "poing]\e[0m " .
+      scalar(localtime(time())) .
+      " (multiply numbers by " . $heap->{timeout_fraction} .
+      " to get time)\n\n"
+    );
 
   print $display;
 
@@ -244,12 +290,15 @@ sub pong_sweep {
 
   $heap->{count}++;
 
-  my $display = "\e[0;0H" .
-    (($heap->{count} & 1) ? "\e[7m" : "\e[0m") . "[poing]\e[0m " .
-    scalar(localtime(time())) .
-    " (numbers represent ~" . ($heap->{timeout} / 10) . "s)\n\n";
+  my $display =
+    ( "\e[0;0H" .
+      (($heap->{count} & 1) ? "\e[7m" : "\e[0m") . "[poing]\e[0m " .
+      scalar(localtime(time())) .
+      " (multiply numbers by " . $heap->{timeout_fraction} .
+      " to get time)\n\n"
+    );
 
-  my $a_host_status_changed = 0;
+  my (@hosts_coming_up, @hosts_going_down);
   foreach my $host (@{$heap->{hosts}}) {
     $kernel->post('pinger', 'ping', $host, 'ping_reply');
 
@@ -289,13 +338,13 @@ sub pong_sweep {
 
     if ($host_rec->[HOST_DEAD]) {
       if ($show_health =~ /[0-9]{$detect_host_life}$/) {
-        $a_host_status_changed++;
+        push @hosts_coming_up, $host_rec;
         $host_rec->[HOST_DEAD] = !$host_rec->[HOST_DEAD];
       }
     }
     else {
       if ($show_health =~ /\-{$detect_host_death}$/) {
-        $a_host_status_changed++;
+        push @hosts_going_down, $host_rec;
         $host_rec->[HOST_DEAD] = !$host_rec->[HOST_DEAD];
       }
     }
@@ -324,8 +373,33 @@ sub pong_sweep {
   }
 
   # Limit beeps to 2, please.  Ghargh!
-  $a_host_status_changed = 2 if ($a_host_status_changed > 2);
-  print $display, "\a" x $a_host_status_changed;
+  if (@hosts_coming_up + @hosts_going_down > 1) {
+    print $display, "\a\a";
+  }
+  elsif (@hosts_coming_up + @hosts_going_down) {
+    print $display, "\a";
+  }
+  else {
+    print $display;
+  }
+
+  # If we're logging, log.
+  if ($log_filename and (@hosts_coming_up or @hosts_going_down)) {
+    if (open LOG, ">>$log_filename") {
+      my $now = gmtime(time()) . ' GMT';
+      foreach (@hosts_coming_up) {
+        print LOG join( "\t", $now, 'up',
+                        $_->[HOST_ADDRESS], $_->[HOST_NAME]
+                      ), "\n";
+      }
+      foreach (@hosts_going_down) {
+        print LOG join( "\t", $now, 'down',
+                        $_->[HOST_ADDRESS], $_->[HOST_NAME]
+                      ), "\n";
+      }
+      close LOG;
+    }
+  }
 
   # Hack to specify the maximum run time, in hours.
   if (@ARGV and ($ARGV[0] =~ /^\d*\.?\d+$/)) {
@@ -347,6 +421,12 @@ sub pong_stop {
   foreach my $host (@{$heap->{hosts}}) {
     $kernel->post('pinger', 'ping_clear', $host);
   }
+
+  if (open LOG, ">>$log_filename") {
+    my $now = gmtime(time()) . ' GMT';
+    print LOG "$now\tcease\n";
+    close LOG;
+  }
 }
 
 sub pong_reply {
@@ -355,20 +435,122 @@ sub pong_reply {
 }
 
 #------------------------------------------------------------------------------
-
-print "Loading hosts...\n";
+# Load new stuff from a configuration file.
 
 my (@hosts_to_ping, %hosts_seen);
-while (<DATA>) {
+
+my $poing_rc_file = $ENV{HOME};
+unless (-d $poing_rc_file) {
+  my $login = ( getlogin || getpwuid($<) ||
+                $ENV{LOGNAME} || $ENV{LOGIN} || $ENV{USER}
+              );
+  $poing_rc_file = '~/' . $login;
+}
+die "Can't find home directory" unless -d $poing_rc_file;
+$poing_rc_file .= '/.poingrc'; $poing_rc_file =~ tr[\\\/][/]s;
+
+
+unless (open(HOME, "<$poing_rc_file")) {
+  *HOME = *DATA;
+  $poing_rc_file = 'Default poing configuration after __END__';
+}
+
+print "Loading and resolving configuration from $poing_rc_file ...\n";
+
+while (<HOME>) {
   s/^\s+//;
   s/\s+$//;
   s/\s*\#.*//;
+  s/\s+/ /g;
+
   next unless length;
   $_ = lc($_);
-  next if (exists $hosts_seen{$_});
-  $hosts_seen{$_}++;
-  push @hosts_to_ping, $_;
+
+  # log filename
+  if (/^log (.+?)$/) {
+    $log_filename = $1;
+    open LOG, ">>$log_filename" or die "Cannot append to $log_filename: $!";
+    close LOG;
+    next;
+  }
+
+  # host address
+  if (/^host (\d+\.\d+\.\d+\.\d+)$/) {
+    my $address = inet_aton($1);
+    next if (exists $hosts_seen{$address});
+    $hosts_seen{$address}++;
+    my @name = gethostbyaddr($address, AF_INET);
+    if (@name) {
+      push @hosts_to_ping, [ $address, $name[0] ];
+    }
+    else {
+      push @hosts_to_ping, [ $address, inet_ntoa($address) ];
+    }
+    next;
+  }
+
+  # host name
+  if (/^host (\S+)$/) {
+    my $address = inet_aton($1);
+    if (defined $address) {
+      next if (exists $hosts_seen{$address});
+      $hosts_seen{$address}++;
+      push @hosts_to_ping, [ $address, $1 ];
+    }
+    else {
+      warn "Cannot resolve host name from line $. of $poing_rc_file\n";
+    }
+    next;
+  }
+
+  # host address and name
+  if (/^host (\S+) (.+?)$/) {
+    my $address = inet_aton($1);
+    if (defined $address) {
+      next if (exists $hosts_seen{$address});
+      $hosts_seen{$address}++;
+      push @hosts_to_ping, [ $address, $2 ];
+    }
+    next;
+  }
+
+  if (/^ping_timeout (\d+\.\d+|\.\d+|\d+\.|\d+)$/) {
+    if ($1) {
+      $ping_timeout = $1;
+    }
+    else {
+      warn "Ping timeout may not be zero at $poing_rc_file line $.\n";
+      warn "Setting ping timeout to 1/100 second at $poing_rc_file line $.\n";
+      $ping_timeout = 0.01;
+    }
+    next;
+  }
+
+  if (/^detect_host_death (\d+)$/) {
+    $detect_host_death = $1;
+    next;
+  }
+
+  if (/^detect_host_life (\d+)$/) {
+    $detect_host_life = $1;
+    next;
+  }
+
+  warn "Bad poing configuration on line $. of $poing_rc_file\n";
 }
+close HOME;
+close DATA;
+
+#------------------------------------------------------------------------------
+# Preprocess the detection times.
+
+$detect_host_death /= $ping_timeout;
+$detect_host_death = int($detect_host_death) + 1
+  if ($detect_host_death =~ /\./);
+
+$detect_host_life /= $ping_timeout;
+$detect_host_life = int($detect_host_life) + 1
+  if ($detect_host_life =~ /\./);
 
 #------------------------------------------------------------------------------
 
@@ -394,35 +576,14 @@ exit;
 
 __END__
 
-# Internal hosts
-
-10.0.0.5
-10.0.0.9
-10.0.0.42
-10.0.0.100
-
-# ISP hosts
-
-100baset.netrus.net
-netrus.net
-pm3-miami-fl-3.netrus.net
-
-# ISP gateways
-
-atm-7513-1-s0-0-0-10.cwi.net
-sl-gw1-orl-5-0-0-TS12-T1.sprintlink.net
-
 # Popular Routers
 
-core1-fddi0-0.mae-east.megsinet.net
+host 209.152.183.173 mae-west-oc48.whack.org
+host 192.41.177.115  mae-east.digex.net
 
 # Frequent sites
 
-www.memepool.com
-www.infobot.org
-altavista.com
-www.microsoft.com
-nerdsholm.boutell.com
-prometheus.frii.com
-www.slashdot.org
-www.sluggy.com
+host 208.60.68.29    www.memepool.com
+host 199.245.105.172 www.infobot.org
+host 204.152.190.11  altavista.com
+host 209.197.104.63  www.sluggy.com

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: objmaps.perl,v 1.2 2000/01/23 18:30:07 rcaputo Exp $
+# $Id: objmaps.perl,v 1.3 2000/02/16 03:54:48 rcaputo Exp $
 
 # This is another simple functionality test.  It tests sessions that
 # are composed of objects (also called "object sessions").  The
@@ -32,7 +32,7 @@ sub new {
 
 #------------------------------------------------------------------------------
 # This is a normal Perl object method.  It destroys a Counter object,
-# doing any late cleanup on the object.  This is different that the
+# doing any late cleanup on the object.  This is different than the
 # _stop event handler, which handles late cleanup on the object's
 # Session.
 

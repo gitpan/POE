@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: signals.perl,v 1.10 2000/01/23 18:32:01 rcaputo Exp $
+# $Id: signals.perl,v 1.12 2000/02/16 04:00:10 rcaputo Exp $
 
 # This program tests signals.  It tests OS signals (such as SIGINT),
 # soft signals to sessions, and soft signals to kernels.  Soft
@@ -50,6 +50,9 @@ new POE::Session
     'signal handler' => sub
     { my ($kernel, $signal_name) = @_[KERNEL, ARG0];
       print "First session caught SIG$signal_name\n";
+      print( "First session's pending alarms: ",
+             join(':', map { "\"$_\"" } $kernel->queue_peek_alarms()), "\n"
+           );
                                         # stop pending alarm on SIGINT
       if ($signal_name eq 'INT') {
         print "First session stopping...\n";
@@ -94,6 +97,9 @@ new POE::Session
     'signal handler' => sub
     { my ($kernel, $signal_name) = @_[KERNEL, ARG0];
       print "Second session caught SIG$signal_name\n";
+      print( "Second session's pending alarms: ",
+             join(':', $kernel->queue_peek_alarms()), "\n"
+           );
                                         # stop pending alarm on SIGINT
       if ($signal_name eq 'INT') {
         print "Second session stopping...\n";

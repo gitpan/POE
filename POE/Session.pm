@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.31 2000/01/24 19:22:06 rcaputo Exp $
+# $Id: Session.pm,v 1.36 2000/03/14 17:06:22 rcaputo Exp $
 
 package POE::Session;
 
@@ -6,11 +6,18 @@ use strict;
 use Carp;
 use POSIX qw(ENOSYS);
 
-use Exporter;
-@POE::Session::ISA = qw(Exporter);
-@POE::Session::EXPORT = qw(OBJECT SESSION KERNEL HEAP STATE SENDER
-                           ARG0 ARG1 ARG2 ARG3 ARG4 ARG5 ARG6 ARG7 ARG8 ARG9
-                          );
+sub SE_NAMESPACE () { 0 }
+sub SE_OPTIONS   () { 1 }
+sub SE_STATES    () { 2 }
+
+# Define some debugging flags for subsystems, unless someone already
+# has defined them.
+BEGIN {
+  defined &DEB_DESTROY or eval 'sub DEB_DESTROY () { 0 }';
+}
+
+#------------------------------------------------------------------------------
+# Export constants into calling packages.  This is evil.
 
 sub OBJECT  () {  0 }
 sub SESSION () {  1 }
@@ -29,10 +36,11 @@ sub ARG7    () { 13 }
 sub ARG8    () { 14 }
 sub ARG9    () { 15 }
 
-sub SE_NAMESPACE () { 0 }
-sub SE_OPTIONS   () { 1 }
-sub SE_KERNEL    () { 2 }
-sub SE_STATES    () { 3 }
+use Exporter;
+@POE::Session::ISA = qw(Exporter);
+@POE::Session::EXPORT = qw( OBJECT SESSION KERNEL HEAP STATE SENDER
+                            ARG0 ARG1 ARG2 ARG3 ARG4 ARG5 ARG6 ARG7 ARG8 ARG9
+                          );
 
 #------------------------------------------------------------------------------
 
@@ -50,7 +58,6 @@ sub new {
   my $self = bless [ ], $type;
   $self->[SE_NAMESPACE] = { };
   $self->[SE_OPTIONS  ] = { };
-  $self->[SE_KERNEL   ] = undef;
   $self->[SE_STATES   ] = { };
 
   while (@states) {
@@ -135,7 +142,7 @@ sub new {
     $POE::Kernel::poe_kernel->session_alloc($self, @args);
   }
   else {
-    carp "discarding session $self - no '_start' state";
+    carp "discarding session ", $self->ID, " - no '_start' state";
   }
 
   $self;
@@ -151,7 +158,7 @@ sub create {
     unless (defined $POE::Kernel::poe_kernel);
 
   if (@params & 1) {
-    croak "odd number of events/handlers (missin one or the other?)";
+    croak "odd number of events/handlers (missing one or the other?)";
   }
 
   my %params = @params;
@@ -159,7 +166,6 @@ sub create {
   my $self = bless [ ], $type;
   $self->[SE_NAMESPACE] = { };
   $self->[SE_OPTIONS  ] = { };
-  $self->[SE_KERNEL   ] = undef;
   $self->[SE_STATES   ] = { };
 
   if (exists $params{'args'}) {
@@ -195,6 +201,7 @@ sub create {
         $self->register_state($state, $handler);
       }
     }
+
     elsif ($_ eq 'package_states') {
       croak "$_ does not refer to an array" unless (ref($states) eq 'ARRAY');
       croak "the array for $_ has an odd number of elements" if (@$states & 1);
@@ -224,7 +231,8 @@ sub create {
       croak "$_ does not refer to an array" unless (ref($states) eq 'ARRAY');
       croak "the array for $_ has an odd number of elements" if (@$states & 1);
 
-      while (my ($object, $handlers) = each(%$states)) {
+      while (@$states) {
+        my ($object, $handlers) = splice @$states => 0, 2;
 
         # Array of handlers is passed through as method names.
         if (ref($handlers) eq 'ARRAY') {
@@ -236,7 +244,7 @@ sub create {
         # Hashes of handlers are passed through as key names.
         elsif (ref($handlers) eq 'HASH') {
           while (my ($state, $method) = each %$handlers) {
-            $self->register_state($method, $object, $state);
+            $self->register_state($state, $object, $method);
           }
         }
 
@@ -255,7 +263,7 @@ sub create {
     $POE::Kernel::poe_kernel->session_alloc($self, @args);
   }
   else {
-    carp "discarding session $self - no '_start' state";
+    carp "discarding session ", $self->ID, " - no '_start' state";
   }
 
   $self;
@@ -265,16 +273,35 @@ sub create {
 
 sub DESTROY {
   my $self = shift;
-  # -><- clean out things
+
+  # Session's data structures are destroyed through Perl's usual
+  # garbage collection.  DEB_DESTROY here just shows what's in the
+  # session before the destruction finishes.
+
+  DEB_DESTROY and do {
+    print "----- Session $self Leak Check -----\n";
+    print "-- Namespace (HEAP):\n";
+    foreach (sort keys (%{$self->[SE_NAMESPACE]})) {
+      print "   $_ = ", $self->[SE_NAMESPACE]->{$_}, "\n";
+    }
+    print "-- Options:\n";
+    foreach (sort keys (%{$self->[SE_OPTIONS]})) {
+      print "   $_ = ", $self->[SE_OPTIONS]->{$_}, "\n";
+    }
+    print "-- States:\n";
+    foreach (sort keys (%{$self->[SE_STATES]})) {
+      print "   $_ = ", $self->[SE_STATES]->{$_}, "\n";
+    }
+  };
 }
 
 #------------------------------------------------------------------------------
 
 sub _invoke_state {
-  my ($self, $source_session, $state, $etc) = @_;
+  my ($self, $source_session, $state, $etc, $file, $line) = @_;
 
   if (exists($self->[SE_OPTIONS]->{'trace'})) {
-    warn "$self -> $state\n";
+    warn $self->ID, " -> $state\n";
   }
 
   if (exists $self->[SE_STATES]->{$state}) {
@@ -314,8 +341,9 @@ sub _invoke_state {
   else {
     $! = ENOSYS;
     if (exists $self->[SE_OPTIONS]->{'default'}) {
-      warn "\t$self -> $state does not exist (and no _default)\n";
-      confess;
+      warn( "Someone posted a '$state' state to session ", $self->ID,
+            " from $file line $line\n"
+          );
     }
     return undef;
   }
@@ -332,7 +360,7 @@ sub register_state {
   if ($handler) {
     # Inline coderef.
     if (ref($handler) eq 'CODE') {
-      carp "redefining state($state) for session($self)"
+      carp "redefining state($state) for session(", $self->ID, ")"
         if ( (exists $self->[SE_OPTIONS]->{'debug'}) &&
              (exists $self->[SE_STATES]->{$state})
            );
@@ -340,7 +368,7 @@ sub register_state {
     }
     # Object or package method.
     elsif ($handler->can($method)) {
-      carp "redefining state($state) for session($self)"
+      carp "redefining state($state) for session(", $self->ID, ")"
         if ( (exists $self->[SE_OPTIONS]->{'debug'}) &&
              (exists $self->[SE_STATES]->{$state})
            );
@@ -351,10 +379,10 @@ sub register_state {
       if (ref($handler) eq 'CODE' &&
           exists($self->[SE_OPTIONS]->{'trace'})
       ) {
-        carp "$self : state($state) is not a proper ref - not registered"
+        carp $self->id, " : state($state) is not a proper ref - not registered"
       }
       else {
-        croak "object $handler does not have a '$state' method"
+        croak "object $handler does not have a '$method' method"
           unless ($handler->can($method));
       }
     }
@@ -751,6 +779,10 @@ Another way to grab the arguments, no matter how many there are, is:
 
   my @args = @_[ARG0..$#_];
 
+... or...
+
+  &something($_) foreach (@_[ARG0..$#_]);
+
 =back
 
 =head1 CUSTOM EVENTS AND PARAMETERS
@@ -827,7 +859,8 @@ guarantees that every session receives them.
 
 POE does not yet magically solve Perl's problems with signals.
 Namely, perl tends to dump core if it keeps receiving signals.  That
-has a detrimental effect on programs that expect long uptimes.
+has a detrimental effect on programs that expect long uptimes, to say
+the least.
 
 There are a few kinds of signals.  The kernel processes each kind
 differently:
@@ -847,6 +880,12 @@ sessions.  ARG0 contains the signal name as it appears in %SIG.
 
 SIGWINCH is ignored.  Resizing an xterm causes a bunch of these,
 quickly killing perl.
+
+Signal handlers' return values tell POE whether signals have been
+handled.  Returning true tells POE the signal was absorbed; returning
+false tells POE it wasn't.  This is only a factor with so-called
+"terminal" signals, which are explained in the POE::Kernel manpage.
+Basically: Sessions that don't handle terminal signals are stopped.
 
 =item *
 
@@ -923,6 +962,11 @@ B<_signal> event for more information.
 The B<_default> state can be used to catch misspelled events, but
 $session->option('default',1) may be better.
 
+Be careful: The B<_default> handler will catch signals, and its return
+value will be used as an indicator of whether signals have been
+handled.  It's easy to create programs that must be kill -KILL'ed this
+way.
+
 =back
 
 =head1 ABOUT STATES' RETURN VALUES
@@ -954,6 +998,36 @@ object.  If the reference was not stringified, it would delay the
 wheel's destruction until after the session stopped.  The wheel would
 try to remove its states from the nonexistent session, and the program
 would crash.
+
+=head1 DEBUGGING FLAGS
+
+These flags were made public in 0.0906.  If they are pre-defined by
+the first package that uses POE::Session (or POE, since that includes
+POE::Session by default), then the pre-definition will take precedence
+over POE::Session's definition.  In this way, it is possible to use
+POE::Session's internal debugging code without finding Session.pm and
+editing it.
+
+Debugging flags are meant to be constants.  They should be prototyped
+as such, and they must be declared in the POE::Session package.
+
+Sample usage:
+
+  # Display information about Session object destruction.
+  sub POE::Session::DEB_DESTROY () { 1 }
+  use POE;
+  ...
+
+=over 4
+
+=item *
+
+DEB_DESTROY
+
+When enabled, POE::Session will display some information about the
+session's internal data at DESTROY time.
+
+=back
 
 =head1 SEE ALSO
 

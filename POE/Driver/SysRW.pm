@@ -1,4 +1,4 @@
-# $Id: SysRW.pm,v 1.8 1999/11/20 05:43:51 rcaputo Exp $
+# $Id: SysRW.pm,v 1.11 2000/02/18 18:45:30 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
 # This program is free software; you can redistribute it and/or modify
@@ -10,24 +10,32 @@ use strict;
 use POSIX qw(EAGAIN);
 use Carp;
 
+sub OUTPUT_QUEUE        () { 0 }
+sub CURRENT_OCTETS_DONE () { 1 }
+sub CURRENT_OCTETS_LEFT () { 2 }
+sub BLOCK_SIZE          () { 3 }
+sub TOTAL_OCTETS_LEFT   () { 4 }
+
 #------------------------------------------------------------------------------
 
 sub new {
   my $type = shift;
-  my $self = bless { 'out queue'  => [ ],
-                     'bytes done' => 0,
-                     'bytes left' => 0,
-                     BlockSize    => 512,
-                   }, $type;
+  my $self = bless [ [ ], # OUTPUT_QUEUE
+                     0,   # CURRENT_OCTETS_DONE
+                     0,   # CURRENT_OCTETS_LEFT
+                     512, # BLOCK_SIZE
+                     0,   # TOTAL_OCTETS_LEFT
+                   ], $type;
 
   if (@_) {
     if (@_ % 2) {
       croak "$type requires an even number of parameters, if any";
     }
     my %args = @_;
-    if (exists $self->{BlockSize}) {
-      $self->{BlockSize} = delete $args{BlockSize};
-      croak "$type BlockSize must be greater than 0" if ($self->{BlockSize}<1);
+    if (exists $args{BlockSize}) {
+      $self->[BLOCK_SIZE] = delete $args{BlockSize};
+      croak "$type BlockSize must be greater than 0"
+        if ($self->[BLOCK_SIZE]<1);
     }
     if (keys %args) {
       my @bad_args = sort keys %args;
@@ -42,13 +50,19 @@ sub new {
 
 sub put {
   my ($self, $chunks) = @_;
-  my $old_queue_length = @{$self->{'out queue'}};
-  my $new_queue_length = push @{$self->{'out queue'}}, @$chunks;
-  if ($new_queue_length && (!$old_queue_length)) {
-    $self->{'bytes left'} = length($self->{'out queue'}->[0]);
-    $self->{'bytes done'} = 0;
+  my $old_queue_octets = $self->[TOTAL_OCTETS_LEFT];
+
+  foreach (grep { length } @$chunks) {
+    $self->[TOTAL_OCTETS_LEFT] += length;
+    push @{$self->[OUTPUT_QUEUE]}, $_;
   }
-  $new_queue_length;
+
+  if ($self->[TOTAL_OCTETS_LEFT] && (!$old_queue_octets)) {
+    $self->[CURRENT_OCTETS_LEFT] = length($self->[OUTPUT_QUEUE]->[0]);
+    $self->[CURRENT_OCTETS_DONE] = 0;
+  }
+
+  $self->[TOTAL_OCTETS_LEFT];
 }
 
 #------------------------------------------------------------------------------
@@ -56,7 +70,7 @@ sub put {
 sub get {
   my ($self, $handle) = @_;
 
-  my $result = sysread($handle, my $buffer = '', $self->{BlockSize});
+  my $result = sysread($handle, my $buffer = '', $self->[BLOCK_SIZE]);
   if ($result || ($! == EAGAIN)) {
     $! = 0;
     [ $buffer ];
@@ -71,11 +85,11 @@ sub get {
 sub flush {
   my ($self, $handle) = @_;
                                         # syswrite it, like we're supposed to
-  while (@{$self->{'out queue'}}) {
+  while (@{$self->[OUTPUT_QUEUE]}) {
     my $wrote_count = syswrite($handle,
-                               $self->{'out queue'}->[0],
-                               $self->{'bytes left'},
-                               $self->{'bytes done'}
+                               $self->[OUTPUT_QUEUE]->[0],
+                               $self->[CURRENT_OCTETS_LEFT],
+                               $self->[CURRENT_OCTETS_DONE],
                               );
 
     unless ($wrote_count) {
@@ -83,20 +97,27 @@ sub flush {
       last;
     }
 
-    $self->{'bytes done'} += $wrote_count;
-    unless ($self->{'bytes left'} -= $wrote_count) {
-      shift(@{$self->{'out queue'}});
-      if (@{$self->{'out queue'}}) {
-        $self->{'bytes done'} = 0;
-        $self->{'bytes left'} = length($self->{'out queue'}->[0]);
+    $self->[CURRENT_OCTETS_DONE] += $wrote_count;
+    $self->[TOTAL_OCTETS_LEFT] -= $wrote_count;
+    unless ($self->[CURRENT_OCTETS_LEFT] -= $wrote_count) {
+      shift(@{$self->[OUTPUT_QUEUE]});
+      if (@{$self->[OUTPUT_QUEUE]}) {
+        $self->[CURRENT_OCTETS_DONE] = 0;
+        $self->[CURRENT_OCTETS_LEFT] = length($self->[OUTPUT_QUEUE]->[0]);
       }
       else {
-        $self->{'bytes done'} = $self->{'bytes left'} = 0;
+        $self->[CURRENT_OCTETS_DONE] = $self->[CURRENT_OCTETS_LEFT] = 0;
       }
     }
   }
 
-  scalar(@{$self->{'out queue'}});
+  $self->[TOTAL_OCTETS_LEFT];
+}
+
+#------------------------------------------------------------------------------
+
+sub get_out_messages_buffered {
+  scalar(@{$_[0]->[OUTPUT_QUEUE]});
 }
 
 ###############################################################################
@@ -112,8 +133,9 @@ POE::Driver::SysRW - POE sysread/syswrite Abstraction
 
   $driver = new POE::Driver::SysRW();
   $arrayref_of_data_chunks = $driver->get($filehandle);
-  $queue_size = $driver->put($arrayref_of_data_chunks);
-  $queue_size = $driver->flush($filehandle);
+  $queue_octets = $driver->put($arrayref_of_data_chunks);
+  $queue_octets = $driver->flush($filehandle);
+  $queue_messages = $driver->get_out_messages_buffered();
 
 =head1 DESCRIPTION
 

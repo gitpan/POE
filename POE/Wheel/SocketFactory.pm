@@ -1,4 +1,4 @@
-# $Id: SocketFactory.pm,v 1.24 2000/01/13 00:10:29 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.30 2000/03/10 05:32:07 rcaputo Exp $
 
 package POE::Wheel::SocketFactory;
 
@@ -12,6 +12,14 @@ use POE;
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 sub DEBUG () { 0 }
+
+# Provide a dummy EINPROGRESS for systems that don't have one.  Give
+# it an improbable errno value.
+BEGIN {
+  if ($^O eq 'MSWin32') {
+    eval '*EINPROGRESS = sub { 3.141 };'
+  }
+}
 
 #------------------------------------------------------------------------------
 
@@ -66,6 +74,11 @@ sub condition_unix_address {
 sub _define_accept_state {
   my $self = shift;
 
+  my $domain = $map_family_to_domain{ $self->{socket_domain} };
+  $domain = '(undef)' unless defined $domain;
+  my $success_state = \$self->{state_success};
+  my $failure_state = \$self->{state_failure};
+
   $poe_kernel->state
     ( $self->{state_accept} = $self . ' -> select accept',
       sub {
@@ -80,26 +93,20 @@ sub _define_accept_state {
 
         if ($peer) {
           my ($peer_addr, $peer_port);
-          if ( ($self->{socket_domain} == AF_UNIX) ||
-               ($self->{socket_domain} == PF_UNIX)
-          ) {
+          if ( $domain eq DOM_UNIX ) {
             $peer_addr = $peer_port = undef;
           }
-          elsif ( ($self->{socket_domain} == AF_INET) ||
-                  ($self->{socket_domain} == PF_INET)
-          ) {
+          elsif ( $domain eq DOM_INET ) {
             ($peer_port, $peer_addr) = unpack_sockaddr_in($peer);
           }
           else {
-            die "sanity failure: socket domain == $self->{socket_domain}";
+            die "sanity failure: socket domain == $domain";
           }
-          $k->call($me, $self->{state_success},
-                   $new_socket, $peer_addr, $peer_port
-                  );
+          $k->call($me, $$success_state, $new_socket, $peer_addr, $peer_port);
         }
         elsif ($! != EWOULDBLOCK) {
-          $self->{state_failure} &&
-            $k->call($me, $self->{state_failure}, 'accept', ($!+0), $!);
+          $$failure_state &&
+            $k->call($me, $$failure_state, 'accept', ($!+0), $!);
         }
       }
     );
@@ -114,31 +121,10 @@ sub _define_accept_state {
 sub _define_connect_state {
   my $self = shift;
 
-  $poe_kernel->state
-    ( $self->{state_noconnect} = $self . ' -> select noconnect',
-      sub {
-                                        # prevents SEGV
-        0 && CRIMSON_SCOPE_HACK('<');
-                                        # subroutine starts here
-        my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-        $k->select($handle);
-                                        # acquire and dispatch connect error
-        if (defined $self->{state_failure}) {
-          $! = 0;
-          my $error = unpack('i', getsockopt($handle, SOL_SOCKET, SO_ERROR));
-          $error && ($! = $error);
-
-          # Old style ignored the fact that sometimes connect states
-          # are ready for read on purpose.
-          # sysread($handle, my $buf = '', 1);
-          # $k->call($me, $failure_event, 'connect', ($!+0), $!);
-
-          if ($!) {
-            $k->call($me, $self->{state_failure}, 'connect', ($!+0), $!);
-          }
-        }
-      }
-    );
+  my $domain = $map_family_to_domain{ $self->{socket_domain} };
+  $domain = '(undef)' unless defined $domain;
+  my $success_state = \$self->{state_success};
+  my $failure_state = \$self->{state_failure};
 
   $poe_kernel->state
     ( $self->{state_connect} = $self . ' -> select connect',
@@ -147,36 +133,39 @@ sub _define_connect_state {
         0 && CRIMSON_SCOPE_HACK('<');
                                         # subroutine starts here
         my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-
         $k->select($handle);
+                                        # acquire and dispatch connect error
+        $! = 0;
+        my $error = unpack('i', getsockopt($handle, SOL_SOCKET, SO_ERROR));
+        $error && ($! = $error);
 
-        my $peer = getpeername($handle);
-        my ($peer_addr, $peer_port);
+        # There is an error.
+        if ($!) {
+          (defined $$failure_state) and
+            $k->call($me, $$failure_state, 'connect', ($!+0), $!);
+        }
 
-        if ( ($self->{socket_domain} == AF_UNIX) ||
-             ($self->{socket_domain} == PF_UNIX)
-        ) {
-          $peer_addr = unpack_sockaddr_un($peer);
-          $peer_port = undef;
-        }
-        elsif ( ($self->{socket_domain} == AF_INET) ||
-                ($self->{socket_domain} == PF_INET)
-        ) {
-          ($peer_port, $peer_addr) = unpack_sockaddr_in($peer);
-        }
+        # No error; this is a successful connection.
         else {
-          die "sanity failure: socket domain == $self->{socket_domain}";
+          my $peer = getpeername($handle);
+          my ($peer_addr, $peer_port);
+
+          if ($domain eq DOM_UNIX) {
+            $peer_addr = unpack_sockaddr_un($peer);
+            $peer_port = undef;
+          }
+          elsif ($domain eq DOM_INET) {
+            ($peer_port, $peer_addr) = unpack_sockaddr_in($peer);
+          }
+          else {
+            die "sanity failure: socket domain == $domain";
+          }
+          $k->call( $me, $$success_state, $handle, $peer_addr, $peer_port );
         }
-        $k->call( $me, $self->{state_success},
-                  $handle, $peer_addr, $peer_port
-                );
       }
     );
 
-  $poe_kernel->select($self->{socket_handle},
-                      $self->{state_noconnect},
-                      $self->{state_connect}
-                     );
+  $poe_kernel->select_write( $self->{socket_handle}, $self->{state_connect} );
 }
 
 #------------------------------------------------------------------------------
@@ -235,10 +224,7 @@ sub event {
     $poe_kernel->select_read($self->{socket_handle}, $self->{state_accept});
   }
   elsif (exists $self->{state_connect}) {
-    $poe_kernel->select($self->{socket_handle},
-                        $self->{state_noconnect},
-                        $self->{state_connect}
-                       );
+    $poe_kernel->select_write($self->{socket_handle}, $self->{state_connect});
   }
   else {
     die "POE developer error - no state defined";
@@ -373,16 +359,31 @@ sub new {
 
   # Don't block on socket operations, because the socket will be
   # driven by a select loop.
-  my $flags = fcntl($socket_handle, F_GETFL, 0)
-    or do {
-      $poe_kernel->yield($state_failure, 'fcntl', $!+0, $!);
-      return undef;
-    };
-  $flags = fcntl($socket_handle, F_SETFL, $flags | O_NONBLOCK)
-    or do {
-      $poe_kernel->yield($state_failure, 'fcntl', $!+0, $!);
-      return undef;
-    };
+
+  # Do it the Win32 way.  XXX This is incomplete.
+  if ($^O eq 'MSWin32') {
+    my $set_it = "1";
+                                        # 126 is FIONBIO
+    ioctl($socket_handle, 126 | (ord('f')<<8) | (4<<16) | 0x80000000, $set_it)
+      or do {
+        $poe_kernel->yield($state_failure, 'ioctl', $!+0, $!);
+        return undef;
+      };
+  }
+
+  # Do it the way everyone else does.
+  else {
+    my $flags = fcntl($socket_handle, F_GETFL, 0)
+      or do {
+        $poe_kernel->yield($state_failure, 'fcntl', $!+0, $!);
+        return undef;
+      };
+    $flags = fcntl($socket_handle, F_SETFL, $flags | O_NONBLOCK)
+      or do {
+        $poe_kernel->yield($state_failure, 'fcntl', $!+0, $!);
+        return undef;
+      };
+  }
 
   # Make the socket reusable, if requested.
   if ( (exists $params{Reuse})
@@ -557,6 +558,10 @@ sub new {
   # handle.
   if (defined $connect_address) {
     unless (connect($socket_handle, $connect_address)) {
+
+      # XXX EINPROGRESS is not included in ActiveState's POSIX.pm, and
+      # I don't know what AS's Perl uses instead.  What to do here?
+
       if ($! and ($! != EINPROGRESS)) {
         $poe_kernel->yield($state_failure, 'connect', $!+0, $!);
         return undef;
@@ -640,11 +645,6 @@ sub DESTROY {
   if (exists $self->{state_connect}) {
     $poe_kernel->state($self->{state_connect});
     delete $self->{state_connect};
-  }
-
-  if (exists $self->{state_noconnect}) {
-    $poe_kernel->state($self->{state_noconnect});
-    delete $self->{state_noconnect};
   }
 
   if (exists $self->{state_success}) {

@@ -1,4 +1,4 @@
-# $Id: MANIFEST,v 1.23 2000/01/23 18:30:04 rcaputo Exp $
+# $Id: MANIFEST,v 1.27 2000/03/23 13:04:55 rcaputo Exp $
 Changes
 MANIFEST
 Makefile.PL
@@ -6,6 +6,8 @@ POE.pm
 POE/Attribute/Array.pm
 POE/Attribute/Hash.pm
 POE/Attribute/Scalar.pm
+POE/Component.pm
+POE/Component/Server/TCP.pm
 POE/Curator.pm
 POE/Driver.pm
 POE/Driver/SysRW.pm
@@ -25,6 +27,7 @@ POE/Wheel/ListenAccept.pm
 POE/Wheel/ReadWrite.pm
 POE/Wheel/SocketFactory.pm
 README
+lib/TestSetup.pm
 samples/create.perl
 samples/fakelogin.perl
 samples/filterchange.perl
@@ -49,6 +52,8 @@ samples/socketfactory.perl
 samples/thrash.perl
 samples/tutorial-chat.perl
 samples/udp.perl
+samples/watermarks.perl
 samples/wheels.perl
 samples/wheels2.perl
-t/test.t
+t/01_sessions.t
+t/02_alarms.t

@@ -1,11 +1,247 @@
-$Id: Changes,v 1.68 2000/01/25 19:16:07 rcaputo Exp $
+$Id: Changes,v 1.89 2000/03/23 13:04:54 rcaputo Exp $
 
-Revision history for Perl extension POE.
-========================================
+Revision history for POE
+========================
 
 Changes marked with "(!!!)" may break backward compatibility.
 Versions with "_xx" subversions are internal test releases.  Most
 subversions are available from <http://www.newts.org/~troc/poe.html>.
+
+
+0.10 2000.03.23 (!!!)
+---------------------
+
+Added POE::Component to the MANIFEST.  Whoops!
+
+Everything from 0.0901 through 0.0910 is included in this public
+CPAN release.  People using 0.09 should read through to see
+what has changed, paying extra attention to the bits marked
+incompatible.
+
+
+0.0910 2000.03.09 (!!!)
+-----------------------
+
+POE now keeps track of the file and line number where an event was
+generated.  $session->option( default => 1 ) will report the line and
+file, so you know where strange events came from.
+
+(!!!) Add session ID to reference lookup from alias_resolve.
+ID_id_to_session is depreciated.  The incompatibility here is that
+session IDs take precedence over aliases, so sessions shouldn't be
+aliased to numbers.
+
+(!!!) Depreciated ID_session_to_id, since alias_resolve does the same
+thing.  No warnings have been set yet, to give developers time to
+react to the change.
+
+Tweaked the Win32 support to eliminate some redefined sub warnings.
+
+
+0.0909 2000.03.10
+-----------------
+
+Removing closures in 0.0907 re-broke code that expect $wheel->event()
+to take immediate effect.  Changed the wheels to use references
+instead of direct event names, so that anonymous coderefs could have
+closures whose values can be changed from outside.
+
+
+0.0908 2000.03.09
+-----------------
+
+Added logging to samples/poing.perl.  Now it records up and down times
+to a tab-delimited file.
+
+Added POE::Kernel::select_(pause|resume)_write, to pause and resume a
+write select without bothering to maintain POE::Kernel's reference
+counts on the filehandle.  Made POE::Wheel::ReadWrite use this instead
+of POE::Kernel::select_write, which should improve performance a
+little bit.
+
+POE::Kernel::call was setting $! to 0 when it oughtn't.  $! now
+properly reflects the status of POE::Kernel::call.
+
+Removed the place-holder test that suggested people try the samples
+directory.
+
+Added t/01_sessions.t to test sessions (new and inline create) and
+basic events (post, yield and call);
+
+Added t/02_alarms.t to test delayed events (alarm, delay, alarm_add
+and delay_add).
+
+Added POE::Kernel::(alarm|delay)_add to post additional alarms to a
+particular state.  Unlike POE::Kernel::(alarm|delay), these don't
+clear existing alarms for the destination state.
+
+Kicked off the POE::Component heirarchy with
+POE::Component::Server::TCP (POE::Component is frequently abbreviated
+as P::C in conversation but not in code).
+
+
+0.0907 2000.03.02
+-----------------
+
+Revised Wheel::SocketFactory's internal states to eliminate closures
+keeping instances from self-destructing at proper times.  This would
+keep socket factories alive after their last outside references were
+removed.
+
+Updated documentation for POE::Kernel::alarm()
+
+
+0.0906 2000.02.20
+-----------------
+
+Revised Wheel::ReadWrite->put() to return true if the high watermark
+is reached; false if it hasn't been.  ReadWrite->put() may return true
+without a corresponding high or low watermark event.
+
+Changed samples/watermarks.perl to use ReadWrite->put()'s return
+value, as well as the high and low mark states.  Commented the program
+while I was in it.
+
+Adding the water mark code reintroduced the closure bug that was fixed
+in version 0.0804.  Now it is fixed.  Yet again.
+
+Changed how DEB_* are defined in POE::Kernel.  It's now possible to
+override the debugging constants before the first POE::Kernel use.
+This lets programs have access to POE::Kernel's debugging code without
+requiring programmers to find Kernel.pm and edit it.
+
+Fixed POE::Session's debugging constant to work like POE::Kernel's.
+
+Documented POE::Kernel and POE::Session debugging flags in the
+corresponding manpages.
+
+
+0.0905 2000.02.20
+-----------------
+
+Changed Wheel::ReadWrite's baaaaad $self to be a listref instead of a
+hashref.  It should run marginally faster without having to look
+things up in a hash all the time.
+
+Added statistics accessors to Driver::SysRW (it's the only one so
+far), and added corresponding accesors to Wheel::ReadWrite.
+
+Added HighState and LowState to Wheel::ReadWrite->event, so these
+states can be redefined on the fly.
+
+Documented Wheel::ReadWrite->set_(high|low)_mark; they weren't
+documented up to 0.0904.
+
+Expanded samples/poing.perl to accept different forms of host lines in
+.rc files.  Now accepts "host ip_address" or "host hostname" or "host
+ip_address alias".  It will look up the missing information when the
+first two formats are used; it can totally bypass looking up names or
+addresses when the last format is used.  And aliases can be more
+meaningful than host names.
+
+EINPROGRESS isn't provided by ActiveState's POSIX module.  It also
+seems to be meaningless on MSWin32 systems.  Since it's pretty
+important for non-blocking connect() otherwise, I added a dummy
+constant for it when POE is running on MSWin32 platforms.  This
+affects POE::Kernel and Wheel::SocketFactory, which should now
+work better on Windows systems.
+
+Added a watermarks test, samples/watermarks.perl.
+
+
+0.0904 2000.02.16
+-----------------
+
+Replaced some lame hosts with some interesting routers in the
+poing.perl sample.  For values of lame and interesting.  Added some
+code to read configuration options from ~/.poingrc (or default to the
+options after __END__) so I can change options to my heart's content
+without annoying anyone.
+
+Gabriel Kihlman <joshua.haninge.kth.se!gk> found a race in
+SocketFactory's connect error detection.  Changed the way errors are
+detected during connection, removing an entire state in the process.
+People from Connecticut should let me know if this is a problem. :)
+
+Added a brief note about _signal and _default signal-handling
+semantics in POE::Session, with a pointer to the more comprehensive
+POE::Kernel signal discussion.
+
+Separated alarms from plain events.  Made the plain event queue FIFO;
+the alarm queue time ordered.  Posting and dispatching events should
+be faster, since they would not need to binary seek and insert.  This
+turned out to be false, because the constant overhead of checking two
+queues greatly offset any increased post/dispatch efficiency.  Backed
+this "optimization" out.
+
+Benchmarked several different "switch" implementations, only to find
+out that if/elsif/else is fastest anyway.
+
+Added internal event types within POE::Kernel.  The only thing anyone
+will ever notice is a little better performance.
+
+Fixed POE::Kernel->alarm() and POE::Kernel->delay() to make use of the
+new internal event types.  Now these two functions can only discard
+alarm events.  Documented the change.
+
+Added POE::Kernel::queue_peek_alarms, which returns the pending alarm
+events queued for the current session.
+
+Updated samples/signals.perl to display pending alarms.
+
+
+0.0903 2000.02.08 (!!!)
+-----------------------
+
+Put the incomplete, experimental Win32 code back.  It appears to have
+been working all along!  Please note, this is only for making
+filehandles non-blocking; it doesn't fix signals or fork or anything.
+
+Add Artur's high/low watermark patches to Wheel::ReadWrite.  This is a
+higher level watermark than previous patches, and it's not confined to
+a particular driver (which is moot at this point, since there's only
+one driver).  It implements high- and low-water callbacks instead of
+performing its own flow control.  Documented them but didn't include a
+watermark sample in this release.  A sample will be in by 0.10.
+
+(!!!) Changed drivers' flush() and put() methods' return values.  They
+now return pending octets instead of objects.  ReadWrite's water marks
+rely on this to make the marks meaningful.  Updated documentation.
+
+Changed Driver::SysRW's internal object from a hashref to an listref.
+This is a minor micro-optimization, which may offset the
+micro-pessimization introduced during octet counting.
+
+
+0.0902 2000.02.07
+-----------------
+
+Removed an underscore from the last change's version number in
+Changes. :)
+
+Abigail found a stupid bug in POE::Session->create's mishandling of
+object_states.  Patch received and applied; testcase added to
+samples/create.perl; bug fixed.
+
+
+0.0901 2000.02.07
+-----------------
+
+Added InputFilter and OutputFilter to POE::Wheel::ReadWrite's
+constructor parameters.  This allows a ReadWrite wheel to use
+different disciplines for input and output.
+
+Added &set_input_filter and &set_output_filter to
+POE::Wheel::ReadWrite.  Now &set_filter changes both the input and
+output filters.  &set_input_filter and &set_output_filter alter
+individual filters independent of the other.
+
+Fixed samples/fakelogin.perl to test changing individual filters.
+
+Changed a bunch of diagnostics to print $session->ID instead of
+$session.  Debugging will be slower (that's debugging for you), but it
+will also be friendlier.  Everybody needs a friend while debugging,
+right?
 
 
 0.09 2000.01.25

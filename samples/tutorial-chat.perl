@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: tutorial-chat.perl,v 1.6 2000/01/23 18:32:01 rcaputo Exp $
+# $Id: tutorial-chat.perl,v 1.7 2000/03/02 19:53:02 rcaputo Exp $
 
 =pod //////////////////////////////////////////////////////////////////////////
 
@@ -116,7 +116,7 @@ sub server_start {
 # consider it a destructor.  Or and about-to-be-destructed thing.
 
 sub server_stop {
-  
+
   # Log the server's stopping...
 
   print "SERVER: stopped.\n";
@@ -309,7 +309,7 @@ sub chat_stop {
     print "CLIENT: $connected_sessions{$session}->[1] disconnected.\n";
 
     # And say goodbye to everyone else.
-      
+
     &say($kernel, $session, '[has left chat]');
     delete $connected_sessions{$session};
   }

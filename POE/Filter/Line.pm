@@ -1,4 +1,4 @@
-# $Id: Line.pm,v 1.10 2000/01/24 15:11:53 rcaputo Exp $
+# $Id: Line.pm,v 1.11 2000/02/08 04:02:30 rcaputo Exp $
 
 package POE::Filter::Line;
 
@@ -35,7 +35,7 @@ sub put {
 
 #------------------------------------------------------------------------------
 
-sub get_pending 
+sub get_pending
 {
     my($self)=@_;
     return unless $$self;
