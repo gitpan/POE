@@ -1,4 +1,4 @@
-# $Id: Driver.pm,v 1.7 2000/02/18 18:45:29 rcaputo Exp $
+# $Id: Driver.pm,v 1.8 2000/06/17 20:05:46 rcaputo Exp $
 
 package POE::Driver;
 
@@ -60,6 +60,8 @@ The get() method immediately tries to read information from a
 filehandle.  It returns a reference to an array of received data
 chunks.  The array may be empty if nothing could be read.  The array
 reference it returns is a suitable parameter to POE::Filter::get().
+
+get() returns undef on an error.
 
 Wheels usually call the get() method from their read select states.
 

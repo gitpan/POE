@@ -1,4 +1,4 @@
-# $Id: Line.pm,v 1.11 2000/02/08 04:02:30 rcaputo Exp $
+# $Id: Line.pm,v 1.12 2000/06/17 04:40:07 rcaputo Exp $
 
 package POE::Filter::Line;
 
@@ -71,6 +71,8 @@ POE::Filter::Line - POE Line Protocol Abstraction
     $filter->put($arrayref_of_lines);
   $arrayref_of_streamable_chunks_for_driver =
     $filter->put($single_line);
+  $arrayref_of_leftovers =
+    $filter->get_pending();
 
 =head1 DESCRIPTION
 

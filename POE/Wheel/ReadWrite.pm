@@ -1,4 +1,4 @@
-# $Id: ReadWrite.pm,v 1.29 2000/03/10 05:32:07 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.31 2000/05/29 02:43:01 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
@@ -7,16 +7,16 @@ use Carp;
 use POE;
 
 # Offsets into $self.
-sub HANDLE_INPUT               () { 0 }
-sub HANDLE_OUTPUT              () { 1 }
-sub FILTER_INPUT               () { 2 }
-sub FILTER_OUTPUT              () { 3 }
-sub DRIVER_BOTH                () { 4 }
-sub EVENT_INPUT                () { 5 }
-sub EVENT_ERROR                () { 6 }
-sub EVENT_FLUSHED              () { 7 }
-sub WATERMARK_MARK_HIGH        () { 8 }
-sub WATERMARK_MARK_LOW         () { 9 }
+sub HANDLE_INPUT               () {  0 }
+sub HANDLE_OUTPUT              () {  1 }
+sub FILTER_INPUT               () {  2 }
+sub FILTER_OUTPUT              () {  3 }
+sub DRIVER_BOTH                () {  4 }
+sub EVENT_INPUT                () {  5 }
+sub EVENT_ERROR                () {  6 }
+sub EVENT_FLUSHED              () {  7 }
+sub WATERMARK_MARK_HIGH        () {  8 }
+sub WATERMARK_MARK_LOW         () {  9 }
 sub WATERMARK_EVENT_HIGH       () { 10 }
 sub WATERMARK_EVENT_LOW        () { 11 }
 sub WATERMARK_STATE            () { 12 }
@@ -205,10 +205,10 @@ sub _define_write_state {
       }
    );
 
-  $poe_kernel->select_write($self->[HANDLE_INPUT], $self->[STATE_WRITE]);
+  $poe_kernel->select_write($self->[HANDLE_OUTPUT], $self->[STATE_WRITE]);
 
   # Pause the write select immediately, unless output is pending.
-  $poe_kernel->select_pause_write($self->[HANDLE_INPUT])
+  $poe_kernel->select_pause_write($self->[HANDLE_OUTPUT])
     unless ($self->[DRIVER_BUFFERED_OUT_OCTETS]);
 }
 

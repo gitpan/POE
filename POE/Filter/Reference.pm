@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.16 2000/01/24 19:27:33 rcaputo Exp $
+# $Id: Reference.pm,v 1.17 2000/06/21 19:49:40 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -76,7 +76,6 @@ sub new {
     $tf=sub {$freeze->($freezer, @_)};
     $tt=sub {$thaw->($freezer, @_)};
   }
-
                                         # Compression
   $compression ||= 0;
   if ($compression) {

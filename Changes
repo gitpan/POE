@@ -1,4 +1,4 @@
-$Id: Changes,v 1.89 2000/03/23 13:04:54 rcaputo Exp $
+$Id: Changes,v 1.131 2000/07/12 14:10:43 rcaputo Exp $
 
 Revision history for POE
 ========================
@@ -6,6 +6,536 @@ Revision history for POE
 Changes marked with "(!!!)" may break backward compatibility.
 Versions with "_xx" subversions are internal test releases.  Most
 subversions are available from <http://www.newts.org/~troc/poe.html>.
+
+[ Hey, Rocco, don't forget to assign a tag to the release after you
+  make dist on it!  0.0910 is ``v0_0910''!  For example:
+
+  cvs tag -Rc v0_11   .
+  cvs tag -Rc v0_1009 .
+]
+
+,----- To Do -----
+|
+| After 0.11
+|
+| Filter::HTTPD test.
+| Wheel::ListenAccept rewrite & tests.
+|
+| Add new newlines to Filter::Line.
+|
+| Split the samples out into a separate distribution.
+| Revise the POE web pages.
+|
+`-----------------
+
+0.11 2000.07.12
+---------------
+
+A-mused found samples/thrash.perl failing on Redhat 6.0.  The chain of
+events goes something like this: (1) select says a non-blocking
+connecting socket's ready for writing.  (2) getsockopt(SO_ERROR)
+reports that the socket is fine.  (3) getpeername returns undef, and
+$! becomes ENOTCONN.  (4) unpack_sockaddr_in predictably fails.
+... The same test passes on other machines, including Solaris 7, OS/2,
+and FreeBSD 4.0-STABLE.  I patched SocketFactory to report an error if
+getpeername fails, and this cleared up the failure's symptom.
+
+
+0.1011 2000.06.29
+-----------------
+
+Added t/17_filter_ref.t: 80 tests for Filter::Reference.
+
+Removed an errant diagnostic from t/11_signals_poe.t; thanks a-mused.
+
+The garbage collection tidy in 0.1008 had broken GC in certain
+instances.  The problem didn't show up anywhere but the queue.perl
+sample, as far as I can tell.  I think it's corrected now.
+
+69% test coverage now.  Check the README for stats.
+
+
+0.1010 2000.06.20 (!!!)
+-----------------------
+
+Wheel::FollowTail was working on its filehandles before setting them
+non-blocking.  Rearranged a couple lines of code to turn off blocking
+before working with filehandles.
+
+Tweaked the signals tests to wait longer for child processes to
+terminate.
+
+(!!!) I have nothing good to say about POE::Kernel's experimental
+fork() method, so I will refrain from saying anything more than "It
+has been removed."  Please use plain fork(2).
+
+(!!!) Added variable-length block support to Filter::Block.  In this
+mode, each item will be received the same as it was put().  This
+borrows heavily from Filter::Reference which did it first.  Oh, the
+"!!!" is because Filter::Block's new() method doesn't default to
+512-byte blocks anymore; an unspecified/undefined BlockSize enables
+variable-length blocks, and a <1 BlockSize is an error.
+
+Added a new test, t/15_filter_block.t to exercise the block filter.
+
+Made Filter::Stream's put() method copy the chunks it's given rather
+than pass them on by reference.  This seems to be the safest thing to
+do, but I'm not sure why I think so.
+
+Added a new test, t/16_filter_stream.t to exercise the stream filter.
+
+
+0.1009 2000.06.17 (!!!)
+-----------------------
+
+(!!!) Documented in the changes for 0.1006 that $kernel->fork() was
+broken.
+
+Added Filter::Block to 00_coverage.t.
+
+Added t/14_wheels_ft.t to test Wheel::FollowTail and Filter::Block.
+
+FollowTail would go into an infinite loop while discarding initial
+data.  It wasn't checking drivers' get() methods' return values for
+emptiness.
+
+Driver::SysRW's get() method wasn't checking sysread's return value
+for definedness.
+
+Dieter Pearcey sent in a patch to FollowTail that lets programs
+specify how far to seek back into a file before tailing it.  When
+SeekBack is used, everything up to the current end of file is
+returned.  These changes look okay, but they are not yet tested.
+samples/followtail.perl still works, which is encouraging.
+
+Dieter Pearcey also submitted Filter::Block, a fixed-length block
+filter.  This filter is not yet tested.
+
+Translated Filter::Block's internal object into an anonymous list
+reference.  This will be more efficient, and I understand Dieter's
+application may need it.
+
+Windows compatibility seems to have gone all to heck in this version.
+I'm not sure why, either, since I didn't do anything specific to
+Windows but enhance its support.
+
+Tweaked POE::Preprocessor to do something approaching right things
+when debugging or tracing are turned on.
+
+Optimized away a function in lib/TestSetup.pm.
+
+Added t/13_wheels_udp.t and a corresponding MANIFEST entry.
+
+Jonathan Feinber graciously loaned a Windows NT shell for testing and
+development, opening whole new worlds of pain to me.  :)
+
+Tweaked the Win32 FIONBIO ioctls for non-blocking filehandles in
+POE::Kernel and POE::Wheel::SocketFactory.
+
+Added t/00_coverage.t to the MANIFEST.  Whoops!
+
+Added a crucial newline between 1; and __END__ in POE::Session.
+
+Jonathan Feinber reported that ActiveState 5.6.0, build 613 doesn't
+implement F_GETFL and F_SETFL.  These constants aren't used for the
+MSWin32 code, so now POE::Kernel and POE::Wheel::SocketFactory define
+dummies for them.
+
+
+0.1008 2000.06.14
+-----------------
+
+Tidied Session garbage collection tests.
+
+Stopped setting $SIG{CH?LD} handlers when using Event.
+
+The wheels tests were failing on DOSISH systems because the 1-byte
+blocksize generated fake newlines.  CR and LF coming in separately and
+being interpreted as two newlines.  Increased the BlockSize so this
+won't happen.
+
+Prevented the TKDESTROY signal from being fired if POE finishes before
+Tk does.  There's nothing to receive the signal!
+
+Enhanced the "# line" directives that POE::Preprocessor injects into
+macros.  Now they're added when macros are used; this enables them to
+include not only the macro name and line number but also the source
+file and line number.  For example: "Use of uninitialized value in
+concatenation (.) at macro ssid (line 1) invoked from POE/Kernel.pm
+line 1007."  This doesn't nest, though.
+
+Added a postback test to t/06_tk.t, discovering in the process that
+the postback's blessed coderefs were part of POE::Session::postback's
+code tree and thus not being DESTROYed when Tk::After was done with
+them.  I thought this might be a Perl bug and posted to perl5-porters
+about it.  Wolfgang Laun and Nick Ing-Simmons sent back enlightening
+replies, and the game once again is afoot!
+
+
+0.1007 2000.06.07
+-----------------
+
+Version 0.1006 was put on the web site, but ignatz found a bug in
+SocketFactory that prevented t/09_wheels_unix.t from passing on
+Linux machines.  a-mused confirmed that the problem appears on Linux
+but not Solaris.  My own FreeBSD system was not affected.  The bug
+relates to calling getpeername on UNIX domain sockets.  The resulting
+unpack_sockaddr_un call would fail when getpeername returned an
+undefined (not undef) value.  The failing code is now wrapped in
+eval, and it will gracefully recover from this sort of error.
+
+Many thanks to ignatz and a-mused for quick testing, and to Fletch
+for verifying that 0.1007 works on RedHat 6.2 x86!
+
+
+0.1006 2000.06.07 (!!!)
+-----------------------
+
+This version was placed on the web site, but a-mused and ignatz found
+bugs SocketFactory right away.  As a result, I held off announcing it
+to the mailing list until a fix could be included.
+
+Added t/12_signals_ev.t to test Event's SIGCHLD handler.  It's pretty
+much the same as t/11_signals_poe.t, but using Event or skipping itself
+if Event is not available.
+
+Increased the time that t/11_signals_poe.t waits to reap children.  On
+memory- and cpu-challenged systems, swap times could delay process
+exits, causing false failures when the test program timed out.
+
+Fimmtiu discovered why it's bad to post _start yourself, and I decided
+it would be best for everyone to document it.
+
+Philip Gwyn patched POE::Kernel to unwind SIGCHLD reaping loops.  This
+greatly reduces the amount of work done in POE's stock $SIG{CHLD}
+handlers which in turn reduces the probability that SIGCHLD will
+segfault Perl.  Note, however, that the chance of this occurring will
+remain nonzero as long as Perl is not signal safe.  (Also, the patch
+wouldn't apply and I sort of redid the code as I spliced it into the
+the Kernel.  I'll know when Philip tests it whether I've broken his
+algorithm.)
+
+(!!!) $kernel->fork() was broken during the SIGCHLD revision.
+
+Tweaked postbacks.  Older Perl versions were not doing the right
+things with \@_ in POE::Session's postback() method.  Replaced it
+with [ @_ ] instead.
+
+Expanded t/02_alarms.t to test the big-queue binary search and insert
+code.  Previous tests didn't expand the alarm queue past the maximum
+threshhold for linear insertion.
+
+Macro-ized some of the redundant bits between the Tk and Event code.
+
+Normalized the names of some functions; added leading underscores here
+and there.
+
+Added test coverage information to the README.
+
+Added t/09_wheels_unix.t to test Wheel::ReadWrite and
+Wheel::SocketFactory against UNIX domain sockets.  This will fail
+terribly wherever UNIX sockets aren't supported; I should skip it on
+platforms where people complain about its failure.
+
+Added t/10_wheels_tcp.t to test Wheel::ReadWrite and
+Wheel::SocketFactory against INET/TCP sockets.
+
+Added t/11_signals_poe.t to test POE's stock signal handlers.  These
+are Perl's own signal handlers, and all the caveats apply.
+
+Added Exporter; TestSetup exports its functions now.  TestSetup use
+syntax changed, so I added &test_setup to set things up instead of
+&import.
+
+Added &ok, &not_ok and &results to buffer and report on the results of
+tests that occur in indeterminate orders.
+
+Added TestSetup functions stderr_pause() and stderr_resume() to turn
+STDERR off and back on when testing code known to show diagsonstics.
+
+Added ID resolution tests to t/03_aliases.t.
+
+Added the kernel's ID to its ID-to-session lookup table, so that
+$kernel->ID_id_to_session($kernel->ID) would return $kernel.  It's
+silly but complete now.
+
+Added t/08_errors.t to test error conditions, something that the other
+tests never covered.
+
+Added lib/Devel/Trace.pm.  This is a custom debugging module (used
+with -d:Trace) that collects information about runnable Perl
+statements and the ones actually called.  It's only used for reporting
+on test coverage during development and isn't installed.
+
+Added lib/coverage.perl.  This program runs t/*.t with -d:Trace to
+collect coverage statistics; then it gathers up the results and writes
+a report.
+
+Added t/00_coverage.t to load every "released" module so that the test
+coverage report can learn the set of all testable modules.
+
+Philip Gwyn pointed out that waitpid() returns 0 on some platforms to
+indicate outstanding child processes that haven't yet exited.  I was
+treating 0 as a valid PID.  The waitpid() return value checks are
+fixed now.
+
+Fletch found all sorts of badness in POE::Kernel's fork() method and
+related polling loop.  It boiled down to bad assumptions about
+$SIG{CHLD} = 'IGNORE' and a stupid use of keys() without scalar().
+
+(!!!) Revised the Changes for 0.0906, dated 2000.02.20 to note an
+interface change in Wheel::ReadWrite's put() method.  This Changes
+change isn't a compatibility issue, but the original change is.
+
+POE::Preprocessor adds "# line" directives so that macro expansions
+don't break line numbers in warnings and errors.  Unfortunately, this
+badly breaks -d modules, such as the debugger and various profilers.
+So now POE::Preprocessor omits "# line" directives when -d is used.
+This'll let you see everything being run, at the expense of correct
+line numbers.
+
+Added a rudimentary signals test to t/01_sessions.t, which uses POE's
+own event loop.
+
+Added a rudimentary signals test to t/07_event.t, which uses Event's
+event loop.
+
+Will not add a signals test to t/06_tk.t.  Tk does not have its own
+signal watchers, so this would only test POE's.
+
+Made minor revisions to the tiny and relatively new POE::Preprocessor
+documentation.
+
+
+0.1005 2000.05.23
+-----------------
+
+I forgot to document POE::Session's constructors.  Oops!  Now thery
+are documented.
+
+Rewrote the POE::Wheel POD.
+
+Found the Perl symbols that weren't being exported for OS/2 and AIX
+(and maybe Windows).  Fixed makedef.pl to export them, and now Event
+builds and tests ok.  Sweet!  Added initial Event support to
+POE::Kernel and removed the Event caveats throughout POE's
+documentation.
+
+Added t/06_tk.t to test Tk support.  This tests file, idle and after
+events.  It does nothing with signals, which Tk doesn't handle, and
+nothing heavy duty.  Tk support is functional but still experimental.
+
+a-mused pointed out that samples/tk.perl wasn't stopping its alarm
+counters when it ought to.  This turned out to be a problem with
+POE::Kernel's delay() method not clearing timed events.  Fixed!
+
+Turned the idle kernel check into a macro, and used it not only from
+POE::Kernel's run() method but also from the Tk and Event callbacks.
+Before this, IDLE would never be posted when using Tk or Event.
+
+Enhanced TestSetup (used privately by the t/*.t tests) to skip entire
+test files when given 0 for the number of tests.
+
+The Tk version of POE::Kernel's run() method would never exit, even
+when there were no more sessions.  This has been fixed, after much
+guts wrangling.
+
+Added t/07_event.t to test Event support.  While this is a proper test
+of Event's timer, io and idle events, it doesn't cover signals or any
+heavy duty tasks.  Thus the Event support is functional but still
+experimental.
+
+
+0.1004 2000.05.21
+-----------------
+
+Rewrote the POE, POE::Kernel and POE::Session PODs.  Documented Tk
+support.  Documented Event support, but it's not in yet.
+
+t/04_select.t assumed that two-argument syswrite was legal, but it
+isn't back in 5.005_02.  Added a length() call to make it legal on
+older perls.  Thanks again, a-mused!
+
+alarm_add() would enqueue an alarm for an undefined state.  Fixed it
+to ignore such requests.
+
+The call() method did not reliably set $! to zero on success.  Now it
+does.
+
+(!!!) Added parameter checking and return values to the timed event
+functions: alarm, alarm_add, delay, and delay_add.
+
+(!!!) alarm() and alarm_add() no longer clip past times to time(2).
+Instead, events posted for the past will be entered into the
+appropriate places in POE's time-ordered alarm/delay queue.  The
+obvious results will occur.
+
+(!!!) Changed POE::Kernel::alias_* to return 0 on success or an error
+code on failure.  They no longer touch $!.
+
+(!!!) Changed POE::Kernel::state to return 0 on success or an error
+code on failure.  It no longer touches $!.
+
+(!!!) Changed POE::Kernel::refcount_(in|de)crement to return the new
+reference count on success or undef on failure.
+
+
+0.1003 2000.05.12
+-----------------
+
+Addi found a list of Win32 error codes, including the elusive
+EINPROGRESS.  I changed the dummy value to the correct one in
+POE::Kernel and POE::Wheel::SocketFactory.  Now SocketFactory works on
+Win32, in perl 5.005_03.  Mileage may vary as MSWin32 perl evolves.
+
+I finally found a system where Perl/Tk builds.  This isn't a comment
+on Perl/Tk (which is huge to build; 77 megs!) as much as it is on
+the state of its OS/2 port.  The samples/tk.perl example program is
+working!
+
+Documentation is still lagging behind development at the moment, but
+I should have more time to focus on it now that the Tk support is in
+open beta on the 'web site.
+
+Since 0.100201 was a private beta for Win32 support testing, and maybe
+two people at most have seen it, you should give its section of the
+Changes a look.
+
+
+0.100201 2000.05.10
+-------------------
+
+This is a private release, 0.10_02_01, for Addi.  He's been having
+trouble with POE and POE::Component::IRC on Win32.
+
+Found a bug in Wheel::ReadWrite that prevented separate InputHandle
+and OutputHandle from working correctly.
+
+Finished initial Tk support.  Posted/yielded events, alarms/delays,
+and selects are now handled through the Tk event loop, if Tk is used
+before POE.
+
+Philip Gwyn has noticed POE leaving zombie processes behind.  This was
+traced back to naive signal handlers for $SIG{CH?LD} and the
+$kernel->fork() "safe" polling code.  Both handlers have been changed
+to use waitpid() and loop until all children have been reaped.
+
+Deleted $POE::Kernel::{signal} before defining &POE::Kernel::signal.
+As of 5.6.0, perl warns of a redefined function, even though it's
+supposed to be called as a POE::Kernel method.  Grrr.
+
+Addi pointed out that the PREREQ_PM line for Filter was incorrect.  It
+should be requiring Filter::Util::Call 1.04.  Fixed!
+
+Addi also noted that the Perl debugger sets $SIG{BUS} under MSWin32.
+MSWin32 doesn't support a $SIG{BUS}, so POE dies when it grovels
+%SIG's keys to register handlers.  Bleah!  POE::Kernel now avoids
+$SIG{BUS} on MSWin32 systems.
+
+Fixed a bug that Addi found in Wheel::SocketFactory.  SocketFactory
+needed code to manage temporary states.  These states are created from
+coderefs which are passed to the SocketFactory constructor instead of
+state names.  Anyway, to do this, SocketFactory instances needed to
+register and remove success and failure states from sessions that own
+them.  Unfortunately, they deregistered states even when they were
+passed by name, removing the owning session's states without its prior
+consent or knowledge!  Even more troublesome, if the event is a result
+of constructor failure, then the SocketFactory instance dies (and
+deregisters the FailureState) before the failure event can be
+delivered.  The upshot is: Bind errors in samples/httpd.perl never
+displayed an error message.
+
+Randal Schwartz wanted examples of programs that used job queues, so I
+banged out samples/queue.perl.  Cleaning it up, documenting it, and
+including it in the POE distribution took longer than writing it. :/
+
+Updated the README to point to a new CPAN Testers location.
+
+Added samples/tk.perl, in case anyone wants to try the Tk code in
+POE::Kernel and POE::Session.
+
+
+0.1002 2000.04.20
+-----------------
+
+Added t/05_macros.t to test POE::Preprocessor.
+
+Split the event queue into a FIFO for plain state transitions and a
+time-ordered priority queue for alarms.  This puts POE one step closer
+to coexistence with Tk and Event.
+
+Tony Cook found and patched brokenness while defining mapped package
+states with POE::Session->create.
+
+Optimized POE::Kernel::run to reclaim the speed that was lost during
+the queue split.  Time::HiRes' presence is required to enable a big
+part of the reclaimed speed, but POE will do its best without it.  See
+the FIFO_DISPATCH_TIME constant's comments for notes on tweaking
+0.1002's performance higher than 0.1001's. :)
+
+
+0.1001 2000.04.17 (!!!)
+-----------------------
+
+MJD pointed out (heh) that references have string/number magic like
+$!.  That is, they return just a number in numeric context, and in
+fact they're are stored as numbers internally, so string context
+wastes time making them look pretty in the first place.
+
+Added POE::Preprocessor, a source filter for macro preprocessing,
+constants, and enumerations.
+
+Overhauled POE::Kernel's source.  Commented just about everything.
+Broke apart some monolithic subroutines.  Replaced redundant code and
+smaller internal subs with inline POE::Preprocessor macros.
+
+Overhauled POE::Kernel's manpage SYNOPSIS.  Made the formatting a
+little neater.  Made the parameter names a little clearer.  Explained
+what's going on in greater detail.
+
+(!!!) Removed the silly and long-depreciated $kernel->session_create
+method.
+
+(!!!) Split the debugging constants between assertions which die
+noisily and traces that show ongoing activity.  Renamed them to
+ASSERT_* and TRACE_* to reflect their function.
+
+Added ASSERT_DEFAULT and TRACE_DEFAULT to change the defaults for
+ASSERT_* and TRACE_*.  These let programs turn everything on with one
+or two statements.
+
+Set ASSERT_DEFAULT to true in t/*.t so the tests are more thorough.
+
+Documented the ASSERT_* and TRACE_* constants.
+
+Added t/03_aliases.t to test session aliases.
+
+Added t/04_selects.t to test filehandle watchers.
+
+Overhauled POE::Session's source.  Commented just about everything,
+including the strange but true POE::Session->new() constructor.
+Replaced redundant code and smaller internal subs with inline
+POE::Preprocessor macros.
+
+Overhauled POE::Session's manpage SYNOPSIS.  Made the formatting a
+little neater.  Made the parameters a little clearer.  Explained
+what's going on in greater detail.
+
+Optimized away the recursion for redirecting unknown states to
+_default in POE::Session::_invoke_state.  Programs that rely on
+_default should run a bit faster without the extra function call.
+
+Removed poing.perl from the samples directory.  It had evolved into a
+separate program in its own right.  It's now available from the
+author's page at <http://www.newts.org/~troc/poe-grams.html>.
+
+Documented $kernel->fork() as experimental.
+
+Added experimental postback features to POE::Session.
+
+Un-depreciated $kernel->ID_session_to_id.  While
+$kernel->alias_resolve does the same thing, ID_session_to_id can be
+faster when code expects to be working with session IDs.
 
 
 0.10 2000.03.23 (!!!)
@@ -33,7 +563,7 @@ aliased to numbers.
 
 (!!!) Depreciated ID_session_to_id, since alias_resolve does the same
 thing.  No warnings have been set yet, to give developers time to
-react to the change.
+react to the change.  [This depreciation is rescinded in 0.1001.]
 
 Tweaked the Win32 support to eliminate some redefined sub warnings.
 
@@ -91,12 +621,12 @@ removed.
 Updated documentation for POE::Kernel::alarm()
 
 
-0.0906 2000.02.20
------------------
+0.0906 2000.02.20 (!!!)
+-----------------------
 
-Revised Wheel::ReadWrite->put() to return true if the high watermark
-is reached; false if it hasn't been.  ReadWrite->put() may return true
-without a corresponding high or low watermark event.
+(!!!) Revised Wheel::ReadWrite->put() to return true if the high
+watermark is reached; false if it hasn't been.  ReadWrite->put() may
+return true without a corresponding high or low watermark event.
 
 Changed samples/watermarks.perl to use ReadWrite->put()'s return
 value, as well as the high and low mark states.  Commented the program

@@ -1,4 +1,4 @@
-# $Id: SysRW.pm,v 1.11 2000/02/18 18:45:30 rcaputo Exp $
+# $Id: SysRW.pm,v 1.12 2000/06/17 20:05:46 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
 # This program is free software; you can redistribute it and/or modify
@@ -71,7 +71,7 @@ sub get {
   my ($self, $handle) = @_;
 
   my $result = sysread($handle, my $buffer = '', $self->[BLOCK_SIZE]);
-  if ($result || ($! == EAGAIN)) {
+  if (defined $result and ($result || ($! == EAGAIN))) {
     $! = 0;
     [ $buffer ];
   }

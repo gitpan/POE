@@ -1,24 +1,25 @@
 #!/usr/bin/perl
-# $Id: Makefile.PL,v 1.10 1999/12/12 00:15:41 rcaputo Exp $
+# $Id: Makefile.PL,v 1.14 2000/06/03 05:59:14 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
 
-# See lib/ExtUtils/MakeMaker.pm for details of how to influence
-# the contents of the Makefile that is written.
+# See lib/ExtUtils/MakeMaker.pm for details of how to influence the
+# contents of the Makefile that is written.
 
 WriteMakefile
   ( NAME         => 'POE',
-    AUTHOR       => 'Rocco Caputo <troc@netrus.net>',
+    AUTHOR       => 'Rocco Caputo <troc+poe@netrus.net>',
     ABSTRACT     => 'Event driven state machines and I/O abstractions.',
     VERSION_FROM => 'POE.pm',
-    dist         => { 'COMPRESS' => 'gzip -9',
+    dist         => { 'COMPRESS' => 'gzip -9f',
                       'SUFFIX'   => 'gz',
                     },
-    PREREQ_PM    => { Carp           => 0,
-                      Exporter       => 0,
-                      IO             => 0,
-                      POSIX          => 0,
-                      Socket         => 0,
+    PREREQ_PM    => { Carp               => 0,
+                      Exporter           => 0,
+                      IO                 => 0,
+                      POSIX              => 0,
+                      Socket             => 0,
+                      Filter::Util::Call => 1.04,
                     },
   );
 

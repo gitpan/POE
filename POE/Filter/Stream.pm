@@ -1,4 +1,4 @@
-# $Id: Stream.pm,v 1.5 1999/06/15 15:13:00 rcaputo Exp $
+# $Id: Stream.pm,v 1.6 2000/06/19 04:08:58 rcaputo Exp $
 
 package POE::Filter::Stream;
 
@@ -25,7 +25,7 @@ sub get {
 
 sub put {
   my ($self, $chunks) = @_;
-  $chunks;
+  [ @$chunks ];
 }
 
 #------------------------------------------------------------------------------

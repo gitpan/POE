@@ -1,4 +1,4 @@
-# $Id: SocketFactory.pm,v 1.30 2000/03/10 05:32:07 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.36 2000/07/03 01:32:55 rcaputo Exp $
 
 package POE::Wheel::SocketFactory;
 
@@ -14,10 +14,16 @@ sub CRIMSON_SCOPE_HACK ($) { 0 }
 sub DEBUG () { 0 }
 
 # Provide a dummy EINPROGRESS for systems that don't have one.  Give
-# it an improbable errno value.
+# it a documented value.
 BEGIN {
+  # http://support.microsoft.com/support/kb/articles/Q150/5/37.asp
+  # defines EINPROGRESS as 10035.  We provide it here because some
+  # Win32 users report POSIX::EINPROGRESS is not vendor-supported.
   if ($^O eq 'MSWin32') {
-    eval '*EINPROGRESS = sub { 3.141 };'
+    eval '*EINPROGRESS = sub { 10036 };';
+    eval '*EWOULDBLOCK = sub { 10035 };';
+    eval '*F_GETFL     = sub {     0 };';
+    eval '*F_SETFL     = sub {     0 };';
   }
 }
 
@@ -36,15 +42,15 @@ sub SVROP_NOTHING () { 'nothing' }
 
 my %supported_protocol =
   ( DOM_UNIX, { none => SVROP_LISTENS },
-    DOM_INET, { tcp => SVROP_LISTENS,
-                udp => SVROP_NOTHING,
+    DOM_INET, { tcp  => SVROP_LISTENS,
+                udp  => SVROP_NOTHING,
               },
   );
 
 my %default_socket_type =
   ( DOM_UNIX, { none => SOCK_STREAM },
-    DOM_INET, { tcp => SOCK_STREAM,
-                udp => SOCK_DGRAM,
+    DOM_INET, { tcp  => SOCK_STREAM,
+                udp  => SOCK_DGRAM,
               },
   );
 
@@ -129,39 +135,61 @@ sub _define_connect_state {
   $poe_kernel->state
     ( $self->{state_connect} = $self . ' -> select connect',
       sub {
-                                        # prevents SEGV
+        # This prevents SEGV in older versions of Perl.
         0 && CRIMSON_SCOPE_HACK('<');
-                                        # subroutine starts here
+
+        # Grab some values and stop watching the socket.
         my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
         $k->select($handle);
-                                        # acquire and dispatch connect error
-        $! = 0;
-        my $error = unpack('i', getsockopt($handle, SOL_SOCKET, SO_ERROR));
-        $error && ($! = $error);
 
-        # There is an error.
+        # Throw a failure if the connection failed.
+        $! = unpack('i', getsockopt($handle, SOL_SOCKET, SO_ERROR));
         if ($!) {
           (defined $$failure_state) and
             $k->call($me, $$failure_state, 'connect', ($!+0), $!);
+          return;
         }
 
-        # No error; this is a successful connection.
+        # Get the remote address, or throw an error if that fails.
+        my $peer = getpeername($handle);
+        if ($!) {
+          (defined $$failure_state) and
+            $k->call($me, $$failure_state, 'getpeername', ($!+0), $!);
+          return;
+        }
+
+        # Parse the remote address according to the socket's domain.
+        my ($peer_addr, $peer_port);
+
+        # UNIX sockets have some trouble with peer addresses.
+        if ($domain eq DOM_UNIX) {
+          if (defined $peer) {
+            eval {
+              $peer_addr = unpack_sockaddr_un($peer);
+            };
+            undef $peer_addr if length $@;
+          }
+        }
+
+        # INET socket stacks tend not to.
+        elsif ($domain eq DOM_INET) {
+          if (defined $peer) {
+            eval {
+              ($peer_port, $peer_addr) = unpack_sockaddr_in($peer);
+            };
+            if (length $@) {
+              $peer_port = $peer_addr = undef;
+            }
+          }
+        }
+
+        # What are we doing here?
         else {
-          my $peer = getpeername($handle);
-          my ($peer_addr, $peer_port);
-
-          if ($domain eq DOM_UNIX) {
-            $peer_addr = unpack_sockaddr_un($peer);
-            $peer_port = undef;
-          }
-          elsif ($domain eq DOM_INET) {
-            ($peer_port, $peer_addr) = unpack_sockaddr_in($peer);
-          }
-          else {
-            die "sanity failure: socket domain == $domain";
-          }
-          $k->call( $me, $$success_state, $handle, $peer_addr, $peer_port );
+          die "sanity failure: socket domain == $domain";
         }
+
+        # Tell the session it went okay.
+        $k->call( $me, $$success_state, $handle, $peer_addr, $peer_port );
       }
     );
 
@@ -184,12 +212,14 @@ sub event {
             ( $self->{state_success} = $self . ' -> success',
               $event
             );
+          $self->{mine_success} = 'yes';
         }
         else {
           if (ref($event) ne '') {
             carp "Strange reference used as SuccessState event";
           }
           $self->{state_success} = $event;
+          delete $self->{mine_success};
         }
       }
       else {
@@ -203,12 +233,14 @@ sub event {
             ( $self->{state_failure} = $self . ' -> failure',
               $event
             );
+          $self->{mine_failure} = 'yes';
         }
         else {
           if (ref($event) ne '') {
             carp "Strange reference used as FailureState event (ignored)"
           }
           $self->{state_failure} = $event;
+          delete $self->{mine_failure};
         }
       }
       else {
@@ -363,8 +395,12 @@ sub new {
   # Do it the Win32 way.  XXX This is incomplete.
   if ($^O eq 'MSWin32') {
     my $set_it = "1";
-                                        # 126 is FIONBIO
-    ioctl($socket_handle, 126 | (ord('f')<<8) | (4<<16) | 0x80000000, $set_it)
+
+    # 126 is FIONBIO (some docs say 0x7F << 16)
+    ioctl( $socket_handle,
+           0x80000000 | (4<<16) | (ord('f')<<8) | 126,
+           $set_it
+         )
       or do {
         $poe_kernel->yield($state_failure, 'ioctl', $!+0, $!);
         return undef;
@@ -562,7 +598,7 @@ sub new {
       # XXX EINPROGRESS is not included in ActiveState's POSIX.pm, and
       # I don't know what AS's Perl uses instead.  What to do here?
 
-      if ($! and ($! != EINPROGRESS)) {
+      if ($! and ($! != EINPROGRESS) and ($! != EWOULDBLOCK)) {
         $poe_kernel->yield($state_failure, 'connect', $!+0, $!);
         return undef;
       }
@@ -647,12 +683,12 @@ sub DESTROY {
     delete $self->{state_connect};
   }
 
-  if (exists $self->{state_success}) {
+  if (exists $self->{mine_success}) {
     $poe_kernel->state($self->{state_success});
     delete $self->{state_success};
   }
 
-  if (exists $self->{state_failure}) {
+  if (exists $self->{mine_failure}) {
     $poe_kernel->state($self->{state_failure});
     delete $self->{state_failure};
   }
@@ -888,7 +924,9 @@ For INET sockets, ARG1 and ARG2 hold the socket's remote address and
 port, respectively.
 
 For Unix client sockets, ARG1 contains the server address and ARG2 is
-undefined.
+undefined.  Some systems have trouble getting the address of a socket's
+remote end, so ARG1 may be undefined if there was trouble determining
+it.
 
 According to _Perl Cookbook_, the remote address for accepted Unix
 domain sockets is undefined.  So ARG0 and ARG1 are, too.

@@ -1,4 +1,4 @@
-# $Id: MANIFEST,v 1.27 2000/03/23 13:04:55 rcaputo Exp $
+# $Id: MANIFEST,v 1.41 2000/06/21 19:49:40 rcaputo Exp $
 Changes
 MANIFEST
 Makefile.PL
@@ -12,12 +12,14 @@ POE/Curator.pm
 POE/Driver.pm
 POE/Driver/SysRW.pm
 POE/Filter.pm
+POE/Filter/Block.pm
 POE/Filter/HTTPD.pm
 POE/Filter/Line.pm
 POE/Filter/Reference.pm
 POE/Filter/Stream.pm
 POE/Kernel.pm
 POE/Object.pm
+POE/Preprocessor.pm
 POE/Repository/Array.pm
 POE/Runtime.pm
 POE/Session.pm
@@ -27,6 +29,7 @@ POE/Wheel/ListenAccept.pm
 POE/Wheel/ReadWrite.pm
 POE/Wheel/SocketFactory.pm
 README
+lib/MyOtherFreezer.pm
 lib/TestSetup.pm
 samples/create.perl
 samples/fakelogin.perl
@@ -39,9 +42,9 @@ samples/objmaps.perl
 samples/objsessions.perl
 samples/olayer.perl
 samples/packagesessions.perl
-samples/poing.perl
 samples/preforkedserver.perl
 samples/proxy.perl
+samples/queue.perl
 samples/ref-type.perl
 samples/refsender.perl
 samples/refserver.perl
@@ -50,10 +53,27 @@ samples/sessions.perl
 samples/signals.perl
 samples/socketfactory.perl
 samples/thrash.perl
+samples/tk.perl
 samples/tutorial-chat.perl
 samples/udp.perl
 samples/watermarks.perl
 samples/wheels.perl
 samples/wheels2.perl
+t/00_coverage.t
 t/01_sessions.t
 t/02_alarms.t
+t/03_aliases.t
+t/04_selects.t
+t/05_macros.t
+t/06_tk.t
+t/07_event.t
+t/08_errors.t
+t/09_wheels_unix.t
+t/10_wheels_tcp.t
+t/11_signals_poe.t
+t/12_signals_ev.t
+t/13_wheels_udp.t
+t/14_wheels_ft.t
+t/15_filter_block.t
+t/16_filter_stream.t
+t/17_filter_ref.t

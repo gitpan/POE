@@ -1,4 +1,4 @@
-# $Id: FollowTail.pm,v 1.11 2000/03/10 05:32:06 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.15 2000/06/21 17:29:06 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
@@ -33,6 +33,13 @@ sub new {
                         : 1
                       );
 
+  my $seek_back = ( (exists $params{'SeekBack'})
+                    ? $params{'SeekBack'}
+                    : 4096
+                  );
+  $seek_back = 0 if $seek_back < 0;
+
+
   my $self = bless { handle      => $handle,
                      driver      => $driver,
                      filter      => $filter,
@@ -43,16 +50,25 @@ sub new {
 
   $self->_define_states();
 
+  # Nudge the wheel into action before performing initial operations
+  # on it.  Part of the Kernel's select() logic is making things
+  # non-blocking, and the following code will assume that.
+
+  $poe_kernel->select($handle, $self->{state_read});
+
   # Try to position the file pointer before the end of the file.  This
   # is so we can "tail -f" an existing file.
 
-  eval { seek($handle, -4096, SEEK_END); };
-                                        # discard partial input chunks
-  while (defined(my $raw_input = $driver->get($handle))) {
-    $filter->get($raw_input);
+  eval { seek($handle, -$seek_back, SEEK_END); };
+
+  # Discard partial input chunks unless a SeekBack was specified.
+  unless (exists $params{SeekBack}) {
+    while (defined(my $raw_input = $driver->get($handle))) {
+      # Skip out if there's no more input.
+      last unless @$raw_input;
+      $filter->get($raw_input);
+    }
   }
-                                        # nudge the wheel into action
-  $poe_kernel->select($handle, $self->{state_read});
 
   $self;
 }
@@ -87,9 +103,9 @@ sub _define_states {
                                         # subroutine starts here
         my ($k, $ses, $hdl) = @_[KERNEL, SESSION, ARG0];
 
-        while (defined(my $raw_input = $driver->get($hdl))) {
+        if (defined(my $raw_input = $driver->get($hdl))) {
           foreach my $cooked_input (@{$filter->get($raw_input)}) {
-            $k->call($ses, $$event_input, $cooked_input)
+            $k->call($ses, $$event_input, $cooked_input);
           }
         }
 
@@ -140,7 +156,7 @@ sub event {
       $self->{event_error} = $event;
     }
     else {
-      carp "ignoring unknown ReadWrite parameter '$name'";
+      carp "ignoring unknown FollowTail parameter '$name'";
     }
   }
 
@@ -216,6 +232,16 @@ PollInterval
 PollInterval is the number of seconds to wait between file checks.
 Once FollowTail re-reaches the end of the file, it waits this long
 before checking again.
+
+=item *
+
+SeekBack
+
+SeekBack is the number of bytes to seek back from the current end of
+file before reading.  By default, this is 4096, and data read up to
+the end of file is not returned.  (This is used to frame lines before
+returning actual data.)  If SeekBack is specified, then existing data
+up until EOF is returned, and then the wheel begins following tail.
 
 =item *
 

@@ -1,15 +1,243 @@
-# $Id: Kernel.pm,v 1.61 2000/03/17 19:00:47 rcaputo Exp $
+# $Id: Kernel.pm,v 1.90 2000/07/03 01:32:53 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
-use POSIX qw(errno_h fcntl_h sys_wait_h uname);
+use POSIX qw(errno_h fcntl_h sys_wait_h uname signal_h);
 use Carp;
-use vars qw( $poe_kernel );
+use vars qw( $poe_kernel $poe_tk_main_window );
 
 use Exporter;
 @POE::Kernel::ISA = qw(Exporter);
-@POE::Kernel::EXPORT = qw( $poe_kernel );
+@POE::Kernel::EXPORT = qw( $poe_kernel $poe_tk_main_window );
+
+#------------------------------------------------------------------------------
+# Macro definitions.
+
+use POE::Preprocessor;
+
+macro sig_remove (<session>,<signal>) {
+  delete $self->[KR_SESSIONS]->{<session>}->[SS_SIGNALS]->{<signal>};
+  delete $self->[KR_SIGNALS]->{<signal>}->{<session>};
+}
+
+macro sid (<session>) {
+  "session " . <session>->ID
+}
+
+macro ssid {
+  "session " . $session->ID
+}
+
+macro ses_leak_hash (<field>) {
+  if (my $leaked = keys(%{$sessions->{$session}->[<field>]})) {
+    warn {% ssid %}, " leaked $leaked <field>\a\n";
+    $errors++;
+  }
+}
+
+macro kernel_leak_hash (<field>) {
+  if (my $leaked = keys %{$self->[<field>]}) {
+    warn "*** KERNEL LEAK: <field> = $leaked\a\n";
+  }
+}
+
+macro kernel_leak_vec (<field>) {
+  { my $bits = unpack('b*', $self->[KR_VECTORS]->[<field>]);
+    if (index($bits, '1') >= 0) {
+      warn "*** KERNEL LEAK: KR_VECTORS/<field> = $bits\a\n";
+    }
+  }
+}
+
+macro kernel_leak_array (<field>) {
+  if (my $leaked = @{$self->[<field>]}) {
+    warn "*** KERNEL LEAK: <field> = $leaked\a\n";
+  }
+}
+
+macro assert_session_refcount (<session>,<count>) {
+  ASSERT_REFCOUNT and do {
+    die {% sid <session> %}, " reference count <count> went below zero\n"
+      if $self->[KR_SESSIONS]->{<session>}->[<count>] < 0;
+  };
+}
+
+
+macro ses_refcount_dec (<session>) {
+  $self->[KR_SESSIONS]->{<session>}->[SS_REFCOUNT]--;
+  {% assert_session_refcount <session>, SS_REFCOUNT %}
+}
+
+macro ses_refcount_dec2 (<session>,<count>) {
+  $self->[KR_SESSIONS]->{<session>}->[<count>]--;
+  {% assert_session_refcount <session>, <count> %}
+  {% ses_refcount_dec <session> %}
+}
+
+macro ses_refcount_inc (<session>) {
+  $self->[KR_SESSIONS]->{<session>}->[SS_REFCOUNT]++;
+}
+
+macro ses_refcount_inc2 (<session>,<count>) {
+  $self->[KR_SESSIONS]->{<session>}->[<count>]++;
+  {% ses_refcount_inc <session> %}
+}
+
+macro remove_extra_reference (<session>,<tag>) {
+  delete $self->[KR_SESSIONS]->{<session>}->[SS_EXTRA_REFS]->{<tag>};
+  {% ses_refcount_dec <session> %}
+}
+
+# There is an string equality test in alias_resolve that should not be
+# made into a numeric equality test.  <name> is often a string.
+
+macro alias_resolve (<name>) {
+  # Resolve against sessions.
+  ( (exists $self->[KR_SESSIONS]->{<name>})
+    ? $self->[KR_SESSIONS]->{<name>}->[SS_SESSION]
+    # Resolve against IDs.
+    : ( (exists $self->[KR_SESSION_IDS]->{<name>})
+        ? $self->[KR_SESSION_IDS]->{<name>}
+        # Resolve against aliases.
+        : ( (exists $self->[KR_ALIASES]->{<name>})
+            ? $self->[KR_ALIASES]->{<name>}
+            # Resolve against self.
+            : ( (<name> eq $self)
+                ? $self
+                # Game over!
+                : undef
+              )
+          )
+      )
+  )
+}
+
+macro collect_garbage (<session>) {
+  if (<session> != $self) {
+    # The next line is necessary for some strange reason.  This feels
+    # like a kludge, but I'm currently not smart enough to figure out
+    # what it's working around.
+    if (exists $self->[KR_SESSIONS]->{<session>}) {
+      TRACE_GARBAGE and $self->trace_gc_refcount(<session>);
+      ASSERT_GARBAGE and $self->assert_gc_refcount(<session>);
+
+      if ( (exists $self->[KR_SESSIONS]->{<session>})
+           and (!$self->[KR_SESSIONS]->{<session>}->[SS_REFCOUNT])
+         ) {
+        $self->session_free(<session>);
+      }
+    }
+  }
+}
+
+macro validate_handle (<handle>,<vector>) {
+  # Don't bother if the kernel isn't tracking the handle.
+  return 0 unless exists $self->[KR_HANDLES]->{<handle>};
+
+  # Don't bother if the kernel isn't tracking the handle's write status.
+  return 0 unless $self->[KR_HANDLES]->{<handle>}->[HND_VECCOUNT]->[<vector>];
+}
+
+macro remove_alias (<session>,<alias>) {
+  delete $self->[KR_ALIASES]->{<alias>};
+  delete $self->[KR_SESSIONS]->{<session>}->[SS_ALIASES]->{<alias>};
+  {% ses_refcount_dec <session> %}
+}
+
+macro state_to_enqueue {
+  [ @_[1..8], ++$queue_seqnum ]
+}
+
+macro define_trace (<const>) {
+  defined &TRACE_<const> or eval 'sub TRACE_<const> () { TRACE_DEFAULT }';
+}
+
+macro define_assert (<const>) {
+  defined &ASSERT_<const> or eval 'sub ASSERT_<const> () { ASSERT_DEFAULT }';
+}
+
+macro test_resolve (<name>,<resolved>) {
+  unless (defined <resolved>) {
+    ASSERT_SESSIONS and do {
+      confess "Cannot resolve <name> into a session reference\n";
+    };
+    $! = ESRCH;
+    return undef;
+  }
+}
+
+macro test_for_idle_poe_kernel {
+  TRACE_REFCOUNT and do {
+    warn( ",----- Kernel Activity -----\n",
+           "| States : ", scalar(@{$self->[KR_STATES]}), "\n",
+           "| Alarms : ", scalar(@{$self->[KR_ALARMS]}), "\n",
+           "| Handles: ", scalar(keys(%{$self->[KR_HANDLES]})), "\n",
+           "| Extra  : ", $self->[KR_EXTRA_REFS], "\n",
+           "`---------------------------\n"
+         );
+  };
+
+  unless ( @{$self->[KR_STATES]} or
+           @{$self->[KR_ALARMS]} or
+           keys(%{$self->[KR_HANDLES]}) or
+           $self->[KR_EXTRA_REFS]
+         ) {
+    $self->_enqueue_state( $self, $self,
+                           EN_SIGNAL, ET_SIGNAL,
+                           [ 'IDLE' ],
+                           time(), __FILE__, __LINE__
+                         )
+      if keys %{$self->[KR_SESSIONS]};
+  }
+}
+
+macro post_plain_signal (<destination>,<signal_name>) {
+  $poe_kernel->_enqueue_state( <destination>, $poe_kernel,
+                               EN_SIGNAL, ET_SIGNAL,
+                               [ <signal_name> ],
+                               time(), __FILE__, __LINE__
+                             );
+}
+
+macro dispatch_one_from_fifo {
+  # Pull an event off the queue, and dispatch it.
+  if ( @{ $self->[KR_STATES] } ) {
+    my $event = shift @{ $self->[KR_STATES] };
+    {% ses_refcount_dec2 $event->[ST_SESSION], SS_EVCOUNT %}
+    $self->_dispatch_state(@$event);
+  }
+}
+
+macro dispatch_due_alarms {
+  # Pull due alarms off the queue, and dispatch them.
+  my $now = time();
+  while ( @{ $self->[KR_ALARMS] } and
+          ($self->[KR_ALARMS]->[0]->[ST_TIME] <= $now)
+        ) {
+    my $event = shift @{ $self->[KR_ALARMS] };
+    {% ses_refcount_dec2 $event->[ST_SESSION], SS_ALCOUNT %}
+    $self->_dispatch_state(@$event);
+  }
+}
+
+macro dispatch_ready_selects {
+  my @selects =
+    values %{ $self->[KR_HANDLES]->{$handle}->[HND_SESSIONS]->[$vector] };
+
+  foreach my $select (@selects) {
+    $self->_dispatch_state
+      ( $select->[HSS_SESSION], $select->[HSS_SESSION],
+        $select->[HSS_STATE], ET_SELECT,
+        [ $select->[HSS_HANDLE] ],
+        time(), __FILE__, __LINE__, undef
+      );
+  }
+}
+
+# MACROS END <-- search tag for editing
+
+#------------------------------------------------------------------------------
 
 # Perform some optional setup.
 BEGIN {
@@ -22,63 +250,25 @@ BEGIN {
     import Time::HiRes qw(time);
   };
 
-  # Provide a dummy EINPROGRESS for systems that don't have one.  Give
-  # it an improbable errno value.
+  # Set a constant to indicate the presence of Time::HiRes.  This
+  # enables some runtime optimization.
+  if ($@) {
+    eval 'sub POE_HAS_TIME_HIRES () { 0 }';
+  }
+  else {
+    eval 'sub POE_HAS_TIME_HIRES () { 1 }';
+  }
+
+  # http://support.microsoft.com/support/kb/articles/Q150/5/37.asp
+  # defines EINPROGRESS as 10035.  We provide it here because some
+  # Win32 users report POSIX::EINPROGRESS is not vendor-supported.
   if ($^O eq 'MSWin32') {
-    eval '*EINPROGRESS = sub { 3.141 };'
+    eval '*EINPROGRESS = sub { 10036 };';
+    eval '*EWOULDBLOCK = sub { 10035 };';
+    eval '*F_GETFL     = sub {     0 };';
+    eval '*F_SETFL     = sub {     0 };';
   }
 }
-
-#------------------------------------------------------------------------------
-# Redirect STDERR to STDOUT, and kill all the buffering.  Used
-# internally for testing; it should be commented out.
-
-# BEGIN {
-#   open(STDERR, '>&STDOUT') or die $!;
-#   select(STDERR); $| = 1;
-#   select(STDOUT); $| = 1;
-# }
-
-#------------------------------------------------------------------------------
-# Redefine __WARN__ and __DIE__ to be in different colors, so they
-# stand out.  Do a caller() stack trace when something dies.  Used
-# internally for testing; it should be commented out.
-
-# BEGIN {
-#   package DB;
-#   if ($^O eq 'os2') {
-#     $SIG{'__WARN__'} =
-#       sub { my $msg = join(' ', @_);
-#             $msg =~ s/[\x0d\x0a]+//g;
-#             warn "\e[1;5;33;40m$msg\e[0m\n";
-#           };
-#     $SIG{'__DIE__'} =
-#       sub { my $msg = join(' ', @_);
-#             $msg =~ s/[\x0d\x0a]+//g;
-#             print STDERR "\e[1;31;47m$msg\e[0m\n";
-#             my $frame = 0;
-#             print STDERR "\e[1;35m----- CALL TRACE -----\e[0m\n";
-#             while (my ($p, $f, $l, $s, $h, $w) = caller($frame)) {
-#               print STDERR "\e[1;35m";
-#               if ($frame) {
-#                 print STDERR "called by: ";
-#               }
-#               else {
-#                 print STDERR "died at  : ";
-#               }
-#               print STDERR "$f:$l - $s\e[0m\n";
-#               if ($frame && $h) {
-#                 foreach (@DB::args) {
-#                   print "\e[1;31m\tARG: $_\e[0m\n";
-#                 }
-#               }
-#               $frame++;
-#             }
-#             print STDERR "\e[1;31m---------------------\e[0m\n";
-#             die "\n";
-#           };
-#   }
-# }
 
 #------------------------------------------------------------------------------
 # globals
@@ -91,98 +281,157 @@ $poe_kernel = undef;                    # only one active kernel; sorry
 # so that someone may define them before using POE, and the
 # pre-defined value will take precedence over the defaults here.
 BEGIN {
-  defined &DEB_EVENTS   or eval 'sub DEB_EVENTS   () { 0 }';
-  defined &DEB_GC       or eval 'sub DEB_GC       () { 0 }';
-  defined &DEB_INSERT   or eval 'sub DEB_INSERT   () { 0 }';
-  defined &DEB_MAIN     or eval 'sub DEB_MAIN     () { 0 }';
-  defined &DEB_PROFILE  or eval 'sub DEB_PROFILE  () { 0 }';
-  defined &DEB_QUEUE    or eval 'sub DEB_QUEUE    () { 0 }';
-  defined &DEB_REFCOUNT or eval 'sub DEB_REFCOUNT () { 0 }';
-  defined &DEB_RELATION or eval 'sub DEB_RELATION () { 0 }';
-  defined &DEB_SELECT   or eval 'sub DEB_SELECT   () { 0 }';
-  defined &DEB_STRICT   or eval 'sub DEB_STRICT   () { 0 }';
+
+  # TRACE_DEFAULT changes the default value for other TRACE_*
+  # constants.  Since the define_trace macro uses TRACE_DEFAULT
+  # internally, it can't be used to define TRACE_DEFAULT itself.
+
+  defined &TRACE_DEFAULT or eval 'sub TRACE_DEFAULT () { 0 }';
+
+  {% define_trace EVENTS   %}
+  {% define_trace GARBAGE  %}
+  {% define_trace PROFILE  %}
+  {% define_trace QUEUE    %}
+  {% define_trace REFCOUNT %}
+  {% define_trace SELECT   %}
+  {% define_trace REFCOUNT %}
+
+  # See the notes for TRACE_DEFAULT, except read ASSERT and assert
+  # where you see TRACE and trace.
+
+  defined &ASSERT_DEFAULT or eval 'sub ASSERT_DEFAULT () { 0 }';
+
+  {% define_assert GARBAGE     %}
+  {% define_assert REFCOUNT    %}
+  {% define_assert RELATIONS   %}
+  {% define_assert SELECT      %}
+  {% define_assert SESSIONS    %}
 }
-                                        # handles & vectors structures
-sub VEC_RD       () { 0 }
-sub VEC_WR       () { 1 }
-sub VEC_EX       () { 2 }
-                                        # sessions structure
-sub SS_SESSION   () { 0 }
-sub SS_REFCOUNT  () { 1 }
-sub SS_EVCOUNT   () { 2 }
-sub SS_PARENT    () { 3 }
-sub SS_CHILDREN  () { 4 }
-sub SS_HANDLES   () { 5 }
-sub SS_SIGNALS   () { 6 }
-sub SS_ALIASES   () { 7 }
-sub SS_PROCESSES () { 8 }
-sub SS_ID        () { 9 }
-                                        # session handle structure
-sub SH_HANDLE    () { 0 }
-sub SH_REFCOUNT  () { 1 }
-sub SH_VECCOUNT  () { 2 }
-                                        # the Kernel object itself
-sub KR_SESSIONS       () { 0  }
-sub KR_VECTORS        () { 1  }
-sub KR_HANDLES        () { 2  }
-sub KR_STATES         () { 3  }
-sub KR_SIGNALS        () { 4  }
-sub KR_ALIASES        () { 5  }
-sub KR_ACTIVE_SESSION () { 6  }
-sub KR_PROCESSES      () { 7  }
-sub KR_ID             () { 9  }
-sub KR_SESSION_IDS    () { 10 }
-sub KR_ID_INDEX       () { 11 }
-                                        # handle structure
-sub HND_HANDLE   () { 0 }
-sub HND_REFCOUNT () { 1 }
-sub HND_VECCOUNT () { 2 }
-sub HND_SESSIONS () { 3 }
-                                        # handle session structure
-sub HSS_HANDLE  () { 0 }
-sub HSS_SESSION () { 1 }
-sub HSS_STATE   () { 2 }
-                                        # states / events
-sub ST_SESSION    () { 0 }
-sub ST_SOURCE     () { 1 }
-sub ST_NAME       () { 2 }
-sub ST_TYPE       () { 3 }
-sub ST_ARGS       () { 4 }
-sub ST_TIME       () { 5 } # goes towards end
-sub ST_OWNER_FILE () { 6 } # goes towards end
-sub ST_OWNER_LINE () { 7 } # goes towards end
-sub ST_DEB_SEQ    () { 8 } # goes very last
+
+# Determine whether Tk or Event is loaded.  If either is, set a
+# constant that enables its specific behaviors throughout POE::Kernel.
+# Replace the unused ones' methods with dummies; these won't ever be
+# called, but they need to be present so that POE::Kernel compiles.
+
+BEGIN {
+  # Can't use Tk and Event at the same time.
+  if (exists $INC{'Tk.pm'} and exists $INC{'Event.pm'}) {
+    croak "POE: Tk and Event have incompatible event loops.  Can't use both";
+  }
+
+  # Check for Tk.
+  if (exists $INC{'Tk.pm'}) {
+    eval <<'    EOE';
+      sub POE_HAS_TK () { 1 }
+    EOE
+  }
+  else {
+    eval <<'    EOE';
+      sub POE_HAS_TK          () { 0 }
+      sub Tk::MainLoop        () { 0 }
+      sub Tk::MainWindow::new () { undef }
+    EOE
+  }
+
+  # Check for Event.
+  if (exists $INC{'Event.pm'}) {
+    eval <<'    EOE';
+      sub POE_HAS_EVENT () { 1 }
+    EOE
+  }
+  else {
+    eval <<'    EOE';
+      sub POE_HAS_EVENT     ()  { 0 }
+      sub Event::loop       ()  { 0 }
+      sub Event::unloop_all ($) { 0 }
+      sub Event::idle       ()  { 0 }
+      sub Event::timer      ()  { 0 }
+    EOE
+  }
+}
+
+#------------------------------------------------------------------------------
+
+# Handles and vectors sub-fields.
+enum VEC_RD VEC_WR VEC_EX
+
+# Session structure
+enum   SS_SESSION SS_REFCOUNT SS_EVCOUNT SS_PARENT SS_CHILDREN SS_HANDLES
+enum + SS_SIGNALS SS_ALIASES  SS_PROCESSES SS_ID SS_EXTRA_REFS SS_ALCOUNT
+
+# session handle structure
+enum   SH_HANDLE SH_REFCOUNT SH_VECCOUNT
+
+# The Kernel object.  KR_SIZE goes last (it's the index count).
+enum   KR_SESSIONS KR_VECTORS KR_HANDLES KR_STATES KR_SIGNALS KR_ALIASES
+enum + KR_ACTIVE_SESSION KR_PROCESSES KR_ALARMS KR_ID KR_SESSION_IDS
+enum + KR_ID_INDEX KR_WATCHER_TIMER KR_WATCHER_IDLE KR_EXTRA_REFS KR_SIZE
+
+# Handle structure.
+enum HND_HANDLE HND_REFCOUNT HND_VECCOUNT HND_SESSIONS HND_FILENO HND_WATCHERS
+
+# Handle session structure.
+enum HSS_HANDLE HSS_SESSION HSS_STATE
+
+# State transition events.
+enum ST_SESSION ST_SOURCE ST_NAME ST_TYPE ST_ARGS
+
+# These go towards the end, in this order, because they're optional
+# parameters in some cases.
+enum + ST_TIME ST_OWNER_FILE ST_OWNER_LINE ST_SEQ
 
 # These are names of internal events.
 
-sub EN_START  () { '_start'           }
-sub EN_STOP   () { '_stop'            }
-sub EN_SIGNAL () { '_signal'          }
-sub EN_GC     () { '_garbage_collect' }
-sub EN_PARENT () { '_parent'          }
-sub EN_CHILD  () { '_child'           }
-sub EN_SCPOLL () { '_sigchld_poll'    }
+const EN_START  '_start'
+const EN_STOP   '_stop'
+const EN_SIGNAL '_signal'
+const EN_GC     '_garbage_collect'
+const EN_PARENT '_parent'
+const EN_CHILD  '_child'
+const EN_SCPOLL '_sigchld_poll'
 
 # These are event classes (types).  They often shadow actual event
 # names, but they can encompass a large group of events.  For example,
-# ET_ALARM describes anything posted by an alarm call.
+# ET_ALARM describes anything posted by an alarm call.  Types are
+# preferred over names because bitmask tests tend to be faster than
+# string equality checks.
 
-sub ET_USER   () { 0x0000 }
-sub ET_START  () { 0x0001 }
-sub ET_STOP   () { 0x0002 }
-sub ET_SIGNAL () { 0x0004 }
-sub ET_GC     () { 0x0008 }
-sub ET_PARENT () { 0x0010 }
-sub ET_CHILD  () { 0x0020 }
-sub ET_SCPOLL () { 0x0040 }
-sub ET_ALARM  () { 0x0080 }
-sub ET_SELECT () { 0x0100 }
+const ET_USER     0x0001
+const ET_CALL     0x0002
+const ET_START    0x0004
+const ET_STOP     0x0008
+const ET_SIGNAL   0x0010
+const ET_GC       0x0020
+const ET_PARENT   0x0040
+const ET_CHILD    0x0100
+const ET_SCPOLL   0x0280
+const ET_ALARM    0x0400
+const ET_SELECT   0x0800
+
+# The amount of time to spend dispatching FIFO events.  Increasing
+# this value will improve POE's FIFO dispatch performance by
+# increasing the time between select and alarm checks.
+
+const FIFO_DISPATCH_TIME 0.01
 
 #------------------------------------------------------------------------------
+# Here is a roadmap of POE's internal data structures.  It's complex
+# enough that even the author needs a scorecard.
+#------------------------------------------------------------------------------
 #
-# states: [ [ $session, $source_session, $state, $type, \@etc, $time ],
-#           ...
-#         ];
+# states:
+# [ [ $session, $source_session, $state, $type, \@etc, $time,
+#     $poster_file, $poster_line, $debug_sequence
+#   ],
+#   ...
+# ]
+#
+# alarms:
+# [ [ $session, $source_session, $state, $type, \@etc, $time,
+#     $poster_file, $poster_line, $debug_sequence
+#   ],
+#   ...
+# ]
 #
 # processes: { $pid => $parent_session, ... }
 #
@@ -190,30 +439,46 @@ sub ET_SELECT () { 0x0100 }
 #
 # session IDs: { $id => $session, ... }
 #
-# handles: { $handle => [ $handle, $refcount, [$ref_r, $ref_w, $ref_x ],
-#                         [ { $session => [ $handle, $session, $state ], .. },
-#                           { $session => [ $handle, $session, $state ], .. },
-#                           { $session => [ $handle, $session, $state ], .. }
-#                         ]
-#                       ]
-#          };
+# handles:
+# { $handle =>
+#   [ $handle,
+#     $refcount,
+#     [ $ref_r, $ref_w, $ref_x ],
+#     [ { $session => [ $handle, $session, $state ], .. },
+#       { $session => [ $handle, $session, $state ], .. },
+#       { $session => [ $handle, $session, $state ], .. }
+#     ],
+#     fileno(),
+#     [ $watcher_r, $watcher_w, $watcher_x ],
+#   ]
+# };
 #
 # vectors: [ $read_vector, $write_vector, $expedite_vector ];
 #
 # signals: { $signal => { $session => $state, ... } };
 #
-# sessions: { $session => [ $session,     # blessed version of the key
-#                           $refcount,    # number of things keeping this alive
-#                           $evcnt,       # event count
-#                           $parent,      # parent session
-#                           { $child => $child, ... },
-#                           { $handle => [ $hdl, $rcnt, [ $r,$w,$e ] ], ... },
-#                           { $signal => $state, ... },
-#                           { $name => 1, ... },
-#                           { $pid => 1, ... },   # child processes
-#                           $session_id,  # session ID
-#                         ]
-#           };
+# sessions:
+# { $session =>
+#   [ $session,     # blessed version of the key
+#     $refcount,    # number of things keeping this alive
+#     $evcnt,       # event count
+#     $parent,      # parent session
+#     { $child => $child, ... },
+#     { $handle =>
+#       [ $hdl,
+#         $rcnt,
+#         [ $r,$w,$e ]
+#       ],
+#       ...
+#     },
+#     { $signal => $state, ... },
+#     { $name => 1, ... },
+#     { $pid => 1, ... },          # child processes
+#     $session_id,                 # session ID
+#     { $tag => $count, ... },     # extra reference counts
+#     $alarm_count,                # alarm count
+#   ]
+# };
 #
 # names: { $name => $session };
 #
@@ -223,82 +488,118 @@ sub ET_SELECT () { 0x0100 }
 # SIGNALS
 #==============================================================================
 
-                                        # will stop sessions unless handled
+# This is a list of signals that will terminate sessions that don't
+# handle them.
+
 my %_terminal_signals =
   ( QUIT => 1, INT => 1, KILL => 1, TERM => 1, HUP => 1, IDLE => 1 );
-                                        # static signal handlers
-sub _signal_handler_generic {
-  if (defined(my $signal = $_[0])) {
-    $poe_kernel->_enqueue_state
-      ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL,
-        [ $signal ], time(), __FILE__, __LINE__
-      );
-    $SIG{$_[0]} = \&_signal_handler_generic;
+
+### POE's signal handlers.  These are just plain old Perl.
+
+sub _poe_signal_handler_generic {
+  if (defined $_[0]) {
+    {% post_plain_signal $poe_kernel, $_[0] %}
+    $SIG{$_[0]} = \&_poe_signal_handler_generic;
   }
   else {
     warn "POE::Kernel::_signal_handler_generic detected an undefined signal";
   }
 }
 
-sub _signal_handler_pipe {
-  if (defined(my $signal = $_[0])) {
-    $poe_kernel->_enqueue_state
-      ( $poe_kernel->[KR_ACTIVE_SESSION], $poe_kernel, EN_SIGNAL, ET_SIGNAL,
-        [ $signal ], time(), __FILE__, __LINE__
-      );
-    $SIG{$_[0]} = \&_signal_handler_pipe;
+# SIGPIPE is handled a little differently.  It tends to be
+# synchronous, so it's posted at the current active session.  We can
+# do this better by generating a pseudo SIGPIPE whenever a driver
+# returns EPIPE, but that requires people to use Wheel::ReadWrite on
+# similar dilligence.
+
+sub _poe_signal_handler_pipe {
+  if (defined $_[0]) {
+    {% post_plain_signal $poe_kernel->[KR_ACTIVE_SESSION], $_[0] %}
+    $SIG{$_[0]} = \&_poe_signal_handler_pipe;
   }
   else {
     warn "POE::Kernel::_signal_handler_pipe detected an undefined signal";
   }
 }
 
-sub _signal_handler_child {
-  if (defined(my $signal = $_[0])) {
-    my $pid = wait();
-    if ($pid >= 0) {
-      $poe_kernel->_enqueue_state
-        ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL,
-          [ 'CHLD', $pid, $? ], time(), __FILE__, __LINE__
-        );
-    }
-    $SIG{$_[0]} = \&_signal_handler_child;
+# SIGCH?LD are normalized to SIGCHLD and include the child process'
+# PID and return code.  Philip Gwyn rewrote most of the SIGCH?LD code
+# for version 0.1006; it got rewritten again while the patches were
+# manually applied.  I expect it to be rewritten a few more times to
+# fix Philip's code back the way it ought to be.
+
+sub _poe_signal_handler_child {
+  if (defined $_[0]) {
+
+    # The default SIGCH?LD action is "discard".  We set it here to
+    # prevent Perl from catching more SIGCHLD signals while the Kernel
+    # polls for child processes.
+    $SIG{$_[0]} = 'DEFAULT';
+    $poe_kernel->_enqueue_state( $poe_kernel, $poe_kernel,
+                                 EN_SCPOLL, ET_SCPOLL,
+                                 [ ],
+                                 time(), __FILE__, __LINE__
+                               );
   }
   else {
     warn "POE::Kernel::_signal_handler_child detected an undefined signal";
   }
 }
 
+### Event's signal handlers.
+
+sub _event_signal_handler_generic {
+  {% post_plain_signal $poe_kernel, $_[0]->w->signal %}
+}
+
+sub _event_signal_handler_pipe {
+  {% post_plain_signal $poe_kernel->[KR_ACTIVE_SESSION], $_[0]->w->signal %}
+}
+
+sub _event_signal_handler_child {
+  # Reap until there are no more children.  This uses one of Event's
+  # own scripts for an example.  I only mention it because I'm scared
+  # of wait(2).
+  $poe_kernel->_enqueue_state( $poe_kernel, $poe_kernel,
+                               EN_SCPOLL, ET_SCPOLL,
+                               [ ],
+                               time(), __FILE__, __LINE__
+                             );
+}
+
 #------------------------------------------------------------------------------
+# Register or remove signals.
 
-sub _internal_sig {
-  my ($self, $session, $signal, $state) = @_;
+# Public interface for adding or removing signal handlers.
 
-  if ($state) {
+sub sig {
+  my ($self, $signal, $state) = @_;
+  if (defined $state) {
+    my $session = $self->[KR_ACTIVE_SESSION];
     $self->[KR_SESSIONS]->{$session}->[SS_SIGNALS]->{$signal} = $state;
     $self->[KR_SIGNALS]->{$signal}->{$session} = $state;
   }
   else {
-    delete $self->[KR_SESSIONS]->{$session}->[SS_SIGNALS]->{$signal};
-    delete $self->[KR_SIGNALS]->{$signal}->{$session};
+    {% sig_remove $self->[KR_ACTIVE_SESSION], $signal %}
   }
 }
 
-sub sig {
-  my ($self, $signal, $state) = @_;
-  $self->_internal_sig($self->[KR_ACTIVE_SESSION], $signal, $state);
-}
+# Public interface for posting signal events.  5.6.0 places a signal
+# symbol in our table; the BEGIN block deletes it to prevent
+# "Subroutine signal redefined" warnings.
 
-sub signal {
-  my ($self, $session, $signal) = @_;
-  my ($file, $line) = (caller)[1,2];
+BEGIN { delete $POE::Kernel::{signal}; }
+sub POE::Kernel::signal {
+  my ($self, $destination, $signal) = @_;
 
-  if (defined($session = $self->alias_resolve($session))) {
-    $self->_enqueue_state( $session, $self->[KR_ACTIVE_SESSION],
-                           EN_SIGNAL, ET_SIGNAL, [ $signal ], time(),
-                           $file, $line
-                         );
-  }
+  my $session = {% alias_resolve $destination %};
+  {% test_resolve $destination, $session %}
+
+  $self->_enqueue_state( $session, $self->[KR_ACTIVE_SESSION],
+                         EN_SIGNAL, ET_SIGNAL,
+                         [ $signal ],
+                         time(), (caller)[1,2]
+                       );
 }
 
 #==============================================================================
@@ -307,41 +608,98 @@ sub signal {
 
 sub new {
   my $type = shift;
-                                        # prevent multiple instances
+
+  # Prevent multiple instances, no matter how many times it's called.
+  # This is a backward-compatibility enhancement for programs that
+  # have used versions prior to 0.06.
   unless (defined $poe_kernel) {
-    my $self = $poe_kernel = bless [ ], $type;
-                                        # the long way to ensure correctness
-    $self->[KR_SESSIONS ] = { };
-    $self->[KR_VECTORS  ] = [ '', '', '' ];
-    $self->[KR_HANDLES  ] = { };
-    $self->[KR_STATES   ] = [ ];
-    $self->[KR_SIGNALS  ] = { };
-    $self->[KR_ALIASES  ] = { };
-    $self->[KR_PROCESSES] = { };
+
+    $poe_tk_main_window = Tk::MainWindow->new();
+
+    # If we have a Tk main window, then register an onDestroy handler
+    # for it.  This handler broadcasts a terminal TKDESTROY signal to
+    # every session.
+
+    if (defined $poe_tk_main_window) {
+      $poe_tk_main_window->OnDestroy
+        ( sub {
+            # Don't bother broadcasting TKDESTROY if there are no
+            # sessions remaining.  This is the case when POE exits
+            # before its main window.
+            if (keys %{$poe_kernel->[KR_SESSIONS]}) {
+              $poe_kernel->_dispatch_state
+                ( $poe_kernel, $poe_kernel,
+                  EN_SIGNAL, ET_SIGNAL, [ 'TKDESTROY' ],
+                  time(), __FILE__, __LINE__, undef
+                );
+            }
+          }
+        );
+    }
+
+    my $self = $poe_kernel = bless
+      [ { },                            # KR_SESSIONS
+        [ '', '', '' ],                 # KR_VECTORS
+        { },                            # KR_HANDLES
+        [ ],                            # KR_STATES
+        { },                            # KR_SIGNALS
+        { },                            # KR_ALIASES
+        undef,                          # KR_ACTIVE_SESSION
+        { },                            # KR_PROCESSES
+        [ ],                            # KR_ALARMS
+        undef,                          # KR_ID
+        { },                            # KR_SESSION_IDS
+        1,                              # KR_ID_INDEX
+        undef,                          # KR_WATCHER_TIMER
+        undef,                          # KR_WATCHER_IDLE
+        0,                              # KR_EXTRA_REFS
+      ], $type;
+
+    # If POE uses Event to drive its queues, then one-time initialize
+    # watchers for idle and timed events.
+
+    if ( POE_HAS_EVENT ) {
+
+      $self->[KR_WATCHER_TIMER] = Event->timer
+        ( cb     => \&_event_alarm_callback,
+          after  => 0,
+          parked => 1,
+        );
+
+      $self->[KR_WATCHER_IDLE] = Event->idle
+        ( cb     => \&_event_fifo_callback,
+          repeat => 1,
+          min    => 0,
+          max    => 0,
+          parked => 1,
+        );
+    }
 
     # Kernel ID, based on Philip Gwyn's code.  I hope he still can
     # recognize it.  KR_SESSION_IDS is a hash because it will almost
     # always be sparse.
-    $self->[KR_ID         ] = ( (uname)[1] . '-' .
-                                unpack 'H*', pack 'N*', time, $$
-                              );
-    $self->[KR_SESSION_IDS] = { };
-    $self->[KR_ID_INDEX]    = 1;
+    $self->[KR_ID] = ( (uname)[1] . '-' .
+                       unpack 'H*', pack 'N*', time, $$
+                     );
+    $self->[KR_SESSION_IDS]->{$self->[KR_ID]} = $self;
 
-                                        # initialize the vectors *as* vectors
+    # Initialize the vectors as vectors.
     vec($self->[KR_VECTORS]->[VEC_RD], 0, 1) = 0;
     vec($self->[KR_VECTORS]->[VEC_WR], 0, 1) = 0;
     vec($self->[KR_VECTORS]->[VEC_EX], 0, 1) = 0;
-                                        # register signal handlers
+
+    # Register all known signal handlers, except the troublesome ones.
     foreach my $signal (keys(%SIG)) {
-                                        # skip fake, nonexistent, and
-                                        # troublesome signals
-      next if ($signal =~ /^(NUM\d+
-                             |__[A-Z0-9]+__
-                             |ALL|CATCHALL|DEFER|HOLD|IGNORE|MAX|PAUSE
-                             |RTMIN|RTMAX|SETS
-                             |SEGV
-                             |
+
+      # Some signals aren't real, and the act of setting handlers for
+      # them can have strange, even fatal side effects.  Recognize and
+      # ignore them.
+      next if ($signal =~ /^( NUM\d+
+                              |__[A-Z0-9]+__
+                              |ALL|CATCHALL|DEFER|HOLD|IGNORE|MAX|PAUSE
+                              |RTMIN|RTMAX|SETS
+                              |SEGV
+                              |
                             )$/x
               );
 
@@ -352,158 +710,282 @@ sub new {
       # seems to prevent the problem, but it's only a temporary
       # solution.  At some point, POE will include a set of Curses
       # widgets, and SIGWINCH will be needed...
-
       if ($signal eq 'WINCH') {
-        $SIG{$signal} = 'IGNORE';
+
+        # Event polls signals in some XS, which means they ought not
+        # kill Perl.  Use an Event->signal watcher if Event is
+        # available.
+
+        if (POE_HAS_EVENT) {
+          Event->signal( signal => $signal,
+                         cb     => \&_event_signal_handler_generic
+                       );
+        }
+
+        # Otherwise ignore WINCH.
+        else {
+          $SIG{$signal} = 'IGNORE';
+          next;
+        }
+      }
+
+      # Windows doesn't have a SIGBUS, but the debugger causes SIGBUS
+      # to be entered into %SIG.  Registering a handler for it becomes
+      # a fatal error.  Don't do that!
+      if ($signal eq 'BUS' and $^O eq 'MSWin32') {
         next;
       }
-                                        # register signal handlers by type
+
+      # Register signal handlers by type.
       if ($signal =~ /^CH?LD$/) {
+
         # Leave SIGCHLD alone if running under apache.
         unless (exists $INC{'Apache.pm'}) {
-          $SIG{$signal} = \&_signal_handler_child;
+
+          # Register an Event signal watcher on it.  Rename the signal
+          # 'CHLD' regardless whether it's CHLD or CLD.
+          if (POE_HAS_EVENT) {
+            Event->signal( signal => $signal,
+                           cb     => \&_event_signal_handler_child
+                         );
+          }
+
+          # Otherwise register a regular Perl signal handler.
+          else {
+            $SIG{$signal} = \&_poe_signal_handler_child;
+          }
         }
       }
       elsif ($signal eq 'PIPE') {
-        $SIG{$signal} = \&_signal_handler_pipe;
+
+        # Register an Event signal watcher.
+        if (POE_HAS_EVENT) {
+          Event->signal( signal => $signal,
+                         cb     => \&_event_signal_handler_pipe
+                       );
+        }
+
+        # Otherwise register a plain Perl signal handler.
+        else {
+          $SIG{$signal} = \&_poe_signal_handler_pipe;
+        }
       }
       else {
-        $SIG{$signal} = \&_signal_handler_generic;
+
+        # If Event is available, register a signal watcher with it.
+        # Don't register a SIGKILL handler, though, because Event
+        # doesn't like that.
+        if (POE_HAS_EVENT and $signal ne 'KILL' and $signal ne 'STOP') {
+          Event->signal( signal => $signal,
+                         cb     => \&_event_signal_handler_generic
+                       );
+        }
+
+        # Otherwise register a plain signal handler.
+        else {
+          $SIG{$signal} = \&_poe_signal_handler_generic;
+        }
       }
+
       $self->[KR_SIGNALS]->{$signal} = { };
     }
-                                        # the kernel is a session, sort of
+
+    # The kernel is a session, sort of.
     $self->[KR_ACTIVE_SESSION] = $self;
-    my $kernel_session = $self->[KR_SESSIONS]->{$self} = [ ];
-    $kernel_session->[SS_SESSION ] = $self;
-    $kernel_session->[SS_REFCOUNT] = 0;
-    $kernel_session->[SS_EVCOUNT ] = 0;
-    $kernel_session->[SS_PARENT  ] = undef;
-    $kernel_session->[SS_CHILDREN] = { };
-    $kernel_session->[SS_HANDLES ] = { };
-    $kernel_session->[SS_SIGNALS ] = { };
-    $kernel_session->[SS_ALIASES ] = { };
-    $kernel_session->[SS_ID      ] = $self->[KR_ID];
+    $self->[KR_SESSIONS]->{$self} =
+      [ $self,                          # SS_SESSION
+        0,                              # SS_REFCOUNT
+        0,                              # SS_EVCOUNT
+        undef,                          # SS_PARENT
+        { },                            # SS_CHILDREN
+        { },                            # SS_HANDLES
+        { },                            # SS_SIGNALS
+        { },                            # SS_ALIASES
+        { },                            # SS_PROCESSES
+        $self->[KR_ID],                 # SS_ID
+        { },                            # SS_EXTRA_REFS
+        0,                              # SS_ALCOUNT
+      ];
   }
-                                        # return the global instance
+
+  # Return the global instance.
   $poe_kernel;
 }
 
 #------------------------------------------------------------------------------
-# Send a state to a session right now.  Used by _disp_select to expedite
-# select() states, and used by run() to deliver posted states from the queue.
+# Send a state to a session right now.  Used by _disp_select to
+# expedite select() states, and used by run() to deliver posted states
+# from the queue.
 
+# This is for collecting state frequencies if TRACE_PROFILE is enabled.
 my %profile;
+
+# Dispatch a stat transition event to its session.  A lot of work goes
+# on here.
 
 sub _dispatch_state {
   my ( $self, $session, $source_session, $state, $type, $etc, $time,
        $file, $line, $seq
      ) = @_;
 
+  # A copy of the state name, in case we have to change it.
   my $local_state = $state;
+
+  # We do a lot with the sessions structure.  Cache it in a lexical to
+  # save on dereferences.
   my $sessions = $self->[KR_SESSIONS];
 
-  DEB_PROFILE and $profile{$state}++;
+  TRACE_PROFILE and $profile{$state}++;
 
-  # The _start state is dispatched immediately as part of allocating a
-  # session.  Set up the kernel's tables for this session.
+  # Pre-dispatch processing.
 
-  if ($type) {
+  unless ($type & (ET_USER | ET_CALL)) {
+
+    # The _start state is dispatched immediately as part of allocating
+    # a session.  Set up the kernel's tables for this session.
+
     if ($type & ET_START) {
-      my $new_session = $sessions->{$session} = [ ];
-      $new_session->[SS_SESSION ] = $session;
-      $new_session->[SS_REFCOUNT] = 0;
-      $new_session->[SS_EVCOUNT ] = 0;
-      $new_session->[SS_PARENT  ] = $source_session;
-      $new_session->[SS_CHILDREN] = { };
-      $new_session->[SS_HANDLES ] = { };
-      $new_session->[SS_SIGNALS ] = { };
-      $new_session->[SS_ALIASES ] = { };
-      $new_session->[SS_ID      ] = $self->[KR_ID_INDEX]++;
+      my $new_session = $sessions->{$session} =
+        [ $session,                     # SS_SESSION
+          0,                            # SS_REFCOUNT
+          0,                            # SS_EVCOUNT
+          $source_session,              # SS_PARENT
+          { },                          # SS_CHILDREN
+          { },                          # SS_HANDLES
+          { },                          # SS_SIGNALS
+          { },                          # SS_ALIASES
+          { },                          # SS_PROCESSES
+          $self->[KR_ID_INDEX]++,       # SS_ID
+          { },                          # SS_EXTRA_REFS
+          0,                            # SS_ALCOUNT
+        ];
+
+      # For the ID to session reference lookup.
       $self->[KR_SESSION_IDS]->{$new_session->[SS_ID]} = $session;
-                                        # add to parent's children
-      DEB_RELATION and do {
-        die "Session ", $session->ID, " is its own parent\a"
-          if ($session eq $source_session);
-        die( "!!! Session ", $session->ID,
-             " already is a child of session ", $source_session->ID, "\a"
+
+      # Ensure sanity.
+      ASSERT_RELATIONS and do {
+        die {% ssid %}, " is its own parent\a"
+          if ($session == $source_session);
+
+        die( {% ssid %},
+             " already is a child of ", {% sid $source_session %}, "\a"
            )
           if (exists $sessions->{$source_session}->[SS_CHILDREN]->{$session});
       };
-      $sessions->{$source_session}->[SS_CHILDREN]->{$session} = $session;
-      $sessions->{$source_session}->[SS_REFCOUNT]++;
 
-      DEB_REFCOUNT and do {
-        warn( "+++ Parent session ", $source_session->ID,
-              " receives child.  New refcount=",
-              $sessions->{$source_session}->[SS_REFCOUNT], "\n"
-            );
-      };
+      # Add the new session to its parent's children.
+      $sessions->{$source_session}->[SS_CHILDREN]->{$session} = $session;
+      {% ses_refcount_inc $source_session %}
     }
-                                        # delayed GC after _start
+
+    # Some sessions don't do anything in _start and expect their
+    # creators to provide a start-up event.  This means we can't
+    # &_collect_garbage at _start time.  Instead, we post a
+    # garbage-collect event at start time, and &_collect_garbage at
+    # delivery time.  This gives the session's creator time to do
+    # things with it before we reap it.
+
     elsif ($type & ET_GC) {
-      $self->_collect_garbage($session);
+      {% collect_garbage $session %}
       return 0;
     }
-                                        # warn of pending session removal
+
+    # A session's about to stop.  Notify its parents and children of
+    # the impending change in their relationships.  Incidental _stop
+    # events are handled before the dispatch.
+
     elsif ($type & ET_STOP) {
-                                        # tell children they have new parents,
-                                        # and tell parent it has new children
+
+      # Tell child sessions that they have a new parent (the departing
+      # session's parent).  Tell the departing session's parent that
+      # it has new child sessions.
+
       my $parent   = $sessions->{$session}->[SS_PARENT];
       my @children = values %{$sessions->{$session}->[SS_CHILDREN]};
       foreach my $child (@children) {
-        $self->_dispatch_state( $parent, $self, EN_CHILD, ET_CHILD,
-                                [ 'gain', $child ], time(), $file, $line,
-                                undef
+        $self->_dispatch_state( $parent, $self,
+                                EN_CHILD, ET_CHILD,
+                                [ 'gain', $child ],
+                                time(), $file, $line, undef
                               );
-        $self->_dispatch_state( $child, $self, EN_PARENT, ET_PARENT,
+        $self->_dispatch_state( $child, $self,
+                                EN_PARENT, ET_PARENT,
                                 [ $sessions->{$child}->[SS_PARENT], $parent, ],
                                 time(), $file, $line, undef
                               );
       }
-                                        # tell the parent its child is gone
+
+      # Tell the departing session's parent that the departing session
+      # is departing.
       if (defined $parent) {
-        $self->_dispatch_state( $parent, $self, EN_CHILD, ET_CHILD,
+        $self->_dispatch_state( $parent, $self,
+                                EN_CHILD, ET_CHILD,
                                 [ 'lose', $session ],
                                 time(), $file, $line, undef
                               );
       }
     }
-                                        # signal preprocessing
+
+    # Preprocess signals.  This is where _signal is translated into
+    # its registered handler's state name, if there is one.
+
     elsif ($type & ET_SIGNAL) {
       my $signal = $etc->[0];
-                                        # propagate to children
+
+      # Propagate the signal to this session's children.  This happens
+      # first, making the signal's traversal through the parent/child
+      # tree depth first.  It ensures that signals posted to the
+      # Kernel are delivered to the Kernel last.
+
       my @children = values %{$sessions->{$session}->[SS_CHILDREN]};
       foreach (@children) {
-        $self->_dispatch_state( $_, $self, $state, ET_SIGNAL, $etc,
+        $self->_dispatch_state( $_, $self,
+                                $state, ET_SIGNAL,
+                                $etc,
                                 time(), $file, $line, undef
                               );
       }
-                                        # translate signal to local event
+
+      # Translate the '_signal' state to its handler's name.
+
       if (exists $self->[KR_SIGNALS]->{$signal}->{$session}) {
         $local_state = $self->[KR_SIGNALS]->{$signal}->{$session};
       }
     }
   }
-                                        # the session may have been GC'd
+
+  # The destination session doesn't exist.  This is an indication of
+  # sloppy programming, either on POE's author's part or its user's
+  # part.
+
   unless (exists $self->[KR_SESSIONS]->{$session}) {
-    DEB_EVENTS and do {
-      warn( ">>> discarding $state to session ",
-            $session->ID, " (session was GC'd)\n"
-          );
+    TRACE_EVENTS and do {
+      warn ">>> discarding $state to nonexistent ", {% ssid %}, "\n";
     };
     return;
   }
 
-  DEB_EVENTS and do {
-    warn ">>> dispatching $state to session ", $session->ID, "\n";
+  TRACE_EVENTS and do {
+    warn ">>> dispatching $state to $session ", {% ssid %}, "\n";
+    if ($state eq EN_SIGNAL) {
+      warn ">>>     signal($etc->[0])\n";
+    }
   };
-                                        # dispatch this object's state
+
+  # Prepare to call the appropriate state.  Push the current active
+  # session on Perl's call stack.
   my $hold_active_session = $self->[KR_ACTIVE_SESSION];
   $self->[KR_ACTIVE_SESSION] = $session;
 
+  # Dispatch the event, at long last.
   my $return =
     $session->_invoke_state($source_session, $local_state, $etc, $file, $line);
+
+  # Stringify the state's return value if it belongs in the POE
+  # namespace.  $return's scope exists beyond the post-dispatch
+  # processing, which includes POE's garbage collection.  The scope
+  # bleed was known to break determinism in surprising ways.
 
   if (defined $return) {
     if (substr(ref($return), 0, 5) eq 'POE::') {
@@ -514,340 +996,481 @@ sub _dispatch_state {
     $return = '';
   }
 
+  # Pop the active session, now that it's not active anymore.
   $self->[KR_ACTIVE_SESSION] = $hold_active_session;
 
-  DEB_EVENTS and do {
-    warn "<<< Session ", $session->ID, " -> $state returns ($return)\n";
+  TRACE_EVENTS and do {
+    warn "<<< ", {% ssid %}, " -> $state returns ($return)\n";
   };
-                                        # if _start, notify parent
-  if ($type) {
-    if ($type & ET_START) {
-      $self->_dispatch_state( $sessions->{$session}->[SS_PARENT], $self,
-                              EN_CHILD, ET_CHILD,
-                              [ 'create', $session, $return ],
-                              time(), $file, $line, undef
-                            );
-    }
-                                        # if _stop, fix up tables
-    elsif ($type & ET_STOP) {
-                                        # remove us from our parent
-      my $parent = $sessions->{$session}->[SS_PARENT];
-      if (defined $parent) {
-        DEB_RELATION and do {
-          die "Session ", $session->ID, " is its own parent\a"
-            if ($session eq $parent);
-          die( "Session ", $session->ID, " is not a child of session ",
-               $parent->ID, "\a"
-             )
-            unless (($session eq $parent) ||
-                    exists($sessions->{$parent}->[SS_CHILDREN]->{$session})
-                   );
-        };
-        delete $sessions->{$parent}->[SS_CHILDREN]->{$session};
-        $sessions->{$parent}->[SS_REFCOUNT]--;
-        DEB_REFCOUNT and do {
-          warn( "--- parent session ", $parent->ID, " loses child session ",
-                $session->ID, ". New refcount=",
-                $sessions->{$parent}->[SS_REFCOUNT], "\n"
-              );
-          die "\a" if ($sessions->{$parent}->[SS_REFCOUNT] < 0);
-        };
-      }
-                                        # give our children to our parent
-      my @children = values %{$sessions->{$session}->[SS_CHILDREN]};
-      foreach (@children) {
-        DEB_RELATION and do {
-          die( "Session ", $_->ID, " is already a child of session ",
-               $parent->ID, "\a"
-             )
-            if (exists $sessions->{$parent}->[SS_CHILDREN]->{$_});
-        };
-        $sessions->{$_}->[SS_PARENT] = $parent;
-        if (defined $parent) {
-          $sessions->{$parent}->[SS_CHILDREN]->{$_} = $_;
-          $sessions->{$parent}->[SS_REFCOUNT]++;
-          DEB_REFCOUNT and do {
-            warn( "+++ parent session ", $parent->ID,
-                  " receives child. new refcount=",
-                  $sessions->{$parent}->[SS_REFCOUNT], "\n"
-                );
-          };
-        }
-        delete $sessions->{$session}->[SS_CHILDREN]->{$_};
-        $sessions->{$session}->[SS_REFCOUNT]--;
-        DEB_REFCOUNT and do {
-          warn( "--- session ", $session->ID, " loses child.  new refcount=",
-                $sessions->{$session}->[SS_REFCOUNT], "\n"
-              );
-          die "\a" if ($sessions->{$session}->[SS_REFCOUNT] < 0);
-        };
-      }
-                                        # free lingering signals
-      my @signals = keys %{$sessions->{$session}->[SS_SIGNALS]};
-      foreach (@signals) {
-        $self->_internal_sig($session, $_);
-      }
-                                        # free pending states
-      my $states = $self->[KR_STATES];
-      my $index = @$states;
-      while ($index-- && $sessions->{$session}->[SS_EVCOUNT]) {
-        if ($states->[$index]->[ST_SESSION] eq $session) {
-          $sessions->{$session}->[SS_EVCOUNT]--;
-          DEB_REFCOUNT and do {
-            die "\a" if ($sessions->{$session}->[SS_EVCOUNT] < 0);
-          };
-          $sessions->{$session}->[SS_REFCOUNT]--;
-          DEB_REFCOUNT and do {
-            warn( "--- discarding event for session ", $session->ID, ": ",
-                  $sessions->{$session}->[SS_REFCOUNT], "\n"
-                );
-            die "\a" if ($sessions->{$session}->[SS_REFCOUNT] < 0);
-          };
-          splice(@$states, $index, 1);
-        }
-      }
-                                        # free lingering selects
-      my @handles = values %{$sessions->{$session}->[SS_HANDLES]};
-      foreach (@handles) {
-        $self->_internal_select($session, $_->[SH_HANDLE], undef, VEC_RD);
-        $self->_internal_select($session, $_->[SH_HANDLE], undef, VEC_WR);
-        $self->_internal_select($session, $_->[SH_HANDLE], undef, VEC_EX);
-      }
-                                        # free lingering names
-      my @aliases = keys %{$sessions->{$session}->[SS_ALIASES]};
-      foreach (@aliases) {
-        $self->_internal_alias_remove($session, $_);
-      }
-                                        # remove session ID
-      delete $self->[KR_SESSION_IDS]->{$sessions->{$session}->[SS_ID]};
-      $session->[SS_ID] = undef;
-                                        # check for leaks
-      DEB_GC and do {
-        my $errors = 0;
-        if (my $leaked = $sessions->{$session}->[SS_REFCOUNT]) {
-          warn "*** LEAK: refcount = $leaked (session ", $session->ID, ")\a\n";
-          $errors++;
-        }
-        if (my $leaked = keys(%{$sessions->{$session}->[SS_CHILDREN]})) {
-          warn "*** LEAK: children = $leaked (session ", $session->ID, ")\a\n";
-          $errors++;
-        }
-        if (my $leaked = keys(%{$sessions->{$session}->[SS_HANDLES]})) {
-          warn "*** LEAK: handles  = $leaked (session ", $session->ID, ")\a\n";
-          $errors++;
-        }
-        if (my $leaked = keys(%{$sessions->{$session}->[SS_SIGNALS]})) {
-          warn "*** LEAK: signals  = $leaked (session ", $session->ID, ")\a\n";
-          $errors++;
-        }
-        if (my $leaked = keys(%{$sessions->{$session}->[SS_ALIASES]})) {
-          warn "*** LEAK: aliases  = $leaked (session ", $session->ID, ")\a\n";
-          $errors++;
-        }
-        die "\a" if ($errors);
+
+  # Post-dispatch processing.  This is a user event (but not a call),
+  # so garbage collect it.
+
+  if ($type & ET_USER) {
+    {% collect_garbage $session %}
+  }
+
+  # A new session has started.  Tell its parent.  Incidental _start
+  # events are fired after the dispatch.  Garbage collection is
+  # delayed until ET_GC.
+
+  if ($type & ET_START) {
+    $self->_dispatch_state( $sessions->{$session}->[SS_PARENT], $self,
+                            EN_CHILD, ET_CHILD,
+                            [ 'create', $session, $return ],
+                            time(), $file, $line, undef
+                          );
+  }
+
+  # This session has stopped.  Clean up after it.  There's no
+  # garbage collection necessary since the session's stopped.
+
+  elsif ($type & ET_STOP) {
+
+    # Remove the departing session from its parent.
+
+    my $parent = $sessions->{$session}->[SS_PARENT];
+    if (defined $parent) {
+
+      ASSERT_RELATIONS and do {
+        die {% ssid %}, " is its own parent\a" if ($session == $parent);
+        die {% ssid %}, " is not a child of ", {% sid $parent %}, "\a"
+          unless ( ($session == $parent) or
+                   exists($sessions->{$parent}->[SS_CHILDREN]->{$session})
+                 );
       };
-                                        # remove this session (should be empty)
-      delete $sessions->{$session};
-                                        # qarbage collect the parent
+
+      delete $sessions->{$parent}->[SS_CHILDREN]->{$session};
+      {% ses_refcount_dec $parent %}
+    }
+
+    # Give the departing session's children to its parent.
+
+    my @children = values %{$sessions->{$session}->[SS_CHILDREN]};
+    foreach (@children) {
+      ASSERT_RELATIONS and do {
+        die {% sid $_ %}, " is already a child of ", {% sid $parent %}, "\a"
+          if (exists $sessions->{$parent}->[SS_CHILDREN]->{$_});
+      };
+
+      $sessions->{$_}->[SS_PARENT] = $parent;
       if (defined $parent) {
-        $self->_collect_garbage($parent);
+        $sessions->{$parent}->[SS_CHILDREN]->{$_} = $_;
+        {% ses_refcount_inc $parent %}
+      }
+
+      delete $sessions->{$session}->[SS_CHILDREN]->{$_};
+      {% ses_refcount_dec $session %}
+    }
+
+    # Free any signals that the departing session allocated.
+
+    my @signals = keys %{$sessions->{$session}->[SS_SIGNALS]};
+    foreach (@signals) {
+      {% sig_remove $session, $_ %}
+    }
+
+    # Free any events that the departing session has in the queue.
+
+    my $states = $self->[KR_STATES];
+    my $index = @$states;
+    while ($index-- && $sessions->{$session}->[SS_EVCOUNT]) {
+      if ($states->[$index]->[ST_SESSION] == $session) {
+        {% ses_refcount_dec2 $session, SS_EVCOUNT %}
+        splice(@$states, $index, 1);
       }
     }
-                                        # check for death by signal
-    elsif ($type & ET_SIGNAL) {
-      my $signal = $etc->[0];
-                                        # stop whoever doesn't handle terminals
-      if (($signal eq 'ZOMBIE') ||
-          (!$return && exists($_terminal_signals{$signal}))
-         ) {
-        $self->session_free($session);
+
+    # Free any alarms that the departing session has in its queue.
+
+    my $alarms = $self->[KR_ALARMS];
+    $index = @$alarms;
+    while ($index-- && $sessions->{$session}->[SS_ALCOUNT]) {
+      if ($alarms->[$index]->[ST_SESSION] == $session) {
+        {% ses_refcount_dec2 $session, SS_ALCOUNT %}
+        splice(@$alarms, $index, 1);
       }
-                                        # otherwise garbage-collect
-      else {
-        $self->_collect_garbage($session);
+    }
+
+    # Close any selects that the session still has open.  -><- This is
+    # heavy handed; it does work it doesn't need to do.  There must be
+    # a better way.
+
+    my @handles = values %{$sessions->{$session}->[SS_HANDLES]};
+    foreach (@handles) {
+      $self->_internal_select($session, $_->[SH_HANDLE], undef, VEC_RD);
+      $self->_internal_select($session, $_->[SH_HANDLE], undef, VEC_WR);
+      $self->_internal_select($session, $_->[SH_HANDLE], undef, VEC_EX);
+    }
+
+    # Close any lingering extra references.
+    my @extra_refs = keys %{$sessions->{$session}->[SS_EXTRA_REFS]};
+    foreach (@extra_refs) {
+      {% remove_extra_reference $session, $_ %}
+    }
+
+    # Release any aliases still registered to the session.
+
+    my @aliases = keys %{$sessions->{$session}->[SS_ALIASES]};
+    foreach (@aliases) {
+      {% remove_alias $session, $_ %}
+    }
+
+    # Clear the session ID.  The undef part is completely gratuitous;
+    # I don't know why I put it there.  -><- The defined test is a
+    # kludge; it appears to be undefined when running in Tk mode.
+
+    delete $self->[KR_SESSION_IDS]->{$sessions->{$session}->[SS_ID]}
+      if defined $sessions->{$session}->[SS_ID];
+    $session->[SS_ID] = undef;
+
+    # And finally, check all the structures for leakage.  POE's pretty
+    # complex internally, so this is a happy fun check.
+
+    ASSERT_GARBAGE and do {
+      my $errors = 0;
+
+      if (my $leaked = $sessions->{$session}->[SS_REFCOUNT]) {
+        warn {% ssid %}, " has a refcount leak: $leaked\a\n";
+        $errors++;
       }
+
+      foreach my $l (sort keys %{$sessions->{$session}->[SS_EXTRA_REFS]}) {
+        my $count = $sessions->{$session}->[SS_EXTRA_REFS]->{$l};
+        if ($count) {
+          warn( {% ssid %}, " leaked an extra reference: ",
+                "(tag=$l) (count=$count)\a\n"
+              );
+          $errors++;
+        }
+      }
+
+      {% ses_leak_hash SS_CHILDREN %}
+      {% ses_leak_hash SS_HANDLES  %}
+      {% ses_leak_hash SS_SIGNALS  %}
+      {% ses_leak_hash SS_ALIASES  %}
+
+      die "\a" if ($errors);
+    };
+
+    # Remove the session's structure from the kernel's structure.
+    delete $sessions->{$session};
+
+    # See if the parent should leave, too.
+
+    if (defined $parent) {
+      {% collect_garbage $parent %}
+    }
+
+    # Finally, if there are no more sessions, stop the main loop.
+    unless (keys %$sessions) {
+      # Stop Tk's loop.
+      if (POE_HAS_TK) {
+        $self->[KR_WATCHER_IDLE]  = undef;
+        $self->[KR_WATCHER_TIMER] = undef;
+        $poe_tk_main_window->destroy();
+      }
+
+      # Stop Event's loop.
+      if (POE_HAS_EVENT) {
+        $self->[KR_WATCHER_IDLE]->stop();
+        $self->[KR_WATCHER_TIMER]->stop();
+        Event::unloop_all(0);
+      }
+
+      # POE's own loop stops on its own.
     }
   }
-                                        # return what the state handler did
+
+  # Check for death by terminal signal.
+
+  elsif ($type & ET_SIGNAL) {
+    my $signal = $etc->[0];
+
+    # Determine if the signal is fatal and some junk.
+    if ( ($signal eq 'ZOMBIE') or
+         ($signal eq 'TKDESTROY') or
+         (!$return && exists($_terminal_signals{$signal}))
+       ) {
+      $self->session_free($session);
+    }
+
+    # It's not fatal.  Collect garbage.
+    else {
+      {% collect_garbage $session %}
+    }
+  }
+
+  # It's an alarm being dispatched.
+
+  elsif ($type & ET_ALARM) {
+    {% collect_garbage $session %}
+  }
+
+  # It's a select being dispatched.
+  elsif ($type & ET_SELECT) {
+    {% collect_garbage $session %}
+  }
+
+  # Return what the state did.  This is used for call().
   $return;
 }
 
 #------------------------------------------------------------------------------
+# POE's main loop!  Now with Tk and Event support!
 
 sub run {
   my $self = shift;
 
-  while (keys(%{$self->[KR_SESSIONS]})) {
-                                        # send SIGIDLE if queue empty
-    unless (@{$self->[KR_STATES]} || keys(%{$self->[KR_HANDLES]})) {
-      $self->_enqueue_state( $self, $self, EN_SIGNAL, ET_SIGNAL,
-                             [ 'IDLE' ], time(), __FILE__, __LINE__
-                           );
-    }
-                                        # select, if necessary
-    my $now = time();
-    my $timeout = ( (@{$self->[KR_STATES]})
-                    ? ($self->[KR_STATES]->[0]->[ST_TIME] - $now)
-                    : 3600
-                  );
-    $timeout = 0 if ($timeout < 0);
+  # Use Tk's main loop, if Tk is loaded.
 
-    DEB_QUEUE and do {
-      warn( '*** Kernel::run() iterating.  ' .
-            sprintf("now(%.2f) timeout(%.2f) then(%.2f)\n",
-                    $now-$^T, $timeout, ($now-$^T)+$timeout
-                   )
-          );
-      warn( '*** Queue times: ' .
-            join( ', ',
-                  map { sprintf('%d=%.2f',
-                                $_->[ST_DEB_SEQ], $_->[ST_TIME] - $now
-                               )
-                      } @{$self->[KR_STATES]}
-                ) .
-            "\n"
-          );
-    };
+  if (POE_HAS_TK) {
+    Tk::MainLoop;
+  }
 
-    DEB_SELECT and do {
-      warn ",----- SELECT BITS IN -----\n";
-      warn "| READ    : ", unpack('b*', $self->[KR_VECTORS]->[VEC_RD]), "\n";
-      warn "| WRITE   : ", unpack('b*', $self->[KR_VECTORS]->[VEC_WR]), "\n";
-      warn "| EXPEDITE: ", unpack('b*', $self->[KR_VECTORS]->[VEC_EX]), "\n";
-      warn "`--------------------------\n";
-    };
+  # Use Event's main loop, if Event is loaded.
 
-    my $hits = select( my $rout = $self->[KR_VECTORS]->[VEC_RD],
-                       my $wout = $self->[KR_VECTORS]->[VEC_WR],
-                       my $eout = $self->[KR_VECTORS]->[VEC_EX],
-                       $timeout
-                     );
+  if (POE_HAS_EVENT) {
+    Event::loop();
+  }
 
-    DEB_SELECT and do {
-      if ($hits > 0) {
-        warn "select hits = $hits\n";
+  # Otherwise use POE's main loop.
+
+  else {
+
+    # Cache some deferences.  Adds about 15 events/second to a trivial
+    # benchmark.
+    my $kr_states   = $self->[KR_STATES];
+    my $kr_handles  = $self->[KR_HANDLES];
+    my $kr_sessions = $self->[KR_SESSIONS];
+    my $kr_vectors  = $self->[KR_VECTORS];
+    my $kr_alarms   = $self->[KR_ALARMS];
+
+    # Continue running while there are sessions that need to be
+    # serviced.
+
+    while (keys %$kr_sessions) {
+
+      # Check for a hung kernel.
+      {% test_for_idle_poe_kernel %}
+
+      # Set the select timeout based on current queue conditions.  If
+      # there are FIFO events, then the timeout is zero to poll select
+      # and move on.  Otherwise set the select timeout until the next
+      # pending alarm, if any are in the alarm queue.  If no FIFO
+      # events or alarms are pending, then time out after some
+      # constant number of seconds.
+
+      my $now = time();
+      my $timeout;
+
+      if (@$kr_states) {
+        $timeout = 0;
       }
-      elsif ($hits == 0) {
-        warn "select timed out...\n";
+      elsif (@$kr_alarms) {
+        $timeout = $kr_alarms->[0]->[ST_TIME] - $now;
+        $timeout = 0 if $timeout < 0;
       }
       else {
-        warn "select error = $!\n";
-        die "... and that's fatal.\a\n"
-          unless (($! == EINPROGRESS) || ($! == EINTR));
+        $timeout = 3600;
       }
-      warn ",----- SELECT BITS OUT -----\n";
-      warn "| READ    : ", unpack('b*', $rout), "\n";
-      warn "| WRITE   : ", unpack('b*', $wout), "\n";
-      warn "| EXPEDITE: ", unpack('b*', $eout), "\n";
-      warn "`---------------------------\n";
-    };
-                                        # gather pending selects
-    if ($hits > 0) {
-      my @selects = map { ( ( vec($rout, fileno($_->[HND_HANDLE]), 1)
-                              ? values(%{$_->[HND_SESSIONS]->[VEC_RD]})
-                              : ( )
-                            ),
-                            ( vec($wout, fileno($_->[HND_HANDLE]), 1)
-                              ? values(%{$_->[HND_SESSIONS]->[VEC_WR]})
-                              : ( )
-                            ),
-                            ( vec($eout, fileno($_->[HND_HANDLE]), 1)
-                              ? values(%{$_->[HND_SESSIONS]->[VEC_EX]})
-                              : ( )
-                            )
-                          )
-                        } values(%{$self->[KR_HANDLES]});
 
-      DEB_SELECT and do {
-        if (@selects) {
-          warn "found pending selects: @selects\n";
-        }
-        else {
-          die "found no selects, with $hits hits from select???\a\n";
-        }
-      };
-                                        # dispatch the selects
-      foreach my $select (@selects) {
-        $self->_dispatch_state( $select->[HSS_SESSION], $select->[HSS_SESSION],
-                                $select->[HSS_STATE], ET_SELECT,
-                                [ $select->[HSS_HANDLE] ],
-                                time(), __FILE__, __LINE__, undef
-                              );
-        $self->_collect_garbage($select->[HSS_SESSION]);
-      }
-    }
-                                        # dispatch queued events
-    $now = time();
-    while (@{$self->[KR_STATES]}
-           and ($self->[KR_STATES]->[0]->[ST_TIME] <= $now)
-    ) {
-
-      DEB_QUEUE and do {
-        my $event = $self->[KR_STATES]->[0];
-        warn( sprintf('now(%.2f) ', $now - $^T) .
-              sprintf('sched_time(%.2f)  ', $event->[ST_TIME] - $^T) .
-              "seq($event->[ST_DEB_SEQ])  " .
-              "name($event->[ST_NAME])\n"
-            )
-      };
-
-      my $event = shift @{$self->[KR_STATES]};
-
-      $self->[KR_SESSIONS]->{$event->[ST_SESSION]}->[SS_EVCOUNT]--;
-
-      DEB_REFCOUNT and do {
-        die "\a" if
-          ($self->[KR_SESSIONS]->{$event->[ST_SESSION]}->[SS_EVCOUNT] < 0);
-      };
-
-      $self->[KR_SESSIONS]->{$event->[ST_SESSION]}->[SS_REFCOUNT]--;
-      DEB_REFCOUNT and do {
-        warn( "--- dispatching event to session ", $event->[ST_SESSION]->ID,
-              ": ",
-              $self->[KR_SESSIONS]->{$event->[ST_SESSION]}->[SS_REFCOUNT],
+      TRACE_QUEUE and do {
+        warn( '*** Kernel::run() iterating.  ' .
+              sprintf("now(%.2f) timeout(%.2f) then(%.2f)\n",
+                      $now-$^T, $timeout, ($now-$^T)+$timeout
+                     )
+            );
+        warn( '*** Alarm times: ' .
+              join( ', ',
+                    map { sprintf('%d=%.2f',
+                                  $_->[ST_SEQ], $_->[ST_TIME] - $now
+                                 )
+                        } @$kr_alarms
+                  ) .
               "\n"
             );
-        die "\a" if
-          ($self->[KR_SESSIONS]->{$event->[ST_SESSION]}->[SS_REFCOUNT] < 0);
       };
-      $self->_dispatch_state(@$event);
-      $self->_collect_garbage($event->[ST_SESSION]);
+
+      TRACE_SELECT and do {
+        warn ",----- SELECT BITS IN -----\n";
+        warn "| READ    : ", unpack('b*', $kr_vectors->[VEC_WR]), "\n";
+        warn "| WRITE   : ", unpack('b*', $kr_vectors->[VEC_WR]), "\n";
+        warn "| EXPEDITE: ", unpack('b*', $kr_vectors->[VEC_EX]), "\n";
+        warn "`--------------------------\n";
+      };
+
+      # Avoid looking at filehandles if we don't need to.
+
+      if ($timeout || keys(%$kr_handles)) {
+
+        # Check filehandles, or wait for a period of time to elapse.
+        my $hits = select( my $rout = $kr_vectors->[VEC_RD],
+                           my $wout = $kr_vectors->[VEC_WR],
+                           my $eout = $kr_vectors->[VEC_EX],
+                           ($timeout < 0) ? 0 : $timeout
+                         );
+
+        ASSERT_SELECT and do {
+          if ($hits < 0) {
+            die "select error: $!"
+              unless ( ($! == EINPROGRESS) or
+                       ($! == EWOULDBLOCK) or
+                       ($! == EINTR)
+                     );
+          }
+        };
+
+        TRACE_SELECT and do {
+          if ($hits > 0) {
+            warn "select hits = $hits\n";
+          }
+          elsif ($hits == 0) {
+            warn "select timed out...\n";
+          }
+          warn ",----- SELECT BITS OUT -----\n";
+          warn "| READ    : ", unpack('b*', $rout), "\n";
+          warn "| WRITE   : ", unpack('b*', $wout), "\n";
+          warn "| EXPEDITE: ", unpack('b*', $eout), "\n";
+          warn "`---------------------------\n";
+        };
+
+        # If select has seen filehandle activity, then gather up the
+        # active filehandles and synchronously dispatch events to the
+        # appropriate states.
+
+        if ($hits > 0) {
+
+          # This is where they're gathered.  It's a variant on a neat
+          # hack Silmaril came up with.
+
+          # -><- This does extra work.  Some of $%kr_handles don't
+          # have all their bits set (for example; VEX_EX is rarely
+          # used).  It might be more efficient to split this into
+          # three greps, for just the vectors that need to be checked.
+
+          # -><- It has been noted that map is slower than foreach
+          # when the size of a list is grown.  The list is exploded on
+          # the stack and manipulated with stack ops, which are slower
+          # than just pushing on a list.  Evil probably ensues here.
+
+          my @selects =
+            map { ( ( vec($rout, $_->[HND_FILENO], 1)
+                      ? values(%{$_->[HND_SESSIONS]->[VEC_RD]})
+                      : ( )
+                    ),
+                    ( vec($wout, $_->[HND_FILENO], 1)
+                      ? values(%{$_->[HND_SESSIONS]->[VEC_WR]})
+                      : ( )
+                    ),
+                    ( vec($eout, $_->[HND_FILENO], 1)
+                      ? values(%{$_->[HND_SESSIONS]->[VEC_EX]})
+                      : ( )
+                    )
+                  )
+                } values %$kr_handles;
+
+          TRACE_SELECT and do {
+            if (@selects) {
+              warn "found pending selects: @selects\n";
+            }
+          };
+
+          ASSERT_SELECT and do {
+            unless (@selects) {
+              die "found no selects, with $hits hits from select???\a\n";
+            }
+          };
+
+          # Dispatch the gathered selects.  They're dispatched right
+          # away because files will continue to unblock select until
+          # they're taken care of.  The idea is for select handlers to
+          # do whatever is needed to shut up select, and then they
+          # post something indicating what input was got.  Nobody
+          # seems to use them this way, though, not even the author.
+
+          foreach my $select (@selects) {
+            $self->_dispatch_state
+              ( $select->[HSS_SESSION], $select->[HSS_SESSION],
+                $select->[HSS_STATE], ET_SELECT,
+                [ $select->[HSS_HANDLE] ],
+                time(), __FILE__, __LINE__, undef
+              );
+          }
+        }
+      }
+
+      # Dispatch whatever alarms are due.
+
+      $now = time();
+      while ( @$kr_alarms and ($kr_alarms->[0]->[ST_TIME] <= $now) ) {
+
+        TRACE_QUEUE and do {
+          my $event = $kr_alarms->[0];
+          warn( sprintf('now(%.2f) ', $now - $^T) .
+                sprintf('sched_time(%.2f)  ', $event->[ST_TIME] - $^T) .
+                "seq($event->[ST_SEQ])  " .
+                "name($event->[ST_NAME])\n"
+              )
+        };
+
+        # Pull an alarm off the queue, and dispatch it.
+        my $event = shift @$kr_alarms;
+        {% ses_refcount_dec2 $event->[ST_SESSION], SS_ALCOUNT %}
+        $self->_dispatch_state(@$event);
+      }
+
+      # Dispatch one or more FIFOs, if they are available.  There is a
+      # lot of latency between executions of this code block, so we'll
+      # dispatch more than one event if we can.
+
+      my $stop_time = time() + FIFO_DISPATCH_TIME;
+      while (@$kr_states) {
+
+        TRACE_QUEUE and do {
+          my $event = $kr_states->[0];
+          warn( sprintf('now(%.2f) ', $now - $^T) .
+                sprintf('sched_time(%.2f)  ', $event->[ST_TIME] - $^T) .
+                "seq($event->[ST_SEQ])  " .
+                "name($event->[ST_NAME])\n"
+              )
+        };
+
+        # Pull an event off the queue, and dispatch it.
+        my $event = shift @$kr_states;
+        {% ses_refcount_dec2 $event->[ST_SESSION], SS_EVCOUNT %}
+        $self->_dispatch_state(@$event);
+
+        # If Time::HiRes isn't available, then the fairest thing to do
+        # is loop immediately.
+        last unless POE_HAS_TIME_HIRES;
+
+        # Otherwise, dispatch more FIFO events until $stop_time is
+        # reached.
+        last unless time() < $stop_time;
+      }
     }
   }
-                                        # buh-bye!
-  DEB_MAIN and do {
-    warn "POE stopped.\n";
-  };
-                                        # oh, by the way...
-  DEB_GC and do {
-    my $bits;
-    if (my $leaked = keys %{$self->[KR_SESSIONS]}) {
-      warn "*** KERNEL LEAK: sessions = $leaked\a\n";
-    }
-    $bits = unpack('b*', $self->[KR_VECTORS]->[VEC_RD]);
-    if (index($bits, '1') >= 0) {
-      warn "*** KERNEL LEAK: read bits = $bits\a\n";
-    }
-    $bits = unpack('b*', $self->[KR_VECTORS]->[VEC_WR]);
-    if (index($bits, '1') >= 0) {
-      warn "*** KERNEL LEAK: write bits = $bits\a\n";
-    }
-    $bits = unpack('b*', $self->[KR_VECTORS]->[VEC_EX]);
-    if (index($bits, '1') >= 0) {
-      warn "*** KERNEL LEAK: expedite bits = $bits\a\n";
-    }
-    if (my $leaked = keys %{$self->[KR_HANDLES]}) {
-      warn "*** KERNEL LEAK: handles = $leaked\a\n";
-    }
-    if (my $leaked = @{$self->[KR_STATES]}) {
-      warn "*** KERNEL LEAK: states = $leaked\a\n";
-    }
-    if (my $leaked = keys %{$self->[KR_ALIASES]}) {
-      warn "*** KERNEL LEAK: aliases = $leaked\a\n";
-    }
+
+  # The main loop is done, no matter which event library ran it.
+  # Let's make sure POE isn't leaking things.
+
+  ASSERT_GARBAGE and do {
+    {% kernel_leak_vec VEC_RD %}
+    {% kernel_leak_vec VEC_WR %}
+    {% kernel_leak_vec VEC_EX %}
+
+    {% kernel_leak_hash KR_PROCESSES   %}
+    {% kernel_leak_hash KR_SESSION_IDS %}
+    {% kernel_leak_hash KR_HANDLES     %}
+    {% kernel_leak_hash KR_SESSIONS    %}
+    {% kernel_leak_hash KR_ALIASES     %}
+
+    {% kernel_leak_array KR_ALARMS %}
+    {% kernel_leak_array KR_STATES %}
   };
 
-  DEB_PROFILE and do {
+  TRACE_PROFILE and do {
     my $title = ',----- State Profile ';
     $title .= '-' x (74 - length($title)) . ',';
     warn $title, "\n";
@@ -859,50 +1482,272 @@ sub run {
 }
 
 #------------------------------------------------------------------------------
+# Tk support.
 
-sub DESTROY {
-  my $self = shift;
-  # Destroy all sessions.  This will cascade destruction to all
-  # resources.  It's taken care of by Perl's own garbage collection.
-  # For completeness, I suppose a copy of POE::Kernel->run's leak
-  # detection should be included here.
+# Tk idle callback to dispatch FIFO states.  This steals a big chunk
+# of code from POE::Kernel::run().  Make this function's guts a macro
+# later, and use it in both places.
+
+sub _tk_fifo_callback {
+  my $self = $poe_kernel;
+
+  {% dispatch_one_from_fifo %}
+
+  # Perpetuate the dispatch loop as long as there are states enqueued.
+
+  if (defined $self->[KR_WATCHER_IDLE]) {
+    $self->[KR_WATCHER_IDLE]->cancel();
+    $self->[KR_WATCHER_IDLE] = undef;
+  }
+
+  # This nasty little hack is required because setting an afterIdle
+  # from a running afterIdle effectively blocks OS/2 Presentation
+  # Manager events.  This locks up its notion of a window manager.  I
+  # couldn't get anyone to test it on other platforms... (Hey, this could
+  # trash yoru desktop! Wanna try it?) :)
+
+  if (@{$self->[KR_STATES]}) {
+    $poe_tk_main_window->after
+      ( 0,
+        sub {
+          $self->[KR_WATCHER_IDLE] =
+            $poe_tk_main_window->afterIdle( \&_tk_fifo_callback )
+          unless defined $self->[KR_WATCHER_IDLE];
+        }
+      );
+  }
+
+  # Make sure the kernel can still run.
+  else {
+    {% test_for_idle_poe_kernel %}
+  }
+}
+
+# Tk timer callback to dispatch alarm states.  Same caveats about
+# macro-izing this code.
+
+sub _tk_alarm_callback {
+  my $self = $poe_kernel;
+
+  {% dispatch_due_alarms %}
+
+  # Register the next timed callback if there are alarms left.
+
+  if (@{$self->[KR_ALARMS]}) {
+
+    if (defined $self->[KR_WATCHER_TIMER]) {
+      $self->[KR_WATCHER_TIMER]->cancel();
+      $self->[KR_WATCHER_TIMER] = undef;
+    }
+
+    my $next_time = $self->[KR_ALARMS]->[0]->[ST_TIME] - time();
+    $next_time = 0 if $next_time < 0;
+
+    $self->[KR_WATCHER_TIMER] =
+      $poe_tk_main_window->after( $next_time * 1000,
+                                  \&_tk_alarm_callback
+                                );
+  }
+
+  # Make sure the kernel can still run.
+  else {
+    {% test_for_idle_poe_kernel %}
+  }
+}
+
+# Tk filehandle callback to dispatch selects.
+
+sub _tk_select_callback {
+  my $self = $poe_kernel;
+  my ($handle, $vector) = @_;
+
+  {% dispatch_ready_selects %}
+  {% test_for_idle_poe_kernel %}
 }
 
 #------------------------------------------------------------------------------
-# This is a dummy _invoke_state so the Kernel can pretend it's also a Session.
+# Event support.
+
+# Event idle callback to dispatch FIFO states.  This steals a big
+# chunk of code from POE::Kernel::run().  Make this functions guts a
+# macro later, and use it here, in POE::Kernel::run() and other FIFO
+# callbacks.
+
+sub _event_fifo_callback {
+  my $self = $poe_kernel;
+
+  {% dispatch_one_from_fifo %}
+
+  # Stop the idle watcher if there are no more state transitions in
+  # the Kernel's FIFO.
+
+  unless (@{$self->[KR_STATES]}) {
+    $self->[KR_WATCHER_IDLE]->stop();
+
+    # Make sure the kernel can still run.
+    {% test_for_idle_poe_kernel %}
+  }
+}
+
+# Event timer callback to dispatch alarm states.  Same caveats about
+# macro-izing this code.
+
+sub _event_alarm_callback {
+  my $self = $poe_kernel;
+
+  {% dispatch_due_alarms %}
+
+  # Register the next timed callback if there are alarms left.
+
+  if (@{$self->[KR_ALARMS]}) {
+    $self->[KR_WATCHER_TIMER]->at( $self->[KR_ALARMS]->[0]->[ST_TIME] );
+    $self->[KR_WATCHER_TIMER]->start();
+  }
+
+  # Make sure the kernel can still run.
+  else {
+    {% test_for_idle_poe_kernel %}
+  }
+}
+
+# Event filehandle callback to dispatch selects.
+
+sub _event_select_callback {
+  my $self = $poe_kernel;
+
+  my $event = shift;
+  my $watcher = $event->w;
+  my $handle = $watcher->fd;
+  my $vector = ( ( $event->got eq 'r' )
+                 ? VEC_RD
+                 : ( ( $event->got eq 'w' )
+                     ? VEC_WR
+                     : ( ( $event->got eq 'e' )
+                         ? VEC_EX
+                         : return
+                       )
+                   )
+               );
+
+  {% dispatch_ready_selects %}
+  {% test_for_idle_poe_kernel %}
+}
+
+#------------------------------------------------------------------------------
+
+sub DESTROY {
+  # Destroy all sessions.  This will cascade destruction to all
+  # resources.  It's taken care of by Perl's own garbage collection.
+  # For completeness, I suppose a copy of POE::Kernel->run's leak
+  # detection could be included here.
+}
+
+#------------------------------------------------------------------------------
+# _invoke_state is what _dispatch_state calls to dispatch a transition
+# event.  This is the kernel's _invoke_state so it can receive events.
+# These are mostly signals, which are propagated down in
+# _dispatch_state.
 
 sub _invoke_state {
   my ($self, $source_session, $state, $etc) = @_;
 
+  # POE::Kernel::fork was used, and an event loop was set up to reap
+  # children.  It's time to check for children waiting.
+
   if ($state eq EN_SCPOLL) {
 
-    while (my $child_pid = waitpid(-1, WNOHANG)) {
-      if (my $parent_session = delete $self->[KR_PROCESSES]->{$child_pid}) {
+    # Non-blocking wait for a child process.  If one was reaped,
+    # dispatch a SIGCHLD to the session who called fork.
+
+    my $pid = waitpid(-1, WNOHANG);
+
+    # A child stopped, or something.
+
+    if ($pid > 0) {
+
+      # Determine if the child process is really exiting and not just
+      # stopping for some other reason.  This is perl Perl Cookbook
+      # recipe 16.19 and the waitpid(2) manpage.
+
+      if (WIFEXITED($?)) {
+
+        # Map the process ID to a session reference.  First look for a
+        # session registered via $kernel->fork().  Next validate the
+        # session or signal everyone.
+
+        my $parent_session = delete $self->[KR_PROCESSES]->{$pid};
         $parent_session = $self
-          unless exists $self->[KR_SESSIONS]->{$parent_session};
+          unless ( (defined $parent_session) and
+                   exists $self->[KR_SESSIONS]->{$parent_session}
+                 );
+
+        # Enqueue the signal event.
+
         $self->_enqueue_state( $parent_session, $self,
                                EN_SIGNAL, ET_SIGNAL,
-                               [ 'CHLD', $child_pid, $? ], time(),
-                               __FILE__, __LINE__
+                               [ 'CHLD', $pid, $? ],
+                               time(), __FILE__, __LINE__
                              );
       }
+
+      # Enqueue an immediate subsequent wait in case another child
+      # process is waiting.
+
+      $self->_enqueue_state( $poe_kernel, $poe_kernel,
+                             EN_SCPOLL, ET_SCPOLL,
+                             [ ],
+                             time(), __FILE__, __LINE__
+                           );
+
+    }
+
+    # An error occurred.
+
+    elsif ($pid == -1) {
+
+      # waitpid(2) was interrupted.  Retry immediately.
+
+      if ($! == EINTR) {
+        $self->_enqueue_state( $poe_kernel, $poe_kernel,
+                               EN_SCPOLL, ET_SCPOLL,
+                               [ ],
+                               time(), __FILE__, __LINE__
+                             );
+      }
+
+      # Some other error occurred.  Assume we're stopping the wait
+      # loop.  Warn if it's something unexpected.
+
       else {
-        last;
+        unless (POE_HAS_EVENT) {
+          $SIG{CHLD} = \&_poe_signal_handler_child if exists $SIG{CHLD};
+          $SIG{CLD}  = \&_poe_signal_handler_child if exists $SIG{CLD};
+        }
+        warn $! if $! and $! != ECHILD;
       }
     }
 
-    if (keys %{$self->[KR_PROCESSES]}) {
-      $self->_enqueue_state( $self, $self, EN_SCPOLL, ET_SCPOLL,
-                             [], time() + 1, __FILE__, __LINE__
-                           );
+    # Nothing is left to wait for.  Stop the wait loop.
+
+    else {
+      unless (POE_HAS_EVENT) {
+        $SIG{CHLD} = \&_poe_signal_handler_child if exists $SIG{CHLD};
+        $SIG{CLD}  = \&_poe_signal_handler_child if exists $SIG{CLD};
+      }
     }
   }
+
+  # A signal was posted.  Because signals propagate depth-first, this
+  # _invoke_state is called last in the dispatch.  If the signal was
+  # SIGIDLE, then post a SIGZOMBIE if the main queue is still idle.
 
   elsif ($state eq EN_SIGNAL) {
     if ($etc->[0] eq 'IDLE') {
       unless (@{$self->[KR_STATES]} || keys(%{$self->[KR_HANDLES]})) {
-        $self->_enqueue_state( $self, $self, EN_SIGNAL, ET_SIGNAL,
-                               [ 'ZOMBIE' ], time(), __FILE__, __LINE__
+        $self->_enqueue_state( $self, $self,
+                               EN_SIGNAL, ET_SIGNAL,
+                               [ 'ZOMBIE' ],
+                               time(), __FILE__, __LINE__
                              );
       }
     }
@@ -915,80 +1760,101 @@ sub _invoke_state {
 # SESSIONS
 #==============================================================================
 
-sub session_create {
-  my $self = shift;
-  carp "POE::Kernel::session_create() is depreciated";
-  new POE::Session(@_);
-}
+# Dispatch _start to a session, allocating it in the kernel's data
+# structures as a side effect.
 
 sub session_alloc {
   my ($self, $session, @args) = @_;
   my $kr_active_session = $self->[KR_ACTIVE_SESSION];
 
-  DEB_RELATION and do {
-    die "session ", $session->ID, " already exists\a"
+  ASSERT_RELATIONS and do {
+    die {% ssid %}, " already exists\a"
       if (exists $self->[KR_SESSIONS]->{$session});
   };
 
   $self->_dispatch_state( $session, $kr_active_session,
-                          EN_START, ET_START, \@args,
+                          EN_START, ET_START,
+                          \@args,
                           time(), __FILE__, __LINE__, undef
                         );
-  $self->_enqueue_state( $session, $kr_active_session, EN_GC, ET_GC,
-                         [], time(), __FILE__, __LINE__
+  $self->_enqueue_state( $session, $kr_active_session,
+                         EN_GC, ET_GC,
+                         [],
+                         time(), __FILE__, __LINE__
                        );
 }
+
+# Dispatch _stop to a session, removing it from the kernel's data
+# structures as a side effect.
 
 sub session_free {
   my ($self, $session) = @_;
 
-  DEB_RELATION and do {
-    die "session ", $session->ID, " doesn't exist\a"
+  ASSERT_RELATIONS and do {
+    die {% ssid %}, " doesn't exist\a"
       unless (exists $self->[KR_SESSIONS]->{$session});
   };
 
   $self->_dispatch_state( $session, $self->[KR_ACTIVE_SESSION],
-                          EN_STOP, ET_STOP, [],
+                          EN_STOP, ET_STOP,
+                          [],
                           time(), __FILE__, __LINE__, undef
                         );
-  $self->_collect_garbage($session);
 }
 
-sub _collect_garbage {
+# Debugging subs for reference count checks.
+
+sub trace_gc_refcount {
   my ($self, $session) = @_;
-                                        # check for death by starvation
-  if (($session ne $self) && (exists $self->[KR_SESSIONS]->{$session})) {
 
-    my $ss = $self->[KR_SESSIONS]->{$session};
+  my ($package, $file, $line) = caller;
+  warn "tracing gc refcount from $file at $line\n";
 
-    DEB_GC and do {
-      warn ",----- GC test for session ", $session->ID, " -----\n";
-      warn "| ref. count    : $ss->[SS_REFCOUNT]\n";
-      warn "| event count   : $ss->[SS_EVCOUNT]\n";
-      warn "| child sessions: ", scalar(keys(%{$ss->[SS_CHILDREN]})), "\n";
-      warn "| handles in use: ", scalar(keys(%{$ss->[SS_HANDLES]})), "\n";
-      warn "| aliases in use: ", scalar(keys(%{$ss->[SS_ALIASES]})), "\n";
-      warn "`---------------------------------------------------\n";
-      warn "<<< GARBAGE: $session\n" unless ($ss->[SS_REFCOUNT]);
-    };
+  my $ss = $self->[KR_SESSIONS]->{$session};
+  warn "+----- GC test for ", {% ssid %}, " ($session) -----\n";
+  warn "| total refcnt  : $ss->[SS_REFCOUNT]\n";
+  warn "| event count   : $ss->[SS_EVCOUNT]\n";
+  warn "| alarm count   : $ss->[SS_ALCOUNT]\n";
+  warn "| child sessions: ", scalar(keys(%{$ss->[SS_CHILDREN]})), "\n";
+  warn "| handles in use: ", scalar(keys(%{$ss->[SS_HANDLES]})), "\n";
+  warn "| aliases in use: ", scalar(keys(%{$ss->[SS_ALIASES]})), "\n";
+  warn "| extra refs    : ", scalar(keys(%{$ss->[SS_EXTRA_REFS]})), "\n";
+  warn "+---------------------------------------------------\n";
+  warn("| ", {% ssid %}, " is garbage; recycling it...\n")
+    unless $ss->[SS_REFCOUNT];
+  warn "+---------------------------------------------------\n";
+}
 
-    DEB_REFCOUNT and do {
-      my $calc_ref = $ss->[SS_EVCOUNT] +
-        scalar(keys(%{$ss->[SS_CHILDREN]})) +
-        scalar(keys(%{$ss->[SS_HANDLES]})) +
-        scalar(keys(%{$ss->[SS_ALIASES]}));
-      die if ($calc_ref != $ss->[SS_REFCOUNT]);
+sub assert_gc_refcount {
+  my ($self, $session) = @_;
+  my $ss = $self->[KR_SESSIONS]->{$session};
 
-      foreach (values %{$ss->[SS_HANDLES]}) {
-        $calc_ref = $_->[SH_VECCOUNT]->[VEC_RD] +
-          $_->[SH_VECCOUNT]->[VEC_WR] + $_->[SH_VECCOUNT]->[VEC_EX];
-        die if ($calc_ref != $_->[SH_REFCOUNT]);
-      }
-    };
+  # Calculate the total reference count based on the number of
+  # discrete references kept.
 
-    unless ($ss->[SS_REFCOUNT]) {
-      $self->session_free($session);
-    }
+  my $calc_ref =
+    ( $ss->[SS_EVCOUNT] +
+      $ss->[SS_ALCOUNT] +
+      scalar(keys(%{$ss->[SS_CHILDREN]})) +
+      scalar(keys(%{$ss->[SS_HANDLES]})) +
+      scalar(keys(%{$ss->[SS_EXTRA_REFS]})) +
+      scalar(keys(%{$ss->[SS_ALIASES]}))
+    );
+
+  # The calculated reference count really ought to match the one POE's
+  # been keeping track of all along.
+
+  die {% ssid %}, " has a reference count inconsistency\n"
+    if $calc_ref != $ss->[SS_REFCOUNT];
+
+  # Compare held handles against reference counts for them.
+
+  foreach (values %{$ss->[SS_HANDLES]}) {
+    $calc_ref = $_->[SH_VECCOUNT]->[VEC_RD] +
+      $_->[SH_VECCOUNT]->[VEC_WR] + $_->[SH_VECCOUNT]->[VEC_EX];
+
+    die {% ssid %}, " has a handle reference count inconsistency\n"
+      if $calc_ref != $_->[SH_REFCOUNT];
   }
 }
 
@@ -998,86 +1864,94 @@ sub _collect_garbage {
 
 my $queue_seqnum = 0;
 
-sub debug_insert {
-  my ($states, $index, $time) = @_;
-
-  if ($index==0) {
-    warn( "<<<<< inserting time($time) at $index, before ",
-          $states->[$index]->[ST_TIME],
-          " >>>>>\n"
-        );
-  }
-  elsif ($index == @$states) {
-    warn( "<<<<< inserting time($time) at $index, after ",
-          $states->[$index-1]->[ST_TIME],
-          " >>>>>\n"
-        );
-  }
-  else {
-    warn( "<<<<< inserting time($time) at $index, between low(",
-          $states->[$index-1]->[ST_TIME],
-          ") and high(", 
-          $states->[$index]->[ST_TIME],
-          ") >>>>>\n"
-        );
-  }
-}
-
 sub _enqueue_state {
   my ( $self, $session, $source_session, $state, $type, $etc, $time,
        $file, $line
      ) = @_;
 
-  my $state_to_queue =
-    [ $session, $source_session,
-      $state, $type, $etc, $time,
-      $file, $line, ++$queue_seqnum,
-    ];
+  TRACE_EVENTS and do {
+    warn "}}} enqueuing state '$state' for ", {% ssid %}, "\n";
+  };
 
-  DEB_EVENTS and do {
-    warn "}}} enqueuing $state for session ", $session->ID, "\n";
+  # These things are FIFO; just enqueue it.
+
+  if (exists $self->[KR_SESSIONS]->{$session}) {
+
+    push @{$self->[KR_STATES]}, {% state_to_enqueue %};
+    {% ses_refcount_inc2 $session, SS_EVCOUNT %}
+
+    # If using Tk and the FIFO queue now has only one event, then
+    # register a Tk idle callback to resume the dispatch loop.
+
+    if ( POE_HAS_TK ) {
+      $self->[KR_WATCHER_IDLE] =
+        $poe_tk_main_window->afterIdle( \&_tk_fifo_callback );
+    }
+
+    # If using Event and the FIFO queue now has only one event, then
+    # start the Event idle watcher to resume the dispatch loop.
+
+    if ( POE_HAS_EVENT ) {
+      $self->[KR_WATCHER_IDLE]->again();
+    }
+
+  }
+  else {
+    warn ">>>>> ", join('; ', keys(%{$self->[KR_SESSIONS]})), " <<<<<\n";
+    croak "can't enqueue state($state) for nonexistent session($session)\a\n";
+  }
+}
+
+sub _enqueue_alarm {
+  my ( $self, $session, $source_session, $state, $type, $etc, $time,
+       $file, $line
+     ) = @_;
+
+  TRACE_EVENTS and do {
+    warn "}}} enqueuing alarm '$state' for ", {% ssid %}, "\n";
   };
 
   if (exists $self->[KR_SESSIONS]->{$session}) {
-    my $kr_states = $self->[KR_STATES];
+    my $kr_alarms = $self->[KR_ALARMS];
 
-    # Special cases: No states in the queue.  Put the new state in the
+    # Special case: No alarms in the queue.  Put the new alarm in the
     # queue, and be done with it.
-    unless (@$kr_states) {
-      $kr_states->[0] = $state_to_queue;
+    unless (@$kr_alarms) {
+      $kr_alarms->[0] = {% state_to_enqueue %};
     }
 
     # Special case: New state belongs at the end of the queue.  Push
     # it, and be done with it.
-    elsif ($time >= $kr_states->[-1]->[ST_TIME]) {
-      push @$kr_states, $state_to_queue;
+    elsif ($time >= $kr_alarms->[-1]->[ST_TIME]) {
+      push @$kr_alarms, {% state_to_enqueue %};
     }
 
     # Special case: New state comes before earliest state.  Unshift
     # it, and be done with it.
-    elsif ($time < $kr_states->[0]->[ST_TIME]) {
-      unshift @$kr_states, $state_to_queue;
+    elsif ($time < $kr_alarms->[0]->[ST_TIME]) {
+      unshift @$kr_alarms, {% state_to_enqueue %};
     }
 
-    # Special case: Two states in the queue.  The new state enters
-    # between them.
-    elsif (@$kr_states == 2) {
-      splice(@$kr_states, 1, 0, $state_to_queue);
+    # Special case: Two alarms in the queue.  The new state enters
+    # between them, because it's not before the first one or after the
+    # last one.
+    elsif (@$kr_alarms == 2) {
+      splice @$kr_alarms, 1, 0, {% state_to_enqueue %};
     }
 
     # Small queue.  Perform a reverse linear search on the assumption
     # that (a) a linear search is fast enough on small queues; and (b)
     # most events will be posted for "now" which tends to be towards
     # the end of the queue.
-    elsif (@$kr_states < 32) {
-      my $index = @$kr_states;
+    elsif (@$kr_alarms < 32) {
+      my $index = @$kr_alarms;
       while ($index--) {
-        if ($time >= $kr_states->[$index]->[ST_TIME]) {
-          splice(@$kr_states, $index+1, 0, $state_to_queue);
+        if ($time >= $kr_alarms->[$index]->[ST_TIME]) {
+          splice @$kr_alarms, $index+1, 0, {% state_to_enqueue %};
           last;
         }
         elsif ($index == 0) {
-          unshift @$kr_states, $state_to_queue;
+          unshift @$kr_alarms, {% state_to_enqueue %};
         }
       }
     }
@@ -1085,35 +1959,28 @@ sub _enqueue_state {
     # And finally, we have this large queue, and the program has
     # already wasted enough time.
     else {
-      my $upper = @$kr_states - 1;
+      my $upper = @$kr_alarms - 1;
       my $lower = 0;
       while ('true') {
         my $midpoint = ($upper + $lower) >> 1;
 
-        DEB_INSERT and do {
-          warn "<<<<< lo($lower)  mid($midpoint)  hi($upper) >>>>>\n";
-        };
-
         # Upper and lower bounds crossed.  No match; insert at the
         # lower bound point.
         if ($upper < $lower) {
-          DEB_INSERT and do {
-            &debug_insert($kr_states, $lower, $time);
-          };
-          splice(@$kr_states, $lower, 0, $state_to_queue);
+          splice @$kr_alarms, $lower, 0, {% state_to_enqueue %};
           last;
         }
 
         # The key at the midpoint is too high.  The element just below
         # the midpoint becomes the new upper bound.
-        if ($time < $kr_states->[$midpoint]->[ST_TIME]) {
+        if ($time < $kr_alarms->[$midpoint]->[ST_TIME]) {
           $upper = $midpoint - 1;
           next;
         }
 
         # The key at the midpoint is too low.  The element just above
         # the midpoint becomes the new lower bound.
-        if ($time > $kr_states->[$midpoint]->[ST_TIME]) {
+        if ($time > $kr_alarms->[$midpoint]->[ST_TIME]) {
           $lower = $midpoint + 1;
           next;
         }
@@ -1122,30 +1989,44 @@ sub _enqueue_state {
         # higher keys until the midpoint points to an element with a
         # higher key.  Insert the new state before it.
         $midpoint++
-          while ( ($midpoint < @$kr_states) 
-                  and ($time == $kr_states->[$midpoint]->[ST_TIME])
+          while ( ($midpoint < @$kr_alarms) 
+                  and ($time == $kr_alarms->[$midpoint]->[ST_TIME])
                 );
-        DEB_INSERT and do {
-          &debug_insert($kr_states, $midpoint, $time);
-        };
-        splice(@$kr_states, $midpoint, 0, $state_to_queue);
+        splice @$kr_alarms, $midpoint, 0, {% state_to_enqueue %};
         last;
       }
     }
 
-    $self->[KR_SESSIONS]->{$session}->[SS_EVCOUNT]++;
-    $self->[KR_SESSIONS]->{$session}->[SS_REFCOUNT]++;
+    # If using Tk and the alarm queue now has only one event, then
+    # register a Tk timed callback to dispatch it when it becomes due.
+    if ( POE_HAS_TK and @{$self->[KR_ALARMS]} == 1 ) {
 
-    DEB_REFCOUNT and do {
-      warn("+++ enqueuing state for session ", $session->ID, ": ",
-           $self->[KR_SESSIONS]->{$session}->[SS_REFCOUNT], "\n"
-          );
-    };
+      if (defined $self->[KR_WATCHER_TIMER]) {
+        $self->[KR_WATCHER_TIMER]->cancel();
+        $self->[KR_WATCHER_TIMER] = undef;
+      }
+
+      my $next_time = $self->[KR_ALARMS]->[0]->[ST_TIME] - time();
+      $next_time = 0 if $next_time < 0;
+      $self->[KR_WATCHER_TIMER] =
+        $poe_tk_main_window->after( $next_time * 1000,
+                                    \&_tk_alarm_callback
+                                  );
+    }
+
+    # If using Event and the alarm queue now has only one event, then
+    # start the Event timer to dispatch it when it becomes due.
+    if ( POE_HAS_EVENT and @{$self->[KR_ALARMS]} == 1 ) {
+      $self->[KR_WATCHER_TIMER]->at( $self->[KR_ALARMS]->[0]->[ST_TIME] );
+      $self->[KR_WATCHER_TIMER]->start();
+    }
+
+    # Manage reference counts.
+    {% ses_refcount_inc2 $session, SS_ALCOUNT %}
   }
   else {
     warn ">>>>> ", join('; ', keys(%{$self->[KR_SESSIONS]})), " <<<<<\n";
-    warn "($$ = $etc->[0])";
-    croak "can't enqueue state($state) for nonexistent session($session)\a\n";
+    croak "can't enqueue alarm($state) for nonexistent session($session)\a\n";
   }
 }
 
@@ -1154,20 +2035,22 @@ sub _enqueue_state {
 
 sub post {
   my ($self, $destination, $state_name, @etc) = @_;
-  my ($file, $line) = (caller)[1,2];
 
-  if (defined($destination = $self->alias_resolve($destination))) {
-    $self->_enqueue_state( $destination, $self->[KR_ACTIVE_SESSION],
-                           $state_name, ET_USER, \@etc, time(),
-                           $file, $line
-                         );
-    return 1;
-  }
-  DEB_STRICT and do {
-    warn "Cannot resolve alias $destination into a session\n";
-    confess;
-  };
-  return undef;
+  # Attempt to resolve the destination session reference against
+  # various things.
+
+  my $session = {% alias_resolve $destination %};
+  {% test_resolve $destination, $session %}
+
+  # Enqueue the state for "now", which simulates FIFO in our
+  # time-ordered queue.
+
+  $self->_enqueue_state( $session, $self->[KR_ACTIVE_SESSION],
+                         $state_name, ET_USER,
+                         \@etc,
+                         time(), (caller)[1,2]
+                       );
+  return 1;
 }
 
 #------------------------------------------------------------------------------
@@ -1175,13 +2058,15 @@ sub post {
 
 sub yield {
   my ($self, $state_name, @etc) = @_;
-  my ($file, $line) = (caller)[1,2];
 
-  $self->_enqueue_state( $self->[KR_ACTIVE_SESSION],
-                         $self->[KR_ACTIVE_SESSION],
-                         $state_name, ET_USER, \@etc, time(),
-                         $file, $line
+  my $kr_active_session = $self->[KR_ACTIVE_SESSION];
+  $self->_enqueue_state( $kr_active_session, $kr_active_session,
+                         $state_name, ET_USER,
+                         \@etc,
+                         time(), (caller)[1,2]
                        );
+
+  undef;
 }
 
 #------------------------------------------------------------------------------
@@ -1189,21 +2074,32 @@ sub yield {
 
 sub call {
   my ($self, $destination, $state_name, @etc) = @_;
-  my ($file, $line) = (caller)[1,2];
 
-  if (defined($destination = $self->alias_resolve($destination))) {
-    $! = 0;
-    return $self->_dispatch_state( $destination,
-                                   $self->[KR_ACTIVE_SESSION],
-                                   $state_name, ET_USER, \@etc,
-                                   time(), $file, $line, undef
-                                 );
-  }
-  DEB_STRICT and do {
-    warn "Cannot resolve alias $destination into session\n";
-    confess;
-  };
-  return undef;
+  # Attempt to resolve the destination session reference against
+  # various things.
+
+  my $session = {% alias_resolve $destination %};
+  {% test_resolve $destination, $session %}
+
+  # Dispatch the state right now, bypassing the queue altogether.
+  # This tends to be a Bad Thing to Do, but it's useful for
+  # synchronous events like selects'.
+
+  # -><- The difference between synchronous and asynchronous events
+  # should be made more clear in the documentation, so that people
+  # have a tendency not to abuse them.  I discovered in xws that that
+  # mixing the two types makes it harder than necessary to write
+  # deterministic programs, but the difficulty can be ameliorated if
+  # programmers set some base rules and stick to them.
+
+  my $return_value =
+    $self->_dispatch_state( $session, $self->[KR_ACTIVE_SESSION],
+                            $state_name, ET_CALL,
+                            \@etc,
+                            time(), (caller)[1,2], undef
+                          );
+  $! = 0;
+  return $return_value;
 }
 
 #------------------------------------------------------------------------------
@@ -1214,14 +2110,14 @@ sub queue_peek_alarms {
   my @pending_alarms;
 
   my $kr_active_session = $self->[KR_ACTIVE_SESSION];
-  my $state_count = $self->[KR_SESSIONS]->{$kr_active_session}->[SS_EVCOUNT];
+  my $alarm_count = $self->[KR_SESSIONS]->{$kr_active_session}->[SS_ALCOUNT];
 
-  foreach my $state (@{$self->[KR_STATES]}) {
-    last unless $state_count;
-    next unless $state->[ST_SESSION] eq $kr_active_session;
-    next unless $state->[ST_TYPE] & ET_ALARM;
-    push @pending_alarms, $state->[ST_NAME];
-    $state_count--;
+  foreach my $alarm (@{$self->[KR_ALARMS]}) {
+    last unless $alarm_count;
+    next unless $alarm->[ST_SESSION] == $kr_active_session;
+    next unless $alarm->[ST_TYPE] & ET_ALARM;
+    push @pending_alarms, $alarm->[ST_NAME];
+    $alarm_count--;
   }
 
   @pending_alarms;
@@ -1234,71 +2130,86 @@ sub queue_peek_alarms {
 sub alarm {
   my ($self, $state, $time, @etc) = @_;
   my $kr_active_session = $self->[KR_ACTIVE_SESSION];
-  my ($file, $line) = (caller)[1,2];
-                                        # remove alarm (all instances)
-  my $index = scalar(@{$self->[KR_STATES]});
+
+  return EINVAL unless defined $state;
+
+  # Remove all previous instances of the alarm.
+  my $index = scalar(@{$self->[KR_ALARMS]});
   while ($index--) {
-    if ( ($self->[KR_STATES]->[$index]->[ST_SESSION] eq $kr_active_session) &&
-         ($self->[KR_STATES]->[$index]->[ST_TYPE] & ET_ALARM) &&
-         ($self->[KR_STATES]->[$index]->[ST_NAME] eq $state)
+    if ( ($self->[KR_ALARMS]->[$index]->[ST_TYPE] & ET_ALARM) &&
+         ($self->[KR_ALARMS]->[$index]->[ST_SESSION] == $kr_active_session) &&
+         ($self->[KR_ALARMS]->[$index]->[ST_NAME] eq $state)
     ) {
-      $self->[KR_SESSIONS]->{$kr_active_session}->[SS_EVCOUNT]--;
-      DEB_REFCOUNT and do {
-        die if ($self->[KR_SESSIONS]->{$kr_active_session}->[SS_EVCOUNT] < 0);
-      };
-      $self->[KR_SESSIONS]->{$kr_active_session}->[SS_REFCOUNT]--;
-      DEB_REFCOUNT and do {
-        warn("--- removing alarm for session ", $kr_active_session->ID, ": ",
-             $self->[KR_SESSIONS]->{$kr_active_session}->[SS_REFCOUNT], "\n"
-            );
-        die if ($self->[KR_SESSIONS]->{$kr_active_session}->[SS_REFCOUNT] < 0);
-      };
-      splice(@{$self->[KR_STATES]}, $index, 1);
+      {% ses_refcount_dec2 $kr_active_session, SS_ALCOUNT %}
+      splice(@{$self->[KR_ALARMS]}, $index, 1);
     }
   }
-                                        # add alarm (if non-zero time)
-  if ($time) {
-    if ($time < (my $now = time())) {
-      $time = $now;
-    }
-    $self->_enqueue_state( $kr_active_session, $kr_active_session,
-                           $state, ET_ALARM, [ @etc ], $time,
-                           $file, $line
+
+  # If using Tk and the alarm queue is empty, then discard the Tk
+  # alarm callback.
+  if (POE_HAS_TK and @{$self->[KR_ALARMS]} == 0) {
+    # -><- Remove the idle handler.
+  }
+
+  # If using Event and the alarm queue is empty, then ensure that the
+  # timer has stopped.
+  if (POE_HAS_EVENT and @{$self->[KR_ALARMS]} == 0) {
+    $self->[KR_WATCHER_TIMER]->stop();
+  }
+
+  # Add the new alarm if it includes a time.
+  if (defined $time) {
+    $self->_enqueue_alarm( $kr_active_session, $kr_active_session,
+                           $state, ET_ALARM,
+                           [ @etc ],
+                           $time, (caller)[1,2]
                          );
   }
+
+  return 0;
 }
 
-# This will be a version of alarm that doesn't clobber existing ones.
+# Add an alarm without clobbenig previous alarms of the same name.
 sub alarm_add {
   my ($self, $state, $time, @etc) = @_;
-  my $kr_active_session = $self->[KR_ACTIVE_SESSION];
-  my ($file, $line) = (caller)[1,2];
 
-  if ($time < (my $now = time())) {
-    $time = $now;
-  }
-  $self->_enqueue_state( $kr_active_session, $kr_active_session,
-                         $state, ET_ALARM, [ @etc ], $time,
-                         $file, $line
+  return EINVAL unless defined $state and defined $time;
+
+  my $kr_active_session = $self->[KR_ACTIVE_SESSION];
+  $self->_enqueue_alarm( $kr_active_session, $kr_active_session,
+                         $state, ET_ALARM,
+                         [ @etc ],
+                         $time, (caller)[1,2]
                        );
+
+  return 0;
 }
 
+# Add a delay, which is just an alarm relative to the current time.
 sub delay {
   my ($self, $state, $delay, @etc) = @_;
+
+  return EINVAL unless defined $state;
+
   if (defined $delay) {
     $self->alarm($state, time() + $delay, @etc);
   }
   else {
-    $self->alarm($state, 0);
+    $self->alarm($state);
   }
+
+  return 0;
 }
 
-# This will be a version of delay that doesn't clobber existing ones.
+# Add a delay without clobbering previous delays of the same name.
 sub delay_add {
   my ($self, $state, $delay, @etc) = @_;
-  if (defined $delay) {
-    $self->alarm_add($state, time() + $delay, @etc);
-  }
+
+  return EINVAL unless defined $state and defined $delay;
+
+  $self->alarm_add($state, time() + $delay, @etc);
+
+  return 0;
 }
 
 #==============================================================================
@@ -1308,21 +2219,33 @@ sub delay_add {
 sub _internal_select {
   my ($self, $session, $handle, $state, $select_index) = @_;
   my $kr_handles = $self->[KR_HANDLES];
-                                        # register a select state
+
+  # Register a select state.
   if ($state) {
     unless (exists $kr_handles->{$handle}) {
-      $kr_handles->{$handle} = [ $handle, 0, [ 0, 0, 0 ], [ { }, { }, { } ] ];
-                                        # for DOSISH systems like OS/2
+      $kr_handles->{$handle} =
+        [ $handle,                      # HND_HANDLE
+          0,                            # HND_REFCOUNT
+          [ 0, 0, 0 ],                  # HND_VECCOUNT (VEC_RD, VEC_WR, VEC_EX)
+          [ { }, { }, { } ],            # HND_SESSIONS (VEC_RD, VEC_WR, VEC_EX)
+          fileno($handle)               # HND_FILENO
+        ];
+
+      # For DOSISH systems like OS/2
       binmode($handle);
-                                        # set the handle non-blocking
-                                        # do it the Win32 way
+
+      # Make the handle stop blocking, the Windows way.
       if ($^O eq 'MSWin32') {
         my $set_it = "1";
-                                  # 126 is FIONBIO
-        ioctl($handle, 126 | (ord('f')<<8) | (4<<16) | 0x80000000, $set_it)
-          or croak "Can't set the handle non-blocking: $!\n";
+
+        # 126 is FIONBIO (some docs say 0x7F << 16)
+        ioctl( $handle,
+               0x80000000 | (4<<16) | (ord('f')<<8) | 126,
+               $set_it
+             ) or die "Can't set the handle non-blocking: $!";
       }
-                                  # do it the way everyone else does
+
+      # Make the handle stop blocking, the POSIX way.
       else {
         my $flags = fcntl($handle, F_GETFL, 0)
           or croak "fcntl fails with F_GETFL: $!\n";
@@ -1330,37 +2253,107 @@ sub _internal_select {
           or croak "fcntl fails with F_SETFL: $!\n";
       }
 
-# This depends heavily on socket.ph, or somesuch.  It's way
-# unportable.  I can't begin to figure out a way to make this work
-# everywhere, so I'm not even going to try.
-#       setsockopt($handle, SOL_SOCKET, &TCP_NODELAY, 1)
-#         or die "Couldn't disable Nagle's algorithm: $!\a\n";
+      # This depends heavily on socket.ph, or somesuch.  It's
+      # extremely unportable.  I can't begin to figure out a way to
+      # make this work everywhere, so I'm not even going to try.
+      #
+      # setsockopt($handle, SOL_SOCKET, &TCP_NODELAY, 1)
+      #   or die "Couldn't disable Nagle's algorithm: $!\a\n";
 
-                                        # turn off buffering
+      # Turn off buffering.
       select((select($handle), $| = 1)[0]);
     }
-                                        # KR_HANDLES
+
+    # KR_HANDLES
     my $kr_handle = $kr_handles->{$handle};
+
+    # If this session hasn't already been watching the filehandle,
+    # then modify the handle's reference counts and perhaps turn on
+    # the appropriate select bit.
+
     unless (exists $kr_handle->[HND_SESSIONS]->[$select_index]->{$session}) {
+
+      # Increment the handle's vector (Read, Write or Expedite)
+      # reference count.  This helps the kernel know when to manage
+      # the handle's corresponding vector bit.
+
       $kr_handle->[HND_VECCOUNT]->[$select_index]++;
+
+      # If this is the first session to watch the handle, then turn
+      # its select bit on.
+
       if ($kr_handle->[HND_VECCOUNT]->[$select_index] == 1) {
         vec($self->[KR_VECTORS]->[$select_index], fileno($handle), 1) = 1;
+
+        # If we're using Tk, then we tell it to watch this filehandle
+        # for us.  This is in lieu of our own select code.
+
+        if (POE_HAS_TK) {
+
+          # The Tk documentation implies by omission that expedited
+          # filehandles aren't, uh, handled.  This is part 1 of 2.
+
+          confess "Tk does not support expedited filehandles"
+            if $select_index == VEC_EX;
+
+          $poe_tk_main_window->fileevent
+            ( $handle,
+
+              # It can only be VEC_RD or VEC_WR here (VEC_EX is
+              # checked a few lines up).
+              ( ( $select_index == VEC_RD ) ? 'readable' : 'writable' ),
+
+              [ \&_tk_select_callback, $handle, $select_index ],
+            );
+        }
+
+        # If we're using Event, then we tell it to watch this
+        # filehandle for us.  This is in lieu of our own select code.
+
+        if (POE_HAS_EVENT) {
+
+          $kr_handle->[HND_WATCHERS]->[$select_index] =
+            Event->io
+              ( fd => $handle,
+                poll => ( ( $select_index == VEC_RD )
+                          ? 'r'
+                          : ( ( $select_index == VEC_WR )
+                              ? 'w'
+                              : 'e'
+                            )
+                        ),
+                cb => \&_event_select_callback,
+              );
+        }
       }
+
+      # Increment the handle's overall reference count (which is the
+      # sum of its read, write and expedite counts but kept separate
+      # for faster runtime checking).
+
       $kr_handle->[HND_REFCOUNT]++;
     }
+
+    # Record the session parameters in the kernel's handle structure,
+    # so we know what to do when the watcher unblocks.  This
+    # overwrites a previous value, if any, or adds a new one.
+
     $kr_handle->[HND_SESSIONS]->[$select_index]->{$session} =
       [ $handle, $session, $state ];
-                                        # SS_HANDLES
+
+    # SS_HANDLES
     my $kr_session = $self->[KR_SESSIONS]->{$session};
+
+    # If the session hasn't already been watching the filehandle, then
+    # register the filehandle in the session's structure.
+
     unless (exists $kr_session->[SS_HANDLES]->{$handle}) {
       $kr_session->[SS_HANDLES]->{$handle} = [ $handle, 0, [ 0, 0, 0 ] ];
-      $kr_session->[SS_REFCOUNT]++;
-      DEB_REFCOUNT and do {
-        warn("+++ added select for session ", $session->ID, ": ",
-             $kr_session->[SS_REFCOUNT], "\n"
-            );
-      };
+      {% ses_refcount_inc $session %}
     }
+
+    # Modify the session's handle structure's reference counts, so the
+    # session knows it has a reason to live.
 
     my $ss_handle = $kr_session->[SS_HANDLES]->{$handle};
     unless ($ss_handle->[SH_VECCOUNT]->[$select_index]) {
@@ -1368,22 +2361,89 @@ sub _internal_select {
       $ss_handle->[SH_REFCOUNT]++;
     }
   }
-                                        # remove a state, and possibly more
+
+  # Remove a select from the kernel, and possibly trigger the
+  # session's destruction.
+
   else {
-                                        # KR_HANDLES
+    # KR_HANDLES
+
+    # Make sure the handle is deregistered with the kernel.
+
     if (exists $kr_handles->{$handle}) {
       my $kr_handle = $kr_handles->{$handle};
+
+      # Make sure the handle was registered to the requested session.
+
       if (exists $kr_handle->[HND_SESSIONS]->[$select_index]->{$session}) {
+
+        # Remove the handle from the kernel's session record.
+
         delete $kr_handle->[HND_SESSIONS]->[$select_index]->{$session};
+
+        # Decrement the handle's reference count.
+
         $kr_handle->[HND_VECCOUNT]->[$select_index]--;
-        DEB_REFCOUNT and do {
+        ASSERT_REFCOUNT and do {
           die if ($kr_handle->[HND_VECCOUNT]->[$select_index] < 0);
         };
+
+        # If the "vector" count drops to zero, then stop selecting the
+        # handle.
+
         unless ($kr_handle->[HND_VECCOUNT]->[$select_index]) {
           vec($self->[KR_VECTORS]->[$select_index], fileno($handle), 1) = 0;
+
+          # If we're using Tk, then we tell it to stop watching this
+          # filehandle for us.  This is is lieu of our own select
+          # code.
+
+          if (POE_HAS_TK) {
+
+            # The Tk documentation implies by omission that expedited
+            # filehandles aren't, uh, handled.  This is part 2 of 2.
+
+            confess "Tk does not support expedited filehandles"
+              if $select_index == VEC_EX;
+
+            $poe_tk_main_window->fileevent
+              ( $handle,
+
+                # It can only be VEC_RD or VEC_WR here (VEC_EX is
+                # checked a few lines up).
+                ( ( $select_index == VEC_RD ) ? 'readable' : 'writable' ),
+
+                # Nothing here!  Callback all gone!
+                ''
+
+              );
+          }
+
+          # If we're using Event, then we tell it to stop watching
+          # this filehandle for us.  This is in lieu of our own select
+          # code.
+
+          if (POE_HAS_EVENT) {
+            $kr_handle->[HND_WATCHERS]->[$select_index]->cancel();
+            $kr_handle->[HND_WATCHERS]->[$select_index] = undef;
+          }
+
+          # Shrink the bit vector by chopping zero octets from the
+          # end.  Octets because that's the minimum size of a bit
+          # vector chunk that Perl manages.  Always keep at least one
+          # octet around, even if it's 0.
+
+          $self->[KR_VECTORS]->[$select_index] =~ s/(.)\000+$/$1/;
         }
+
+        # Decrement the kernel record's handle reference count.  If
+        # the handle is done being used, then delete it from the
+        # kernel's record structure.  This initiates Perl's garbage
+        # collection on it, as soon as whatever else in "user space"
+        # frees it.
+
         $kr_handle->[HND_REFCOUNT]--;
-        DEB_REFCOUNT and do {
+        ASSERT_REFCOUNT and do {
           die if ($kr_handle->[HND_REFCOUNT] < 0);
         };
         unless ($kr_handle->[HND_REFCOUNT]) {
@@ -1391,85 +2451,122 @@ sub _internal_select {
         }
       }
     }
-                                        # SS_HANDLES
+
+    # SS_HANDLES - Remove the select from the session, assuming there
+    # is a session to remove it from.
+
     my $kr_session = $self->[KR_SESSIONS]->{$session};
     if (exists $kr_session->[SS_HANDLES]->{$handle}) {
+
+      # Remove it from the session's read, write or expedite vector.
+
       my $ss_handle = $kr_session->[SS_HANDLES]->{$handle};
       if ($ss_handle->[SH_VECCOUNT]->[$select_index]) {
+
+        # Hmm... what is this?  Was POE going to support multiple selects?
+
         $ss_handle->[SH_VECCOUNT]->[$select_index] = 0;
+
+        # Decrement the reference count, and delete the handle if it's done.
+
         $ss_handle->[SH_REFCOUNT]--;
-        DEB_REFCOUNT and do {
+        ASSERT_REFCOUNT and do {
           die if ($ss_handle->[SH_REFCOUNT] < 0);
         };
         unless ($ss_handle->[SH_REFCOUNT]) {
           delete $kr_session->[SS_HANDLES]->{$handle};
-          $kr_session->[SS_REFCOUNT]--;
-          DEB_REFCOUNT and do {
-            warn("--- removed select for session ", $session->ID, ": ",
-                 $kr_session->[SS_REFCOUNT], "\n"
-                );
-            die if ($kr_session->[SS_REFCOUNT] < 0);
-          };
+          {% ses_refcount_dec $session %}
         }
       }
     }
   }
 }
 
+# "Macro" select that manipulates read, write and expedite selects
+# together.
 sub select {
   my ($self, $handle, $state_r, $state_w, $state_e) = @_;
   my $session = $self->[KR_ACTIVE_SESSION];
   $self->_internal_select($session, $handle, $state_r, VEC_RD);
   $self->_internal_select($session, $handle, $state_w, VEC_WR);
   $self->_internal_select($session, $handle, $state_e, VEC_EX);
+  return 0;
 }
 
+# Only manipulate the read select.
 sub select_read {
   my ($self, $handle, $state) = @_;
   $self->_internal_select($self->[KR_ACTIVE_SESSION], $handle, $state, 0);
+  return 0;
 };
 
+# Only manipulate the write select.
 sub select_write {
   my ($self, $handle, $state) = @_;
   $self->_internal_select($self->[KR_ACTIVE_SESSION], $handle, $state, 1);
+  return 0;
 };
 
+# Only manipulate the expedite select.
 sub select_expedite {
   my ($self, $handle, $state) = @_;
   $self->_internal_select($self->[KR_ACTIVE_SESSION], $handle, $state, 2);
+  return 0;
 };
 
+# Turn off a handle's write vector bit without doing
+# garbage-collection things.
 sub select_pause_write {
   my ($self, $handle) = @_;
 
-  # Don't bother if the kernel isn't tracking the handle.
-  return 0 unless exists $self->[KR_HANDLES]->{$handle};
-
-  # Don't bother if the kernel isn't tracking the handle's write status.
-  return 0 unless $self->[KR_HANDLES]->{$handle}->[HND_VECCOUNT]->[VEC_WR];
+  {% validate_handle $handle, VEC_WR %}
 
   # Turn off the select vector's write bit for us.  We don't do any
   # housekeeping since we're only pausing the handle.  It's assumed
   # that we'll resume it again at some point.
 
   vec($self->[KR_VECTORS]->[VEC_WR], fileno($handle), 1) = 0;
-  return 1;
+
+  if (POE_HAS_TK) {
+    $poe_tk_main_window->fileevent
+      ( $handle,
+        'writable',
+        ''
+      );
+  }
+
+  if (POE_HAS_EVENT) {
+    $self->[KR_HANDLES]->{$handle}->[HND_WATCHERS]->[VEC_WR]->stop();
+  }
+
+  return 0;
 }
 
+# Turn on a handle's write vector bit without doing garbage-collection
+# things.
 sub select_resume_write {
   my ($self, $handle) = @_;
 
-  # Don't bother if the kernel isn't tracking the handle.
-  return 0 unless exists $self->[KR_HANDLES]->{$handle};
-
-  # Don't bother if the kernel isn't tracking the handle's write status.
-  return 0 unless $self->[KR_HANDLES]->{$handle}->[HND_VECCOUNT]->[VEC_WR];
+  {% validate_handle $handle, VEC_WR %}
 
   # Turn off the select vector's write bit for us.  We don't do any
   # housekeeping since we're only pausing the handle.  It's assumed
   # that we'll resume it again at some point.
 
   vec($self->[KR_VECTORS]->[VEC_WR], fileno($handle), 1) = 1;
+
+  if (POE_HAS_TK) {
+    $poe_tk_main_window->fileevent
+      ( $handle,
+        'writable',
+        [ \&_tk_select_callback, $handle, VEC_WR ],
+      );
+  }
+
+  if (POE_HAS_EVENT) {
+    $self->[KR_HANDLES]->{$handle}->[HND_WATCHERS]->[VEC_WR]->start();
+  }
+
   return 1;
 }
 
@@ -1481,89 +2578,57 @@ sub alias_set {
   my ($self, $name) = @_;
   my $kr_active_session = $self->[KR_ACTIVE_SESSION];
 
+  # Don't overwrite another session's alias.
   if (exists $self->[KR_ALIASES]->{$name}) {
-    if ($self->[KR_ALIASES]->{$name} ne $kr_active_session) {
-      $! = EEXIST;
-      return 0;
-    }
-    return 1;
+    return EEXIST if $self->[KR_ALIASES]->{$name} != $kr_active_session;
+    return 0;
   }
 
   $self->[KR_ALIASES]->{$name} = $kr_active_session;
   $self->[KR_SESSIONS]->{$kr_active_session}->[SS_ALIASES]->{$name} = 1;
-  $self->[KR_SESSIONS]->{$kr_active_session}->[SS_REFCOUNT]++;
-  DEB_REFCOUNT and do {
-    warn("+++ added alias for session ", $kr_active_session->ID, ": ",
-         $self->[KR_SESSIONS]->{$kr_active_session}->[SS_REFCOUNT], "\n"
-        );
-  };
-  return 1;
+
+  {% ses_refcount_inc $kr_active_session %}
+
+  return 0;
 }
 
-sub _internal_alias_remove {
-  my ($self, $session, $name) = @_;
-  delete $self->[KR_ALIASES]->{$name};
-  delete $self->[KR_SESSIONS]->{$session}->[SS_ALIASES]->{$name};
-  $self->[KR_SESSIONS]->{$session}->[SS_REFCOUNT]--;
-  DEB_REFCOUNT and do {
-    warn("--- removed alias for session ", $session->ID, ": ",
-         $self->[KR_SESSIONS]->{$session}->[SS_REFCOUNT], "\n"
-        );
-    die if ($self->[KR_SESSIONS]->{$session}->[SS_REFCOUNT] < 0);
-  };
-}
-
+# Public interface for removing aliases.
 sub alias_remove {
   my ($self, $name) = @_;
   my $kr_active_session = $self->[KR_ACTIVE_SESSION];
 
-  unless (exists $self->[KR_ALIASES]->{$name}) {
-    $! = ESRCH;
-    return 0;
-  }
+  return ESRCH unless exists $self->[KR_ALIASES]->{$name};
+  return EPERM if $self->[KR_ALIASES]->{$name} != $kr_active_session;
 
-  if ($self->[KR_ALIASES]->{$name} ne $kr_active_session) {
-    $! = EPERM;
-    return 0;
-  }
+  {% remove_alias $kr_active_session, $name %}
 
-  $self->_internal_alias_remove($kr_active_session, $name);
-  return 1;
+  return 0;
 }
 
 sub alias_resolve {
   my ($self, $name) = @_;
-                                        # resolve against sessions
-  return $self->[KR_SESSIONS]->{$name}->[SS_SESSION]
-    if exists $self->[KR_SESSIONS]->{$name};
-                                        # resolve against IDs
-  return $self->[KR_SESSION_IDS]->{$name}
-    if exists $self->[KR_SESSION_IDS]->{$name};
-                                        # resolve against aliases
-  return $self->[KR_ALIASES]->{$name}
-    if exists $self->[KR_ALIASES]->{$name};
-                                        # resolve against current namespace
-  if ($self->[KR_ACTIVE_SESSION] ne $self) {
-    if ($name eq $self->[KR_ACTIVE_SESSION]->[&POE::Session::SE_NAMESPACE]) {
-      carp "Using HEAP instead of SESSION is depreciated";
-      return $self->[KR_ACTIVE_SESSION];
-    }
-  }
-                                        # resolve against the kernel
-  return $self if ($name eq $self);
-                                        # it doesn't resolve to anything?
-  $! = ESRCH;
-  return undef;
+  my $session = {% alias_resolve $name %};
+  $! = ESRCH unless defined $session;
+  $session;
 }
 
 #==============================================================================
-# Kernel ID
+# Kernel and Session IDs
 #==============================================================================
+
+# Return the Kernel's "unique" ID.  There's only so much uniqueness
+# available; machines on separate private 10/8 networks may have
+# identical kernel IDs.  The chances of a collision are vanishingly
+# small.
 
 sub ID {
   my $self = shift;
   $self->[KR_ID];
 }
+
+# Resolve an ID to a session reference.  This function is virtually
+# moot now that alias_resolve does it too.  This explicit call will be
+# faster, though.
 
 sub ID_id_to_session {
   my ($self, $id) = @_;
@@ -1574,6 +2639,8 @@ sub ID_id_to_session {
   $! = ESRCH;
   return undef;
 }
+
+# Resolve a session reference to its corresponding ID.
 
 sub ID_session_to_id {
   my ($self, $session) = @_;
@@ -1586,69 +2653,100 @@ sub ID_session_to_id {
 }
 
 #==============================================================================
-# Safe fork and SIGCHLD.
+# Extra reference counts, to keep sessions alive when things occur.
+# They take session IDs because they may be called from resources at
+# times where the session reference is otherwise unknown.
 #==============================================================================
 
-sub fork {
-  my ($self) = @_;
-  my ($file, $line) = (caller)[1,2];
+sub refcount_increment {
+  my ($self, $session_id, $tag) = @_;
+  my $session = $self->ID_id_to_session( $session_id );
+  if (defined $session) {
 
-  # Disable the real signal handler.  How to warn?
-  $SIG{CHLD} = 'IGNORE' if (exists $SIG{CHLD});
-  $SIG{CLD}  = 'IGNORE' if (exists $SIG{CLD});
+    # Increment the tag's count for the session.  If this is the first
+    # time the tag's been used for the session, then increment the
+    # session's reference count as well.
 
-  my $new_pid = fork();
+    my $refcount = ++$self->[KR_SESSIONS]->{$session}->[SS_EXTRA_REFS]->{$tag};
 
-  # Error.
-  unless (defined $new_pid) {
-    return( undef, $!+0, $! ) if wantarray;
-    return undef;
-  }
+    TRACE_REFCOUNT and do {
+      carp( "+++ ", {% ssid %}, " refcount for tag '$tag' incremented to ",
+            $refcount
+          );
+    };
 
-  # Parent.
-  if ($new_pid) {
-    $self->[KR_PROCESSES]->{$new_pid} = $self->[KR_ACTIVE_SESSION];
-    $self->[KR_SESSIONS]->{ $self->[KR_ACTIVE_SESSION]
-                          }->[SS_PROCESSES]->{$new_pid} = 1;
+    if ($refcount == 1) {
+      {% ses_refcount_inc $session %}
+      TRACE_REFCOUNT and do {
+          carp( "+++ ", {% ssid %}, " refcount for session is at ",
+                $self->[KR_SESSIONS]->{$session}->[SS_REFCOUNT]
+             );
+      };
 
-    # Went from 0 to 1 child processes; start a poll loop.  This uses
-    # a very raw, basic form of POE::Kernel::delay.
-    if (keys(%{$self->[KR_PROCESSES]}) == 1) {
-      $self->_enqueue_state( $self, $self, EN_SCPOLL, ET_SCPOLL,
-                             [], time() + 1, $file, $line
-                           );
+      $self->[KR_EXTRA_REFS]++;
+
+      TRACE_REFCOUNT and do {
+        carp( "+++ session refcounts in kernel: ", $self->[KR_EXTRA_REFS] );
+      }
     }
 
-    return( $new_pid, 0, 0 ) if wantarray;
-    return $new_pid;
+    return $refcount;
   }
 
-  # Child.
-  else {
+  $! = ESRCH;
+  undef;
+}
 
-    # Build a list of unique sessions with children.
-    my %sessions;
-    foreach (values %{$self->[KR_PROCESSES]}) {
-      $sessions{$_}++;
+sub refcount_decrement {
+  my ($self, $session_id, $tag) = @_;
+  my $session = $self->ID_id_to_session( $session_id );
+  if (defined $session) {
+
+    # Decrement the tag's count for the session.  If this was the last
+    # time the tag's been used for the session, then decrement the
+    # session's reference count as well.
+
+    my $refcount = --$self->[KR_SESSIONS]->{$session}->[SS_EXTRA_REFS]->{$tag};
+
+    ASSERT_REFCOUNT and do {
+      croak( "--- ", {% ssid %}, " refcount for tag '$tag' dropped below 0" )
+        if $refcount < 0;
+    };
+
+    TRACE_REFCOUNT and do {
+      carp( "--- ", {% ssid %}, " refcount for tag '$tag' decremented to ",
+            $refcount
+          );
+    };
+
+    unless ($refcount) {
+      {% remove_extra_reference $session, $tag %}
+      $self->[KR_EXTRA_REFS]--;
+
+      ASSERT_REFCOUNT and do {
+        die( "--- ", {% ssid %}, " refcounts for kernel dropped below 0")
+          if $self->[KR_EXTRA_REFS] < 0;
+      };
+
+      TRACE_REFCOUNT and do {
+        carp( "--- ", {% ssid %}, " refcount for session is at ",
+              $self->[KR_SESSIONS]->{$session}->[SS_REFCOUNT]
+            );
+      };
     }
 
-    # Clean out the children for these sessions.
-    foreach my $session (keys %sessions) {
-      $self->[KR_SESSIONS]->{$session}->[SS_PROCESSES] = { };
-    }
-
-    # Clean out POE's child process table.
-    $self->[KR_PROCESSES] = { };
-
-    return( 0, 0, 0 ) if wantarray;
-    return 0;
+    return $refcount;
   }
+
+  $! = ESRCH;
+  undef;
 }
 
 #==============================================================================
 # HANDLERS
 #==============================================================================
 
+# Add or remove states from sessions.
 sub state {
   my ($self, $state_name, $state_code, $state_alias) = @_;
   $state_alias = $state_name unless defined $state_alias;
@@ -1657,14 +2755,14 @@ sub state {
                                         # -><- breaks subclasses... sky has fix
        (ref($self->[KR_ACTIVE_SESSION]) ne 'POE::Kernel')
   ) {
-    $self->[KR_ACTIVE_SESSION]->register_state( $state_name, $state_code,
+    $self->[KR_ACTIVE_SESSION]->register_state( $state_name,
+                                                $state_code,
                                                 $state_alias
                                               );
-    return 1;
+    return 0;
   }
                                         # no such session
-  $! = ESRCH;
-  return 0;
+  return ESRCH;
 }
 
 ###############################################################################
@@ -1680,775 +2778,1083 @@ __END__
 
 =head1 NAME
 
-POE::Kernel - POE Event Queue and Resource Manager
+POE::Kernel - an event dispatcher and resource watcher
 
 =head1 SYNOPSIS
 
-  #!/usr/bin/perl -w
-  use strict;
-  use POE;                 # Includes POE::Kernel and POE::Session
-  print $poe_kernel->ID(); # This process' unique ID.
-  new POE::Session( ... ); # Bootstrap sessions are here.
-  $poe_kernel->run();      # Run the kernel.
-  exit;                    # Exit when the kernel's done.
+The POE manpage includes and describes a sample program.
 
-  # Session management methods:
-  $kernel->session_create( ... );
+POE comes with its own event loop, which is based on select() and
+written exclusively in Perl.  To use it, simply:
 
-  # Event management methods:
-  $kernel->post( $session, $state, @args );
-  $kernel->yield( $state, @args );
-  $state_retval = $kernel->call( $session, $state, @args );
-  @alarms = $kernel->queue_peek_alarms( );
+  use POE;
 
-  # Alarms and timers:
-  $kernel->alarm( $state, $time, @args );
-  $kernel->delay( $state, $seconds, @args );
+POE's functions will also map to Tk's event loop if Tk is first.  No
+other actions are required to begin using POE with Tk, although the
+POE::Session postback() is interesting for making Tk callbacks post
+POE events.
 
-  # Aliases:
+  use Tk;
+  use POE;
+
+POE can also encapsulate Event's event loop.  If Event is used before
+POE, then POE will use it for you.  POE::Session's postback() method
+can also be used here to have Event's watchers post POE events.
+
+  use Event;
+  use POE;
+
+Methods to manage the process' global Kernel instance:
+
+  # Retrieve the kernel's unique identifier.
+  $kernel_id = $kernel->ID;
+
+  # Run the event loop, only returning when it has no more sessions to
+  # dispatche events to.
+  $kernel->run( );
+
+FIFO event methods:
+
+  # Post an event to an arbitrary session.
+  $kernel->post( $session, $state_name, @state_args );
+
+  # Post an event back to the current session.
+  $kernel->yield( $state_name, @state_args );
+
+  # Synchronous state call, bypassing the event queue and returning
+  # the state's return value directly.
+  $state_return_value = $kernel->call( $session, $state_name, @state_args );
+
+Alarm and delay methods:
+
+  # Post an event which will be delivered at an absolute Unix epoch
+  # time.  This clears previous timed events for the same state.
+  $kernel->alarm( $state_name, $epoch_time, @state_args );
+
+  # Post an additional alarm, leaving existing ones in the queue.
+  $kernel->alarm_add( $state_name, $epoch_time, @state_args );
+
+  # Post an event which will be delivered after some number of
+  # seconds.  This clears previous timed events for the same state.
+  $kernel->delay( $state_name, $seconds, @state_args );
+
+  # Post an additional delay, leaving existing ones in the queue.
+  $kernel->delay_add( $state_name, $seconds, @state_args );
+
+  # Return the names of pending timed events.
+  @state_names = $kernel->queue_peek_alarms( );
+
+Symbolic name, or session alias methods:
+
+  # Set an alias for the current session.
   $status = $kernel->alias_set( $alias );
+
+  # Clear an alias for the current session:
   $status = $kernel->alias_remove( $alias );
+
+  # Resolve an alias into a session reference.  Most POE::Kernel
+  # methods do this for you.
   $session_reference = $kernel->alias_resolve( $alias );
 
-  # Selects:
-  $kernel->select( $file_handle,
-                   $read_state_name,     # or undef to remove it
-                   $write_state_name,    # or undef to remove it
-                   $expedite_state_same, # or undef to remove it
-                 );
-  $kernel->select_read( $file_handle, $read_state_name );
-  $kernel->select_write( $file_handle, $write_state_name );
-  $kernel->select_expedite( $file_handle, $expedite_state_name );
+  # Resolve a session ID to a session reference.  The alias_resolve
+  # method does this as well, but this is faster.
+  $session_reference = $kernel->ID_id_to_session( $session_id );
+
+  # Return a session ID for a session reference.  It is functionally
+  # equivalent to $session->ID.
+  $session_id = $kernel->ID_session_to_id( $session_reference );
+
+Filehandle watcher methods:
+
+  # Watch for read readiness on a filehandle.  Clear a read select
+  # from a filehandle.
+  $kernel->select_read( $file_handle, $state_name );
+  $kernel->select_read( $file_handle );
+
+  # Watch for write readiness on a filehandle.  Clear a write select
+  # from a filehandle.
+  $kernel->select_write( $file_handle, $state_name );
+  $kernel->select_write( $file_handle );
+
+  # Pause and resume write readiness watching.  These have lower
+  # overhead than full select_write() calls.
   $kernel->select_pause_write( $file_handle );
   $kernel->select_resume_write( $file_handle );
 
-  # Signals:
-  $kernel->sig( $signal_name, $state_name ); # Registers a handler.
-  $kernel->signal( $session, $signal_name ); # Posts a signal.
+  # Watch for out-of-bound (expedited) read readiness on a filehandle.
+  # Clear an expedite select from a filehandle.
+  $kernel->select_expedite( $file_handle, $state_name );
+  $kernel->select_expedite( $file_handle );
 
-  # Processes.
-  $fork_retval = $kernel->fork();   # "Safe" fork that polls for SIGCHLD.
+  # Set and/or clear a combination of selects in one call.
+  $kernel->select( $file_handle,
+                   $read_state_name,     # or undef to clear it
+                   $write_state_name,    # or undef to clear it
+                   $expedite_state_same, # or undef to clear it
+                 );
 
-  # States:
-  $kernel->state( $state_name, $code_reference );    # Inline state
-  $kernel->state( $method_name, $object_reference ); # Object state
-  $kernel->state( $function_name, $package_name );   # Package state
-  $kernel->state( $state_name,                       # Object or package
-                  $object_or_package_reference,      #  state, mapped to
-                  $object_or_package_method,         #  different method.
-                );
+Signal watcher and generator methods:
 
-  # IDs:
-  $id = $kernel->ID();                       # Return the Kernel's unique ID.
-  $id = $kernel->alias_resolve($id);         # Return undef, or a session.
-  $id = $kernel->ID_session_to_id($session); # Return undef, or a session's ID.
+  # Map a signal name to its handler state.  Clear a signal-to-handler
+  # mapping.
+  $kernel->sig( $signal_name, $state_name );
+  $kernel->sig( $signal_name );
+
+  # Simulate a system signal by posting it through POE rather than
+  # through the underlying OS.
+  $kernel->signal( $session, $signal_name );
+
+State management methods:
+
+  # Remove an existing state from the current machine.
+  $kernel->state( $state_name );
+
+  # Add a new inline state, or replace an existing one.
+  $kernel->state( $state_name, $code_reference );
+
+  # Add a new object or package state, or replace an existing one.
+  # The object method will be the same as the state name.
+  $kernel->state( $state_name, $object_ref_or_package_name );
+
+  # Add a new object or package state, or replace an existing one.
+  # The object method may be different from the state name.
+  $kernel->state( $state_name, $object_ref_or_package_name, $method_name );
+
+External reference count methods:
+
+  # Increment a session's external reference count.
+  $kernel->refcount_increment( $session_id, $refcount_name );
+
+  # Decrement a session's external reference count.
+  $kernel->refcount_decrement( $session_id, $refcount_name );
+
+Exported symbols:
+
+  # A reference to the global POE::Kernel instance.
+  $poe_kernel
+
+  # This is the Tk widget POE uses to access Tk's event loop.  It's
+  # only meaningful when Tk is used; otherwise it's undef.
+  $poe_tk_main_window
 
 =head1 DESCRIPTION
 
-POE::Kernel contains POE's event loop, select logic and resource
-management methods.  There can only be one POE::Kernel per process,
-and it's created automatically the first time POE::Kernel is used.
-This simplifies signal delivery in the present and threads support in
-the future.
+POE::Kernel is an event dispatcher and resource watcher.  It provides
+a consistent interface to the most common event loop features whether
+the underlying architecture is its own, Perl/Tk's, or Event's.  Other
+loop features can be integrated with POE through POE::Session's
+postback() method.
 
-=head1 EXPORTED SYMBOLS
+=head1 USING POE::Kernel
 
-POE::Kernel exports $poe_kernel, a reference to the program's single
-kernel instance.  This mainly is used in the main package, so that
-$poe_kernel->run() may be called cleanly.
+The POE manpage describes a shortcut for using several POE modules at
+once.
 
-Sessions' states should endeavor to use $_[KERNEL], since $poe_kernel
-may not be available, or it may be different than the kernel actually
-invoking the object.
+POE::Kernel supports three Perl event loops: Its own select loop,
+included with POE and coded in Perl; Tk's loop, which enables POE to
+interact with users through a graphical front end; and Event's loop,
+which is written in C for maximum performance.
 
-=head1 PUBLIC KERNEL METHODS
+POE::Kernel uses its own loop by default, but it will adapt to
+whichever external event loop is loaded before it.  POE's functions
+work the same regardless of the underlying event loop.
 
-POE::Kernel contains methods to manage the kernel itself, sessions,
-and resources such as files, signals and alarms.
+  # Use POE's select loop.
+  use POE::Kernel;
 
-Many of the public Kernel methods generate events.  Please see the
-"PREDEFINED EVENTS AND PARAMETERS" section in POE::Session's
-documentation.
+  # Use Tk's event loop.
+  use Tk;
+  use POE::Kernel;
 
-Some Kernel methods accept a C<$session> reference.  These allow
-events to be dispatched to arbitrary sessions.  For example, a program
-can post a state transition event almost anywhere:
+  # Use Event's loop.
+  use Event;
+  use POE::Kernel;
 
-  $kernel->post( $destination_session, $state_to_invoke );
+Please read about POE::Session's postback() method if you'd like Tk's
+widgets or Event's watchers to fire POE events at your sessions.
 
-On the other hand, there are methods that don't let programs specify
-destinations.  The events generated by these methods, if any, will be
-dispatched to the current session.  For example, setting an alarm:
+It also is possible to enable assertions and debugging traces by
+defining the constants that enable them before POE::Kernel does.
+Every definition follows the form:
 
-  $kernel->alarm( $state_to_invoke, $when_to_invoke_it );
+  sub POE::Kernel::ASSERT_SOMETHING () { 1 }
 
-=head2 Kernel Management Methods
+Assertions are quiet until something wrong has been detected, and then
+they die right away with an error.  Their main use is for sanity
+checks in POE's test suite.  Traces, on the other hand, are never
+fatal, but they're terribly noisy.
 
-=over 4
+Both assertions and traces incur performance penalties, so they should
+be used sparingly, if at all.  They all are off by default.
 
-=item *
-
-POE::Kernel::run()
-
-POE::Kernel::run() starts the kernel's event loop.  It will not return
-until all its sessions have stopped.  There are two corollaries to
-this rule: It will return immediately if there are no sessions; and if
-sessions never exit, neither will run().
-
-=back
-
-=head2 Session Management Methods
-
-=over 4
-
-=item *
-
-POE::Kernel::session_create(...)
-
-POE::Kernel::session_create(...) creates a new session in the kernel.
-It is an alias for POE::Session::new(...), and it accepts the same
-parameters.  Please see POE::Session::new(...) for more information.
-
-As of version 0.07, POE::Session is a proper object with public
-methods and everything.  Therefore session_create is depreciated
-starting with version 0.07.
-
-=back
-
-=head2 Event Management Methods
-
-Events tell sessions which state to invoke next.  States are defined
-when sessions are created.  States may also be added, removed or
-changed at runtime by POE::Kernel::state(), which acts on the current
-session.
-
-There are a few ways to send events to sessions.  Events can be
-posted, in which case the kernel queues them and dispatches them in
-FIFO order.  States can also be called immediately, bypassing the
-queue.  Immediate calls can be useful for "critical sections"; for
-example, POE's I/O abstractions use call() to minimize event latency.
-
-To learn more about events and the information they convey, please see
-"PREDEFINED EVENTS AND PARAMETERS" in the POE::Session documentation.
-
-=over 4
-
-=item *
-
-POE::Kernel::post( $destination, $state, @args )
-
-POE::Kernel::post places an event in the kernel's queue.  The kernel
-dispatches queued events in FIFO order.  When posted events are
-dispatched, their corresponding states are invoked in a scalar
-context, and their return values are discarded.  Signal handlers work
-differently, but they're not invoked as a result of post().
-
-If a state's return value is important, there are at least two ways to
-get it.  First, have the $destination post a return vent to its
-$_[SENDER]; second, use POE::Kernel::call() instead.
-
-POE::Kernel::post returns undef on failure, or an unspecified defined
-value on success.  $! is set to the reason why the post failed.
-
-=item *
-
-POE::Kernel::yield( $state, @args )
-
-POE::Kernel::yield is an alias for posting an event to the current
-session.  It does not immediately swap call stacks like yield() in
-real thread libraries might.  If there's a way to do this in perl, I'd
-sure like to know.
-
-=item *
-
-POE::Kernel::call( $session, $state, $args )
-
-POE::Kernel::call immediately dispatches an event to a session.
-States invoked this way are evaluated in a scalar context, and call()
-returns their return values.
-
-call() can exercise bugs in perl and/or the C library (we're not
-really sure which just yet).  This only seems to occur when one state
-(state1) is destroyed from another state (state0) as a result of
-state0 being called from state1.
-
-Until that bug is pinned down and fixed, if your program dumps core
-with a SIGSEGV, try changing your call()s to post()s.
-
-call() returns undef on failure.  It may also return undef on success,
-if the called state returns success.  What a mess.  call() also sets
-$! to 0 on success, regardless of what it's set to in the called
-state.
-
-=item *
-
-POE::Kernel::queue_peek_alarms()
-
-Peeks at the current session's event queue, returning a list of
-pending alarms.  The list is empty if no alarms are pending.  The
-list's order is undefined as of version 0.0904 (it's really in time
-order, but that may change).
-
-=back
-
-=head2 Alarm Management Methods
-
-Alarms are just events that are scheduled to be dispatched at some
-later time.  POE's queue is a priority queue keyed on time, so these
-events go to the appropriate place in the queue.  Posted events are
-really enqueued for "now" (defined as whatever time() returns).
-
-If Time::HiRes is available, POE will use it to achieve better
-resolution on enqueued events.
-
-=over 4
-
-=item *
-
-POE::Kernel::alarm( $state, $time, @args )
-
-The alarm() method enqueues an event for the current session with a
-future dispatch time, specified in seconds since whatever epoch time()
-uses (usually the UNIX epoch).  If $time is in the past, it will be
-clipped to time(), making the alarm() call synonymous to post() but
-with some extra overhead.
-
-alarm() ensures that its alarm is the only one queued for the current
-session and given state.  It does this by scouring the queue and
-removing all others matching the combination of session and state.  As
-of 0.0908, the alarm_add() method can post additional alarms without
-scouring previous ones away.
-
-@args are passed to the alarm handler as C<@_[ARG0..$#_]>.
-
-It is possible to remove alarms from the queue by posting an alarm
-without additional parameters.  This triggers the queue scour without
-posting an alarm.  For example:
-
-  $kernel->alarm( $state ); # Removes the alarm for $state
-
-As of version 0.0904, the alarm() function will only remove alarms.
-Other types of events will remain in the queue.
-
-=item *
-
-POE::Kernel::alarm_add( $state, $time, @args )
-
-The alarm_add() method enqueues an event for the current session with
-a future dispatch time, specified in seconds since whatever epoch
-time() uses (usually the UNIX epoch).  If $time is in the past, it
-will be clipped to time(), making the alarm_add() call synonymous to
-post() but with some extra overhead.
-
-Unlike alarm(), however, it does not scour the queue for previous
-alarms matching the current session/state pair.  Since it doesn't
-scour, adding an empty alarm won't clear others from the queue.
-
-This function may be faster than alarm() since the scour phase is
-skipped.
-
-=item *
-
-POE::Kernel::delay( $state, $seconds, @args )
-
-The delay() method is an alias for:
-
-  $kernel->alarm( $state, time() + $seconds, @args );
-
-However it silently uses Time::HiRes if it's available, so time()
-automagically has an increased resolution when it can.  This saves
-programs from having to figure out whether Time::HiRes is available
-themselves.
-
-All the details for POE::Kernel::alarm() apply to delay() as well.
-For example, delays may be removed by omitting the $seconds and @args
-parameters:
-
-  $kernel->delay( $state ); # Removes the delay for $state
-
-As of version 0.0904, the delay() function will only remove alarms.
-Other types of events will remain in the queue.
-
-=item *
-
-POE::Kernel::delay_add( $state, $seconds, @args )
-
-The delay_add() method works like delay(), but it allows duplicate
-alarms.  It is equivalent to:
-
-  $kernel->alarm_add( $state, time() + $seconds, @args );
-
-The "empty delay" syntax is meaningless since alarm_add() does not
-scour the queue for duplicates.
-
-This function may be faster than delay() since the scour phase is
-skipped.
-
-=back
-
-=head2 Alias Management Methods
-
-Aliases allow sessions to be referenced by name instead of by session
-reference.  They also allow sessions to remain active without having
-selects or events.  This provides support for "daemon" sessions that
-act as resources but don't necessarily have resources themselves.
-
-Aliases must be unique.  Sessions may have more than one alias.
-
-=over 4
-
-=item *
-
-POE::Kernel::alias_set( $alias )
-
-The alias_set() method sets an alias for the current session.
-
-It returns 1 on success.  On failure, it returns 0 and sets $! to one
-of:
-
-  EEXIST - The alias already exists for another session.
-
-=item *
-
-POE::Kernel::alias_remove( $alias )
-
-The alias_remove() method removes an alias for the current session.
-
-It returns 1 on success.  On failure, it returns 0 and sets $! to one
-of:
-
-  ESRCH - The alias does not exist.
-  EPERM - The alias belongs to another session.
-
-=item *
-
-POE::Kernel::alias_resolve( $alias )
-
-The alias_resolve() method returns a session reference corresponding
-to the given alias.  POE::Kernel does this internally, so it's usually
-not necessary.
-
-It returns a session reference on success.  On failure, it returns
-undef and sets $! to one of:
-
-  ESRCH - The alias does not exist.
-
-$kernel->alias_resolve($alias) has been overloaded to resolve several
-things into session references.  Each of these things may be used
-instead of a session reference in other kernel method calls.
-
-The things, in order, are:
-
-Session references: Yes, this is redundant, but it also means that you
-can use stringified session references as event destinations.  That
-provides a form of weak session reference, which can be handy, but
-note: Perl reuses references rather quickly, so programs should
-probably use session IDs instead.
-
-Session IDs: Every session is given a unique numeric ID, similar to an
-operating system's process ID.  There never will be two sessions with
-the same ID at the same time, and the rate of reuse is extremely low
-(the ID is a Perl integer, which tends to be really really large).
-These supply a different sort of weak reference for sessions.
-
-Aliases: These are the ones registered by alias_set.
-
-Heap references: Once upon a time $_[HEAP] was used in place of
-$_[SESSION].  This is SEVERELY depreciated now, and programs will spew
-warnings every time it's done.
-
-=back
-
-=head2 Select Management Methods
-
-Selects are file handle monitors.  They generate events to indicate
-when activity occurs on the file handles they watch.  POE keeps track
-of how many selects are watching a file handle, and it will close the
-file when nobody is looking at it.
-
-There are three types of select.  Each corresponds to one of the bit
-vectors in Perl's four-argument select() function.  "Read" selects
-generate events when files become ready for reading.  "Write" selects
-generate events when files are available to be written to.  "Expedite"
-selects generate events when files have out-of-band information to be
-read.
-
-=over 4
-
-=item *
-
-POE::Kernel::select( $filehandle, $rd_state, $wr_state, $ex_state )
-
-The select() method manipulates all three selects for a file handle at
-the same time.  Selects are added for each defined state, and selects
-are removed for undefined states.
-
-=item *
-
-POE::Kernel::select_read( $filehandle, $read_state )
-POE::Kernel::select_write( $filehandle, $write_state )
-POE::Kernel::select_expedite( $filehandle, $expedite_state )
-
-These methods add, remove or change the state that is called when a
-filehandle becomes ready for reading, writing, or out-of-band reading,
-respectively.  They work like POE::Kernel::select, except they allow
-individual aspects of a filehandle to be changed.
-
-If the state parameter is undefined, then the filehandle watcher is
-removed; otherwise it's added or changed.  These functions have a
-moderate amount of overhead, since they update POE::Kernel's
-reference-counting structures.
-
-=item *
-
-POE::Kernel::select_pause_write( $filehandle );
-POE::Kernel::select_resume_write( $filehandle );
-
-These methods allow a write select to be paused and resumed without
-the overhead of maintaining POE::Kernel's reference-counting
-structures.
-
-It is most useful for write select handlers that may need to pause
-write-okay events when their outbound buffers are empty and resume
-them when new output is enqueued.
-
-=back
-
-=head2 Signal Management Methods
-
-The POE::Session documentation has more information about B<_signal>
-events.
-
-POE currently does not make Perl's signals safe.  Using signals is
-okay in short-lived programs, but long-uptime servers may eventually
-dump core if they receive a lot of signals.  POE provides a "safe"
-fork() function that periodically reaps children without using
-signals; it emulates the system's SIGCHLD signal for each process in
-reaps.
-
-Mileage varies considerably.
-
-The kernel generates B<_signal> events when it receives signals from
-the operating system.  Sessions may also send signals between
-themselves without involving the OS.
-
-The kernel determines whether or not signals have been handled by
-looking at B<_signal> states' return values.  If the state returns
-logical true, then it means the signal was handled.  If it returns
-false, then the kernel assumes the signal wasn't handled.
-
-POE will stop sessions that don't handle some signals.  These
-"terminal" signals are QUIT, INT, KILL, TERM, HUP, and the fictitious
-IDLE signal.
-
-POE broadcasts SIGIDLE to all sessions when the kernel runs out of
-events to dispatch, and when there are no alarms or selects to
-generate new events.
-
-Finally, there is one fictitious signal that always stops a session:
-ZOMBIE.  If the kernel remains idle after SIGIDLE is broadcast, then
-SIGZOMBIE is broadcast to force reaping of zombie sessions.  This
-tells these sessions (usually aliased "daemon" sessions) that nothing
-is left to do, and they're as good as dead anyway.
-
-It's normal for aliased sessions to receive IDLE and ZOMBIE when all
-the sessions that may use them have gone away.
-
-=over 4
-
-=item *
-
-POE::Kernel::sig( $signal_name, $state_name )
-
-The sig() method registers a state to handle a particular signal.
-Only one state in any given session may be registered for a particular
-signal.  Registering a second state for the same signal will replace
-the previous state with the new one.
-
-Signals that don't have states will be dispatched to the _signal state
-instead.
-
-=item *
-
-POE::Kernel::signal( $session, $signal_name, @args )
-
-The signal() method posts a signal event to a session.  It uses the
-kernel's event queue, bypassing the operating system, so the signal's
-name is not limited to what the OS allows.  For example, the kernel
-does something similar to post a fictitious ZOMBIE signal:
-
-  $kernel->signal($session, 'ZOMBIE');
-
-=back
-
-=head2 Process Management Methods
-
-POE's signal handling is Perl's signal handling, which means that POE
-won't safely handle signals as long as Perl has a problem with them.
-
-However, POE works around this in at least SIGCHLD's case by providing
-a "safe" fork() function.  &POE::Kernel::fork() blocks
-$SIG{'CHLD','CLD'} and starts an event loop to poll for expired child
-processes.  It emulates the system's SIGCHLD behavior by sending a
-"soft" CHLD signal to the appropriate session.
-
-Because POE knows which session called its version of fork(), it can
-signal just that session that its forked child process has completed.
-
-B<Note:> The first &POE::Kernel::fork call disables POE's usual
-SIGCHLD handler, so that the poll loop can reap children safely.
-Mixing plain fork and &POE::Kernel::fork isn't recommended.
-
-=over 4
-
-=item *
-
-POE::Kernel::fork( )
-
-The fork() method tries to fork a process in the usual Unix way.  In
-addition, it blocks SIGCHLD and/or SIGCLD and starts an event loop to
-poll for completed child processes.
-
-POE's fork() will return different things in scalar and list contexts.
-In scalar context, it returns the child PID, 0, or undef, just as
-Perl's fork() does.  In a list context, it returns three items: the
-child PID (or 0 or undef), the numeric version of $!, and the string
-version of $!.
-
-=back
-
-=head2 State Management Methods
-
-The kernel's state management method lets sessions add, change and
-remove states at runtime.  Wheels use this to add and remove select
-states from sessions when they're created and destroyed.
-
-=over 4
-
-=item *
-
-POE::Kernel::state( $state_name, $code_reference )
-POE::Kernel::state( $method_name, $object_reference )
-POE::Kernel::state( $function_name, $package_name )
-POE::Kernel::state( $state_name, $obj_or_package_ref, $method_name )
-
-The state() method has three different uses, each for adding, updating
-or removing a different kind of state.  It manipulates states in the
-current session.
-
-The three-parameter version of state() registers an object or package
-state to a method with a different name.  Normally the object or
-package method would need to be named after the state it catches.
-
-The state() method returns 1 on success.  On failure, it returns 0 and
-sets $! to one of:
-
-  ESRCH - Somehow, the current session does not exist.
-
-This function can only register or remove one state at a time.
+Assertions will be discussed first.
 
 =over 2
 
-=item *
+=item ASSERT_DEFAULT
 
-Inline States
+The value of ASSERT_DEFAULT is used as the default value for the other
+assertion constants.  Setting this true is a quick and reliable way to
+ensure that all assertions are enabled.
 
-Inline states are manipulated with:
+=item ASSERT_GARBAGE
 
-  $kernel->state($state_name, $code_reference);
+Enabling ASSERT_GARBAGE has POE::Kernel verify its internal record
+keeping against sane conditions.  In particular, it ensures that
+sessions have released all their resources before destroying them.
 
-If $code_reference is undef, then $state_name will be removed.  Any
-pending events destined for $state_name will be redirected to
-_default.
+=item ASSERT_REFCOUNT
 
-=item *
+Setting ASSERT_REFCOUNT true enables checks for negative reference
+counts and nonzero reference counts in destroyed sessions.  It
+complements ASSERT_GARBAGE.
 
-Object States
+=item ASSERT_RELATIONS
 
-Object states are manipulated with:
+Enabling ASSERT_RELATIONS turns on parent/child referential integrity
+checks.
 
-  $kernel->state($method_name, $object_reference);
+=item ASSERT_SELECT
 
-If $object_reference is undef, then the $method_name state will be
-removed.  Any pending events destined for $method_name will be
-redirected to _default.
+Setting ASSERT_SELECT true enables extra error checking in
+POE::Kernel's select logic.  It has no effect if POE is using an
+external event loop.
 
-They can also be maintained with:
+=item ASSERT_SESSIONS
 
-  $kernel->state($state_name, $object_reference, $object_method);
+POE::Kernel normally discards events that are posted to nonexistent
+sessions.  This is a deliberate feature, but it means that certain
+typographical errors can go unnoticed.
 
-For example, this maps a session's B®_start¯ state to the object's
-start_state method:
+A true ASSERT_SESSIONS constant will cause POE to check session
+resolution and die if an unknown session is referenced.  This may
+catch problems that are otherwise difficult to spot.
 
-  $kernel->state('_start', $object_reference, 'start_state');
+=back
 
-=item *
+Then there are the trace options.
 
-Package States
+=over 2
 
-Package states are manipulated with:
+=item TRACE_DEFAULT
 
-  $kernel->state($function_name, $package_name);
+TRACE_DEFAULT works like ASSERT_DEFAULT except for traces.  That is,
+its value is used as the default for the other trace constants.
+Setting it true is a quick and reliable way to turn on every type of
+trace.
 
-If $package_name is undef, then the $function_name state will be
-removed.  Any pending events destined for $function_name will be
-redirected to _default.
+=item TRACE_EVENTS
+
+The music goes around and around, and it comes out here.  Enabling
+TRACE_EVENTS causes POE::Kernel to tell you what happens to FIFO and
+alarm events: when they're enqueued, dispatched or discarded, and what
+their states return.
+
+=item TRACE_GARBAGE
+
+TRACE_GARBAGE shows what's keeping sessions alive.  It's useful for
+determining why a session simply refuses to die.
+
+=item TRACE_PROFILE
+
+This trace constant switches on state profiling, causing POE::Kernel
+to keep a count of every state it dispatches.  It displays a frequency
+report when the event loop finishes.
+
+=item TRACE_QUEUE
+
+TRACE_QUEUE complements TRACE_EVENTS.  When enabled, it traces the
+contents of POE's event queues, giving some insight into how events
+are ordered.  This has become less relevant since the alarm and FIFO
+queues have separated.
+
+=item TRACE_REFCOUNT
+
+Setting TRACE_REFCOUNT to true enables debugging output whenever an
+external reference count changes.
+
+=item TRACE_SELECT
+
+TRACE_SELECT enables or disables statistics about POE::Kernel's
+default select loop's select parameters and return values.
+
+=back
+
+=head1 POE::Kernel Exports
+
+POE::Kernel exports two symbols for your coding enjoyment: $poe_kernel
+and $poe_tk_main_window.  POE::Kernel is implicitly used by POE
+itself, so using POE gets you POE::Kernel (and its exports) for free.
+
+=over 2
+
+=item $poe_kernel
+
+This contains a reference to the process' POE::Kernel instance.  It's
+mainly useful for getting at the kernel from places other than states.
+For example, most programs call C<$poe_kernel->run()> to run its event
+loop.
+
+States rarely need to use $poe_kernel directly since they receive a
+copy of it in $_[KERNEL].
+
+=item $poe_tk_main_window
+
+POE creates a MainWindow to use Tk's event loop.  Rather than waste a
+window, it exports a reference to it as $poe_tk_main_window.  Programs
+can use this like a plain Tk MainWindow, which is exactly what it is.
+
+=back
+
+=head1 PRIVATE KERNEL METHODS
+
+The private kernel methods are private.  All the usual "here there be
+private methods" caveats apply.  As such, they won't be documented
+here.  The terminally curious, however, will note that POE::Kernel
+contains a lot of comments.
+
+=head1 PUBLIC KERNEL METHODS
+
+This section discusses in more detail the POE::Kernel methods that
+appear in the SYNOPSIS.  It uses the same syntax conventions as the
+perlfunc manpage.
+
+=head2 Methods to manage the process' global Kernel instance
+
+=over 2
+
+=item ID
+
+Return the POE::Kernel instance's unique identifier.
+
+Every POE::Kernel instance is assigned an ID at birth.  This ID tries
+to differentiate any given instance from all the others, even if they
+exist on the same machine.  The ID is a hash of the machine's name and
+the kernel's instantiation time and process ID.
+
+  ~/perl/poe$ perl -wl -MPOE -e 'print $poe_kernel->ID'
+  rocco.homenet-39240c97000001d8
+
+=item run
+
+Runs the chosen event loop, returning only after every session has
+stopped.  It returns immediately if no sessions have yet been started.
+
+  $poe_kernel->run();
+  exit;
+
+The run() method does not return a meaningful value.
+
+=back
+
+=head2 FIFO event methods
+
+Events posted with these methods are dispatched back to sessions in
+first-in/first-out order (in case you didn't know what FIFO meant).
+
+Sessions will not spontaneously stop if they have pending FIFO events.
+In other words, FIFO events keep sessions alive.
+
+=over 2
+
+=item post SESSION, STATE_NAME, PARAMETER_LIST
+
+=item post SESSION, STATE_NAME
+
+Posts an event for STATE_NAME in SESSION.  If a PARAMETER_LIST is
+included, its values will be used as arguments to STATE_NAME.
+
+  $_[KERNEL]->post( $session, 'do_this' );
+  $_[KERNEL]->post( $session, 'do_that', $with_this, $and_this );
+  $_[KERNEL]->post( $session, 'do_that', @with_these );
+
+The post() method a boolean value indicating whether the event was
+enqueued successfully.  The $! variable will explain why post()
+failed.
+
+=over 2
+
+=item * ESRCH
+
+POE cannot find SESSION.
+
+=back
+
+=item yield STATE_NAME, PARAMETER_LIST
+
+=item yield STATE_NAME
+
+Posts an event for STATE_NAME in the current session.  If a
+PARAMETER_LIST is included, its values will be used as arguments to
+STATE_NAME.  Observant readers will note that this is just post() to
+the current session.
+
+Events posted with yield() must propagate through POE's FIFO before
+they're dispatched.  This effectively yields FIFO time to other
+sessions which already have events enqueued.
+
+  $kernel->yield( 'do_this' );
+  $kernel->yield( 'do_that', @with_these );
+
+The yield() method does not return a meaningful value.
+
+=item call SESSION, STATE_NAME, PARAMETER_LIST
+
+=item call SESSION, STATE_NAME
+
+Calls STATE_NAME in a SESSION, bypassing the FIFO.  Values from the
+optional PARAMETER_LIST will be passed as arguments to STATE_NAME at
+dispatch time.  The call() method returns its status in $!, which is 0
+for success or a nonzero reason for failure.
+
+  $return_value = $kernel->call( 'do_this_now' );
+
+POE uses call() to dispatch some resource events without FIFO latency.
+Filehandle watchers, for example, would continue noticing a handle's
+readiness until the it was serviced by a state.  This could result in
+several redundant readiness events being enqueued before the first one
+was dispatched.
+
+Reasons why call() might fail:
+
+=over 2
+
+=item * ESRCH
+
+POE disbelieves in SESSION.
+
+=back
+
+=head2 Alarm and delay methods
+
+POE also manages timed events.  These are events that should be
+dispatched after at a certain time or after some time has elapsed.
+Alarms and delays always are enqueued for the current session, so a
+SESSION parameter is not needed.
+
+POE's timed events fall into two major categories: ones which are to
+be dispatched at an absolute time, and ones that will be dispatched
+after a certain amount of time has elapsed.
+
+Each category is further divided into methods that clear previous
+timed events before posting new ones, and methods that post timed
+events in addition to the ones already in the queue.
+
+POE will use Time::HiRes to increase timed events' accuracy.  It will
+use the less accurate time(2) if Time::HiRes isn't available.
+
+Sessions will not spontaneously stop if they have pending timed
+events.  In other words, these events keep sessions alive.
+
+=over 2
+
+=item alarm STATE_NAME, EPOCH_TIME, PARAMETER_LIST
+
+=item alarm STATE_NAME, EPOCH_TIME
+
+=item alarm STATE_NAME
+
+Clears all the timed events destined for STATE_NAME in the current
+session then optionally sets a new one.  The new timed event will be
+dispatched to STATE_NAME no earlier than EPOCH_TIME and can include
+values from an optional PARAMETER_LIST.
+
+The timed event queue is kept in time order.  Posting an alarm with an
+EPOCH_TIME in the past will do the obvious thing.
+
+The first two forms reset a one-shot timed event by clearing any
+pending ones for STATE_NAME before setting a new one.
+
+  $kernel->alarm( 'do_this', $at_this_time, @with_these_parameters );
+  $kernel->alarm( 'do_this', $at_this_time );
+
+The last form clears all pending timed events for the state without
+setting a new one.
+
+  $kernel->alarm( 'do_this' );
+
+This method will clear timed events regardless of how they were set.
+
+C<alarm()> returns 0 on success or a reason for its failure:
+
+=over 2
+
+=item * EINVAL
+
+STATE_NAME is undefined.
+
+=back
+
+=item alarm_add STATE_NAME, EPOCH_TIME, PARAMETER_LIST
+
+=item alarm_add STATE_NAME, EPOCH_TIME
+
+Sets an additional timed event for STATE_NAME in the current session
+without clearing previous ones.  The timed event will be dispatched no
+earlier than EPOCH_TIME.
+
+  $kernel->alarm_add( 'do_this', $at_this_time, @with_these_parameters );
+  $kernel->alarm_add( 'do_this', $at_this_time );
+
+Use the alarm() or delay() method to clear timed events set by
+alarm_add().
+
+C<alarm_add()> returns 0 on success or a reason for failure:
+
+=over 2
+
+=item * EINVAL
+
+Either STATE_NAME or EPOCH_TIME is undefined.
+
+=back
+
+=item delay STATE_NAME, SECONDS, PARAMETER_LIST
+
+=item delay STATE_NAME, SECONDS
+
+=item delay STATE_NAME
+
+Clears all the timed events destined for STATE_NAME in the curernt
+session then optionally sets a new one.  The new timed event will be
+dispatched to STATE_NAME after no fewer than SECONDS have elapsed. If
+the optional PARAMETER_LIST is included, then its values will be
+passed along to the state when it's invoked.
+
+C<delay()> uses whichever time(2) is available to POE::Kernel.  It
+uses the more accurate Time::HiRes::time() if it's available, or plain
+time(2) if it's not.  This obviates the need to check for Time::HiRes
+in your own code.
+
+The timed event queue is kept in time order, and delays posted with
+negative SECONDS will do the obvious thing.  SECONDS may be fractional
+regardless of which time() function is available.
+
+The first two forms enqueue a new delay after the pending timed events
+for STATE_NAME are cleared.
+
+  $kernel->delay( 'do_this', $after_this_much_time, @with_these );
+  $kernel->delay( 'do_this', $after_this_much_time );
+
+The last form clears pending timed events without setting a new one.
+
+  $kernel->delay( 'do_this' );
+
+C<delay()> returns 0 on success or a reason for its failure:
+
+=over 2
+
+=item * EINVAL
+
+STATE_NAME is undefined.
+
+=back
+
+=item delay_add STATE_NAME, SECONDS, PARAMETER_LIST
+
+=item delay_add STATE_NAME, SECONDS
+
+Sets an additional timed event for STATE_NAME in the current session
+without clearing previous ones.  The event will be dispatched no
+sooner than SECONDS seconds hence.
+
+  $kernel->delay_add( 'do_this', $after_this_much_time, @with_these );
+  $kernel->delay_add( 'do_this', $after_this_much_time );
+
+Use the alarm() or delay() method to clear timed events set by
+alarm_add().
+
+C<delay_add()> returns 0 on success or a reason for failure:
+
+=over 2
+
+=item * EINVAL
+
+Either STATE_NAME or SECONDS is undefined.
+
+=back
+
+=item queue_peek_alarms
+
+Returns a time-ordered list of state names in the current session that
+have pending timed events.
+
+  my @pending_alarms = $kernel->queue_peek_alarms();
+
+=back
+
+=head2 Symbolic name, or session alias methods
+
+Methods in this section allow sessions to refer to each-other by
+symbolic name or numeric ID.
+
+Session IDs are quite a lot like process IDs, but they are unique to
+the sessions within the current POE::Kernel.  In theory, a combination
+of POE::Kernel and Session IDs should be enough to uniquely identify a
+particular session anywhere in the world.
+
+Most POE::Kernel methods resolve SESSION internally, so it's possible
+to refer to sessions by a number of things.  See the alias_resolve()
+description for more information.
+
+Sessions will not spontaneously stop if they have aliases.  In other
+words, aliases keep sessions alive.
+
+=over 2
+
+=item alias_set ALIAS
+
+Sets an ALIAS for the current session.  ALIAS then may be used nearly
+everywhere instead of SESSION.  Sessions may have more than one ALIAS;
+each must be defined in a separate alias_set() call.
+
+  $kernel->alias_set( 'ishmael' );
+
+Having an alias "daemonizes" a session, allowing it to stay alive even
+when there's nothing for it to do.  Sessions can use this to become
+autonomous services that other sessions refer to by name.
+
+  $kernel->alias_set( 'httpd' );
+  $kernel->post( 'httpd', 'set_handler', 'URI_regexp', 'my_state' );
+
+alias_set() returns 0 on success, or a nonzero failure indicator:
+
+=over 2
+
+=item * EEXIST
+
+The alias already is assigned to a different session.
+
+=back
+
+=item alias_remove ALIAS
+
+Clears an existing ALIAS from the current session.  ALIAS will no
+longer refer to this session.
+
+  $kernel->alias_remove( 'shirley' );
+
+The session will begin its destruction if the alias was all that kept
+it alive.
+
+alias_remove() returns 0 on success or a reason for its failure:
+
+=over 2
+
+=item * ESRCH
+
+POE::Kernel disavows all knowledge of the alias.
+
+=item * EPERM
+
+The alias belongs to another session, and the current one has no
+permission to clear it.
+
+=back
+
+=item alias_resolve ALIAS
+
+Resolves an alias name into a session reference.  alias_resolve() has
+been overloaded over time to look up additional things, and now ALIAS
+may be:
+
+A session alias:
+
+  $session_reference = $kernel->alias_resolve( 'irc_component' );
+
+A stringified session reference:
+
+  $blessed_session_reference = $kernel->alias_resolve( "$stringified_one" );
+
+Or a session ID:
+
+  $session_reference = $kernel->alias_resolve( $session_id );
+
+alias_resolve() returns undef upon failure, setting $! to explain the
+error:
+
+=over 2
+
+=item * ESRCH
+
+POE::Kernel can't find ALIAS anywhere.
+
+=back
+
+The following functions work with IDs directly.  They were at one
+point depreciated, but it was decided to keep them since they're
+faster than alias_resolve() for working solely with session IDs.
+
+For example, Philip Gwyn's inter-kernel calls module,
+POE::Component::IKC, uses these to resolve sessions across processes.
+
+=item ID_id_to_session SESSION_ID
+
+Resolves a session reference from a SESSION_ID.
+
+  $session_reference = ID_id_to_session( $session_id );
+
+It returns a session reference on success or undef on failure.  If it
+fails, $! contains the reason why:
+
+=over 2
+
+=item * ESRCH
+
+POE::Kernel doesn't have session SESSION_ID.
+
+=back
+
+=item ID_session_to_id SESSION_REFERENCE
+
+Resolves a session ID from a session reference.  This is virtually
+identical to SESSION_REFERENCE->ID, except that SESSION_REFERENCE may
+be stringified:
+
+  $session_id = ID_session_to_id( $stringified_session_reference );
+
+It returns a session ID on success or undef in the case of a failure.
+If it fails, $! says why:
+
+=over 2
+
+=item * ESRCH
+
+POE::Kernel has no session matching SESSION_REFERENCE.
 
 =back
 
 =back
 
-=head2 ID Management Methods
+=head2 Filehandle watcher methods
 
-POE generates a unique ID for the process, and it maintains unique
-serial numbers for every session.  These functions retrieve various ID
-values.
+Sessions use these methods to tell POE::Kernel what type of filehandle
+activity they're interested in.  POE::Kernel synchronously calls
+states registered to deal with filehandle activity when one of these
+interesting events occurs.
 
-=over 4
+States are called synchronously so that the filehandle activity may be
+dealt with immediately.  This avoids the watcher seeing the same
+activity twice.  When a state is called, it receives a copy of the
+filehandle in $_[ARG0].  ARG0 is one of POE::Session's parameter
+offset constants; you can read more about it in the POE::Session
+manpage.
 
-=item *
+Sessions will not spontaneously stop as long as they are watching at
+least one filehandle.  In other words, watching a filehandle keep a
+session alive.
 
-POE::Kernel::ID()
+States that are invoked by select watchers receive some parameters to
+help them remember why they were called.
 
-Returns a unique ID for this POE process.
+=over 2
 
-  my $process_id = $kernel->ID();
+=item select_read FILE_HANDLE, STATE_NAME
 
-=item *
+=item select_read FILE_HANDLE
 
-POE::Kernel::ID_id_to_session( $id );
+Starts and stops calling the current session's STATE_NAME state when
+FILE_HANDLE becomes ready for reading.
 
-This function is depreciated.  Please see alias_resolve.
+  $kernel->select_read( $filehandle, 'do_a_read' );
+  $kernel->select_read( $filehandle );
 
-Returns a session reference for the given ID.  It returns undef if the
-ID doesn't exist.  This allows programs to uniquely identify a
-particular Session (or detect that it's gone) even if Perl reuses the
-Session reference later.
+select_read() does not return a meaningful value.
 
-=item *
+=item select_write FILE_HANDLE, STATE_NAME
 
-POE::Kernel::ID_session_to_id( $session );
+=item select_write FILE_HANDLE
 
-Returns an ID for the given POE::Session reference, or undef ith the
-session doesn't exist.
+Starts and stops calling the current session's STATE_NAME state when
+FILE_HANDLE becomes ready for writing.
 
-Perl reuses Session references fairly frequently, but Session IDs are
-unique.  Because of this, the ID of a given reference (stringified, so
-Perl can release the referenced Session) may appear to change.  If it
-does appear to have changed, then the Session reference is probably
-invalid.
+  $kernel->select_write( $filehandle, 'flush_some_data' );
+  $kernel->select_write( $filehandle );
+
+select_write() does not return a meaningful value.
+
+=item select_expedite FILE_HANDLE, STATE_NAME
+
+=item select_expedite FILE_HANDLE
+
+Starts and stops calling the current session's STATE_NAME state when
+FILE_HANDLE becomes ready for out-of-band reading.
+
+  $kernel->select_expedite( $filehandle, 'do_an_oob_read' );
+  $kernel->select_expedite( $filehandle );
+
+select_expedite() does not return a meaningful value.
+
+=item select_pause_write FILE_HANDLE
+
+=item select_resume_write FILE_HANDLE
+
+Temporarily pauses and resumes write watching on a filehandle.  These
+functions only manipulate the select(2) write bits for FILE_HANDLE.
+They don't perform full resource management on FILE_HANDLE.  This
+makes select_pause_write() and select_resume_write() ideal for data
+flushers.
+
+  $kernel->select_pause_write( $filehandle );
+  $kernel->select_resume_write( $filehandle );
+
+These methods don't return meaningful values.
+
+=item select FILE_HANDLE, READ_STATE_NAME, WRITE_STATE_NAME, EXPEDITE_STATE_NAME
+
+Sets or clears read, write, and expedite watchers on a filehandle all
+together.  Watchers for defined state names will be set, and undefined
+state names will clear the corresponding watchers.
+
+For example, set all three:
+
+  $kernel->select( $filehandle, 'do_a_read', 'flush', 'read_oob' );
+
+And to clear all three:
+
+  $kernel->select( $filehandle );
+
+To configure watchers for a read-only handle:
+
+  $kernel->select( $filehandle, 'do_a_read', undef, 'read_oob' );
+
+And a write-only handle:
+
+  $kernel->select( $filehandle, undef, 'flush' );
+
+This method does not return a meaningful value.
 
 =back
 
-=head1 DEBUGGING FLAGS
+=head2 Signal watcher and generator methods
 
-These flags were made public in 0.0906.  If they are pre-defined by
-the first package that uses POE::Kernel (or POE, since that includes
-POE::Kernel by default), then the pre-definition will take precedence
-over POE::Kernel's definition.  In this way, it is possible to use
-POE::Kernel's internal debugging code without finding Kernel.pm and
-editing it.
+Sessions always receive signal events, even if they aren't explicitly
+watching for them.  These signal watcher methods merely manage
+mappings between signal names and state names.  The POE::Session
+manpage describes the default signal handler state, _signal, in a
+little more detail.
 
-Debugging flags are meant to be constants.  They should be prototyped
-as such, and they must be declared in the POE::Kernel package.
+Unlike with the previous resource watchers, sessions B<may>
+spontaneously stop even if they are hold signal name maps.  In other
+words, signal name maps B<do not> keep sessions alive.
 
-Sample usage:
+POE does not make Perl's signal handling safe by itself.  The Event
+module, however, does implement safe signals, and POE will take
+advantage of them when they're available.
 
-  # Display information about garbage collection, and display some
-  # profiling information at the end.
-  sub POE::Kernel::DEB_GC      () { 1 }
-  sub POE::Kernel::DEB_PROFILE () { 1 }
-  use POE;
-  ...
+Most signals propagate depth first through the sessions' parent/child
+relationships.  That is, they are delivered to grandchildren, then
+children, then parents, then grandparents, all the way back to the
+global POE::Kernel instance, which is the oldest ancestor in the tree.
 
-=over 4
+There are three signal levels: nonmaskable, terminal, and benign.
 
-=item *
+A benign signal never stops a session, even if the session doesn't
+handle it.  Most signals are benign.  Note, however, that at the time
+of this writing even benign signals can crash Perl.
 
-DEB_EVENTS
+A terminal signal will stop any session that doesn't handle it.  There
+are relatively few terminal signals: HUP, IDLE (fictitious; explained
+below), INT, KILL, QUIT, TERM.
 
-Enables a trace of events as they are enqueued and dispatched (or
-discarded).  Also shows states' return values.
+A nonmaskable signal always stops a session, even if the session says
+it's been handled.  There are only two nonmaskable signals, and they
+both are fictitious and explained shortly: ZOMBIE and TKDESTROY.
 
-=item *
+A signal handling state's return value tells POE whether it handled
+the signal.  A true return value means that the state handled the
+signal; a false value indicates that the state did not.  Handling a
+signal does not prevent it from propagating up the sessions'
+relationship tree.
 
-DEB_GC
+As was previously mentioned, POE generates three fictitious signals.
+These notify sessions when extraordinary circumstances occur.  They
+are IDLE, TKDESTROY and ZOMBIE.
 
-Enables sanity checks in POE's internal structure cleanup, after each
-Session is stopped, and again at the end of the program's run.
-Displays the results of sessions' garbage-collection checks, perhaps
-showing why a session isn't stopping when it ought to.
+The terminal IDLE signal is posted when the only sessions remaning are
+alive by virtue of having aliases.  This situation occurs when daemon
+sessions exist without any clients to interact with.  POE posts IDLE
+to them, giving them an opportunity to prove they're not yet dead.
 
-=item *
+The TKDESTROY signal is, regrettably nonmaskable.  It indicates that
+the program's Tk::MainWindow is being destroyed, and everything must
+go.
 
-DEB_INSERT
+ZOMBIE is a nonmaskable signal as well.  It's posted if IDLE hasn't
+been effective in waking any lingering daemon sessions.  It tells the
+remaining sessions that they've wasted their opportunity to do
+something, and now it's time to die.
 
-Trace the steps POE::Kernel->_enqueue_state() takes to find the
-locations of new events in its queue.
+Three system signals have special handling.  They are SIGCH?LD,
+SIGPIPE, and SIGWINCH.
 
-=item *
+POE::Kernel's SIGCHLD and SIGCLD handlers both appear to sessions as
+CHLD.  The Kernel's handlers automatically call waitpid(2) on behalf
+of sessions, collecting stopped child process' IDs and return values.
+CHLD signal handlers receive stopped child PIDs in $_[ARG1], and the
+return value form $? in $_[ARG2].  As usual, $_[ARG0] contains 'CHLD'.
 
-DEB_MAIN
+POE::Kernel's SIGPIPE handler only posts PIPE to the currently running
+session.  This may be a problem since signals are delivered
+asynchronously to processes; the author has been saved so far because
+nobody seems to use SIGPIPE for anything anyway.
 
-The first debugging constant.  Prints "POE stopped." when
-POE::Kernel->run() stops.
+Finally, SIGWINCH is just ignored outright.  Window managers generate
+several of these all at once, which, at the time of this writing,
+kills Perl in short order.
 
-=item *
+=over 2
 
-DEB_PROFILE
+=item sig SIGNAL_NAME, STATE_NAME
 
-When enabled, POE::Kernel collects a histogram of state names that
-were dispatched, and displays a report of them when POE::Kernel->run()
-stops.
+=item sig SIGNAL_NAME
 
-=item *
+Registers or unregisters a handler for SIGNAL_NAME.  Signal names are
+the same as %SIG use, with one exception: CLD will be delivered as
+CHLD, so sessions handling CHLD will get both.
 
-DEB_QUEUE
+  $kernel->sig( INT => 'sigint_handler' );
 
-When enabled, POE::Kernel displays information about events in the
-queue.
+The handler for SIGNAL_NAME will be unregistered if STATE_NAME is
+omitted.
 
-=item *
+  $kernel->sig( INT );
 
-DEB_REFCOUNT
+It is possible to register handlers for signals that the operating
+system will never deliver.  This allows sessions to watch for
+fictitious signals that are generated through POE instead of kill(2).
 
-Enabling enables sanity checks and status displays on the number of
-references POE::Kernel holds on resources.  These references are used
-to determine when things like filehandles are no longer being used.
+The sig() method does not return a meaningful value.
 
-=item *
+=item signal SESSION, SIGNAL_NAME
 
-DEB_RELATION
+Posts a signal to a session through POE::Kernel rather than via
+kill(2).  SIGNAL_NAME needn't be supported by the underlying operating
+system.
 
-Enabling this causes POE::Kernel to examine parent/child relationships
-for problems.
+  $kernel->signal( $session, 'DIEDIEDIE' );
 
-=item *
+POE::Kernel's signal() method doesn't return a meaningful value.
 
-DEB_SELECT
+=back
 
-When enabled, DEB_SELECT causes POE::Kernel to display running
-statistics about its select vectors and time-out status.
+=head2 State management methods
 
-=item *
+These methods allow sessions to modify their states at runtime.  It
+would be rude to alter other sessions' states, so these methods only
+affects the current session.
 
-DEB_STRICT
+=over 2
 
-When enabled, POE::Kernel->post() and POE::Kernel->call() must be able
-to resolve an event's destination at post time.
+=item state STATE_NAME
+
+=item state STATE_NAME, CODE_REFERENCE
+
+=item state STATE_NAME, OBJECT_REFERENCE
+
+=item state STATE_NAME, OBJECT_REFERENCE, OBJECT_METHOD_NAME
+
+=item state STATE_NAME, PACKAGE_NAME
+
+=item state STATE_NAME, PACKAGE_NAME, PACKAGE_METHOD_NAME
+
+Adds a new state to the current session, removes an existing state
+from it, or replaces an existing state in it.
+
+The first form deletes a state, regardless whether it's handled by a
+code reference, an object method or a package method.
+
+  $kernel->state( 'do_this' );
+
+The second form registers a new handler or overwrites an existing one
+with a new coderef.  They were originally called inline states because
+early POE prototypes defined them with inline anonymous subs.
+
+  $kernel->state( 'do_this', \&this_does_it );
+
+The third and fourth forms register a new handler or overwrite an
+existing one with an object method.  These are known as object states.
+In the third form, the object's method matches the state's name:
+
+  $kernel->state( 'do_this', $with_this_object );
+
+The fourth form allows state names to be mapped to differently named
+object methods.  This example defines a mapped object state:
+
+  $kernel->state( 'do_this', $with_this_object, $and_this_method );
+
+The fifth and sixth forms allow state names register a new handler or
+owerwrite an existing one with a package method.  These are known as
+package states.  In the fifth form, the package's method matches the
+state's name:
+
+  $kernel->state( 'do_this', $with_this_package );
+
+The sixth form allows state names to be mapped to differently named
+package methods.  This example defines a mapped package state:
+
+  $kernel->state( 'do_this', $with_this_package, $and_this_method );
+
+POE::Kernel's state() method returns 0 on success or a nonzero code
+explaining why it failed:
+
+=over 2
+
+=item * ESRCH
+
+POE::Kernel has no knowledge of the currently active session.  This
+occurs when state() is called when no session is active.
+
+=back
+
+=head2 External reference count methods
+
+External reference counts were created so POE could cooperate with
+other event loops.  They external resource watchers to prevent
+sessions from spontaneously self-destructing.  Held external events
+essentially say "Ok, don't die 'til I'm done."
+
+External reference counts are kept by name.  This feature is still
+relatively new, so there is no convention in place to prevent
+namespace collisions.  If anyone has ideas about this, please contact
+the author.
+
+=over 2
+
+=item refcount_increment SESSION_ID, REFCOUNT_NAME
+
+=item refcount_decrement SESSION_ID, REFCOUNT_NAME
+
+Increments or decrements a reference count called REFCOUNT_NAME in the
+session identified by SESSION_ID.  Returns undef on failure, or the
+new reference count on success.
+
+  $new_count = $kernel->refcount_increment( $session_id, 'postback' );
+  $new_count = $kernel->refcount_decrement( $session_id, 'postback' );
+
+These methods set $! upon failure:
+
+=over 2
+
+=item * ESRCH
+
+The session formerly known as SESSION_ID no longer (or perhaps never
+did) exist.
+
+=back
 
 =back
 
 =head1 SEE ALSO
 
-POE; POE::Session
+The POE manpages contains holistic POE information.
 
 =head1 BUGS
 
-Oh, probably some.
+There are no currently known bugs.  If you find one, tell the author!
 
 =head1 AUTHORS & COPYRIGHTS
 
-Please see the POE manpage.
+Please see the POE manpage for authors and licenses.
 
 =cut
