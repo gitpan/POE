@@ -1,4 +1,4 @@
-# $Id: POE.pm,v 1.139 2002/06/08 03:29:19 rcaputo Exp $
+# $Id: POE.pm,v 1.140 2002/06/19 17:24:58 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,7 +7,7 @@ use strict;
 use Carp;
 
 use vars qw($VERSION);
-$VERSION = '0.20';
+$VERSION = '0.21';
 
 sub import {
   my $self = shift;

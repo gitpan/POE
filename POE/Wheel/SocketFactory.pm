@@ -1,11 +1,11 @@
-# $Id: SocketFactory.pm,v 1.55 2002/05/10 01:39:04 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.56 2002/06/18 22:13:11 rcaputo Exp $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.55 $ ))[1];
+$VERSION = (qw($Revision: 1.56 $ ))[1];
 
 use Carp;
 use Symbol;
@@ -1059,7 +1059,8 @@ wheel's unique ID.  The parameters between them differ according to
 the socket's domain and whether it's listening or connecting.
 
 For INET sockets, C<ARG1> and C<ARG2> hold the socket's remote address
-and port, respectively.
+and port, respectively.  The address is packed; use inet_ntoa() (See
+L<Socket>) if a human-readable version is necessary.
 
 For UNIX B<client> sockets, C<ARG1> holds the server address.  It may
 be undefined on systems that have trouble retrieving a UNIX socket's

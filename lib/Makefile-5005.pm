@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.14 2002/06/08 01:58:31 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.15 2002/06/09 18:32:12 rcaputo Exp $
 
 use strict;
 
@@ -92,7 +92,9 @@ WriteMakefile
     dist           =>
     { COMPRESS => 'gzip -9f',
       SUFFIX   => 'gz',
-      PREOP    => qq(cvs2cl.pl -l "-d'a year ago<'" --utc --file CHANGES),
+      PREOP    => ( 'echo $PWD;cvs2cl.pl -l "-d\'a year ago<\'" ' .
+                    '--utc --stdout > $(DISTNAME)-$(VERSION)/CHANGES'
+                  ),
     },
 
     PMLIBDIRS      => [ 'POE' ],

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.4 2002/06/08 01:58:31 rcaputo Exp $
+# $Id: Makefile-5004.pm,v 1.5 2002/06/09 18:32:12 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
 
@@ -20,7 +20,9 @@ WriteMakefile
     dist           =>
     { COMPRESS => 'gzip -9f',
       SUFFIX   => 'gz',
-      PREOP    => qq(cvs2cl.pl -l "-d'a year ago<'" --utc --file CHANGES),
+      PREOP    => ( 'cvs2cl.pl -l "-d\'a year ago<\'" ' .
+                    '--utc --stdout > $(DISTNAME)-$(VERSION)/CHANGES'
+                  ),
     },
     PREREQ_PM      => { Carp               => 0,
                         Exporter           => 0,

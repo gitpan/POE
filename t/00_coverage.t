@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 00_coverage.t,v 1.10 2002/06/01 22:13:17 rcaputo Exp $
+# $Id: 00_coverage.t,v 1.11 2002/06/10 17:53:18 rcaputo Exp $
 
 # This test merely loads as many modules as possible so that the
 # coverage tester will see them.  It's performs a similar function as
@@ -55,6 +55,12 @@ sub load_required_module {
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 
 &load_required_module( 1, 'POE'); # includes POE::Kernel and POE::Session
+
+# Avoid two warnings.  First, that run() wasn't called; second, that
+# $POE::Kernel::poe_kernel was only used once.
+$POE::Kernel::poe_kernel->run();
+$POE::Kernel::poe_kernel->run();
+
 &load_required_module( 2, 'POE::NFA');
 &load_required_module( 3, 'POE::Filter::Line');
 &load_required_module( 4, 'POE::Filter::Stream');
