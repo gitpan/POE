@@ -1,8 +1,11 @@
-# $Id: Stream.pm,v 1.10 2001/07/27 16:27:29 rcaputo Exp $
+# $Id: Stream.pm,v 1.11 2002/01/10 20:39:44 rcaputo Exp $
 
 package POE::Filter::Stream;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.11 $ ))[1];
 
 #------------------------------------------------------------------------------
 

@@ -1,17 +1,20 @@
-# $Id: TCP.pm,v 1.7 2001/04/03 17:20:31 rcaputo Exp $
+# $Id: TCP.pm,v 1.19 2002/01/10 20:16:34 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
-use Carp qw(carp croak);
-use Socket qw(INADDR_ANY);
 use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.19 $ ))[1];
 
-$VERSION = 1.01;
+use Carp qw(carp croak);
+use Socket qw(INADDR_ANY inet_ntoa);
 
 # Explicit use to import the parameter constants.
 use POE::Session;
+use POE::Driver::SysRW;
+use POE::Filter::Line;
+use POE::Wheel::ReadWrite;
 use POE::Wheel::SocketFactory;
 
 # Create the server.  This is just a handy way to encapsulate
@@ -32,60 +35,199 @@ sub new {
 
   # Validate what we're given.
   croak "$mi needs a Port parameter" unless exists $param{Port};
-  croak "$mi needs an Acceptor parameter" unless exists $param{Acceptor};
 
   # Extract parameters.
-  my $alias           = delete $param{Alias};
-  my $address         = delete $param{Address};
-  my $port            = delete $param{Port};
+  my $alias   = delete $param{Alias};
+  my $address = delete $param{Address};
+  my $port    = delete $param{Port};
+
+  foreach ( qw( Acceptor Error ClientInput ClientConnected
+                ClientDisconnected ClientError ClientFlushed
+              )
+          ) {
+    croak "$_ must be a coderef"
+      if defined($param{$_}) and ref($param{$_}) ne 'CODE';
+  }
+
   my $accept_callback = delete $param{Acceptor};
   my $error_callback  = delete $param{Error};
 
+  my $client_input    = delete $param{ClientInput};
+
+  # Acceptor and ClientInput are mutually exclusive.
+  croak "$mi needs either an Acceptor or a ClientInput but not both"
+    unless defined($accept_callback) xor defined($client_input);
+
+  # Make sure ClientXyz are accompanied by ClientInput.
+  unless (defined($client_input)) {
+    foreach (grep /^Client/, keys %param) {
+      croak "$_ not permitted without ClientInput";
+    }
+  }
+
+  my $client_connected    = delete $param{ClientConnected};
+  my $client_disconnected = delete $param{ClientDisconnected};
+  my $client_error        = delete $param{ClientError};
+  my $client_filter       = delete $param{ClientFilter};
+  my $client_flushed      = delete $param{ClientFlushed};
+
   # Defaults.
+
   $address = INADDR_ANY unless defined $address;
+
+  $error_callback = \&_default_server_error unless defined $error_callback;
+
+  if (defined $client_input) {
+    $client_filter = "POE::Filter::Line" unless defined $client_filter;
+    $client_error  = \&_default_client_error  unless defined $client_error;
+    $client_connected    = sub {} unless defined $client_connected;
+    $client_disconnected = sub {} unless defined $client_disconnected;
+    $client_flushed      = sub {} unless defined $client_flushed;
+
+    # Extra states.
+
+    my $inline_states = delete $param{InlineStates};
+    $inline_states = {} unless defined $inline_states;
+
+    my $package_states = delete $param{PackageStates};
+    $package_states = [] unless defined $package_states;
+
+    my $object_states = delete $param{ObjectStates};
+    $object_states = [] unless defined $object_states;
+
+    croak "InlineStates must be a hash reference"
+      unless ref($inline_states) eq 'HASH';
+
+    croak "PackageStates must be a list or array reference"
+      unless ref($package_states) eq 'ARRAY';
+
+    croak "ObjectsStates must be a list or array reference"
+      unless ref($object_states) eq 'ARRAY';
+
+    # Revise the acceptor callback so it spawns a session.
+
+    $accept_callback = sub {
+      my ($socket, $remote_addr, $remote_port) = @_[ARG0, ARG1, ARG2];
+      POE::Session->create
+        ( inline_states =>
+          { _start => sub {
+              my ( $kernel, $session, $heap ) = @_[KERNEL, SESSION, HEAP];
+
+              $heap->{shutdown}    = 0;
+              $heap->{remote_ip}   = inet_ntoa($remote_addr);
+              $heap->{remote_port} = $remote_port;
+
+              $heap->{client} = POE::Wheel::ReadWrite->new
+                ( Handle       => $socket,
+                  Driver       => POE::Driver::SysRW->new( BlockSize => 4096 ),
+                  Filter       => $client_filter->new(),
+                  InputEvent   => 'tcp_server_got_input',
+                  ErrorEvent   => 'tcp_server_got_error',
+                  FlushedEvent => 'tcp_server_got_flush',
+                );
+
+              $client_connected->(@_);
+            },
+
+            # To quiet ASSERT_STATES.
+            _child  => sub { },
+            _signal => sub { 0 },
+
+            tcp_server_got_input => sub {
+              my $heap = $_[HEAP];
+              return if $heap->{shutdown};
+              $client_input->(@_);
+            },
+            tcp_server_got_error => sub {
+              my ($heap, $operation, $errnum) = @_[HEAP, ARG0, ARG1];
+
+              $heap->{shutdown} = 1;
+
+              # Read error 0 is disconnect.
+              if ($operation eq 'read' and $errnum == 0) {
+                $client_disconnected->(@_);
+              }
+              else {
+                $client_error->(@_);
+              }
+
+              delete $heap->{client};
+            },
+            tcp_server_got_flush => sub {
+              my $heap = $_[HEAP];
+              $client_flushed->(@_);
+              delete $heap->{client} if $heap->{shutdown};
+            },
+            shutdown => sub {
+              my $heap = $_[HEAP];
+              $heap->{shutdown} = 1;
+              if (defined $heap->{client}) {
+                delete $heap->{client}
+                  unless $heap->{client}->get_driver_out_octets();
+              }
+            },
+            _stop => $client_disconnected,
+
+            tcp_server_got_flushed => sub {
+              my ($kernel, $heap) = @_[KERNEL, HEAP];
+              delete $heap->{client} if $heap->{shutdown};
+            },
+
+            # User supplied states.
+            %$inline_states
+          },
+
+          # More user supplied states.
+          package_states => $package_states,
+          object_states  => $object_states,
+        );
+    };
+  };
 
   # Complain about strange things we're given.
   foreach (sort keys %param) {
     carp "$mi doesn't recognize \"$_\" as a parameter";
   }
 
-  # Create the session, at long last.
+  # Create the session, at long last.  This is done inline so that
+  # closures can customize it.
 
-  POE::Session->new
+  POE::Session->create
+    ( inline_states =>
+      { _start =>
+        sub {
+          if (defined $alias) {
+            $_[HEAP]->{alias} = $alias;
+            $_[KERNEL]->alias_set( $alias );
+          }
 
-    # The POE::Session has been set up.  Create a listening socket
-    # factory which will call back $callback with accepted client
-    # sockets.
-    ( _start =>
-      sub {
-        if (defined $alias) {
-          $_[HEAP]->{alias} = $alias;
-          $_[KERNEL]->alias_set( $alias );
-        }
+          $_[HEAP]->{listener} = POE::Wheel::SocketFactory->new
+            ( BindPort     => $port,
+              BindAddress  => $address,
+              Reuse        => 'yes',
+              SuccessState => 'tcp_server_got_connection',
+              FailureState => 'tcp_server_got_error',
+            );
+        },
 
-        $_[HEAP]->{listener} = POE::Wheel::SocketFactory->new
-          ( BindPort     => $port,
-            BindAddress  => $address,
-            Reuse        => 'yes',
-            SuccessState => 'got_connection',
-            FailureState => 'got_error',
-          );
-      },
+        # Catch an error.
+        tcp_server_got_error => $error_callback,
 
-      # Catch an error.
-      got_error => ( defined($error_callback)
-                     ? $error_callback
-                     : \&default_error_handler
-                   ),
+        # We accepted a connection.  Do something with it.
+        tcp_server_got_connection => $accept_callback,
 
-      # We accepted a connection.  Do something with it.
-      got_connection => $accept_callback,
+        # Shut down.
+        shutdown => sub {
+          delete $_[HEAP]->{listener};
+          $_[KERNEL]->alias_remove( $_[HEAP]->{alias} )
+            if defined $_[HEAP]->{alias};
+        },
 
-      # Shut down.
-      shutdown => sub {
-        delete $_[HEAP]->{listener};
-        $_[KERNEL]->alias_remove( $_[HEAP]->{alias} )
-          if defined $_[HEAP]->{alias};
+        # Dummy states to prevent warnings.
+        _signal => sub { return 0 },
+        _stop   => sub { return 0 },
+        _child  => sub { },
+        _signal => sub { 0 },
       },
     );
 
@@ -94,12 +236,24 @@ sub new {
   undef;
 }
 
-# The default error handler logs to STDERR and shuts down the server.
-sub default_error_handler {
+# The default server error handler logs to STDERR and shuts down the
+# server.
+
+sub _default_server_error {
   warn( 'Server ', $_[SESSION]->ID,
         " got $_[ARG0] error $_[ARG1] ($_[ARG2])\n"
       );
   delete $_[HEAP]->{listener};
+}
+
+# The default client error handler logs to STDERR and shuts down the
+# server.
+
+sub _default_client_error {
+  warn( 'Client ', $_[SESSION]->ID,
+        " got $_[ARG0] error $_[ARG1] ($_[ARG2])\n"
+      );
+  delete $_[HEAP]->{client};
 }
 
 1;
@@ -112,18 +266,9 @@ POE::Component::Server::TCP - a simplified TCP server
 
 =head1 SYNOPSIS
 
-  use POE;
+  use POE qw(Component::Server::TCP);
 
-  sub accept_handler {
-    my ($socket, $remote_address, $remote_port) = @_[ARG0, ARG1, ARG2];
-    # code goes here to handle the accepted socket
-  }
-
-  sub error_handler {
-    my ($op, $errnum, $errstr) = @_[ARG0, ARG1, ARG2];
-    warn "server encountered $op error $errnum: $errstr";
-    # possibly shut down the server
-  }
+  # First form just accepts connections.
 
   POE::Component::Server::TCP->new
     ( Port     => $bind_port,
@@ -132,31 +277,108 @@ POE::Component::Server::TCP - a simplified TCP server
       Error    => \&error_handler,  # Optional.
     );
 
+  # Second form accepts and handles connections.
+
+  POE::Component::Server::TCP->new
+    ( Port     => $bind_port,
+      Address  => $bind_address,    # Optional.
+      Acceptor => \&accept_handler, # Optional.
+      Error    => \&error_handler,  # Optional.
+
+      ClientInput        => \&handle_client_input,      # Required.
+      ClientConnected    => \&handle_client_connect,    # Optional.
+      ClientDisconnected => \&handle_client_disconnect, # Optional.
+      ClientError        => \&handle_client_error,      # Optional.
+      ClientFlushed      => \&handle_client_flush,      # Optional.
+      ClientFilter       => "POE::Filter::Xyz",         # Optional.
+
+      # Optionally define other states for the client session.
+      InlineStates  => { ... },
+      PackageStates => [ ... ],
+      ObjectStates  => [ ... ],
+    );
+
+  # Call signatures for handlers.
+
+  sub accept_handler {
+    my ($socket, $remote_address, $remote_port) = @_[ARG0, ARG1, ARG2];
+  }
+
+  sub error_handler {
+    my ($syscall_name, $error_number, $error_string) = @_[ARG0, ARG1, ARG2];
+  }
+
+  sub handle_client_input {
+    my $input_record = $_[ARG0];
+  }
+
+  sub handle_client_error {
+    my ($syscall_name, $error_number, $error_string) = @_[ARG0, ARG1, ARG2];
+  }
+
+  sub handle_client_connect {
+    # no special parameters
+  }
+
+  sub handle_client_disconnect {
+    # no special parameters
+  }
+
+  sub handle_client_flush {
+    # no special parameters
+  }
+
+  # Reserved HEAP variables:
+
+  $heap->{listener}    = SocketFactory (only Acceptor and Error callbacks)
+  $heap->{client}      = ReadWrite     (only in ClientXyz callbacks)
+  $heap->{remote_ip}   = remote IP address in dotted form
+  $heap->{remote_port} = remote port
+  $heap->{remote_addr} = packed remote address and port
+  $heap->{shutdown}    = shutdown flag (check to see if shutting down)
+
+  # Accepted public events.
+
+  $kernel->yield( "shutdown" )           # initiate shutdown in a connection
+  $kernel->post( server => "shutdown" )  # stop listening for connections
+
 =head1 DESCRIPTION
 
 The TCP server component hides the steps needed to create a server
 using Wheel::SocketFactory.  The steps aren't many, but they're still
-repetitive and thus boring.
+tiresome after a while.
 
-POE::Component::Server::TCP helps out by supplying a default error
-handler.  This handler will write an error message on STDERR and shut
-the server down.
+POE::Component::Server::TCP supplies common defaults for most
+callbacks and handlers.  The authors hope that servers can be created
+with as little work as possible.
 
-The TCP server component takes three named arguments.  It's expected
-to accept other parameters as it evolves.
+Constructor parameters:
 
 =over 2
 
+=item Acceptor
+
+Acceptor is a coderef which will be called to handle accepted sockets.
+The coderef receives its parameters directly from SocketFactory's
+SuccessEvent.  ARG0 is the accepted socket handle, suitable for giving
+to a ReadWrite wheel.  ARG1 and ARG2 contain the packed remote address
+and numeric port, respectively.  ARG3 is the SocketFactory wheel's ID.
+
+  Acceptor => \&accept_handler
+
+Acceptor and ClientInput are mutually exclusive.  Enabling one
+prohibits the other.
+
 =item Address
 
-Address is the optional interface address the listening socket will be
-bound to.  When omitted, it defaults to INADDR_ANY.
+Address is the optional interface address the TCP server will bind to.
+It defaults to INADDR_ANY.
 
   Address => '127.0.0.1'
 
-It's passed directly to SocketFactory's BindAddress parameter, and so
-it can be in whatever form SocketFactory supports.  At the time of
-this writing, that's a dotted quad, a host name, or a packed Internet
+It's passed directly to SocketFactory's BindAddress parameter, so it
+can be in whatever form SocketFactory supports.  At the time of this
+writing, that's a dotted quad, a host name, or a packed Internet
 address.
 
 =item Alias
@@ -170,27 +392,83 @@ Later on, the 'chargen' service can be shut down with:
 
   $kernel->post( chargen => 'shutdown' );
 
-=item Port
+=item ClientConnected
 
-Port is the port the listening socket will be bound to.
+ClientConnected is a coderef that will be called for each new client
+connection.  ClientConnected callbacks receive the usual POE
+parameters, but nothing special is included.
 
-  Port => 30023
+=item ClientDisconnected
 
-=item Acceptor
+ClientDisconnected is a coderef that will be called for each client
+disconnection.  ClientDisconnected callbacks receive the usual POE
+parameters, but nothing special is included.
 
-Acceptor is a coderef which will be called to handle accepted sockets.
-The coderef is used as POE::Wheel::SocketFactory's SuccessState, so it
-accepts the same parameters.
+=item ClientError
 
-  Acceptor => \&success_state
+ClientError is a coderef that will be called whenever an error occurs
+on a socket.  It receives the usual error handler parameters: ARG0 is
+the name of the function that failed.  ARG1 is the numeric failure
+code ($! in numeric context).  ARG2 is the string failure code ($! in
+string context).
+
+If ClientError is omitted, a default one will be provided.  The
+default error handler logs the error to STDERR and closes the
+connection.
+
+=item ClientFilter
+
+ClientFilter is the name of a POE::Filter class.  Objects of that
+class will be instantiated to interpret and serialize data for the
+client socket.  POE::Component::Server::TCP will provide a generic
+Line filter by default.
+
+If a ClientFilter class is specified, it's up to the programmer to use
+or define that class.
+
+=item ClientInput
+
+ClientInput is a coderef that will be called to handle client input.
+The callback receives its parameters directyl from ReadWrite's
+InputEvent.  ARG0 is the input record, and ARG1 is the wheel's unique
+ID.
+
+  ClientInput => \&input_handler
+
+ClientInput and Acceptor are mutually exclusive.  Enabling one
+prohibits the other.
 
 =item Error
 
 Error is an optional coderef which will be called to handle server
 socket errors.  The coderef is used as POE::Wheel::SocketFactory's
-FailureState, so it accepts the same parameters.  If it is omitted, a
+FailureEvent, so it accepts the same parameters.  If it is omitted, a
 default error handler will be provided.  The default handler will log
 the error to STDERR and shut down the server.
+
+=item InlineStates
+
+InlineStates holds a hashref of inline coderefs to handle events.  The
+hashref is keyed on event name.  For more information, see
+POE::Session's create() method.
+
+=item ObjectStates
+
+ObjectStates holds a list reference of objects and the events they
+handle.  For more information, see POE::Session's create() method.
+
+=item PackageStates
+
+PackageStates holds a list reference of Perl package names and the
+events they handle.  For more information, see POE::Session's create()
+method.
+
+=item Port
+
+Port is the port the listening socket will be bound to.  It defaults
+to INADDR_ANY, which usually lets the operating system pick a port.
+
+  Port => 30023
 
 =back
 
@@ -212,19 +490,40 @@ if one is set.
 
 =head1 SEE ALSO
 
-POE::Wheel::SocketFactory
+POE::Component::Client::TCP, POE::Wheel::SocketFactory,
+POE::Wheel::ReadWrite, POE::Filter
+
+=head1 CAVEATS
+
+This is not suitable for complex tasks.  For example, you cannot
+engage in a challenge-response with the client-- you can only reply to
+the one message a client sends.
 
 =head1 BUGS
 
-POE::Component::Server::TCP currently does not accept many of the
-options that POE::Wheel::SocketFactory does, but it can be expanded
-easily to do so.
+This looks nothing like what Ann envisioned.
+
+This component currently does not accept many of the options that
+POE::Wheel::SocketFactory does.
+
+This component will not bind to several addresses.  This may be a
+limitation in SocketFactory.
+
+This component needs more complex error handling which appends for
+construction errors and replaces for runtime errors, instead of
+replacing for all.
 
 =head1 AUTHORS & COPYRIGHTS
 
-POE::Component::Server::TCP is Copyright 2000 by Rocco Caputo.  All
-rights are reserved.  POE::Component::Server::TCP is free software,
-and it may be redistributed and/or modified under the same terms as
-Perl itself.
+POE::Component::Server::TCP is Copyright 2000-2001 by Rocco Caputo.
+All rights are reserved.  POE::Component::Server::TCP is free
+software, and it may be redistributed and/or modified under the same
+terms as Perl itself.
+
+POE::Component::Server::TCP is based on code, used with permission,
+from Ann Barcomb E<lt>kudra@domaintje.comE<gt>.
+
+POE::Component::Server::TCP is based on code, used with permission,
+from Jos Boumans E<lt>kane@cpan.orgE<gt>.
 
 =cut

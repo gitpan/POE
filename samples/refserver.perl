@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: refserver.perl,v 1.14 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: refserver.perl,v 1.15 2002/01/03 22:33:56 rcaputo Exp $
 
 # This program is half of a test suite for POE::Filter::Reference.  It
 # implements a server that accepts frozen data, thaws it, and displays
@@ -7,7 +7,7 @@
 # as well as a few other things.
 
 # Contributed by Artur Bergman <artur@vogon-solutions.com>
-# Revised for 0.06 by Rocco Caputo <troc@netrus.net>
+# Revised for 0.06 by Rocco Caputo <rcaputo@cpan.org>
 
 use strict;
 use lib '..';

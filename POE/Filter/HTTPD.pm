@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.17 2001/07/31 14:31:18 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.22 2002/01/10 20:39:44 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -12,13 +12,17 @@
 # and from HTTPD filters, they should say so on POE's mailing list.
 
 package POE::Filter::HTTPD;
+
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.22 $ ))[1];
 
 use Carp qw(croak);
 use HTTP::Status;
 use HTTP::Request;
 use HTTP::Date qw(time2str);
-use URI::URL qw(url);
+use URI;
 
 my $HTTP_1_0 = _http_version("HTTP/1.0");
 my $HTTP_1_1 = _http_version("HTTP/1.1");
@@ -47,9 +51,32 @@ sub get {
   # happen.  -><- Maybe this should return [] instead of dying?
 
   if($self->{'finish'}) {
-    return [ $self->build_error( RC_BAD_REQUEST,
-                                 "Did not want any more data"
-                               )
+
+    # This works around a request length vs. actual content length
+    # error.  Looks like some browsers (mozilla!) sometimes add on an
+    # extra newline?
+
+    # return [] unless @$stream and grep /\S/, @$stream;
+
+    my (@dump, $offset);
+    $stream = join("", @$stream);
+    while (length $stream) {
+      my $line = substr($stream, 0, 16);
+      substr($stream, 0, 16) = '';
+
+      my $hexdump  = unpack 'H*', $line;
+      $hexdump =~ s/(..)/$1 /g;
+
+      $line =~ tr[ -~][.]c;
+      push @dump, sprintf( "%x %s- %s\n", $offset, $hexdump, $line );
+      $offset += 16;
+    }
+
+    return [ $self->build_error
+             ( RC_BAD_REQUEST,
+               "Did not want any more data.  Got this:" .
+               "<p>" . join("<br>", @dump) . "</p>"
+             )
            ];
   }
 
@@ -96,7 +123,7 @@ sub get {
 
   # Use the request line to create a request object.
 
-  my $r = HTTP::Request->new($1, url($2));
+  my $r = HTTP::Request->new($1, URI->new($2));
   $r->protocol($proto);
   $self->{'httpd_client_proto'} = $proto = _http_version($proto);
 
@@ -168,20 +195,23 @@ sub put {
   # browsers like lynx get what they expect.
 
   foreach (@$responses) {
-    my @result;
     my $code           = $_->code;
     my $status_message = status_message($code) || "Unknown Error";
-    my $message        = $_->message || "";
-    my $status_line    = "$code";
-    my $proto          = $_->protocol;
-    $status_line  = "$proto $status_line" if $proto;
-    $status_line .= " ($status_message)"  if $status_message ne $message;
-    $status_line .= " $message";
-    push @result, $status_line;
-    push @result, $_->headers_as_string("\x0D\x0A"); # network newlines!
-    my $content = $_->content;
-    push @result, $content if defined $content;
-    push @raw, 'HTTP/1.0 ' . join("\x0D\x0A", @result, ""); # network newlines!
+    my $message        = $_->message  || "";
+    my $proto          = $_->protocol || 'HTTP/1.0';
+
+    my $status_line = "$proto $code";
+    $status_line   .= " ($status_message)"  if $status_message ne $message;
+    $status_line   .= " $message";
+
+    # Use network newlines, and be sure not to mangle newlines in the
+    # response's content.
+
+    my @headers;
+    push @headers, $status_line;
+    push @headers, $_->headers_as_string("\x0D\x0A");
+
+    push @raw, join("\x0D\x0A", @headers, "") . $_->content;
   }
 
   \@raw;
@@ -301,6 +331,17 @@ Please see the documentation for HTTP::Request and HTTP::Response.
 =head1 PUBLIC FILTER METHODS
 
 Please see POE::Filter.
+
+=head1 Streaming Media
+
+It is perfectly possible to use Filter::HTTPD for streaming output
+media.  Even if it's not possible to change the input filter from
+Filter::HTTPD, by setting the output_filter to Filter::Stream and
+omitting any content in the HTTP::Response object.
+
+  $wheel->put($response); # Without content, it sends just headers.
+  $wheel->set_output_filter(POE::Filter::Stream->new());
+  $wheel->put("Raw content.");
 
 =head1 SEE ALSO
 

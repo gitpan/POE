@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.31 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 06_tk.t,v 1.33 2002/01/01 14:16:39 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Tk postback events using Tk's event
 # loop.
@@ -79,7 +79,7 @@ sub io_start {
         ( InputHandle  => $a_read,
           OutputHandle => $a_write,
           Filter       => POE::Filter::Line->new(),
-          Driver       => POE::Driver::SysRW->new(),
+          # Use default driver.
           InputEvent   => 'ev_a_read',
         );
 
@@ -88,7 +88,7 @@ sub io_start {
       POE::Wheel::ReadWrite->new
         ( InputHandle  => $b_read,
           OutputHandle => $b_write,
-          Filter       => POE::Filter::Line->new(),
+          # Use default filter.
           Driver       => POE::Driver::SysRW->new(),
           InputEvent   => 'ev_b_read',
         );
@@ -163,7 +163,7 @@ sub io_pipe_write {
 
 # This is a plain function; not an event handler.
 sub shut_down_if_done {
-  my $heap = shift;
+  my $heap = shift;  # It's ok.  It's a plain function, not an event handler.
 
   # Shut down both wheels if we're done.
   if ( ${$heap->{a_read_count}} == $write_max and

@@ -1,23 +1,31 @@
-# $Id: FollowTail.pm,v 1.25 2001/08/11 22:40:05 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.31 2002/01/10 20:39:45 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.31 $ ))[1];
+
 use Carp;
+use Symbol;
 use POSIX qw(SEEK_SET SEEK_CUR SEEK_END);
-use POE qw(Wheel);
+use POE qw(Wheel Driver::SysRW Filter::Line);
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 
-sub SELF_HANDLE      () { 0 }
-sub SELF_DRIVER      () { 1 }
-sub SELF_FILTER      () { 2 }
-sub SELF_INTERVAL    () { 3 }
-sub SELF_EVENT_INPUT () { 4 }
-sub SELF_EVENT_ERROR () { 5 }
-sub SELF_UNIQUE_ID   () { 6 }
-sub SELF_STATE_READ  () { 7 }
-sub SELF_STATE_WAKE  () { 8 }
+sub SELF_HANDLE      () {  0 }
+sub SELF_FILENAME    () {  1 }
+sub SELF_DRIVER      () {  2 }
+sub SELF_FILTER      () {  3 }
+sub SELF_INTERVAL    () {  4 }
+sub SELF_EVENT_INPUT () {  5 }
+sub SELF_EVENT_ERROR () {  6 }
+sub SELF_EVENT_RESET () {  7 }
+sub SELF_UNIQUE_ID   () {  8 }
+sub SELF_STATE_READ  () {  9 }
+sub SELF_STATE_WAKE  () { 10 }
+sub SELF_LAST_STAT   () { 11 }
 
 # Turn on tracing.  A lot of debugging occurred just after 0.11.
 sub TRACE () { 0 }
@@ -72,12 +80,25 @@ sub new {
     }
   }
 
-  croak "Handle required"     unless defined $params{Handle};
-  croak "Driver required"     unless defined $params{Driver};
-  croak "Filter required"     unless defined $params{Filter};
+  croak "Handle or Filename required, but not both"
+    unless $params{Handle} xor defined $params{Filename};
+
+  my $driver = delete $params{Driver};
+  $driver = POE::Driver::SysRW->new() unless defined $driver;
+
+  my $filter = delete $params{Filter};
+  $filter = POE::Filter::Line->new() unless defined $filter;
+
   croak "InputEvent required" unless defined $params{InputEvent};
 
-  my ($handle, $driver, $filter) = @params{ qw(Handle Driver Filter) };
+  my ($handle, $filename) = @params{ qw(Handle Filename) };
+
+  my @start_stat;
+  if (defined $filename) {
+    $handle = gensym();
+    open $handle, "<$filename" or croak "can't open $filename: $!";
+    @start_stat = stat($filename);
+  }
 
   my $poll_interval = ( (defined $params{PollInterval})
                         ? $params{PollInterval}
@@ -91,14 +112,17 @@ sub new {
   $seek_back = 0 if $seek_back < 0;
 
   my $self = bless [ $handle,                          # SELF_HANDLE
+                     $filename,                        # SELF_FILENAME
                      $driver,                          # SELF_DRIVER
                      $filter,                          # SELF_FILTER
                      $poll_interval,                   # SELF_INTERVAL
                      delete $params{InputEvent},       # SELF_EVENT_INPUT
                      delete $params{ErrorEvent},       # SELF_EVENT_ERROR
+                     delete $params{ResetEvent},       # SELF_EVENT_RESET
                      &POE::Wheel::allocate_wheel_id(), # SELF_UNIQUE_ID
                      undef,                            # SELF_STATE_READ
                      undef,                            # SELF_STATE_WAKE
+                     \@start_stat,                     # SELF_LAST_STAT
                   ], $type;
 
   $self->_define_states();
@@ -153,11 +177,16 @@ sub _define_states {
   my $driver        = $self->[SELF_DRIVER];
   my $event_input   = \$self->[SELF_EVENT_INPUT];
   my $event_error   = \$self->[SELF_EVENT_ERROR];
-  my $state_wake    = $self->[SELF_STATE_WAKE] = $self . ' alarm';
-  my $state_read    = $self->[SELF_STATE_READ] = $self . ' select read';
+  my $event_reset   = \$self->[SELF_EVENT_RESET];
+  my $unique_id     = $self->[SELF_UNIQUE_ID];
+  my $state_wake    = $self->[SELF_STATE_WAKE] =
+    ref($self) . "($unique_id) -> alarm";
+  my $state_read    = $self->[SELF_STATE_READ] =
+    ref($self) . "($unique_id) -> select read";
   my $poll_interval = $self->[SELF_INTERVAL];
   my $handle        = $self->[SELF_HANDLE];
-  my $unique_id     = $self->[SELF_UNIQUE_ID];
+  my $filename      = $self->[SELF_FILENAME];
+  my $last_stat     = $self->[SELF_LAST_STAT];
 
   # Define the read state.
 
@@ -175,7 +204,42 @@ sub _define_states {
 
         $k->select_read($hdl);
 
-        eval { sysseek($hdl, 0, SEEK_CUR); };
+        eval {
+          if (defined $filename) {
+            my @old_stat = @$last_stat;
+            my @new_stat = stat($filename);
+            # warn "@new_stat\n";
+            if (@new_stat) {
+              if ( $new_stat[0] != $old_stat[0] or # device number
+                   $new_stat[1] != $old_stat[1] or # inode
+                   $new_stat[3] != $old_stat[3] or # number of hard links
+                   $new_stat[6] != $old_stat[6]    # device identifier
+                 ) {
+                if (defined $filename) {
+                  close $handle;
+                  if (open $handle, "<$filename") {
+                    $$event_reset and $k->call( $ses,
+                                                $$event_reset, $unique_id
+                                              );
+                  }
+                  else {
+                    $$event_error and
+                      $k->call( $ses, $$event_error, 'reopen',
+                                ($!+0), $!, $unique_id
+                              );
+                  }
+                }
+              }
+              else {
+                sysseek($hdl, 0, SEEK_CUR);
+              }
+              @$last_stat = @new_stat;
+            }
+          }
+          else {
+            sysseek($hdl, 0, SEEK_CUR);
+          }
+        };
         $! = 0;
 
         TRACE and do { warn time . " read ok\n"; };
@@ -245,6 +309,9 @@ sub event {
     elsif ($name eq 'ErrorEvent') {
       $self->[SELF_EVENT_ERROR] = $event;
     }
+    elsif ($name eq 'ResetEvent') {
+      $self->[SELF_EVENT_RESET] = $event;
+    }
     else {
       carp "ignoring unknown FollowTail parameter '$name'";
     }
@@ -291,12 +358,24 @@ POE::Wheel::FollowTail - follow the tail of an ever-growing file
 =head1 SYNOPSIS
 
   $wheel = POE::Wheel::FollowTail->new(
-    Handle       => $file_handle,                  # File to tail
+    Filename     => $file_name,                    # File to tail
     Driver       => POE::Driver::Something->new(), # How to read it
     Filter       => POE::Filter::Something->new(), # How to parse it
     PollInterval => 1,                  # How often to check it
     InputEvent   => $input_event_name,  # Event to emit upon input
     ErrorEvent   => $error_event_name,  # Event to emit upon error
+    ResetEvent   => $reset_event_name,  # Event to emit on file reset
+    SeekBack     => $offset,            # How far from EOF to start
+  );
+
+  $wheel = POE::Wheel::FollowTail->new(
+    Handle       => $open_file_handle,             # File to tail
+    Driver       => POE::Driver::Something->new(), # How to read it
+    Filter       => POE::Filter::Something->new(), # How to parse it
+    PollInterval => 1,                  # How often to check it
+    InputEvent   => $input_event_name,  # Event to emit upon input
+    ErrorEvent   => $error_event_name,  # Event to emit upon error
+    # No reset event available.
     SeekBack     => $offset,            # How far from EOF to start
   );
 
@@ -316,7 +395,8 @@ This is a read-only wheel so it does not include a put() method.
 
 event() is covered in the POE::Wheel manpage.
 
-FollowTail's event types are C<InputEvent> and C<ErrorEvent>.
+FollowTail's event types are C<InputEvent>, C<ResetEvent>, and
+C<ErrorEvent>.
 
 =item ID
 
@@ -329,6 +409,19 @@ match events with the wheels which generated them.
 =head1 EVENTS AND PARAMETERS
 
 =over 2
+
+=item Driver
+
+Driver is a POE::Driver subclass that is used to read from and write
+to FollowTail's filehandle.  It encapsulates the low-level I/O
+operations needed to access a file so in theory FollowTail never needs
+to know about them.
+
+=item Filter
+
+Filter is a POE::Filter subclass that is used to parse input from the
+tailed file.  It encapsulates the lowest level of a protocol so that
+in theory FollowTail never needs to know about file formats.
 
 =item PollInterval
 
@@ -351,6 +444,24 @@ When SeekBack is used, the wheel assumes that records have already
 been framed, and the seek position is the beginning of one.  It will
 return everything it reads up until EOF.
 
+=item Handle
+
+=item Filename
+
+Either the Handle or Filename constructor parameter is required, but
+you cannot supply both.
+
+FollowTail can watch a file or device that's already open.  Give it
+the open filehandle with its Handle parameter.
+
+FollowTail can watch a file by name, given as the Filename parameter.
+
+This wheel can detect files that have been "reset".  That is, it can
+tell when log files have been restarted due to a rotation or purge.
+For FollowTail to do this, though, it requires a Filename parameter.
+This is so FollowTail can reopen the file after it has reset.  See
+C<ResetEvent> elsewhere in this document.
+
 =item InputEvent
 
 InputEvent contains the name of an event which is emitted for every
@@ -364,6 +475,16 @@ A sample InputEvent event handler:
     my ($heap, $input, $wheel_id) = @_[HEAP, ARG0, ARG1];
     print "Wheel $wheel_id received input: $input\n";
   }
+
+=item ResetEvent
+
+ResetEvent contains the name of an event that's emitted every time a
+file is reset.
+
+It's only available when watching files by name.  This is because
+FollowTail must reopen the file after it has been reset.
+
+C<ARG0> contains the FollowTail wheel's unique ID.
 
 =item ErrorEvent
 

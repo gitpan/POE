@@ -1,8 +1,12 @@
-# $Id: SocketFactory.pm,v 1.48 2001/08/11 22:40:05 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.53 2002/01/10 20:39:45 rcaputo Exp $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.53 $ ))[1];
+
 use Carp;
 use Symbol;
 
@@ -31,17 +35,16 @@ sub MY_SOCKET_SELECTED () { 11 }
 # this, to extend add stuff BEFORE MY_SOCKET_SELECTED or let Fletch
 # know you've broken his module.
 
-# Provide a dummy EINPROGRESS for systems that don't have one.  Give
-# it a documented value.
+# Provide dummy POSIX constants for systems that don't have them.  Use
+# http://support.microsoft.com/support/kb/articles/Q150/5/37.asp for
+# the POSIX error numbers.
 BEGIN {
-  # http://support.microsoft.com/support/kb/articles/Q150/5/37.asp
-  # defines EINPROGRESS as 10035.  We provide it here because some
-  # Win32 users report POSIX::EINPROGRESS is not vendor-supported.
   if ($^O eq 'MSWin32') {
-    eval '*EINPROGRESS = sub { 10036 };';
-    eval '*EWOULDBLOCK = sub { 10035 };';
-    eval '*F_GETFL     = sub {     0 };';
-    eval '*F_SETFL     = sub {     0 };';
+    eval '*EADDRNOTAVAIL = sub { 10049 };';
+    eval '*EINPROGRESS   = sub { 10036 };';
+    eval '*EWOULDBLOCK   = sub { 10035 };';
+    eval '*F_GETFL       = sub {     0 };';
+    eval '*F_SETFL       = sub {     0 };';
   }
 }
 
@@ -113,7 +116,7 @@ sub _define_accept_state {
   my $unique_id     =  $self->[MY_UNIQUE_ID];
 
   $poe_kernel->state
-    ( $self->[MY_STATE_ACCEPT] = $self . ' select accept',
+    ( $self->[MY_STATE_ACCEPT] = ref($self) . "($unique_id) -> select accept",
       sub {
         # prevents SEGV
         0 && CRIMSON_SCOPE_HACK('<');
@@ -170,7 +173,9 @@ sub _define_connect_state {
   my $socket_selected = \$self->[MY_SOCKET_SELECTED];
 
   $poe_kernel->state
-    ( $self->[MY_STATE_CONNECT] = $self . ' -> select connect',
+    ( $self->[MY_STATE_CONNECT] = ( ref($self) .
+                                    "($unique_id) -> select connect"
+                                  ),
       sub {
         # This prevents SEGV in older versions of Perl.
         0 && CRIMSON_SCOPE_HACK('<');
@@ -261,11 +266,11 @@ sub event {
     if ($name eq 'SuccessEvent') {
       if (defined $event) {
         if (ref($event) eq 'CODE') {
-          carp( "SuccessEvent coderefs are deprecated " .
-                "(and will go away after version 0.13)"
+          carp( "using a coderef for SuccessEvent (or SuccessState) is " .
+                "deprecated (and will go away after version 0.13)"
               );
           $poe_kernel->state
-            ( $self->[MY_EVENT_SUCCESS] = $self . ' success',
+            ( $self->[MY_EVENT_SUCCESS] = $self . ' -> success',
               $event
             );
           $self->[MY_MINE_SUCCESS] = 'yes';
@@ -285,11 +290,11 @@ sub event {
     elsif ($name eq 'FailureEvent') {
       if (defined $event) {
         if (ref($event) eq 'CODE') {
-          carp( "FailureEvent coderefs are deprecated " .
-                "(and will go away after version 0.13)"
+          carp( "using a coderef for FailureEvent (or FailureState) is " .
+                "deprecated (and will go away after version 0.13)"
               );
           $poe_kernel->state
-            ( $self->[MY_EVENT_FAILURE] = $self . ' failure',
+            ( $self->[MY_EVENT_FAILURE] = $self . ' -> failure',
               $event
             );
           $self->[MY_MINE_FAILURE] = 'yes';

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: tutorial-chat.perl,v 1.10 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: tutorial-chat.perl,v 1.11 2001/10/30 20:33:02 rcaputo Exp $
 
 =pod //////////////////////////////////////////////////////////////////////////
 
@@ -60,7 +60,7 @@ So anyway, some of the important parameter offsets and what they do:
   HEAP is an anonymous hashref that a session can use to hold its own
   "global" variables.
 
-  FROM is the session that sent the event.
+  SENDER is the session that sent the event.
 
   ARG0..ARG9 are the first ten event parameters.  If you need more
   than that, you can either use ARG9+1..ARG9+$whatever; or you can

@@ -1,7 +1,12 @@
-# $Id: MyOtherFreezer.pm,v 1.2 2000/08/15 14:31:36 rcaputo Exp $
+# $Id: MyOtherFreezer.pm,v 1.3 2002/01/10 20:39:45 rcaputo Exp $
 # A sample external freezer for POE::Filter::Reference testing.
 
 package MyOtherFreezer;
+
+use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.3 $ ))[1];
 
 sub new {
   my $type = shift;

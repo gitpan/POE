@@ -1,14 +1,18 @@
-# $Id: Wheel.pm,v 1.13 2001/04/30 19:46:53 rcaputo Exp $
+# $Id: Wheel.pm,v 1.16 2002/01/10 20:39:44 rcaputo Exp $
 
 package POE::Wheel;
 
 use strict;
-use Carp;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.16 $ ))[1];
+
+use Carp qw(croak);
 
 # Used to generate unique IDs for wheels.  This is static data, shared
 # by all.
 my $next_id = 1;
-my %active_socketfactory_ids;
+my %active_wheel_ids;
 
 sub new {
   my $type = shift;
@@ -17,13 +21,14 @@ sub new {
 
 sub allocate_wheel_id {
   while (1) {
-    last unless exists $active_socketfactory_ids{ $next_id++ };
+    last unless exists $active_wheel_ids{ ++$next_id };
   }
-  return $active_socketfactory_ids{$next_id} = $next_id;
+  return $active_wheel_ids{$next_id} = $next_id;
 }
 
 sub free_wheel_id {
-  delete $active_socketfactory_ids{shift};
+  my $id = shift;
+  delete $active_wheel_ids{$id};
 }
 
 #------------------------------------------------------------------------------
@@ -87,7 +92,7 @@ occur.
 
   $wheel->event( InputEvent   => 'new_input_event',
                  ErrorEvent   => undef,
-                 FlushedEvenc => 'new_flushed_event',
+                 FlushedEvent => 'new_flushed_event',
                );
 
 =back

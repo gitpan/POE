@@ -1,7 +1,11 @@
 #!/usr/bin/perl -w
 
-use strict;
 package POE::Wheel::Curses;
+
+use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.8 $ ))[1];
 
 use Carp qw(croak);
 use Curses;
@@ -47,6 +51,7 @@ sub new {
   nonl();
   intrflush(0);
   nodelay(1);
+  meta(1);
 
   my $old_mouse_events = 0;
   mousemask(ALL_MOUSE_EVENTS, $old_mouse_events);
@@ -71,7 +76,7 @@ sub _define_input_state {
     my $unique_id   = $self->[SELF_ID];
 
     $poe_kernel->state
-      ( $self->[SELF_STATE_READ] = $self . ' select read',
+      ( $self->[SELF_STATE_READ] = ref($self) . "($unique_id) -> select read",
         sub {
 
           # Prevents SEGV in older Perls.

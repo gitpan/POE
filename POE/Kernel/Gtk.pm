@@ -1,14 +1,22 @@
-# $Id: Gtk.pm,v 1.7 2001/08/17 03:13:48 rcaputo Exp $
+# $Id: Gtk.pm,v 1.15 2002/01/10 20:39:44 rcaputo Exp $
 
 # Gtk-Perl substrate for POE::Kernel.
 
 # Empty package to appease perl.
 package POE::Kernel::Gtk;
 
+use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.15 $ ))[1];
+
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.15 $ ))[1];
 
 # Ensure that no other substrate module has been loaded.
 BEGIN {
@@ -26,7 +34,8 @@ sub POE_SUBSTRATE_NAME () { SUBSTRATE_NAME_GTK }
 # Signal handlers.
 
 sub _substrate_signal_handler_generic {
-  $poe_kernel->_enqueue_state
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing generic SIG$_[0] event...\n";
+  $poe_kernel->_enqueue_event
     ( $poe_kernel, $poe_kernel,
       EN_SIGNAL, ET_SIGNAL,
       [ $_[0] ],
@@ -36,7 +45,8 @@ sub _substrate_signal_handler_generic {
 }
 
 sub _substrate_signal_handler_pipe {
-  $poe_kernel->_enqueue_state
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing PIPE-like SIG$_[0] event...\n";
+  $poe_kernel->_enqueue_event
     ( $poe_kernel, $poe_kernel,
       EN_SIGNAL, ET_SIGNAL,
       [ $_[0] ],
@@ -48,8 +58,9 @@ sub _substrate_signal_handler_pipe {
 # Special handler.  Stop watching for children; instead, start a loop
 # that polls for them.
 sub _substrate_signal_handler_child {
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing CHLD-like SIG$_[0] event...\n";
   $SIG{$_[0]} = 'DEFAULT';
-  $poe_kernel->_enqueue_state
+  $poe_kernel->_enqueue_event
     ( $poe_kernel, $poe_kernel,
       EN_SCPOLL, ET_SCPOLL,
       [ ],
@@ -63,7 +74,20 @@ sub _substrate_signal_handler_child {
 macro substrate_watch_signal {
   # Child process has stopped.
   if ($signal eq 'CHLD' or $signal eq 'CLD') {
-    $SIG{$signal} = \&_substrate_signal_handler_child;
+
+    # For SIGCHLD triggered polling loop.
+    # $SIG{$signal} = \&_substrate_signal_handler_child;
+
+    # Begin constant polling loop.  Only start it on CHLD or on CLD if
+    # CHLD doesn't exist.
+    $SIG{$signal} = 'DEFAULT';
+    $poe_kernel->_enqueue_event
+      ( $poe_kernel, $poe_kernel,
+        EN_SCPOLL, ET_SCPOLL,
+        [ ],
+        time() + 1, __FILE__, __LINE__
+      ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
+
     next;
   }
 
@@ -84,139 +108,136 @@ macro substrate_watch_signal {
 }
 
 macro substrate_resume_watching_child_signals () {
-  $SIG{CHLD} = \&_substrate_signal_handler_child if exists $SIG{CHLD};
-  $SIG{CLD}  = \&_substrate_signal_handler_child if exists $SIG{CLD};
+  # For SIGCHLD triggered polling loop.
+  # $SIG{CHLD} = \&_substrate_signal_handler_child if exists $SIG{CHLD};
+  # $SIG{CLD}  = \&_substrate_signal_handler_child if exists $SIG{CLD};
+
+  # For constant polling loop.
+  $SIG{CHLD} = 'DEFAULT' if exists $SIG{CHLD};
+  $SIG{CLD}  = 'DEFAULT' if exists $SIG{CLD};
+  $poe_kernel->_enqueue_event
+    ( $poe_kernel, $poe_kernel,
+      EN_SCPOLL, ET_SCPOLL,
+      [ ],
+      time() + 1, __FILE__, __LINE__
+    ) if keys(%kr_sessions) > 1;
 }
 
 #------------------------------------------------------------------------------
 # Watchers and callbacks.
 
-macro substrate_resume_idle_watcher {
-  $poe_kernel->[KR_WATCHER_IDLE] = Gtk->idle_add( \&_substrate_idle_callback )
-    unless defined $poe_kernel->[KR_WATCHER_IDLE];
-}
+### Time.
 
-macro substrate_resume_alarm_watcher {
-  my $next_time = ($kr_alarms[0]->[ST_TIME] - time()) * 1000;
+macro substrate_resume_time_watcher {
+  my $next_time = ($kr_events[0]->[ST_TIME] - time()) * 1000;
   $next_time = 0 if $next_time < 0;
   $poe_kernel->[KR_WATCHER_TIMER] =
-    Gtk->timeout_add( $next_time, \&_substrate_alarm_callback );
+    Gtk->timeout_add( $next_time, \&_substrate_event_callback );
 }
 
-macro substrate_reset_alarm_watcher {
+macro substrate_reset_time_watcher {
   # Should always be defined, right?
   Gtk->timeout_remove( $self->[KR_WATCHER_TIMER] );
   $self->[KR_WATCHER_TIMER] = undef;
-  {% substrate_resume_alarm_watcher %}
+  {% substrate_resume_time_watcher %}
 }
 
-macro substrate_pause_alarm_watcher {
+macro substrate_pause_time_watcher {
   # does nothing
 }
 
-macro substrate_watch_filehandle {
+### Filehandles.
+
+macro substrate_watch_filehandle (<fileno>,<vector>) {
   # Overwriting a pre-existing watcher?
-  if (defined $kr_handle->[HND_WATCHERS]->[$select_index]) {
-    Gtk::Gdk->input_remove
-      ( $kr_handle->[HND_WATCHERS]->[$select_index] );
-    $kr_handle->[HND_WATCHERS]->[$select_index] = undef;
+  if (defined $kr_fno_vec->[FVC_WATCHER]) {
+    Gtk::Gdk->input_remove( $kr_fno_vec->[FVC_WATCHER] );
+    $kr_fno_vec->[FVC_WATCHER] = undef;
   }
 
   # Register the new watcher.
-  if ($select_index == VEC_RD) {
-    $kr_handle->[HND_WATCHERS]->[VEC_RD] =
-      Gtk::Gdk->input_add( fileno($handle), 'read',
-                           \&_substrate_select_read_callback, $handle
-                         );
-  }
-  elsif ($select_index == VEC_WR) {
-    $kr_handle->[HND_WATCHERS]->[VEC_WR] =
-      Gtk::Gdk->input_add( fileno($handle), 'write',
-                           \&_substrate_select_write_callback, $handle
-                         );
-  }
-  else {
-    $kr_handle->[HND_WATCHERS]->[VEC_EX] =
-      Gtk::Gdk->input_add( fileno($handle), 'exception',
-                           \&_substrate_select_expedite_callback, $handle
-                         );
-  }
+  $kr_fno_vec->[FVC_WATCHER] =
+    Gtk::Gdk->input_add( <fileno>,
+                         ( (<vector> == VEC_RD)
+                           ? ( 'read',
+                               \&_substrate_select_read_callback
+                             )
+                           : ( (<vector> == VEC_WR)
+                               ? ( 'write',
+                                   \&_substrate_select_write_callback
+                                 )
+                               : ( 'exception',
+                                   \&_substrate_select_expedite_callback
+                                 )
+                             )
+                         ),
+                         <fileno>
+                       );
+
+  $kr_fno_vec->[FVC_ST_ACTUAL]  = HS_RUNNING;
+  $kr_fno_vec->[FVC_ST_REQUEST] = HS_RUNNING;
 }
 
-macro substrate_ignore_filehandle {
+macro substrate_ignore_filehandle (<fileno>,<vector>) {
   # Don't bother removing a select if none was registered.
-  if (defined $kr_handle->[HND_WATCHERS]->[$select_index]) {
-    Gtk::Gdk->input_remove( $kr_handle->[HND_WATCHERS]->[$select_index] );
-    $kr_handle->[HND_WATCHERS]->[$select_index] = undef;
+  if (defined $kr_fno_vec->[FVC_WATCHER]) {
+    Gtk::Gdk->input_remove( $kr_fno_vec->[FVC_WATCHER] );
+    $kr_fno_vec->[FVC_WATCHER] = undef;
   }
+  $kr_fno_vec->[FVC_ST_ACTUAL]  = HS_STOPPED;
+  $kr_fno_vec->[FVC_ST_REQUEST] = HS_STOPPED;
 }
 
-macro substrate_pause_filehandle_write_watcher {
-  my $kr_handle = $kr_handles{$handle};
-  Gtk::Gdk->input_remove( $kr_handle->[HND_WATCHERS]->[VEC_WR] );
-  $kr_handle->[HND_WATCHERS]->[VEC_WR] = undef;
+macro substrate_pause_filehandle_watcher (<fileno>,<vector>) {
+  Gtk::Gdk->input_remove( $kr_fno_vec->[FVC_WATCHER] );
+  $kr_fno_vec->[FVC_WATCHER] = undef;
+  $kr_fno_vec->[FVC_ST_ACTUAL] = HS_PAUSED;
 }
 
-macro substrate_resume_filehandle_write_watcher {
+macro substrate_resume_filehandle_watcher (<fileno>,<vector>) {
   # Quietly ignore requests to resume unpaused handles.
-  return 1
-    if defined $kr_handles{$handle}->[HND_WATCHERS]->[VEC_WR];
+  return 1 if defined $kr_fno_vec->[FVC_WATCHER];
 
-  $kr_handles{$handle}->[HND_WATCHERS]->[VEC_WR] =
-    Gtk::Gdk->input_add( fileno($handle), 'write',
-                         \&_substrate_select_write_callback, $handle
+  $kr_fno_vec->[FVC_WATCHER] =
+    Gtk::Gdk->input_add( <fileno>,
+                         ( (<vector> == VEC_RD)
+                           ? ( 'read',
+                               \&_substrate_select_read_callback
+                             )
+                           : ( (<vector> == VEC_WR)
+                               ? ( 'write',
+                                   \&_substrate_select_write_callback
+                                 )
+                               : ( 'exception',
+                                   \&_substrate_select_expedite_callback
+                                 )
+                             )
+                         ),
+                         <fileno>
                        );
+  $kr_fno_vec->[FVC_ST_ACTUAL] = HS_RUNNING;
 }
 
-macro substrate_pause_filehandle_read_watcher {
-  my $kr_handle = $kr_handles{$handle};
-  Gtk::Gdk->input_remove( $kr_handle->[HND_WATCHERS]->[VEC_RD] );
-  $kr_handle->[HND_WATCHERS]->[VEC_RD] = undef;
-}
-
-macro substrate_resume_filehandle_read_watcher {
-  # Quietly ignore requests to resume unpaused handles.
-  return 1
-    if defined $kr_handles{$handle}->[HND_WATCHERS]->[VEC_RD];
-
-  $kr_handles{$handle}->[HND_WATCHERS]->[VEC_RD] =
-    Gtk::Gdk->input_add( fileno($handle), 'read',
-                         \&_substrate_select_read_callback, $handle
-                       );
-}
+### Callbacks.
 
 macro substrate_define_callbacks {
-  # Idle callback to dispatch FIFO states.
-  sub _substrate_idle_callback {
+
+  # Event callback to dispatch pending events.
+  sub _substrate_event_callback {
     my $self = $poe_kernel;
 
-    {% dispatch_one_from_fifo %}
-    {% test_for_idle_poe_kernel %}
-
-    # Perpetuate the Gtk idle callback if there's more to do.
-    return 1 if @kr_states;
-
-    # Otherwise stop it.
-    $self->[KR_WATCHER_IDLE] = undef;
-    return 0;
-  }
-
-  # Alarm callback to dispatch pending alarm states.
-  sub _substrate_alarm_callback {
-    my $self = $poe_kernel;
-
-    {% dispatch_due_alarms %}
+    {% dispatch_due_events %}
     {% test_for_idle_poe_kernel %}
 
     Gtk->timeout_remove( $self->[KR_WATCHER_TIMER] );
     $self->[KR_WATCHER_TIMER] = undef;
 
-    # Register the next timeout if there are alarms left.
-    if (@kr_alarms) {
-      my $next_time = ($kr_alarms[0]->[ST_TIME] - time()) * 1000;
+    # Register the next timeout if there are events left.
+    if (@kr_events) {
+      my $next_time = ($kr_events[0]->[ST_TIME] - time()) * 1000;
       $next_time = 0 if $next_time < 0;
       $self->[KR_WATCHER_TIMER] =
-        Gtk->timeout_add( $next_time, \&_substrate_alarm_callback );
+        Gtk->timeout_add( $next_time, \&_substrate_event_callback );
     }
 
     # Return false to stop.
@@ -227,9 +248,8 @@ macro substrate_define_callbacks {
   sub _substrate_select_read_callback {
     my $self = $poe_kernel;
     my ($handle, $fileno, $hash) = @_;
-    my $vector = VEC_RD;
 
-    {% dispatch_ready_selects %}
+    {% enqueue_ready_selects $fileno, VEC_RD %}
     {% test_for_idle_poe_kernel %}
 
     # Return false to stop... probably not with this one.
@@ -239,9 +259,8 @@ macro substrate_define_callbacks {
   sub _substrate_select_write_callback {
     my $self = $poe_kernel;
     my ($handle, $fileno, $hash) = @_;
-    my $vector = VEC_WR;
 
-    {% dispatch_ready_selects %}
+    {% enqueue_ready_selects $fileno, VEC_WR %}
     {% test_for_idle_poe_kernel %}
 
     # Return false to stop... probably not with this one.
@@ -251,9 +270,8 @@ macro substrate_define_callbacks {
   sub _substrate_select_expedite_callback {
     my $self = $poe_kernel;
     my ($handle, $fileno, $hash) = @_;
-    my $vector = VEC_EX;
 
-    {% dispatch_ready_selects %}
+    {% enqueue_ready_selects $fileno, VEC_EX %}
     {% test_for_idle_poe_kernel %}
 
     # Return false to stop... probably not with this one.
@@ -263,6 +281,11 @@ macro substrate_define_callbacks {
 
 #------------------------------------------------------------------------------
 # The event loop itself.
+
+# ???
+macro substrate_do_timeslice {
+  die "doing timeslices currently not supported in the Gtk substrate";
+}
 
 macro substrate_main_loop {
   Gtk->main;
@@ -288,7 +311,7 @@ sub signal_ui_destroy {
     ( delete_event =>
       sub {
         if (keys %{$self->[KR_SESSIONS]}) {
-          $self->_dispatch_state
+          $self->_dispatch_event
             ( $self, $self,
               EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
               time(), __FILE__, __LINE__, undef

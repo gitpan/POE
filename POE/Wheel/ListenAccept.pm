@@ -1,8 +1,12 @@
-# $Id: ListenAccept.pm,v 1.21 2001/08/11 22:40:05 rcaputo Exp $
+# $Id: ListenAccept.pm,v 1.24 2002/01/10 20:39:45 rcaputo Exp $
 
 package POE::Wheel::ListenAccept;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.24 $ ))[1];
+
 use Carp;
 use Symbol;
 
@@ -113,7 +117,7 @@ sub _define_accept_state {
   my $unique_id    = $self->[SELF_UNIQUE_ID];
                                         # register the select-read handler
   $poe_kernel->state
-    ( $self->[SELF_STATE_ACCEPT] =  $self . ' select read',
+    ( $self->[SELF_STATE_ACCEPT] =  ref($self) . "($unique_id) -> select read",
       sub {
         # prevents SEGV
         0 && CRIMSON_SCOPE_HACK('<');

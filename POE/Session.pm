@@ -1,8 +1,12 @@
-# $Id: Session.pm,v 1.69 2001/08/11 22:40:05 rcaputo Exp $
+# $Id: Session.pm,v 1.73 2002/01/10 20:39:44 rcaputo Exp $
 
 package POE::Session;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.73 $ ))[1];
+
 use Carp qw(carp croak);
 use POSIX qw(ENOSYS);
 
@@ -137,16 +141,18 @@ sub HEAP    () {  3 }
 sub STATE   () {  4 }
 sub SENDER  () {  5 }
 # NFA keeps its state in 6.  unused in session so that args match up.
-sub ARG0    () {  7 }
-sub ARG1    () {  8 }
-sub ARG2    () {  9 }
-sub ARG3    () { 10 }
-sub ARG4    () { 11 }
-sub ARG5    () { 12 }
-sub ARG6    () { 13 }
-sub ARG7    () { 14 }
-sub ARG8    () { 15 }
-sub ARG9    () { 16 }
+sub CALLER_FILE () { 7 }
+sub CALLER_LINE () { 8 }
+sub ARG0    () { 9 }
+sub ARG1    () { 10 }
+sub ARG2    () { 11 }
+sub ARG3    () { 12 }
+sub ARG4    () { 13 }
+sub ARG5    () { 14 }
+sub ARG6    () { 15 }
+sub ARG7    () { 16 }
+sub ARG8    () { 17 }
+sub ARG9    () { 18 }
 
 sub import {
   my $package = caller();
@@ -167,6 +173,8 @@ sub import {
   *{ $package . '::ARG7'    } = \&ARG7;
   *{ $package . '::ARG8'    } = \&ARG8;
   *{ $package . '::ARG9'    } = \&ARG9;
+  *{ $package . '::CALLER_FILE' } = \&CALLER_FILE;
+  *{ $package . '::CALLER_LINE' } = \&CALLER_LINE;
 }
 
 #------------------------------------------------------------------------------
@@ -587,6 +595,8 @@ sub _invoke_state {
         $state,                         # state
         $source_session,                # sender
         undef,                          # unused #6
+        $file,                          # caller file name
+        $line,                          # caller file line
         @$etc                           # args
       );
   }
@@ -602,6 +612,8 @@ sub _invoke_state {
         $state,                         # state
         $source_session,                # sender
         undef,                          # unused #6
+        $file,                          # caller file name
+        $line,                          # caller file line
         @$etc                           # args
       );
 }
@@ -1458,6 +1470,14 @@ in cases where a single state handles several different events.
     }
   );
 
+=item CALLER_FILE
+
+=item CALLER_LINE
+
+    my ($caller_file, $caller_line) = @_[CALLER_FILE,CALLER_LINE];
+
+The file and line number from which this state was called.
+
 =back
 
 =head1 PREDEFINED EVENT NAMES
@@ -1613,6 +1633,11 @@ The C<_stop> handler is used to perform shutdown tasks, such as
 releasing custom resources and breaking circular references so that
 Perl's garbage collection will properly destroy things.
 
+Because a session is destroyed after a C<_stop> handler returns, any
+POE things done from a C<_stop> handler may not work.  For example,
+posting events from C<_stop> will be ineffective since part of the
+Session cleanup is removing posted events.
+
 =back
 
 =head1 MISCELLANEOUS CONCEPTS
@@ -1668,11 +1693,8 @@ timeslicing, which makes up the heart of POE's threading.
 
 Some resources must be serviced right away, or they'll faithfully
 continue reporting their readiness.  These reports would appear as a
-stream of duplicate events, which would be bad.  Filehandles are like
-this: They remain ready as long as they're not serviced.  For this
-reason, some events (namely filehandle readiness events) invoke their
-handlers immediately.  These are "synchronous" events because they're
-handled right away.
+stream of duplicate events, which would be bad.  These are
+"synchronous" events because they're handled right away.
 
 The other kind of event is called "asynchronous" because they're
 posted and dispatched through a queue.  There's no telling just when

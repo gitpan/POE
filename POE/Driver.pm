@@ -1,9 +1,13 @@
-# $Id: Driver.pm,v 1.12 2000/12/26 06:14:12 rcaputo Exp $
+# $Id: Driver.pm,v 1.14 2002/01/10 20:39:44 rcaputo Exp $
 
 package POE::Driver;
 
 use strict;
-use Carp;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.14 $ ))[1];
+
+use Carp qw(croak);
 
 #------------------------------------------------------------------------------
 
@@ -71,6 +75,10 @@ Some drivers may flush data immediately from their put() methods.
 flush() attempts to flush some data from the driver's output queue to
 the FILEHANDLE.  It returns the number of octets remaining in the
 output queue after the flush attempt.
+
+flush() does the physical write, counterpoint to get's read.  If
+flush() fails for any reason, $! will be set with the reason for its
+failure.  Otherwise $! will be zero.
 
 =item get_out_messages_buffered
 

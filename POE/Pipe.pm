@@ -1,4 +1,4 @@
-# $Id: Pipe.pm,v 1.2 2001/08/29 19:40:58 rcaputo Exp $
+# $Id: Pipe.pm,v 1.3 2002/01/10 20:39:44 rcaputo Exp $
 
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
@@ -7,6 +7,10 @@
 package POE::Pipe;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.3 $ ))[1];
+
 use Symbol qw(gensym);
 use IO::Socket;
 use POSIX qw(fcntl_h errno_h);

@@ -1,9 +1,14 @@
-# $Id: Event.pm,v 1.8 2001/08/17 03:13:48 rcaputo Exp $
+# $Id: Event.pm,v 1.15 2002/01/10 20:39:44 rcaputo Exp $
 
 # Event.pm substrate for POE::Kernel.
 
 # Empty package to appease perl.
 package POE::Kernel::Event;
+
+use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.15 $ ))[1];
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -26,7 +31,8 @@ sub POE_SUBSTRATE_NAME () { SUBSTRATE_NAME_EVENT }
 # Signal handlers.
 
 sub _substrate_signal_handler_generic {
-  $poe_kernel->_enqueue_state
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing generic SIG$_[0] event...\n";
+  $poe_kernel->_enqueue_event
     ( $poe_kernel, $poe_kernel,
       EN_SIGNAL, ET_SIGNAL,
       [ $_[0]->w->signal ],
@@ -35,7 +41,8 @@ sub _substrate_signal_handler_generic {
 }
 
 sub _substrate_signal_handler_pipe {
-  $poe_kernel->_enqueue_state
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing PIPE-like SIG$_[0] event...\n";
+  $poe_kernel->_enqueue_event
     ( $poe_kernel->[KR_ACTIVE_SESSION],
       $poe_kernel,
       EN_SIGNAL, ET_SIGNAL,
@@ -45,7 +52,8 @@ sub _substrate_signal_handler_pipe {
 }
 
 sub _substrate_signal_handler_child {
-  $poe_kernel->_enqueue_state
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing CHLD-like SIG$_[0] event...\n";
+  $poe_kernel->_enqueue_event
     ( $poe_kernel, $poe_kernel,
       EN_SCPOLL, ET_SCPOLL,
       [ ],
@@ -59,9 +67,22 @@ sub _substrate_signal_handler_child {
 macro substrate_watch_signal {
   # Child process has stopped.
   if ($signal eq 'CHLD' or $signal eq 'CLD') {
-    Event->signal( signal => $signal,
-                   cb     => \&_substrate_signal_handler_child
-                 );
+
+    # For SIGCHLD triggered polling loop.
+    # Event->signal( signal => $signal,
+    #                cb     => \&_substrate_signal_handler_child
+    #              );
+
+    # Begin constant polling loop.  Only start it on CHLD or on CLD if
+    # CHLD doesn't exist.
+    $SIG{$signal} = 'DEFAULT';
+    $poe_kernel->_enqueue_event
+      ( $poe_kernel, $poe_kernel,
+        EN_SCPOLL, ET_SCPOLL,
+        [ ],
+        time() + 1, __FILE__, __LINE__
+      ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
+
     next;
   }
 
@@ -83,94 +104,88 @@ macro substrate_watch_signal {
 }
 
 macro substrate_resume_watching_child_signals {
+  # For SIGCHLD triggered polling loop.
   # nothing to do
+
+  # For constant polling loop.
+  $SIG{CHLD} = 'DEFAULT' if exists $SIG{CHLD};
+  $SIG{CLD}  = 'DEFAULT' if exists $SIG{CLD};
+  $poe_kernel->_enqueue_event
+    ( $poe_kernel, $poe_kernel,
+      EN_SCPOLL, ET_SCPOLL,
+      [ ],
+      time() + 1, __FILE__, __LINE__
+    ) if keys(%kr_sessions) > 1;
 }
 
 #------------------------------------------------------------------------------
 # Watchers and callbacks.
 
-macro substrate_resume_idle_watcher {
-  $self->[KR_WATCHER_IDLE]->again();
-}
+### Time.
 
-macro substrate_resume_alarm_watcher {
-  $self->[KR_WATCHER_TIMER]->at($kr_alarms[0]->[ST_TIME]);
+macro substrate_resume_time_watcher {
+  $self->[KR_WATCHER_TIMER]->at($kr_events[0]->[ST_TIME]);
   $self->[KR_WATCHER_TIMER]->start();
 }
 
-macro substrate_reset_alarm_watcher {
-  {% substrate_pause_alarm_watcher %}
-  {% substrate_resume_alarm_watcher %}
+macro substrate_reset_time_watcher {
+  {% substrate_pause_time_watcher %}
+  {% substrate_resume_time_watcher %}
 }
 
-macro substrate_pause_alarm_watcher {
+macro substrate_pause_time_watcher {
   $self->[KR_WATCHER_TIMER]->stop();
 }
 
-macro substrate_watch_filehandle {
-  $kr_handle->[HND_WATCHERS]->[$select_index] =
+### Filehandles.
+
+macro substrate_watch_filehandle (<fileno>,<vector>) {
+  $kr_fno_vec->[FVC_WATCHER] =
     Event->io
-      ( fd => $handle,
-        poll => ( ( $select_index == VEC_RD )
+      ( fd => <fileno>,
+        poll => ( ( <vector> == VEC_RD )
                   ? 'r'
-                  : ( ( $select_index == VEC_WR )
+                  : ( ( <vector> == VEC_WR )
                       ? 'w'
                       : 'e'
                     )
                 ),
         cb => \&_substrate_select_callback,
       );
+  $kr_fno_vec->[FVC_ST_ACTUAL]  = HS_RUNNING;
+  $kr_fno_vec->[FVC_ST_REQUEST] = HS_RUNNING;
 }
 
-macro substrate_ignore_filehandle {
-  $kr_handle->[HND_WATCHERS]->[$select_index]->cancel();
-  $kr_handle->[HND_WATCHERS]->[$select_index] = undef;
+macro substrate_ignore_filehandle (<fileno>,<vector>) {
+  $kr_fno_vec->[FVC_WATCHER]->cancel();
+  $kr_fno_vec->[FVC_WATCHER] = undef;
+  $kr_fno_vec->[FVC_ST_ACTUAL]  = HS_STOPPED;
+  $kr_fno_vec->[FVC_ST_REQUEST] = HS_STOPPED;
 }
 
-macro substrate_pause_filehandle_write_watcher {
-  $kr_handles{$handle}->[HND_WATCHERS]->[VEC_WR]->stop();
+
+macro substrate_pause_filehandle_watcher (<fileno>,<vector>) {
+  $kr_fno_vec->[FVC_WATCHER]->stop();
+  $kr_fno_vec->[FVC_ST_ACTUAL] = HS_PAUSED;
 }
 
-macro substrate_resume_filehandle_write_watcher {
-  $kr_handles{$handle}->[HND_WATCHERS]->[VEC_WR]->start();
-}
-
-macro substrate_pause_filehandle_read_watcher {
-  $kr_handles{$handle}->[HND_WATCHERS]->[VEC_RD]->stop();
-}
-
-macro substrate_resume_filehandle_read_watcher {
-  $kr_handles{$handle}->[HND_WATCHERS]->[VEC_RD]->start();
+macro substrate_resume_filehandle_watcher (<fileno>,<vector>) {
+  $kr_fno_vec->[FVC_WATCHER]->start();
+  $kr_fno_vec->[FVC_ST_ACTUAL] = HS_RUNNING;
 }
 
 macro substrate_define_callbacks {
-  # Event idle callback to dispatch FIFO states.
-  sub _substrate_fifo_callback {
+
+  # Timer callback to dispatch events.
+  sub _substrate_event_callback {
     my $self = $poe_kernel;
 
-    {% dispatch_one_from_fifo %}
+    {% dispatch_due_events %}
 
-    # Stop the idle watcher if there are no more state transitions in
-    # the Kernel's FIFO.
+    # Register the next timed callback if there are events left.
 
-    unless (@kr_states) {
-      $self->[KR_WATCHER_IDLE]->stop();
-
-      # Make sure the kernel can still run.
-      {% test_for_idle_poe_kernel %}
-    }
-  }
-
-  # Timer callback to dispatch alarm states.
-  sub _substrate_alarm_callback {
-    my $self = $poe_kernel;
-
-    {% dispatch_due_alarms %}
-
-    # Register the next timed callback if there are alarms left.
-
-    if (@kr_alarms) {
-      $self->[KR_WATCHER_TIMER]->at( $kr_alarms[0]->[ST_TIME] );
+    if (@kr_events) {
+      $self->[KR_WATCHER_TIMER]->at( $kr_events[0]->[ST_TIME] );
       $self->[KR_WATCHER_TIMER]->start();
     }
 
@@ -186,7 +201,7 @@ macro substrate_define_callbacks {
 
     my $event = shift;
     my $watcher = $event->w;
-    my $handle = $watcher->fd;
+    my $fileno = $watcher->fd;
     my $vector = ( ( $event->got eq 'r' )
                    ? VEC_RD
                    : ( ( $event->got eq 'w' )
@@ -198,7 +213,7 @@ macro substrate_define_callbacks {
                      )
                  );
 
-    {% dispatch_ready_selects %}
+    {% enqueue_ready_selects $fileno, $vector %}
     {% test_for_idle_poe_kernel %}
   }
 }
@@ -206,21 +221,17 @@ macro substrate_define_callbacks {
 #------------------------------------------------------------------------------
 # The event loop itself.
 
+# ???
+macro substrate_do_timeslice {
+  die "doing timeslices currently not supported in the Event substrate";
+}
+
 # Initialize static watchers.
 macro substrate_init_main_loop {
   $self->[KR_WATCHER_TIMER] =
     Event->timer
-      ( cb     => \&_substrate_alarm_callback,
+      ( cb     => \&_substrate_event_callback,
         after  => 0,
-        parked => 1,
-      );
-
-  $self->[KR_WATCHER_IDLE] =
-    Event->idle
-      ( cb     => \&_substrate_fifo_callback,
-        repeat => 1,
-        min    => 0,
-        max    => 0,
         parked => 1,
       );
 }
@@ -230,7 +241,6 @@ macro substrate_main_loop {
 }
 
 macro substrate_stop_main_loop {
-  $self->[KR_WATCHER_IDLE]->stop();
   $self->[KR_WATCHER_TIMER]->stop();
   Event::unloop_all(0);
 }

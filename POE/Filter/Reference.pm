@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.22 2001/07/27 16:27:29 rcaputo Exp $
+# $Id: Reference.pm,v 1.23 2002/01/10 20:39:44 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -6,7 +6,11 @@
 package POE::Filter::Reference;
 
 use strict;
-use Carp;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.23 $ ))[1];
+
+use Carp qw(carp croak);
 
 #------------------------------------------------------------------------------
 # Try to require one of the default freeze/thaw packages.

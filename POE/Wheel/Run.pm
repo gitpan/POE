@@ -1,8 +1,12 @@
-# $Id: Run.pm,v 1.19 2001/08/29 19:44:45 rcaputo Exp $
+# $Id: Run.pm,v 1.27 2002/01/10 20:39:45 rcaputo Exp $
 
 package POE::Wheel::Run;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.27 $ ))[1];
+
 use Carp;
 use POSIX;  # termios stuff
 
@@ -32,11 +36,15 @@ BEGIN {
     eval 'sub CIBAUD () { undef; }';
   }
 
-  if (eval '&IO::Tty::Constant::TIOCSWINSZ') {
+  if ( eval '&IO::Tty::Constant::TIOCSWINSZ' and
+       eval '&IO::Tty::Constant::TIOCGWINSZ'
+     ) {
     *TIOCSWINSZ = *IO::Tty::Constant::TIOCSWINSZ;
+    *TIOCGWINSZ = *IO::Tty::Constant::TIOCGWINSZ;
   }
   else {
     eval 'sub TIOCSWINSZ () { undef; }';
+    eval 'sub TIOCGWINSZ () { undef; }';
   }
 };
 
@@ -205,8 +213,8 @@ sub new {
         ioctl( $stdin_read, TIOCSCTTY, 0 );
       }
 
-      # Put the pty conduit into "raw" or "cbreak" mode, per APITUE
-      # 19.4 and 11.10.
+      # Put the pty conduit (slave side) into "raw" or "cbreak" mode,
+      # per APITUE 19.4 and 11.10.
       my $tio = POSIX::Termios->new();
       $tio->getattr(fileno($stdin_read));
       my $lflag = $tio->getlflag;
@@ -222,6 +230,19 @@ sub new {
       $oflag &= ~(OPOST);
       $tio->setoflag($oflag);
       $tio->setattr(fileno($stdin_read), TCSANOW);
+
+      # Set the pty conduit (slave side) window size to our window
+      # size.  APITUE 19.4 and 19.5.
+      if (defined TIOCGWINSZ) {
+        if (-t STDIN) {
+          my $window_size = '';
+          ioctl( STDIN, TIOCGWINSZ, $window_size ) or die $!;
+          ioctl( $stdin_read, TIOCSWINSZ, $window_size ) or die $!;
+        }
+        else {
+          carp "STDIN is not a terminal.  Can't set slave pty's window size";
+        }
+      }
     }
 
     # -><- How to pass events to the parent process?  Maybe over a
@@ -282,9 +303,9 @@ sub new {
     select STDOUT;  $| = 1;
 
     # Tell the parent that the stdio has been set up.
-    close $sem_pipe_read;
+    close $sem_pipe_read unless $^O eq 'MSWin32';
     print $sem_pipe_write "go\n";
-    close $sem_pipe_write;
+    close $sem_pipe_write unless $^O eq 'MSWin32';
 
     # Exec the program depending on its form.
     if (ref($program) eq 'ARRAY') {
@@ -339,9 +360,9 @@ sub new {
     ], $type;
 
   # Wait here while the child sets itself up.
-  close $sem_pipe_write;
   <$sem_pipe_read>;
   close $sem_pipe_read;
+  close $sem_pipe_write;
 
   $self->_define_stdin_flusher();
   $self->_define_stdout_reader() if defined $stdout_event;
@@ -372,7 +393,7 @@ sub _define_stdin_flusher {
 
   # Register the select-write handler.
   $poe_kernel->state
-    ( $self->[STATE_STDIN] = $self . ' select stdin',
+    ( $self->[STATE_STDIN] = ref($self) . "($unique_id) -> select stdin",
       sub {                             # prevents SEGV
         0 && CRIMSON_SCOPE_HACK('<');
                                         # subroutine starts here
@@ -429,7 +450,7 @@ sub _define_stdout_reader {
     my $stdout_event  = \$self->[EVENT_STDOUT];
 
     $poe_kernel->state
-      ( $self->[STATE_STDOUT] = $self . ' select stdout',
+      ( $self->[STATE_STDOUT] = ref($self) . "($unique_id) -> select stdout",
         sub {
           # prevents SEGV
           0 && CRIMSON_SCOPE_HACK('<');
@@ -478,7 +499,7 @@ sub _define_stderr_reader {
     my $stderr_event  = \$self->[EVENT_STDERR];
 
     $poe_kernel->state
-      ( $self->[STATE_STDERR] = $self . ' select stderr',
+      ( $self->[STATE_STDERR] = ref($self) . "($unique_id) -> select stderr",
         sub {
           # prevents SEGV
           0 && CRIMSON_SCOPE_HACK('<');
@@ -559,20 +580,28 @@ sub DESTROY {
   my $self = shift;
 
   # Turn off the STDIN thing.
-  $poe_kernel->select($self->[HANDLE_STDIN]);
+  if ($self->[HANDLE_STDIN]) {
+    $poe_kernel->select($self->[HANDLE_STDIN]);
+    $self->[HANDLE_STDIN] = undef;
+  }
   if ($self->[STATE_STDIN]) {
     $poe_kernel->state($self->[STATE_STDIN]);
     $self->[STATE_STDIN] = undef;
   }
 
-  $poe_kernel->select($self->[HANDLE_STDOUT]);
+  if ($self->[HANDLE_STDOUT]) {
+    $poe_kernel->select($self->[HANDLE_STDOUT]);
+    $self->[HANDLE_STDOUT] = undef;
+  }
   if ($self->[STATE_STDOUT]) {
     $poe_kernel->state($self->[STATE_STDOUT]);
     $self->[STATE_STDOUT] = undef;
   }
 
-  $poe_kernel->select($self->[HANDLE_STDERR])
-    if defined $self->[HANDLE_STDERR];
+  if ($self->[HANDLE_STDERR]) {
+    $poe_kernel->select($self->[HANDLE_STDERR]);
+    $self->[HANDLE_STDERR] = undef;
+  }
   if ($self->[STATE_STDERR]) {
     $poe_kernel->state($self->[STATE_STDERR]);
     $self->[STATE_STDERR] = undef;
@@ -836,6 +865,8 @@ destroyed properly when children exit.
 
 Sends a signal to the child process.  It's useful for processes which
 tend to be reluctant to exit when their terminals are closed.
+
+=back
 
 =head1 EVENTS AND PARAMETERS
 

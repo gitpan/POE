@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 11_signals_poe.t,v 1.16 2001/04/03 18:10:59 rcaputo Exp $
+# $Id: 11_signals_poe.t,v 1.19 2001/11/10 03:16:14 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -15,6 +15,7 @@ BEGIN {
 &test_setup(3);
 
 # Turn on all asserts.
+#sub POE::Kernel::TRACE_SIGNALS  () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE;
 

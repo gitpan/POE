@@ -1,14 +1,18 @@
-# $Id: SysRW.pm,v 1.16 2000/12/26 06:14:12 rcaputo Exp $
+# $Id: SysRW.pm,v 1.18 2002/01/10 20:39:44 rcaputo Exp $
 
-# Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
-# This program is free software; you can redistribute it and/or modify
-# it under the same terms as Perl itself.
+# Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
+# reserved.  This program is free software; you can redistribute it
+# and/or modify it under the same terms as Perl itself.
 
 package POE::Driver::SysRW;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.18 $ ))[1];
+
 use POSIX qw(EAGAIN);
-use Carp;
+use Carp qw(croak);
 
 sub OUTPUT_QUEUE        () { 0 }
 sub CURRENT_OCTETS_DONE () { 1 }

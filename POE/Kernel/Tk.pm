@@ -1,14 +1,12 @@
-# $Id: Tk.pm,v 1.10 2001/08/17 03:13:48 rcaputo Exp $
+# $Id: Tk.pm,v 1.20 2002/01/10 20:39:45 rcaputo Exp $
 
 # Tk-Perl substrate for POE::Kernel.
 
 # Empty package to appease perl.
 package POE::Kernel::Tk;
 
-# Bogus version to appease perl, otherwise it finds the next "unless"
-# statement, and CPAN.pm fails.
 use vars qw($VERSION);
-$VERSION = '0.00';
+$VERSION = (qw($Revision: 1.20 $ ))[1];
 
 BEGIN {
   die "POE's Tk support requires version Tk 800.021 or higher.\n"
@@ -36,7 +34,8 @@ sub POE_SUBSTRATE_NAME () { SUBSTRATE_NAME_TK }
 # Signal handlers.
 
 sub _substrate_signal_handler_generic {
-  $poe_kernel->_enqueue_state
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing generic SIG$_[0] event...\n";
+  $poe_kernel->_enqueue_event
     ( $poe_kernel, $poe_kernel,
       EN_SIGNAL, ET_SIGNAL,
       [ $_[0] ],
@@ -46,7 +45,8 @@ sub _substrate_signal_handler_generic {
 }
 
 sub _substrate_signal_handler_pipe {
-  $poe_kernel->_enqueue_state
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing PIPE-like SIG$_[0] event...\n";
+  $poe_kernel->_enqueue_event
     ( $poe_kernel, $poe_kernel,
       EN_SIGNAL, ET_SIGNAL,
       [ $_[0] ],
@@ -58,11 +58,11 @@ sub _substrate_signal_handler_pipe {
 # Special handler.  Stop watching for children; instead, start a loop
 # that polls for them.
 sub _substrate_signal_handler_child {
+  TRACE_SIGNALS and warn "\%\%\% Enqueuing CHLD-like SIG$_[0] event...\n";
   $SIG{$_[0]} = 'DEFAULT';
-  $poe_kernel->_enqueue_state
+  $poe_kernel->_enqueue_event
     ( $poe_kernel, $poe_kernel,
-      EN_SCPOLL, ET_SCPOLL,
-      [ ],
+      EN_SCPOLL, ET_SCPOLL, [ ],
       time(), __FILE__, __LINE__
     );
 }
@@ -73,7 +73,16 @@ sub _substrate_signal_handler_child {
 macro substrate_watch_signal {
   # Child process has stopped.
   if ($signal eq 'CHLD' or $signal eq 'CLD') {
-    $SIG{$signal} = \&_substrate_signal_handler_child;
+
+    # Begin constant polling loop.  Only start it on CHLD or on CLD if
+    # CHLD doesn't exist.
+    $SIG{$signal} = 'DEFAULT';
+    $poe_kernel->_enqueue_event
+      ( $poe_kernel, $poe_kernel,
+        EN_SCPOLL, ET_SCPOLL, [ ],
+        time() + 1, __FILE__, __LINE__
+      ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
+
     next;
   }
 
@@ -94,71 +103,86 @@ macro substrate_watch_signal {
 }
 
 macro substrate_resume_watching_child_signals () {
-  $SIG{CHLD} = \&_substrate_signal_handler_child if exists $SIG{CHLD};
-  $SIG{CLD}  = \&_substrate_signal_handler_child if exists $SIG{CLD};
+  $SIG{CHLD} = 'DEFAULT' if exists $SIG{CHLD};
+  $SIG{CLD}  = 'DEFAULT' if exists $SIG{CLD};
+  $poe_kernel->_enqueue_event
+    ( $poe_kernel, $poe_kernel,
+      EN_SCPOLL, ET_SCPOLL, [ ],
+      time() + 1, __FILE__, __LINE__
+    ) if keys(%kr_sessions) > 1;
 }
 
 #------------------------------------------------------------------------------
 # Watchers and callbacks.
 
-macro substrate_resume_idle_watcher {
-  $self->[KR_WATCHER_IDLE] =
-    $poe_main_window->afterIdle( \&_substrate_idle_callback );
-}
+### Time.
 
-macro substrate_resume_alarm_watcher {
+macro substrate_resume_time_watcher {
   if (defined $self->[KR_WATCHER_TIMER]) {
     $self->[KR_WATCHER_TIMER]->cancel();
     $self->[KR_WATCHER_TIMER] = undef;
   }
 
-  my $next_time = $kr_alarms[0]->[ST_TIME] - time();
+  my $next_time = $kr_events[0]->[ST_TIME] - time();
   $next_time = 0 if $next_time < 0;
   $self->[KR_WATCHER_TIMER] =
-    $poe_main_window->after( $next_time * 1000, \&_substrate_alarm_callback );
+    $poe_main_window->after( $next_time * 1000, \&_substrate_event_callback );
 }
 
-macro substrate_reset_alarm_watcher {
-  {% substrate_resume_alarm_watcher %}
+macro substrate_reset_time_watcher {
+  {% substrate_resume_time_watcher %}
 }
 
-macro substrate_pause_alarm_watcher {
+macro substrate_pause_time_watcher {
   $self->[KR_WATCHER_TIMER]->stop()
     if defined $self->[KR_WATCHER_TIMER];
 }
 
-macro substrate_watch_filehandle {
+### Filehandles.
+
+macro substrate_watch_filehandle (<fileno>,<vector>) {
   # The Tk documentation implies by omission that expedited
   # filehandles aren't, uh, handled.  This is part 1 of 2.
   confess "Tk does not support expedited filehandles"
-    if $select_index == VEC_EX;
+    if <vector> == VEC_EX;
 
-  Tk::Event::IO->fileevent
+  # Cheat.  $handle comes from the user's scope.
+
+  $poe_main_window->fileevent
     ( $handle,
 
       # It can only be VEC_RD or VEC_WR here (VEC_EX is checked a few
       # lines up).
-      ( $select_index == VEC_RD ) ? 'readable' : 'writable',
+      ( <vector> == VEC_RD ) ? 'readable' : 'writable',
 
-      [ \&_substrate_select_callback, $handle, $select_index ],
+      # The handle is wrapped in quotes here to stringify it.  For
+      # some reason, it seems to work as a filehandle anyway, and it
+      # breaks reference counting.  For filehandles, then, this is
+      # truly a safe (strict ok? warn ok? seems so!) weak reference.
+      [ \&_substrate_select_callback, <fileno>, <vector> ],
     );
+
+  $kr_fno_vec->[FVC_ST_ACTUAL]  = HS_RUNNING;
+  $kr_fno_vec->[FVC_ST_REQUEST] = HS_RUNNING;
 }
 
-macro substrate_ignore_filehandle {
+macro substrate_ignore_filehandle (<fileno>,<vector>) {
   # The Tk documentation implies by omission that expedited
   # filehandles aren't, uh, handled.  This is part 2 of 2.
   confess "Tk does not support expedited filehandles"
-    if $select_index == VEC_EX;
+    if <vector> == VEC_EX;
 
-  # Handle refcount is 1; this handle is going away for good.  We can
-  # use fileevent to close it, which will do untie/undef within Tk.
-  if ($kr_handle->[HND_REFCOUNT] == 1) {
-    Tk::Event::IO->fileevent
+  # Total handle refcount is 1.  This handle is going away for good,
+  # so we can use fileevent to close it.  This does an untie/undef
+  # within Tk, which is why it shouldn't be done for higher refcounts.
+
+  if ($kr_fileno->[FNO_TOT_REFCOUNT] == 1) {
+    $poe_main_window->fileevent
       ( $handle,
 
         # It can only be VEC_RD or VEC_WR here (VEC_EX is checked a
         # few lines up).
-        ( ( $select_index == VEC_RD ) ? 'readable' : 'writable' ),
+        ( ( <vector> == VEC_RD ) ? 'readable' : 'writable' ),
 
         # Nothing here!  Callback all gone!
         ''
@@ -168,49 +192,61 @@ macro substrate_ignore_filehandle {
   # Otherwise we have other things watching the handle.  Go into Tk's
   # undocumented guts to disable just this watcher without hosing the
   # entire fileevent thing.
+
   else {
     my $tk_file_io = tied( *$handle );
     die "whoops; no tk file io object" unless defined $tk_file_io;
     $tk_file_io->handler
-      ( ( ( $select_index == VEC_RD )
+      ( ( ( <vector> == VEC_RD )
           ? Tk::Event::IO::READABLE()
           : Tk::Event::IO::WRITABLE()
         ),
         ''
       );
   }
+
+  $kr_fno_vec->[FVC_ST_ACTUAL]  = HS_STOPPED;
+  $kr_fno_vec->[FVC_ST_REQUEST] = HS_STOPPED;
 }
 
-macro substrate_pause_filehandle_write_watcher {
+macro substrate_pause_filehandle_watcher (<fileno>,<vector>) {
+  # The Tk documentation implies by omission that expedited
+  # filehandles aren't, uh, handled.  This is part 2 of 2.
+  confess "Tk does not support expedited filehandles"
+    if <vector> == VEC_EX;
+
   # Use an internal work-around to fileevent quirks.
   my $tk_file_io = tied( *$handle );
   die "whoops; no tk file io object" unless defined $tk_file_io;
-  $tk_file_io->handler( Tk::Event::IO::WRITABLE(), '' );
-}
-
-macro substrate_resume_filehandle_write_watcher {
-  # Use an internal work-around to fileevent quirks.
-  my $tk_file_io = tied( *$handle );
-  die "whoops; no tk file io object" unless defined $tk_file_io;
-  $tk_file_io->handler( Tk::Event::IO::WRITABLE(),
-                        [ \&_substrate_select_callback, $handle, VEC_WR ]
+  $tk_file_io->handler( ( ( <vector> == VEC_RD )
+                          ? Tk::Event::IO::READABLE()
+                          : Tk::Event::IO::WRITABLE()
+                        ),
+                        ''
                       );
+  $kr_fno_vec->[FVC_ST_ACTUAL] = HS_PAUSED;
 }
 
-macro substrate_pause_filehandle_read_watcher {
+macro substrate_resume_filehandle_watcher (<fileno>,<vector>) {
+  # The Tk documentation implies by omission that expedited
+  # filehandles aren't, uh, handled.  This is part 2 of 2.
+  confess "Tk does not support expedited filehandles"
+    if <vector> == VEC_EX;
+
   # Use an internal work-around to fileevent quirks.
   my $tk_file_io = tied( *$handle );
   die "whoops; no tk file io object" unless defined $tk_file_io;
-  $tk_file_io->handler( Tk::Event::IO::READABLE(), '' );
-}
 
-macro substrate_resume_filehandle_read_watcher {
-  # Use an internal work-around to fileevent quirks.
-  my $tk_file_io = tied( *$handle );
-  die "whoops; no tk file io object" unless defined $tk_file_io;
-  $tk_file_io->handler( Tk::Event::IO::READABLE(),
-                        [ \&_substrate_select_callback, $handle, VEC_RD ]
+  $tk_file_io->handler( ( ( <vector> == VEC_RD )
+                          ? Tk::Event::IO::READABLE()
+                          : Tk::Event::IO::WRITABLE()
+                        ),
+                        [ \&_substrate_select_callback,
+                          <fileno>,
+                          <vector>,
+                        ]
                       );
+  $kr_fno_vec->[FVC_ST_ACTUAL] = HS_RUNNING;
 }
 
 macro substrate_define_callbacks {
@@ -219,57 +255,20 @@ macro substrate_define_callbacks {
   # than the overhead of dispatching it, then no other events are
   # processed.  That includes afterIdle and even internal Tk events.
 
-  # This is the idle callback to dispatch FIFO states.
-  sub _substrate_idle_callback {
+  # Tk timer callback to dispatch events.
+  sub _substrate_event_callback {
     my $self = $poe_kernel;
 
-    {% dispatch_one_from_fifo %}
-
-    # Perpetuate the dispatch loop as long as there are states
-    # enqueued.
-
-    if (defined $self->[KR_WATCHER_IDLE]) {
-      $self->[KR_WATCHER_IDLE]->cancel();
-      $self->[KR_WATCHER_IDLE] = undef;
-    }
-
-    # This nasty little hack is required because setting an afterIdle
-    # from a running afterIdle effectively blocks OS/2 Presentation
-    # Manager events.  This locks up its notion of a window manager.
-    # I couldn't get anyone to test it on other platforms... (Hey,
-    # this could trash yoru desktop! Wanna try it?) :)
-
-    if (@kr_states) {
-      $poe_main_window->after
-        ( 0,
-          sub {
-            $self->[KR_WATCHER_IDLE] =
-              $poe_main_window->afterIdle( \&_substrate_idle_callback )
-                unless defined $self->[KR_WATCHER_IDLE];
-          }
-        );
-    }
-
-    # Make sure the kernel can still run.
-    else {
-      {% test_for_idle_poe_kernel %}
-    }
-  }
-
-  # Tk timer callback to dispatch alarm states.
-  sub _substrate_alarm_callback {
-    my $self = $poe_kernel;
-
-    {% dispatch_due_alarms %}
+    {% dispatch_due_events %}
 
     # As was mentioned before, $widget->after() events can dominate a
     # program's event loop, starving it of other events, including
     # Tk's internal widget events.  To avoid this, we'll reset the
-    # alarm callback from an idle event.
+    # event callback from an idle event.
 
-    # Register the next timed callback if there are alarms left.
+    # Register the next timed callback if there are events left.
 
-    if (@kr_alarms) {
+    if (@kr_events) {
 
       # Cancel the Tk alarm that handles alarms.
 
@@ -286,13 +285,13 @@ macro substrate_define_callbacks {
               $self->[KR_WATCHER_TIMER]->cancel();
               $self->[KR_WATCHER_TIMER] = undef;
 
-              if (@kr_alarms) {
-                my $next_time = $kr_alarms[0]->[ST_TIME] - time();
+              if (@kr_events) {
+                my $next_time = $kr_events[0]->[ST_TIME] - time();
                 $next_time = 0 if $next_time < 0;
 
                 $self->[KR_WATCHER_TIMER] =
                   $poe_main_window->after( $next_time * 1000,
-                                           \&_substrate_alarm_callback
+                                           \&_substrate_event_callback
                                          );
               }
             }
@@ -307,21 +306,47 @@ macro substrate_define_callbacks {
 
   # Tk filehandle callback to dispatch selects.
   sub _substrate_select_callback {
-    my ($handle, $vector) = @_;
-    {% dispatch_ready_selects %}
+    my ($fileno, $vector) = @_;
+    {% enqueue_ready_selects $fileno, $vector %}
     {% test_for_idle_poe_kernel %}
+  }
+}
+
+### Errors.
+
+sub Tk::Error {
+  my $window = shift;
+  my $error  = shift;
+
+  if (Tk::Exists($window)) {
+    my $grab = $window->grab('current');
+    $grab->Unbusy if defined $grab;
+  }
+  chomp($error);
+  warn "Tk::Error: $error\n " . join("\n ",@_)."\n";
+
+  if (keys %{$poe_kernel->[KR_SESSIONS]}) {
+    $poe_kernel->_dispatch_event
+      ( $poe_kernel, $poe_kernel,
+        EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
+        time(), __FILE__, __LINE__, undef
+      );
   }
 }
 
 #------------------------------------------------------------------------------
 # The event loop itself.
 
+# ???
+macro substrate_do_timeslice {
+  die "doing timeslices currently not supported in the Tk substrate";
+}
+
 macro substrate_main_loop {
   Tk::MainLoop();
 }
 
 macro substrate_stop_main_loop {
-  $self->[KR_WATCHER_IDLE]  = undef;
   $self->[KR_WATCHER_TIMER] = undef;
   $poe_main_window->destroy();
 }
@@ -337,7 +362,7 @@ sub signal_ui_destroy {
   $window->OnDestroy
     ( sub {
         if (keys %{$self->[KR_SESSIONS]}) {
-          $self->_dispatch_state
+          $self->_dispatch_event
             ( $self, $self,
               EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
               time(), __FILE__, __LINE__, undef

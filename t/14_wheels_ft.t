@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 14_wheels_ft.t,v 1.7 2001/07/18 18:44:32 rcaputo Exp $
+# $Id: 14_wheels_ft.t,v 1.9 2002/01/03 22:33:06 rcaputo Exp $
 
 # Exercises Wheel::FollowTail, Wheel::ReadWrite, and Filter::Block.
 
@@ -65,14 +65,13 @@ sub sss_start {
 
   $heap->{test_two} = 1;
   $heap->{wheel_id} = $heap->{wheel}->ID;
-  $heap->{read_count_1} = 0;
-  $heap->{read_count_2} = 0;
+  $heap->{read_count} = 0;
 }
 
 sub sss_block {
   my ($kernel, $heap, $block) = @_[KERNEL, HEAP, ARG0];
   $heap->{read_count}++;
-  $kernel->delay( ev_timeout => 2 );
+  $kernel->delay( ev_timeout => 5 );
 }
 
 sub sss_error {

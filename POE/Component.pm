@@ -1,9 +1,13 @@
-# $Id: Component.pm,v 1.4 2000/12/23 06:54:30 rcaputo Exp $
+# $Id: Component.pm,v 1.5 2002/01/10 20:39:44 rcaputo Exp $
 # Copyrights and documentation are after __end__.
 
 package POE::Component;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.5 $ ))[1];
+
 use Carp qw(croak);
 
 sub new {

@@ -1,8 +1,12 @@
-# $Id: Preprocessor.pm,v 1.23 2001/07/25 15:28:24 rcaputo Exp $
+# $Id: Preprocessor.pm,v 1.27 2002/01/10 20:39:44 rcaputo Exp $
 
 package POE::Preprocessor;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.27 $ ))[1];
+
 use Carp qw(croak);
 use Filter::Util::Call;
 
@@ -23,10 +27,13 @@ sub COND_INDENT () { 2 }
 #sub DEBUG_INVOKE () { 1 }
 #sub DEBUG_DEFINE () { 1 }
 
+#sub WARN_DEFINE  () { 1 }
+
 BEGIN {
   defined &DEBUG        or eval 'sub DEBUG        () { 0 }'; # preprocessor
   defined &DEBUG_INVOKE or eval 'sub DEBUG_INVOKE () { 0 }'; # macro invocs
   defined &DEBUG_DEFINE or eval 'sub DEBUG_DEFINE () { 0 }'; # macro defines
+  defined &WARN_DEFINE  or eval 'sub WARN_DEFINE  () { 0 }'; # macro/const redefinition warning
 };
 
 # text_trie_trie is virtually identical to code in Ilya Zakharevich's
@@ -126,12 +133,45 @@ sub fix_exclude {
 my (%constants, %macros, %const_regexp, %macro);
 
 sub import {
-  # Outer closure to define a unique scope.
-  { my $macro_name = '';
+
+    my $self = shift;
+    my %args;
+    if(@_ > 1) {
+        %args = @_;
+    }
+
+    # Outer closure to define a unique scope.
+    { my $macro_name = '';
     my ($macro_line, $enum_index);
     my ($package_name, $file_name, $line_number) = (caller)[0,1,2];
     my $const_regexp_dirty = 0;
     my $state = STATE_PLAIN;
+
+    # The following block processes inheritance requests for macros/constants and enums.  added by sungo 09/2001
+    my @isas;
+     
+    if($args{isa}) {
+        if(ref $args{isa} eq 'ARRAY') {
+            foreach my $isa (@{$args{isa}}) {
+                push @isas, $isa;
+            }
+        } else {
+            push @isas, $args{isa};
+        }
+        foreach my $isa (@isas) {
+            eval "use $isa";
+            croak "Unable to load $isa : $@" if $@;
+
+            foreach my $const (keys %{$constants{$isa}}) {
+                $constants{$package_name}->{$const} = $constants{$isa}->{$const};
+                $const_regexp_dirty = 1;
+            }
+
+            foreach my $macro (keys %{$macros{$isa}}) {
+                $macros{$package_name}->{$macro} = $macros{$isa}->{$macro};
+            }
+        }
+    }
 
     $conditional_stacks{$package_name} = [ ];
     $excluding_code{$package_name} = 0;
@@ -139,7 +179,7 @@ sub import {
     my $set_const = sub {
       my ($name, $value) = @_;
 
-      if (exists $constants{$package_name}->{$name}) {
+      if (WARN_DEFINE && exists $constants{$package_name}->{$name}) {
         warn "const $name redefined at $file_name line $line_number\n"
           unless $constants{$package_name}->{$name} eq $value;
       }
@@ -336,7 +376,9 @@ sub import {
               $macro{$package_name}->[MAC_CODE] =~ s/^\s*//;
               $macro{$package_name}->[MAC_CODE] =~ s/\s*$//;
 
-              if (exists $macros{$package_name}->{$macro_name}) {
+              if ( WARN_DEFINE &&
+                   exists $macros{$package_name}->{$macro_name}
+                 ) {
                 warn( "macro $macro_name redefined at ",
                       "$file_name line $line_number\n"
                     )
@@ -492,9 +534,9 @@ sub import {
               $substitutions++;
             }
             else {
-              warn( "macro $name has not been defined ",
-                    "at $file_name line $line_number\n"
-                  );
+              die( "macro $name has not been defined ",
+                   "at $file_name line $line_number\n"
+                 );
               last;
             }
           }
@@ -555,6 +597,8 @@ POE::Preprocessor - a macro/const/enum preprocessor
 =head1 SYNOPSIS
 
   use POE::Preprocessor;
+
+  # use POE::Preprocessor ( isa => 'POE::SomeModule' );
 
   macro max (one,two) {
     ((one) > (two) ? (one) : (two))
@@ -676,6 +720,19 @@ previous example.
 Conditional includes are experimental pending a decision on how useful
 they are.
 
+=head1 IMPORTING MACROS/CONSTANTS
+
+    use POE::Preprocessor ( isa => 'POE::SomeModule' );
+
+This method of calling Preprocessor causes the macros and constants of 
+C<POE::SomeModule> to be imported for use in the current namespace. 
+These macros and constants can be overriden simply by defining items 
+in the current namespace of the same name.
+
+Note: if the macros in C<POE::SomeModule> require additional perl 
+modules, any code which imports these macros will need to C<use> 
+those modules as well.
+
 =head1 DEBUGGING
 
 POE::Preprocessor has three debugging constants which may be defined
@@ -693,6 +750,10 @@ To trace macro invocations as they happen:
 To see macro, constant, and enum definitions:
 
   sub POE::Preprocessor::DEBUG_DEFINE () { 1 }
+
+To see warnings when a macro or constant is redefined:
+
+  sub POE::Preprocessor::WARN_DEFINE () { 1 }
 
 =head1 BUGS
 
@@ -719,8 +780,9 @@ Text::Trie.
 
 =head1 AUTHOR & COPYRIGHT
 
-POE::Preprocessor is Copyright 2000 Rocco Caputo.  All rights
-reserved.  POE::Preprocessor is free software; you may redistribute it
-and/or modify it under the same terms as Perl itself.
+POE::Preprocessor is Copyright 2000 Rocco Caputo.  Some parts are 
+Copyright 2001 Matt Cashner. All rights reserved.  POE::Preprocessor 
+is free software; you may redistribute it and/or modify it under 
+the same terms as Perl itself.
 
 =cut

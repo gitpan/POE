@@ -1,10 +1,14 @@
-# $Id: ReadWrite.pm,v 1.51 2001/08/12 01:58:03 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.58 2002/01/10 20:39:45 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.58 $ ))[1];
+
 use Carp;
-use POE qw(Wheel);
+use POE qw(Wheel Driver::SysRW Filter::Line);
 
 # Offsets into $self.
 sub HANDLE_INPUT               () {  0 }
@@ -59,20 +63,23 @@ sub new {
   if (defined $params{Filter}) {
     carp "Ignoring InputFilter parameter (Filter parameter takes precedence)"
       if (defined $params{InputFilter});
-    carp "Ignoring OUtputFilter parameter (Filter parameter takes precedence)"
+    carp "Ignoring OutputFilter parameter (Filter parameter takes precedence)"
       if (defined $params{OutputFilter});
     $in_filter = $out_filter = delete $params{Filter};
   }
   else {
-    croak "Filter or InputFilter required"
-      unless defined $params{InputFilter};
-    croak "Filter or OutputFilter required"
-      unless defined $params{OutputFilter};
-    $in_filter  = delete $params{InputFilter};
+    $in_filter = delete $params{InputFilter};
     $out_filter = delete $params{OutputFilter};
+
+    # If neither Filter, InputFilter or OutputFilter is defined, then
+    # they default to POE::Filter::Line.
+    unless (defined $in_filter or defined $out_filter) {
+      $in_filter = $out_filter = POE::Filter::Line->new();
+    }
   }
 
-  croak "Driver required" unless defined $params{Driver};
+  my $driver = delete $params{Driver};
+  $driver = POE::Driver::SysRW->new() unless defined $driver;
 
   # STATE-EVENT
   if (exists $params{HighState}) {
@@ -166,7 +173,7 @@ sub new {
       $out_handle,                      # HANDLE_OUTPUT
       $in_filter,                       # FILTER_INPUT
       $out_filter,                      # FILTER_OUTPUT
-      delete $params{Driver},           # DRIVER_BOTH
+      $driver,                          # DRIVER_BOTH
       delete $params{InputEvent},       # EVENT_INPUT
       delete $params{ErrorEvent},       # EVENT_ERROR
       delete $params{FlushedEvent},     # EVENT_FLUSHED
@@ -207,10 +214,10 @@ sub _define_write_state {
   # Read-only members.  If any of these change, then the write state
   # is invalidated and needs to be redefined.
   my $driver        = $self->[DRIVER_BOTH];
-  my $event_error   = \$self->[EVENT_ERROR];
-  my $event_flushed = \$self->[EVENT_FLUSHED];
   my $high_mark     = $self->[WATERMARK_WRITE_MARK_HIGH];
   my $low_mark      = $self->[WATERMARK_WRITE_MARK_LOW];
+  my $event_error   = \$self->[EVENT_ERROR];
+  my $event_flushed = \$self->[EVENT_FLUSHED];
   my $event_high    = \$self->[WATERMARK_WRITE_EVENT_HIGH];
   my $event_low     = \$self->[WATERMARK_WRITE_EVENT_LOW];
   my $unique_id     = $self->[UNIQUE_ID];
@@ -224,7 +231,7 @@ sub _define_write_state {
   # Register the select-write handler.
 
   $poe_kernel->state
-    ( $self->[STATE_WRITE] = $self . ' select write',
+    ( $self->[STATE_WRITE] = ref($self) . "($unique_id) -> select write",
       sub {                             # prevents SEGV
         0 && CRIMSON_SCOPE_HACK('<');
                                         # subroutine starts here
@@ -300,7 +307,7 @@ sub _define_read_state {
     # If any of these change, then the read state is invalidated and
     # needs to be redefined.
 
-    my $driver       = \$self->[DRIVER_BOTH];
+    my $driver       = $self->[DRIVER_BOTH];
     my $input_filter = \$self->[FILTER_INPUT];
     my $event_input  = \$self->[EVENT_INPUT];
     my $event_error  = \$self->[EVENT_ERROR];
@@ -313,7 +320,7 @@ sub _define_read_state {
          $$input_filter->can('get_one_start')
        ) {
       $poe_kernel->state
-        ( $self->[STATE_READ] = $self . ' select read',
+        ( $self->[STATE_READ] = ref($self) . "($unique_id) -> select read",
           sub {
 
             # Protects against coredump on older perls.
@@ -321,7 +328,7 @@ sub _define_read_state {
 
             # The actual code starts here.
             my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-            if (defined(my $raw_input = $$driver->get($handle))) {
+            if (defined(my $raw_input = $driver->get($handle))) {
               $$input_filter->get_one_start($raw_input);
               while (1) {
                 my $next_rec = $$input_filter->get_one();
@@ -345,7 +352,7 @@ sub _define_read_state {
 
     else {
       $poe_kernel->state
-        ( $self->[STATE_READ] = $self . ' select read',
+        ( $self->[STATE_READ] = ref($self) . "($unique_id) -> select read",
           sub {
 
             # Protects against coredump on older perls.
@@ -353,7 +360,7 @@ sub _define_read_state {
 
             # The actual code starts here.
             my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-            if (defined(my $raw_input = $$driver->get($handle))) {
+            if (defined(my $raw_input = $driver->get($handle))) {
               foreach my $cooked_input (@{$$input_filter->get($raw_input)}) {
                 $k->call($me, $$event_input, $cooked_input, $unique_id);
               }
@@ -475,7 +482,7 @@ sub put {
 #------------------------------------------------------------------------------
 # Redefine filter. -PG / Now that there are two filters internally,
 # one input and one output, make this set both of them at the same
-# time. -RC
+# time. -RCC
 
 sub _transfer_input_buffer {
   my ($self, $buf) = @_;
@@ -619,6 +626,22 @@ sub ID {
   return $_[0]->[UNIQUE_ID];
 }
 
+# Pause the wheel's input watcher.
+sub pause_input {
+  my $self = shift;
+  if (defined $self->[HANDLE_INPUT]) {
+    $poe_kernel->select_pause_read( $self->[HANDLE_INPUT] );
+  }
+}
+
+# Resume the wheel's input watcher.
+sub resume_input {
+  my $self = shift;
+  if (defined $self->[HANDLE_INPUT]) {
+    $poe_kernel->select_resume_read( $self->[HANDLE_INPUT] );
+  }
+}
+
 ###############################################################################
 1;
 
@@ -650,7 +673,7 @@ POE::Wheel::ReadWrite - buffered non-blocking I/O
     # To read and write using different line disciplines, such as
     # stream out and line in:
     InputFilter  => POE::Filter::Something->new(),     # Read data one way
-    OUtputFilter => POE::Filter::SomethingElse->new(), # Write data another
+    OutputFilter => POE::Filter::SomethingElse->new(), # Write data another
 
     InputEvent   => $input_event_name,  # Input received event
     FlushedEvent => $flush_event_name,  # Output flushed event
@@ -684,6 +707,10 @@ POE::Wheel::ReadWrite - buffered non-blocking I/O
 
   # To retrieve the wheel's ID:
   print $wheel->ID;
+
+  # To pause and resume a wheel's input events.
+  $wheel->pause_input();
+  $wheel->resume_input();
 
 =head1 DESCRIPTION
 
@@ -762,11 +789,42 @@ The ID method returns a FollowTail wheel's unique ID.  This ID will be
 included in every event the wheel generates, and it can be used to
 match events with the wheels which generated them.
 
+=item pause_input
+
+=item resume_input
+
+ReadWrite wheels will continually generate input events for as long as
+they have data to read.  Sometimes it's necessary to control the flow
+of data coming from a wheel or the input filehandle it manages.
+
+pause_input() instructs the wheel to temporarily stop checking its
+input filehandle for data.  This can keep a session (or a
+corresponding output buffer) from being overwhelmed.
+
+resume_input() instructs the wheel to resume checking its input
+filehandle for data.
+
 =back
 
 =head1 EVENTS AND PARAMETERS
 
 =over 2
+
+=item Driver
+
+Driver is a POE::Driver subclass that is used to read from and write
+to ReadWrite's filehandle(s).  It encapsulates the low-level I/O
+operations so in theory ReadWrite never needs to know about them.
+
+Driver defaults to C<<POE::Driver::SysRW->new()>>.
+
+=item Filter
+
+Filter is a POE::Filter subclass that's used to parse incoming data
+and create streamable outgoing data.  It encapsulates the lowest level
+of a protocol so in theory ReadWrite never needs to know about them.
+
+Filter defaults to C<<POE::Filter::Line->new()>>.
 
 =item InputEvent
 

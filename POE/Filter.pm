@@ -1,9 +1,13 @@
-# $Id: Filter.pm,v 1.11 2001/07/29 18:35:55 rcaputo Exp $
+# $Id: Filter.pm,v 1.12 2002/01/10 20:39:44 rcaputo Exp $
 
 package POE::Filter;
 
 use strict;
-use Carp;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.12 $ ))[1];
+
+use Carp qw(croak);
 
 #------------------------------------------------------------------------------
 

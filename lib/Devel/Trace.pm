@@ -1,10 +1,14 @@
-# $Id: Trace.pm,v 1.6 2000/11/17 22:33:17 rcaputo Exp $
+# $Id: Trace.pm,v 1.7 2002/01/10 20:39:45 rcaputo Exp $
 
 # This is a `perl -d` debugger module that simply traces execution.
 # It's optional, and it may not even work.
 
-use strict;
 package Trace; # satisfies 'use'
+
+use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.7 $ ))[1];
 
 package DB;
 use vars qw($sub @args);

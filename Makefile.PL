@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile.PL,v 1.17 2001/06/13 17:53:40 rcaputo Exp $
+# $Id: Makefile.PL,v 1.19 2002/01/03 22:31:20 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
 
@@ -15,8 +15,14 @@ sub MY::test {
 
 WriteMakefile
   ( NAME           => 'POE',
-    AUTHOR         => 'Rocco Caputo <troc+poe@netrus.net>',
-    ABSTRACT       => 'Event driven threads and I/O abstractions.',
+
+    ( ($^O eq 'MacOS')
+      ? ()
+      : ( AUTHOR   => 'Rocco Caputo <rcaputo@cpan.org>',
+          ABSTRACT => 'Event driven threads and I/O abstractions.',
+        )
+    ),
+
     VERSION_FROM   => 'POE.pm',
     dist           => { 'COMPRESS' => 'gzip -9f',
                         'SUFFIX'   => 'gz',
@@ -39,4 +45,4 @@ WriteMakefile
     PMLIBDIRS      => [ 'POE' ],
   );
 
-exit 0;
+exit 0 unless $^O eq 'MacOS';

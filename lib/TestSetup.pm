@@ -1,9 +1,12 @@
 # Standard test setup things.
-# $Id: TestSetup.pm,v 1.8 2001/01/14 03:13:16 rcaputo Exp $
+# $Id: TestSetup.pm,v 1.9 2002/01/10 20:39:45 rcaputo Exp $
 
 package TestSetup;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.9 $ ))[1];
 
 use Exporter;
 @TestSetup::ISA = qw(Exporter);

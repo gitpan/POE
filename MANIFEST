@@ -1,10 +1,11 @@
-# $Id: MANIFEST,v 1.62 2001/08/01 02:02:24 rcaputo Exp $
+# $Id: MANIFEST,v 1.63 2001/11/13 02:54:29 rcaputo Exp $
 CHANGES
 MANIFEST
 Makefile.PL
 NEEDS
 POE.pm
 POE/Component.pm
+POE/Component/Client/TCP.pm
 POE/Component/Server/TCP.pm
 POE/Driver.pm
 POE/Driver/SysRW.pm
@@ -100,3 +101,4 @@ t/22_wheel_run.t
 t/23_nfa.t
 t/24_filter_stack.t
 t/25_detach.t
+t/26_comp_tcp.t

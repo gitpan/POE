@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.15 2001/08/01 15:22:57 rcaputo Exp $
+# $Id: 08_errors.t,v 1.29 2001/12/08 03:13:33 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -15,83 +15,120 @@ BEGIN {
 use POSIX qw(:errno_h);
 use Socket;
 
-my (@symbols_to_clean_up, @files_to_unuse);
-
 BEGIN {
-  @symbols_to_clean_up =
-    qw( POE_USES_TIME_HIRES SUBSTRATE_NAME_EVENT SUBSTRATE_NAME_GTK
-        SUBSTRATE_NAME_SELECT SUBSTRATE_NAME_TK SUBSTRATE_EVENT
-        SUBSTRATE_GTK SUBSTRATE_SELECT SUBSTRATE_TK POE_SUBSTRATE
-        POE_SUBSTRATE_NAME _substrate_signal_handler_generic
-        _substrate_signal_handler_pipe _substrate_signal_handler_child
+  my @symbols_to_clean_up =
+    qw( POE_USES_TIME_HIRES
 
-        VEC_RD VEC_WR VEC_EX SS_SESSION SS_REFCOUNT SS_EVCOUNT
-        SS_PARENT SS_CHILDREN SS_HANDLES SS_SIGNALS SS_ALIASES
-        SS_PROCESSES SS_ID SS_EXTRA_REFS SS_ALCOUNT SH_HANDLE
-        SH_REFCOUNT SH_VECCOUNT KR_SESSIONS KR_VECTORS KR_HANDLES
-        KR_STATES KR_SIGNALS KR_ALIASES KR_ACTIVE_SESSION KR_PROCESSES
-        KR_ALARMS KR_ID KR_SESSION_IDS KR_ID_INDEX KR_WATCHER_TIMER
-        KR_WATCHER_IDLE KR_EXTRA_REFS KR_ALARM_IDS KR_SIZE HND_HANDLE
-        HND_REFCOUNT HND_VECCOUNT HND_SESSIONS HND_WATCHERS HSS_HANDLE
-        HSS_SESSION HSS_STATE ST_SESSION ST_SOURCE ST_NAME ST_TYPE
-        ST_ARGS ST_TIME ST_OWNER_FILE ST_OWNER_LINE ST_SEQ EN_START
-        EN_STOP EN_SIGNAL EN_GC EN_PARENT EN_CHILD EN_SCPOLL
-        CHILD_GAIN CHILD_LOSE CHILD_CREATE ET_USER ET_CALL ET_START
-        ET_STOP ET_SIGNAL ET_GC ET_PARENT ET_CHILD ET_SCPOLL ET_ALARM
-        ET_SELECT FIFO_DISPATCH_TIME LARGE_QUEUE_SIZE
+        SUBSTRATE_NAME_EVENT SUBSTRATE_NAME_GTK SUBSTRATE_NAME_SELECT
+        SUBSTRATE_NAME_TK
+
+        SUBSTRATE_EVENT SUBSTRATE_GTK SUBSTRATE_SELECT SUBSTRATE_TK
+        POE_SUBSTRATE POE_SUBSTRATE_NAME
+
+        _substrate_signal_handler_generic
+        _substrate_signal_handler_pipe
+        _substrate_signal_handler_child
+
+        VEC_RD VEC_WR VEC_EX
+
+        SS_SESSION SS_REFCOUNT SS_EVCOUNT SS_PARENT SS_CHILDREN
+        SS_HANDLES SS_SIGNALS SS_ALIASES SS_PROCESSES SS_ID
+        SS_EXTRA_REFS SS_POST_COUNT
+
+        SH_HANDLE SH_REFCOUNT SH_VECCOUNT
+
+        KR_SESSIONS KR_VECTORS KR_FILENOS KR_STATES KR_SIGNALS
+        KR_ALIASES KR_ACTIVE_SESSION KR_PROCESSES KR_EVENTS KR_ID
+        KR_SESSION_IDS KR_ID_INDEX KR_WATCHER_TIMER KR_WATCHER_IDLE
+        KR_EXTRA_REFS KR_EVENT_IDS KR_SIZE
+
+        FNO_VEC_RD FNO_VEC_WR FNO_VEC_EX FNO_TOT_REFCOUNT
+
+        FVC_REFCOUNT FVC_WATCHER FVC_ST_ACTUAL FVC_ST_REQUEST
+        FVC_EV_COUNT FVC_SESSIONS
+
+        HS_STOPPED HS_PAUSED HS_RUNNING
+
+        HSS_HANDLE HSS_SESSION HSS_STATE
+
+        ST_SESSION ST_SOURCE ST_NAME ST_TYPE ST_ARGS ST_TIME
+        ST_OWNER_FILE ST_OWNER_LINE ST_SEQ
+
+        EN_START EN_STOP EN_SIGNAL EN_GC EN_PARENT EN_CHILD EN_SCPOLL
+
+        CHILD_GAIN CHILD_LOSE CHILD_CREATE
+
+        ET_USER ET_CALL ET_START ET_STOP ET_SIGNAL ET_GC ET_PARENT
+        ET_CHILD ET_SCPOLL ET_ALARM ET_SELECT
+
+        FIFO_DISPATCH_TIME LARGE_QUEUE_SIZE
 
         F_GETFL F_SETFL EINPROGRESS EWOULDBLOCK
+
+        RUNNING_IN_HELL
 
         import signal_ui_destroy
       );
 
-  @files_to_unuse =
-    qw( POE/Kernel.pm POE/Kernel/Event.pm POE/Kernel/Gtk.pm
-        POE/Kernel/Select.pm POE/Kernel/Tk.pm Event.pm Gtk.pm Tk.pm
+  my @files_to_unuse =
+    qw( POE/Kernel.pm
+
+        POE/Kernel/Event.pm POE/Kernel/Gtk.pm
+        POE/Kernel/Select.pm POE/Kernel/Tk.pm
+
+        Event.pm Gtk.pm Tk.pm
       );
-};
 
-# Clean up after destructive tests.
-sub test_cleanup {
-  POE::Preprocessor->clear_package( 'POE::Kernel' );
+  # Clean up after destructive tests.
+  sub test_cleanup {
+    POE::Preprocessor->clear_package( 'POE::Kernel' );
 
-  foreach my $symbol (@symbols_to_clean_up) {
-    delete $POE::Kernel::{$symbol};
+    foreach my $symbol (@symbols_to_clean_up) {
+      delete $POE::Kernel::{$symbol};
+    }
+
+    delete @INC{ @files_to_unuse };
   }
 
-  delete @INC{ @files_to_unuse };
+  # Test that errors occur when multiple event loops are enabled.
+
+  if ($^O eq 'MSWin32') {
+    for (1..3) {
+      print "ok $_ # skipped: This test crashes ActiveState Perl\n";
+    }
+  }
+  else {
+    # Event + Tk
+    @INC{'Event.pm', 'Tk.pm'} = (1,1);
+    $Tk::VERSION = 800.021;
+    eval 'use POE::Kernel';
+    print 'not ' unless defined $@ and length $@;
+    print "ok 1\n";
+    test_cleanup();
+
+    # Gtk + Tk
+    @INC{'Gtk.pm', 'Tk.pm'} = (1, 1);
+    $Tk::VERSION = 800.021;
+    eval 'use POE::Kernel';
+    print 'not ' unless defined $@ and length $@;
+    print "ok 2\n";
+    test_cleanup();
+
+    # Event + Gtk
+    @INC{'Event.pm', 'Gtk.pm'} = (1, 1);
+    eval 'use POE::Kernel';
+    print 'not ' unless defined $@ and length $@;
+    print "ok 3\n";
+    test_cleanup();
+  }
 }
 
-# Test that errors occur when multiple event loops are enabled.
-BEGIN {
-  # Event + Tk
-  @INC{'Event.pm', 'Tk.pm'} = (1,1);
-  eval 'use POE::Kernel';
-  print 'not ' unless defined $@ and length $@;
-  print "ok 1\n";
-  test_cleanup();
+# Make these runtime so they occur after the above tests.
 
-  # Gtk + Tk
-  @INC{'Gtk.pm', 'Tk.pm'} = (1, 1);
-  eval 'use POE::Kernel';
-  print 'not ' unless defined $@ and length $@;
-  print "ok 2\n";
-  test_cleanup();
-
-  # Event + Gtk
-  @INC{'Event.pm', 'Gtk.pm'} = (1, 1);
-  eval 'use POE::Kernel';
-  print 'not ' unless defined $@ and length $@;
-  print "ok 3\n";
-  test_cleanup();
-};
-
-use POE::Kernel;
 use POE::Session;
+use POE::Kernel;
 use POE::Component::Server::TCP;
 use POE::Wheel::SocketFactory;
-
-die if $@;
 
 # Test that errors occur when nonexistent modules are used.
 stderr_pause();
@@ -171,7 +208,7 @@ sub test_start {
 
 print "ok 6\n";
 
-print "not " if $poe_kernel->alias_set( 'kernel_alias' );
+print "not " if $POE::Kernel::poe_kernel->alias_set( 'kernel_alias' );
 print "ok 7\n";
 
 POE::Session->create
@@ -180,10 +217,10 @@ POE::Session->create
     }
   );
 
-print "not " if $poe_kernel->alias_remove( 'kernel_alias' );
+print "not " if $POE::Kernel::poe_kernel->alias_remove( 'kernel_alias' );
 print "ok 18\n";
 
-print "not " unless $poe_kernel->state( woobly => sub { die } ) == ESRCH;
+print "not " unless $POE::Kernel::poe_kernel->state( woobly => sub { die } ) == ESRCH;
 print "ok 19\n";
 
 ### TCP Server problems.
@@ -208,22 +245,23 @@ print "ok 19\n";
 { my $warnings = 0;
   local $SIG{__WARN__} = sub { $warnings++; };
 
-  # Odd parameters.
-  stderr_pause();
-  POE::Wheel::SocketFactory->new
-    ( SuccessEvent => [ ],
-      FailureEvent => [ ],
-    );
-  stderr_resume();
-
-  print "not " unless $warnings == 2;
-  print "ok 21\n";
-
   # Grar!  No UNIX sockets on Windows.
   if ($^O eq 'MSWin32') {
-    print "ok 22 # skipped: Windows doesn't see mo to UNIX sockets\n";
+    print "ok 21 # skipped: Windows won't listen on unbound sockets\n";
+    print "ok 22 # skipped: Windows doesn't seem to UNIX sockets\n";
   }
   else {
+    # Odd parameters.
+    stderr_pause();
+    POE::Wheel::SocketFactory->new
+      ( SuccessEvent => [ ],
+        FailureEvent => [ ],
+      );
+    stderr_resume();
+
+    print "not " unless $warnings == 2;
+    print "ok 21\n";
+
     # Any protocol on UNIX sockets.
     $warnings = 0;
     stderr_pause();
@@ -254,7 +292,7 @@ print "ok 19\n";
 ### Main loop.
 
 stderr_pause();
-$poe_kernel->run();
+$POE::Kernel::poe_kernel->run();
 stderr_resume();
 
 ### Misuse of unusable modules.
@@ -295,12 +333,17 @@ eval 'POE::Driver::SysRW->new( Booga => 1 )';
 print 'not ' unless defined $@ and length $@;
 print "ok 29\n";
 
-use POE::Filter::HTTPD;
-my $pfhttpd = POE::Filter::HTTPD->new();
+eval 'use POE::Filter::HTTPD;';
+unless (defined $@ and length $@) {
+  my $pfhttpd = POE::Filter::HTTPD->new();
 
-eval '$pfhttpd->get_pending()';
-print 'not ' unless defined $@ and length $@;
-print "ok 30\n";
+  eval '$pfhttpd->get_pending()';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 30\n";
+}
+else {
+  print "ok 30 # skipped: Prerequisites missing for POE::Filter::HTTPD\n";
+}
 
 # POE::Session constructor stuff.
 
@@ -382,14 +425,19 @@ eval( 'POE::Wheel::FollowTail->new( Handle => \*STDIN,' .
 print 'not ' unless defined $@ and length $@;
 print "ok 47\n";
 
-eval( 'POE::Wheel::FollowTail->new( Handle => \*STDIN,' .
-      '  Driver => POE::Driver::SysRW->new(),' .
-      '  Filter => POE::Filter::Stream->new(),' .
-      '  InputEvent => 1,' .
-      ')'
-    );
-print 'not ' if defined $@ and length $@;
-print "ok 48\n";
+if ($^O eq 'MSWin32') {
+  print "ok 48 # skipped: Windows can't set STDIN non-blocking\n";
+}
+else {
+  eval( 'POE::Wheel::FollowTail->new( Handle => \*STDIN,' .
+        '  Driver => POE::Driver::SysRW->new(),' .
+        '  Filter => POE::Filter::Stream->new(),' .
+        '  InputEvent => 1,' .
+        ')'
+      );
+  print 'not ' if defined $@ and length $@;
+  print "ok 48\n";
+}
 
 use POE::Wheel::ReadWrite;
 
@@ -397,24 +445,31 @@ eval 'POE::Wheel::ReadWrite->new()';
 print 'not ' unless defined $@ and length $@;
 print "ok 49\n";
 
-eval 'POE::Wheel::ReadWrite->new( Handle => \*STDIN )';
-print 'not ' unless defined $@ and length $@;
-print "ok 50\n";
+if ($^O eq 'MSWin32') {
+  for (50..52) {
+    print "ok $_ # skipped: Windows can't set STDIN non-blocking\n";
+  }
+}
+else {
+  eval 'POE::Wheel::ReadWrite->new( Handle => \*STDIN )';
+  print 'not ' if defined $@ and length $@;
+  print "ok 50\n";
 
-eval( 'POE::Wheel::ReadWrite->new( Handle => \*STDIN,' .
-      '  Filter => POE::Filter::Stream->new(),' .
-      ')'
-    );
-print 'not ' unless defined $@ and length $@;
-print "ok 51\n";
+  eval( 'POE::Wheel::ReadWrite->new( Handle => \*STDIN,' .
+        '  Filter => POE::Filter::Stream->new(),' .
+        ')'
+      );
+  print 'not ' if defined $@ and length $@;
+  print "ok 51\n";
 
-eval( 'POE::Wheel::ReadWrite->new( Handle => \*STDIN,' .
-      '  Filter => POE::Filter::Stream->new(),' .
-      '  Driver => POE::Driver::SysRW->new(),' .
-      ')'
-    );
-print 'not ' if defined $@ and length $@;
-print "ok 52\n";
+  eval( 'POE::Wheel::ReadWrite->new( Handle => \*STDIN,' .
+        '  Filter => POE::Filter::Stream->new(),' .
+        '  Driver => POE::Driver::SysRW->new(),' .
+        ')'
+      );
+  print 'not ' if defined $@ and length $@;
+  print "ok 52\n";
+}
 
 use POE::Wheel::Run;
 
@@ -430,25 +485,32 @@ eval 'POE::Wheel::Run->new( Program => 1, StdinEvent => 1 )';
 print 'not ' unless defined $@ and length $@;
 print "ok 55\n";
 
-my $pwrun =
-  eval 'POE::Wheel::Run->new( Program => 1, StdinEvent => 1, Filter => 1 )';
-print 'not ' if defined $@ and length $@;
-print "ok 56\n";
+if ($^O ne 'MSWin32') {
+  my $pwrun =
+    eval 'POE::Wheel::Run->new( Program => 1, StdinEvent => 1, Filter => 1 )';
+  print 'not ' if defined $@ and length $@;
+  print "ok 56\n";
 
-eval '$pwrun->set_filter()';
-print 'not ' unless defined $@ and length $@;
-print "ok 57\n";
+  eval '$pwrun->set_filter()';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 57\n";
 
-eval '$pwrun->set_stderr_filter()';
-print 'not ' unless defined $@ and length $@;
-print "ok 58\n";
+  eval '$pwrun->set_stderr_filter()';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 58\n";
 
-eval '$pwrun->set_stdin_filter()';
-print 'not ' unless defined $@ and length $@;
-print "ok 59\n";
+  eval '$pwrun->set_stdin_filter()';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 59\n";
 
-eval '$pwrun->set_stdout_filter()';
-print 'not ' unless defined $@ and length $@;
-print "ok 60\n";
+  eval '$pwrun->set_stdout_filter()';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 60\n";
+}
+else {
+  for (56..60) {
+    print "ok $_ # skipped: Wheel::Run not working on Win32 today\n";
+  }
+}
 
 exit;

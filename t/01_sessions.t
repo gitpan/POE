@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.15 2001/07/25 15:50:27 rcaputo Exp $
+# $Id: 01_sessions.t,v 1.16 2001/09/10 16:38:29 rcaputo Exp $
 
 # Tests basic compilation and events.
 
@@ -9,7 +9,7 @@ use TestSetup;
 &test_setup(29);
 
 # Turn on all asserts.
-#sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+# sub POE::Kernel::TRACE_DEFAULT  () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Session::ASSERT_STATES () { 0 }
 use POE;

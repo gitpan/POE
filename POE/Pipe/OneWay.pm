@@ -1,4 +1,4 @@
-# $Id: OneWay.pm,v 1.7 2001/08/03 14:51:39 rcaputo Exp $
+# $Id: OneWay.pm,v 1.8 2002/01/10 20:39:45 rcaputo Exp $
 
 # Portable one-way pipe creation, trying as many different methods as
 # we can.
@@ -6,6 +6,10 @@
 package POE::Pipe::OneWay;
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.8 $ ))[1];
+
 use Symbol qw(gensym);
 use IO::Socket;
 use POE::Pipe;

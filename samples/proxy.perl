@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: proxy.perl,v 1.15 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: proxy.perl,v 1.17 2001/11/13 03:04:23 rcaputo Exp $
 
 # This is a proof of concept for proxies, or other programs that
 # employ both client and server sockets in the same sesion.  Previous
@@ -15,24 +15,24 @@ use POE qw(Wheel::ListenAccept Wheel::ReadWrite Driver::SysRW Filter::Stream
 my $log_id = 0;
 
 # Redirections are in the form:
-#  listen_address:listen_port-connect_address:connect_port
+#  listen_address:listen_port (whitespace) connect_address:connect_port
 
-my @redirects =
-  qw( 127.0.0.1:7000-127.0.0.1:7001
-      127.0.0.1:7001-127.0.0.1:7002
-      127.0.0.1:7002-127.0.0.1:7003
-      127.0.0.1:7003-127.0.0.1:7004
-      127.0.0.1:7004-127.0.0.1:7005
-      127.0.0.1:7005-127.0.0.1:7006
-      127.0.0.1:7006-127.0.0.1:7007
-      127.0.0.1:7007-127.0.0.1:7008
-      127.0.0.1:7008-127.0.0.1:7009
-      127.0.0.1:7009-nexi.com:daytime
-      127.0.0.1:7010-127.0.0.1:7010
-      127.0.0.1:7777-127.0.0.1:12345
-      127.0.0.1:6667-nexi.com:1617
-      127.0.0.1:8000-127.0.0.1:32000
-      127.0.0.1:8888-bogusmachine.nowhere.land:80
+my %redirects =
+  qw( 127.0.0.1:7000   127.0.0.1:7001
+      127.0.0.1:7001   127.0.0.1:7002
+      127.0.0.1:7002   127.0.0.1:7003
+      127.0.0.1:7003   127.0.0.1:7004
+      127.0.0.1:7004   127.0.0.1:7005
+      127.0.0.1:7005   127.0.0.1:7006
+      127.0.0.1:7006   127.0.0.1:7007
+      127.0.0.1:7007   127.0.0.1:7008
+      127.0.0.1:7008   127.0.0.1:7009
+      127.0.0.1:7009   localhost:daytime
+      127.0.0.1:7010   127.0.0.1:7010
+      127.0.0.1:7777   127.0.0.1:12345
+      127.0.0.1:6667   localhost:1617
+      127.0.0.1:8000   127.0.0.1:32000
+      127.0.0.1:8888   bogusmachine.nowhere.land:80
     );
 
 ###############################################################################
@@ -52,6 +52,7 @@ sub session_create {
                      server_connect => \&session_server_connect,
                      server_input   => \&session_server_input,
                      server_error   => \&session_server_error,
+                     kill_wheels    => \&session_kill_wheels,
 
                      # ARG0, ARG1, ARG2, ARG3, ARG4
                      [ $handle, $peer_host, $peer_port,
@@ -206,7 +207,15 @@ sub session_server_error {
   else {
     print "[$heap->{'log'}] Server closed connection.\n";
   }
-                                        # stop the wheels
+
+  $_[KERNEL]->yield("kill_wheels");
+}
+
+#------------------------------------------------------------------------------
+# Shut down the proxy session by destroying its wheels.
+
+sub session_kill_wheels {
+  my $heap = $_[HEAP];
   delete $heap->{wheel_client};
   delete $heap->{wheel_server};
 }
@@ -292,11 +301,11 @@ sub server_accept_failure {
 ###############################################################################
 # Parse the redirects, and create a server session for each.
 
-foreach my $redirect (@redirects) {
-  my ($local_address, $local_port, $remote_address, $remote_port) =
-    split(/[-:]+/, $redirect);
+while (my ($from, $to) = each %redirects) {
+    my ($from_address, $from_port) = split(/:/, $from);
+    my (  $to_address,   $to_port) = split(/:/, $to);
 
-  &server_create($local_address, $local_port, $remote_address, $remote_port);
+    &server_create($from_address, $from_port, $to_address, $to_port);
 }
 
 $poe_kernel->run();

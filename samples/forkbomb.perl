@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: forkbomb.perl,v 1.12 2000/11/03 21:59:02 rcaputo Exp $
+# $Id: forkbomb.perl,v 1.13 2001/10/31 22:58:39 rcaputo Exp $
 
 # This is another of the earlier test programs.  It creates a single
 # session whose job is to create more of itself.  There is a built-in
@@ -10,6 +10,9 @@
 
 use strict;
 use lib '..';
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+
 use POE;
 
 #==============================================================================

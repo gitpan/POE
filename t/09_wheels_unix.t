@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 09_wheels_unix.t,v 1.9 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 09_wheels_unix.t,v 1.10 2001/10/30 20:41:47 rcaputo Exp $
 
 # Exercises the wheels commonly used with UNIX domain sockets.
 
@@ -14,6 +14,8 @@ BEGIN {
 };
 
 # Turn on all asserts.
+#sub POE::Kernel::TRACE_DEFAULT () { 1 }
+#sub POE::Kernel::TRACE_SELECT () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE qw( Wheel::SocketFactory
             Wheel::ReadWrite

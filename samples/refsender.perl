@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: refsender.perl,v 1.13 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: refsender.perl,v 1.14 2002/01/03 22:33:56 rcaputo Exp $
 
 # This program is half of a test suite for POE::Filter::Reference.  It
 # implements a client that thaws referenced data and sends it to a
@@ -7,7 +7,7 @@
 
 # Contributed by Artur Bergman <artur@vogon-solutions.com>
 # Rewritten to use POE to exercise Filter::Reference::put()
-# Revised for POE 0.06 by Rocco Caputo <troc@netrus.net>
+# Revised for POE 0.06 by Rocco Caputo <rcaputo@cpan.org>
 
 use strict;
 use lib '..';

@@ -1,9 +1,13 @@
-# $Id: Line.pm,v 1.21 2001/07/27 16:27:28 rcaputo Exp $
+# $Id: Line.pm,v 1.22 2002/01/10 20:39:44 rcaputo Exp $
 
 package POE::Filter::Line;
 
 use strict;
-use Carp;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.22 $ ))[1];
+
+use Carp qw(carp croak);
 
 sub DEBUG () { 0 }
 

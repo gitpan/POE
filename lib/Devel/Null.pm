@@ -1,9 +1,13 @@
-# $Id: Null.pm,v 1.1 2000/07/24 14:42:10 rcaputo Exp $
+# $Id: Null.pm,v 1.2 2002/01/10 20:39:45 rcaputo Exp $
 
 # This `perl -d` debugging module is an ad-hoc custom debugger.  It's
 # optional, and it may not even work.
 
 use strict;
+
+use vars qw($VERSION);
+$VERSION = (qw($Revision: 1.2 $ ))[1];
+
 package Null; # satisfies 'use'
 
 package DB;

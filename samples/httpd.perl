@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: httpd.perl,v 1.13 2001/07/28 16:41:08 rcaputo Exp $
+# $Id: httpd.perl,v 1.15 2002/01/03 22:33:55 rcaputo Exp $
 
 # This program tests POE::Filter::HTTPD by setting up a small server.
 # By default, it will bind to port 80 of all addresses on the local
@@ -7,7 +7,7 @@
 # the command line.  For example: ./httpd.perl 8000
 
 # Contributed by Artur Bergman <artur@vogon-solutions.com>
-# Revised for POE 0.06 by Rocco Caputo <troc@netrus.net>
+# Revised for POE 0.06 by Rocco Caputo <rcaputo@cpan.org>
 
 use strict;
 use lib '..';
@@ -91,7 +91,6 @@ sub receive {
   my ($heap, $request) = @_[HEAP, ARG0];
 
   DEBUG && print "Received a request from $heap->{host} : $heap->{port}\n";
-warn $request;
   if (ref($request) eq 'HTTP::Response') {
     $heap->{wheel}->put($request);
     return;
