@@ -1,6 +1,11 @@
-$Id: Changes,v 1.6 1998/11/23 20:00:01 troc Exp $
+$Id: Changes,v 1.7 1998/11/24 14:17:34 troc Exp $
 
 Revision history for Perl extension POE.
+
+*** 0.031 1998.11.24
+
+- Added tests/objsessions.perl to the manifest.  D'oh!
+
 
 *** 0.03  1998.11.23
 
