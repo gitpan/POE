@@ -1,5 +1,5 @@
 #!perl -w -I..
-# $Id: sessions.perl,v 1.7 1998/08/26 05:23:56 troc Exp $
+# $Id: sessions.perl,v 1.9 1998/11/26 17:43:57 troc Exp $
 
 use strict;
 
@@ -45,13 +45,31 @@ new POE::Session
                   {
                     my ($k, $me, $from, $session_name, $counter) = @_;
                     $counter++;
-                    print "Session $session_name, iteration $counter.\n";
+                    my $ret = $k->call($me, 'display one',
+                                       $session_name, $counter
+                                      );
+                    print "(display one returns: $ret)\n";
+                    $ret = $k->call($me, 'display two',
+                                    $session_name, $counter
+                                   );
+                    print "(display two returns: $ret)\n";
+                                        # post the session last, to test that
+                                        # call() doesn't GC
                     if ($counter < 5) {
                       $k->post($me, 'increment', $session_name, $counter);
                     }
-                    else {
-                      # no more states; nothing left to do.  session stops.
-                    }
+                  },
+                  'display one' => sub 
+                  {
+                    my ($k, $me, $from, $session_name, $counter) = @_;
+                    print "Session $session_name, iteration $counter (one).\n";
+                    return $counter * 2;
+                  },
+                  'display two' => sub 
+                  {
+                    my ($k, $me, $from, $session_name, $counter) = @_;
+                    print "Session $session_name, iteration $counter (two).\n";
+                    return $counter * 3;
                   },
                 );
             }

@@ -1,9 +1,9 @@
-# $Id: POE.pm,v 1.8 1998/11/24 14:18:05 troc Exp $
+# $Id: POE.pm,v 1.9 1998/11/25 01:10:20 troc Exp $
 # Documentation exists after __END__
 
 package POE;
 
-$VERSION = "0.031";
+$VERSION = "0.04";
 
 use strict;
 use Carp;

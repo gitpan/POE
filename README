@@ -1,4 +1,4 @@
-$Id: README,v 1.5 1998/11/23 05:26:40 troc Exp $
+$Id: README,v 1.7 1998/11/26 17:35:19 troc Exp $
 
 ABOUT POE:
 
@@ -99,14 +99,25 @@ Things become even fuzzier after this.
 COMPATIBILITY:
 
  POE has been tested with Perl 5.004_04 on recent versions of Linux,
- FreeBSD, and OS/2.  It uses some packages that aren't included with
- Perl by default [must document better].  It does not require threads
- or other 5.004_50+ features.
+ FreeBSD, and OS/2.
+
+ It is rumored to work on Windows and suspected to work on MacOS.  If
+ someone could confirm or deny this, I would appreciate it.
+
+ POE requires: a recent IO bundle; POSIX.pm
+ If available, it will take advantage of: Time::HiRes
+ It does not require threads or other 5.004_50+ features.
 
 AVAILABILITY:
 
  The latest version of POE is in /authors/id/R/RC/RCAPUTO/ on your
  favorite CPAN mirror.
+
+CREDITS:
+
+ Thanks to sky_GOD <artur@vogon-solutions.com> for much useful
+ feedback and suggestions.  Nearly all the 0.01-0.04 changes were a
+ result of his tireless work.
 
 GETTING STARTED:
 

@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.12 1998/11/23 18:47:19 troc Exp $
+# $Id: Session.pm,v 1.13 1998/11/24 15:39:24 troc Exp $
 # Documentation exists after __END__
 
 package POE::Session;
@@ -109,6 +109,8 @@ sub register_state {
       $self->{'states'}->{$state} = $handler;
     }
     elsif (ref($handler) ne '') {
+      croak "object '" . ref($handler) .
+        "' does not have a '$state' method" unless ($handler->can($state));
       carp "redefining state($state) for session($self)"
         if (exists $self->{'states'}->{$state});
       $self->{'states'}->{$state} = $handler;

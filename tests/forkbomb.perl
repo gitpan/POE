@@ -1,5 +1,5 @@
 #!perl -w -I..
-# $Id: forkbomb.perl,v 1.6 1998/08/26 05:24:26 troc Exp $
+# $Id: forkbomb.perl,v 1.7 1998/11/25 00:51:35 troc Exp $
 
 package main;
 use strict;
@@ -23,6 +23,7 @@ sub forkbomb {
        $me->{'id'} = ++$forkbomber;
        print $me->{'id'}, ": starting...\n";
        $k->sig('INT', 'signal handler');
+       $k->sig('ZOMBIE', 'signal handler');
        $k->post($me, 'fork');
      },
      '_stop' => sub
