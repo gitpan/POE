@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: refserver.perl,v 1.9 1999/05/14 06:06:14 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: refserver.perl,v 1.12 2000/01/24 17:44:45 rcaputo Exp $
 
 # This program is half of a test suite for POE::Filter::Reference.  It
 # implements a server that accepts frozen data, thaws it, and displays
@@ -10,13 +10,14 @@
 # Revised for 0.06 by Rocco Caputo <troc@netrus.net>
 
 use strict;
+use lib '..';
 use Socket;
 
-use POE qw(Wheel::ListenAccept Wheel::ReadWrite Wheel::SocketFactory
+use POE qw(Wheel::ReadWrite Wheel::SocketFactory
            Driver::SysRW Filter::Reference
           );
 
-sub DEBUG { 0 }
+sub DEBUG { 1 }
 
 ###############################################################################
 # Responder is an aliased session that processes data from Daemon
@@ -94,7 +95,7 @@ sub daemon_start {
   $heap->{wheel_client} = new POE::Wheel::ReadWrite
     ( Handle     => $handle,                    # on this handle
       Driver     => new POE::Driver::SysRW,     # using sysread and syswrite
-      Filter     => new POE::Filter::Reference, # and parsing I/O as references
+      Filter     => new POE::Filter::Reference(undef,1), # parsing as refs
       InputState => 'client',           # generate this event on input
       ErrorState => 'error',            # generate this event on error
     );
@@ -163,7 +164,7 @@ sub server_start {
   DEBUG && print "Server starting.\n";
                                         # create a socket factory
   $heap->{wheel} = new POE::Wheel::SocketFactory
-    ( BindPort       => '31338',        # on the eleet++ port
+    ( BindPort       => 31338,          # on the eleet++ port
       Reuse          => 'yes',          # and allow immediate reuse of the port
       SuccessState   => 'accept',       # generating this event on connection
       FailureState   => 'error'         # generating this event on error

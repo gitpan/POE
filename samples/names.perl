@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: names.perl,v 1.4 1999/05/14 06:06:13 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: names.perl,v 1.6 2000/01/23 18:30:07 rcaputo Exp $
 
 # Aliases were originally called Names.
 
@@ -10,6 +10,7 @@
 # that can be called upon by other sessions.
 
 use strict;
+use lib '..';
 use POE;
 
 #==============================================================================
@@ -64,6 +65,7 @@ sub _start {
   $kernel->alias_set('lockd');
                                         # register signal handlers
   $kernel->sig('INT', 'sighandler');
+  $kernel->sig('IDLE', 'sighandler');
   $kernel->sig('ZOMBIE', 'sighandler');
                                         # hello, world!
   print "+ lockd started.\n";

@@ -1,4 +1,4 @@
-$Id: Changes,v 1.48 1999/11/26 16:46:15 rcaputo Exp $
+$Id: Changes,v 1.68 2000/01/25 19:16:07 rcaputo Exp $
 
 Revision history for Perl extension POE.
 ========================================
@@ -6,6 +6,186 @@ Revision history for Perl extension POE.
 Changes marked with "(!!!)" may break backward compatibility.
 Versions with "_xx" subversions are internal test releases.  Most
 subversions are available from <http://www.newts.org/~troc/poe.html>.
+
+
+0.09 2000.01.25
+---------------
+
+Updated README with: new mailing list instructions, Windows
+compatibility notes, removed POE2 notice.
+
+All promises regarding the 0.09 feature/patch set have been met, and
+the Changes since 0.08 are perhaps too long.  Bump the version to 0.09
+and prepare for a CPAN release.
+
+
+0.0808 2000.01.24
+-----------------
+
+0.0806 broke Filter::Reference; fix it, and move the inclusion of
+Compress::Zlib to runtime.  Now there's no startup penalty for people
+not using Zlib.
+
+
+0.0807 2000.01.24
+-----------------
+
+Fix the release date for 0.0806 in the Changes file.
+
+&Session::ID was removed for testing and never put back.  Put... the
+function... BACK!
+
+
+0.0806 2000.01.24 (!!!)
+-----------------------
+
+Added the ability to compress referenced data passing through
+Filter::Reference.  This doesn't break backward compatibility, but it
+may mean strange behavior if both ends of a Filter::Reference
+connection don't agree on the compression mode.
+
+Added the ability to map package and object states to methods that are
+named differently.  This adds new syntax to POE::Session's new() and
+create() constructors, as well as POE::Kernel->state().  The new test
+in samples/objmaps.perl exercises the code.
+
+(!!!) The ability to map package and object states to methods has
+uncovered a problem with POE::Session->create's object_states
+parameter.  This previously accepted a hashref, which stringified the
+object references.  Now it requires an array reference instead.  The
+package_states parameter is also expected to be an array reference
+now.
+
+There seems to be renewed interest in Win32 support.  The previous
+Win32 porting attempt was about a year ago, and it was never completed
+or tested.  Since it's been so long, I've removed the code on the
+assumption that a fresh start is better.  Patches welcome!
+
+Added UDP support to SocketFactory.  This involved rewriting
+&SocketFactory::new to be partially data driven; now it should be
+easier to add new protocols and families.
+
+Added UDP testing to samples/socketfactory.perl.
+
+Addi found a bareword warning in samples/udp.perl; I renamed
+$heap->{socket} to $heap->{socket_handle} to avoid it.
+
+Michael Stevens (mstevens) found another $heap->{socket} bareword
+warning in samples/poing.perl.
+
+mstevens also reminded me that samples/poing.perl is running as root;
+I added a -T switch to the #! line.  If poing.perl dies with a ``Too
+late for -"t" option'' message, then you'll have to either remove the
+-T from the #! line (not recommended) or run the script as:
+/usr/bin/perl -T poing.perl
+
+And mstevens pointed out that using -I.. on the #! line is a problem
+in some Perl versions where POE otherwise runs fine.  I replaced the
+-I.. switch with "use lib '..';", and things should be a lot happier.
+
+And his ROWS and COLS environment variables really are LINES and
+COLUMNS.  I fixed samples/poing.perl to recognize the alternate
+environment variables and punt to 80 columns and/or 25 lines as a last
+resort.
+
+
+0.0805 2000.01.05
+-----------------
+
+Added a getsockname() method to SocketFactory.  This is used to find
+out which address and/or port a listening SocketFactory is bound to.
+Great for servers that create dynamic listening sockets, like DCC and
+FTP.
+
+Added code to samples/socketfactory.perl to display bind addresses
+using $wheel->getsockname().
+
+Made some minor cosmetic changes to SocketFactory.  This was to be a
+clean rewrite of SocketFactory's internals so they could support new
+protocols (like UDP), but time ran out.
+
+Added samples/udp.perl to show how UDP sockets fit into the scheme of
+things.  It's also to get me in the mood to support other protocols in
+SocketFactory.
+
+Fixed POE.pm's documentation to include new tests and samples.  These
+are poing.perl (multi-host ping); udp.perl; and wheels2.perl
+(two-handle ReadWrite).
+
+Barring problems [crosses fingers], 0.0805 will be the last subversion
+before 0.09.  SocketFactory revisions should appear in 0.0901.
+
+
+0.0804 1999.12.31
+-----------------
+
+Reinstated the closure optimizations in the wheels.  They were removed
+in version 0.0703.  It turns out that the closures are necessary to
+prevent wheels from holding extra copies of their $self references.
+The extra $self references kept them from self-destructing (Har!) in
+Flushed states.  These closures work better than 0.0702's.
+
+Wheel::FollowTail now wraps its seek() calls in eval blocks, in case
+the tail being followed belongs to a pipe or otherwise unseekable
+file.
+
+Cleaned up some ugly style in the places where things changed.  Made
+some other style ugly.
+
+
+0.0803 1999.12.28
+-----------------
+
+Incorporated Kevin Lenzo's patch for Wheel::ReadWrite's support of
+separate input and output filehandles.
+
+SocketFactory's SuccessState and FailureState parameters can take
+coderefs instead of state names, for quick one-off states and closure
+tricks.  If this works and is generally useful, I'll add the feature
+to other wheels.
+
+Updated SocketFactory to return the remote address and port for
+connecting sockets as well as accepted ones.  Updated the
+socketfactory.perl sample program to display them.
+
+
+0.0802 1999.12.25
+-----------------
+
+Fixed the date for revision 0.0801 in the changes.
+
+Added Kernel and Session IDs, at Philip Gwyn's insistence.  Each
+session has a serial number, accessible by $session->ID().  POE's
+kernel itself has a fairly unique ID, accessible by $poe_kernel->ID().
+
+
+0.0801 1999.12.24
+-----------------
+
+Added &POE::Kernel::fork() to provide safe child reaping.  This fork()
+uses an event loop to poll for reapable children.  It fires a CHLD
+signal at the session that called &POE::Kernel::fork(), using POE's
+soft signals to avoid potential problems with Perl's signal handling.
+
+Changed the preforkedserver.perl example to use &POE::Kernel::fork(),
+but the sample program seems to be hideously broken as designed.
+
+POE's SIGCHLD handler takes over Apache's when it's used in mod_perl.
+Changed POE::Kernel to not register a SIGCHLD handler if it's running
+under mod_perl.
+
+Added SIGIDLE, a kinder, gentler SIGZOMBIE.  When an entire process
+becomes idle, POE broadcasts SIGIDLE to everyone.  SIGIDLE is a plain
+terminal signal; sessions won't die if it's handled.  POE checks for
+continued idle-ness after SIGIDLE is dispatched; if the process hasn't
+awakened, then SIGZOMBIE is broadcast to reap things.
+
+Fixed names.perl to show SIGIDLE being caught.
+
+Reordered the lookups in &POE::Kernel::alias_resolve, placing the more
+common ones first.  Forced a look-up, even for Session references, so
+that it would return ESRCH errors on sessions that disappeared but
+were still being referenced.
 
 
 0.08 1999.11.26

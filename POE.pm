@@ -1,11 +1,11 @@
-# $Id: POE.pm,v 1.37 1999/11/20 05:43:50 rcaputo Exp $
+# $Id: POE.pm,v 1.48 2000/01/25 19:16:07 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
 
 use vars qw($VERSION);
 
-$VERSION = 0.08;
+$VERSION = 0.09;
 
 use strict;
 use Carp;
@@ -216,7 +216,7 @@ The obligatory ASCII art:
 
 =head1 EXAMPLES
 
-As of this writing there are 22 sample programs.  Each illustrates and
+As of this writing there are 24 sample programs.  Each illustrates and
 tests some aspect of POE use.  They are included in the POE
 distribution archive, but they are not installed.  If POE was
 installed via the CPAN shell, then you should be able to find them in
@@ -257,6 +257,13 @@ This program demonstrates the use of session aliases as a method of
 "daemonizing" sessions and communicating between them by name.  It
 also shows how to do non-blocking inter-session communication with
 callback states.
+
+=item *
+
+objmaps.perl
+
+This is a version of objsessions.perl that maps states to differently
+named object methods.
 
 =item *
 
@@ -403,10 +410,24 @@ thrash.perl will show an abnormally low connections/second rate.
 
 =item *
 
+udp.perl
+
+Udp shows how to use UDP sockets with Kernel::select calls.
+
+=item *
+
 wheels.perl
 
 This program is a basic rot13 server.  It is a basic test of the whole
 premise of wheels.
+
+=item *
+
+wheels2.perl
+
+Wheels2 shows how to use separate input and output filehandles with
+wheels.  It's a simple raw tcp socket client, piping between a client
+socket and stdio (in cooked mode).
 
 =back
 
@@ -434,6 +455,17 @@ cases, they prove that the concept is possible, even though it wasn't
 considered while POE was being designed.
 
 =over 4
+
+=item *
+
+poing.perl
+
+Poing is a ping program that can check multiple hosts at the same
+time.  Historical information scrolls across the screen in a "strip
+chart" fashion.  It's great for listening to the seismology of your
+local network (no, it's not deliberately a Quake reference).
+
+Poing's event-driven pinger "borrows" heavily from Net::Ping.
 
 =item *
 
@@ -496,6 +528,8 @@ POE::Runtime
 
 The Object Layer is still in early design and implementation, so it's
 not documented yet.
+
+There are no automated regression tests.
 
 =head1 AUTHORS & COPYRIGHTS
 

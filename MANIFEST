@@ -1,4 +1,4 @@
-# $Id: MANIFEST,v 1.19 1999/11/14 22:02:43 rcaputo Exp $
+# $Id: MANIFEST,v 1.23 2000/01/23 18:30:04 rcaputo Exp $
 Changes
 MANIFEST
 Makefile.PL
@@ -32,6 +32,7 @@ samples/followtail.perl
 samples/forkbomb.perl
 samples/httpd.perl
 samples/names.perl
+samples/objmaps.perl
 samples/objsessions.perl
 samples/olayer.perl
 samples/packagesessions.perl
@@ -47,5 +48,7 @@ samples/signals.perl
 samples/socketfactory.perl
 samples/thrash.perl
 samples/tutorial-chat.perl
+samples/udp.perl
 samples/wheels.perl
+samples/wheels2.perl
 t/test.t

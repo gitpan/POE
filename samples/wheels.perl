@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: wheels.perl,v 1.4 1999/05/14 06:06:16 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: wheels.perl,v 1.6 2000/01/23 18:32:02 rcaputo Exp $
 
 # If wheels make you squeamish, see selects.perl.  It is about the
 # same program, but it doesn't use wheels.
@@ -14,12 +14,13 @@
 
 # Wheels, Drivers and Filters were still new at this point.
 # POE::Wheel::SocketFactory had not been conceived at this point, so
-# this program still relies on IO::Socket::INET.
+# this program still relies on IO::Socket.
 
 use strict;
+use lib '..';
 
 use POE qw(Wheel::ListenAccept Wheel::ReadWrite Driver::SysRW Filter::Line);
-use IO::Socket::INET;
+use IO::Socket;
 
 my $rot13_port = 32000;
 

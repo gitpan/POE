@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: preforkedserver.perl,v 1.7 1999/05/14 06:06:13 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: preforkedserver.perl,v 1.9 2000/01/23 18:30:08 rcaputo Exp $
 
 # This is a proof of concept for pre-forking POE servers.  It
 # maintains pool of five servers (one master; four slave).  At some
@@ -7,6 +7,7 @@
 # reusable wheel.
 
 use strict;
+use lib '..';
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW Filter::Line);
 
 ###############################################################################
@@ -184,17 +185,17 @@ sub fork {
                                         # children should not honor this event
   return if ($heap->{'is a child'});
                                         # try to fork
-  my $pid = fork();
+  my ($pid, $errno, $errstr) = $kernel->fork();
                                         # did the fork fail?
   unless (defined($pid)) {
                                         # try again later, if a temporary error
-    if (($! == EAGAIN) || ($! == ECHILD)) {
+    if (($errno == EAGAIN) || ($errno == ECHILD)) {
       $heap->{'failed forks'}++;
       $kernel->delay('retry', 1);
     }
                                         # fail permanently, if fatal
     else {
-      warn "Can't fork: $!\n";
+      warn "Can't fork: $errstr\n";
       $kernel->yield('_stop');
     }
     return;

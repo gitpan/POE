@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: olayer.perl,v 1.3 1999/06/21 15:09:09 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: olayer.perl,v 1.5 2000/01/23 18:30:08 rcaputo Exp $
 
 # This is a simple Object Layer functionality test.  It contains a
 # simple "soft" object repository that works like the sessions.perl
@@ -9,6 +9,7 @@
 # subject to change, with no backward compatibility guarantees.
 
 use strict;
+use lib '..';
 use POE qw(Runtime Repository::Array Curator);
 
 close STDERR;
@@ -248,7 +249,7 @@ initialize POE::Runtime Curator => $curator;
 # session.  This bootstraps the object environment.
 
 #$curator->object('main')->spawn('bootstrap');
-$curator->object('storetest')->spawn('test');
+$curator->object('counter')->spawn('start', 'one');
 
 # Start the POE kernel.
 

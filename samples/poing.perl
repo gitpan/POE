@@ -1,10 +1,35 @@
-#!/usr/bin/perl -w -I..
-# $Id: poing.perl,v 1.9 1999/11/26 16:39:48 rcaputo Exp $
+#!/usr/bin/perl -T -w
+# $Id: poing.perl,v 1.15 2000/01/23 19:35:57 rcaputo Exp $
 
 # Whole huge chunks of poing.perl have been "adapted" from Net::Ping.
 
 use strict;
+use lib '..';
 use POE;
+
+# This is the time (in seconds) to wait between ping sweeps.
+my $ping_timeout = 2;
+
+# A host must be flatlined for at least this many seconds before it is
+# considered dead.  The actual amount of time is rounded up to the
+# next ping timeout interval.
+my $detect_host_death = 10;
+
+# A host must not be flatlined for at least this many seconds before
+# it is considered alive.  The actual amount of time is rounded up to
+# the next ping timeout interval.
+my $detect_host_life = 10;
+
+#------------------------------------------------------------------------------
+# Preprocess the detection times.
+
+$detect_host_death /= $ping_timeout;
+$detect_host_death = int($detect_host_death) + 1
+  if ($detect_host_death =~ /\./);
+
+$detect_host_life /= $ping_timeout;
+$detect_host_life = int($detect_host_life) + 1
+  if ($detect_host_life =~ /\./);
 
 #------------------------------------------------------------------------------
 
@@ -33,7 +58,7 @@ sub _start {
   socket($socket, PF_INET, SOCK_RAW, $protocol)
     or die "Can't create icmp socket: $!";
 
-  $heap->{socket} = $socket;
+  $heap->{socket_handle} = $socket;
   $kernel->alias_set('pinger');
   $kernel->select_read($socket, 'got_pong');
 }
@@ -72,7 +97,7 @@ sub ping {
 
   $heap->{waiting}->{$address} = [ $heap->{seq}, $sender, $event, time() ];
 
-  send($heap->{socket}, $msg, ICMP_FLAGS, $saddr);
+  send($heap->{socket_handle}, $msg, ICMP_FLAGS, $saddr);
 }
 
 sub got_pong {
@@ -138,9 +163,24 @@ use Socket;
 sub HOST_NAME     () { 0 }
 sub HOST_RESPONSE () { 1 }
 sub HOST_TICKER   () { 2 }
+sub HOST_DEAD     () { 3 }
 
-my $cols = $ENV{COLS} - 3;
-my $rows = $ENV{ROWS};
+# What other environment variables define the screen extent?  Assume
+# 80 x 25 if nothing is availble.
+my $cols = ( (exists $ENV{COLS})
+             ? $ENV{COLS}
+             : ( (exists $ENV{COLUMNS})
+                 ? $ENV{COLUMNS}
+                 : 80
+               )
+           ) - 3;
+my $rows = ( (exists $ENV{ROWS})
+             ? $ENV{ROWS}
+             : ( (exists $ENV{LINES})
+                 ? $ENV{LINES}
+                 : 25
+               )
+           );
 
 sub host_sort {
   if ($a =~ /^\d+\.\d+\.\d+\.\d+$/) {
@@ -173,16 +213,18 @@ sub pong_start {
   print "Resolving hosts...\n";
 
   $heap->{timeout} = $timeout;
-
   $heap->{hosts} = [];
   $heap->{host_rec} = {};
+  $heap->{count} = 0;
+
   foreach my $host (sort host_sort @$hosts) {
     my $ip = inet_aton($host);
     if (defined $ip) {
       push @{$heap->{hosts}}, $ip;
       $heap->{host_rec}->{$ip} = [ $host,
                                    undef,
-                                   ' ' x ($cols - length($host))
+                                   ' ' x ($cols - length($host)),
+                                   0
                                  ];
     }
   }
@@ -190,14 +232,7 @@ sub pong_start {
   my $display = "\e[2J\e[0;0H" .
     (($heap->{count} & 1) ? "\e[7m[" : '[') . "poing]\e[0m " .
     scalar(localtime(time())) .
-    " (resolution is ~" . ($heap->{timeout} / 10) . "s)\n\n";
-
-  foreach my $host (@{$heap->{hosts}}) {
-    my $show_rec = $heap->{host_rec}->{$host};
-    $display .= ( "\e[0;1m" . $show_rec->[HOST_NAME] .
-                  "\e[0m"   . ':' . "\n"
-                );
-  }
+    " (numbers represent ~" . ($heap->{timeout} / 10) . "s)\n\n";
 
   print $display;
 
@@ -210,38 +245,64 @@ sub pong_sweep {
   $heap->{count}++;
 
   my $display = "\e[0;0H" .
-    (($heap->{count} & 1) ? "\e[7m[" : '[') . "poing]\e[0m " .
+    (($heap->{count} & 1) ? "\e[7m" : "\e[0m") . "[poing]\e[0m " .
     scalar(localtime(time())) .
-    " (resolution is ~" . ($heap->{timeout} / 10) . "s)\n\n";
+    " (numbers represent ~" . ($heap->{timeout} / 10) . "s)\n\n";
 
+  my $a_host_status_changed = 0;
   foreach my $host (@{$heap->{hosts}}) {
     $kernel->post('pinger', 'ping', $host, 'ping_reply');
 
-    substr($heap->{host_rec}->{$host}->[HOST_TICKER], 0, 1) = '';
+    my $host_rec = $heap->{host_rec}->{$host};
 
+    # Remove the left end of the host ticker.
+    substr($host_rec->[HOST_TICKER], 0, 1) = '';
+
+    # Find the relative response time.
     my $relative_response =
-      ( (defined $heap->{host_rec}->{$host}->[HOST_RESPONSE])
-        ? int( ( $heap->{host_rec}->{$host}->[HOST_RESPONSE] / $heap->{timeout}
+      ( (defined $host_rec->[HOST_RESPONSE])
+        ? int( ( $host_rec->[HOST_RESPONSE] / $heap->{timeout}
                ) * 10
              )
-        : ( 9 )
+        : 10
       );
 
     # Clip the response to a single digit, please.
     $relative_response = ( ($relative_response > 9)
-                           ? 9
+                           ? '-'
                            : ( $relative_response < 0
                                ? 0
                                : $relative_response
                              )
                          );
 
-    $heap->{host_rec}->{$host}->[HOST_TICKER] .= $relative_response;
+    # Do fun things to the display.
+    my $show_health = $host_rec->[HOST_TICKER];
 
-    my $show = $heap->{host_rec}->{$host};
-    my $show_health = $show->[HOST_TICKER];
+    # Set the initial host status so we don't get beeped immediately.
+    if ($show_health =~ /^ +\S$/) {
+      $host_rec->[HOST_DEAD] = ($relative_response eq '-');
+    }
 
-    $show_health =~ s{(^|[^98])([98])}{$1\001$2}g; # red
+    $show_health .= $relative_response;
+    $host_rec->[HOST_TICKER] .= $relative_response;
+
+    if ($host_rec->[HOST_DEAD]) {
+      if ($show_health =~ /[0-9]{$detect_host_life}$/) {
+        $a_host_status_changed++;
+        $host_rec->[HOST_DEAD] = !$host_rec->[HOST_DEAD];
+      }
+    }
+    else {
+      if ($show_health =~ /\-{$detect_host_death}$/) {
+        $a_host_status_changed++;
+        $host_rec->[HOST_DEAD] = !$host_rec->[HOST_DEAD];
+      }
+    }
+
+    my $host_is_dead = $host_rec->[HOST_DEAD];
+
+    $show_health =~ s{(^|[^98])([98\-])}{$1\001$2}g; # red
     $show_health =~ s{(^|[^76])([76])}{$1\002$2}g; # magenta
     $show_health =~ s{(^|[^54])([54])}{$1\003$2}g; # yellow
     $show_health =~ s{(^|[^32])([32])}{$1\004$2}g; # cyan
@@ -253,18 +314,21 @@ sub pong_sweep {
     $show_health =~ s/\004/\e\[36m/g; # cyan
     $show_health =~ s/\005/\e\[32m/g; # reen
 
-    $display .= ( "\e[" . (length($show->[HOST_NAME]) + 2) . "C" .
-                  "\e[1m"   . $show_health .
-                  "\e[0m\n"
-                );
+    $display .=
+      ( $host_is_dead
+        ? "\e[0m$host_rec->[HOST_NAME]: $show_health\n"
+        : "\e[0;1m$host_rec->[HOST_NAME]\e[0m: \e[1m$show_health\n"
+      );
 
-    $heap->{host_rec}->{$host}->[HOST_RESPONSE] = undef;
+    $host_rec->[HOST_RESPONSE] = undef;
   }
 
-  print $display;
+  # Limit beeps to 2, please.  Ghargh!
+  $a_host_status_changed = 2 if ($a_host_status_changed > 2);
+  print $display, "\a" x $a_host_status_changed;
 
   # Hack to specify the maximum run time, in hours.
-  if ($ARGV[0] =~ /^\d+$/) {
+  if (@ARGV and ($ARGV[0] =~ /^\d*\.?\d+$/)) {
     if ((time - $^T) < ($ARGV[0] * 3600)) {
       $kernel->delay('ping_sweep', $heap->{timeout});
     }
@@ -272,6 +336,9 @@ sub pong_sweep {
       $SIG{ALRM} = sub { die "<<< Alarm caught >>>\n"; };
       alarm(20);
     }
+  }
+  else {
+    $kernel->delay('ping_sweep', $heap->{timeout});
   }
 }
 
@@ -307,8 +374,8 @@ while (<DATA>) {
 
 create POE::Session
   ( package_states =>
-    { 'POE::Component::Pinger' => [ qw(_start ping got_pong ping_clear) ],
-    },
+    [ 'POE::Component::Pinger' => [ qw(_start ping got_pong ping_clear) ],
+    ],
   );
 
 create POE::Session
@@ -318,7 +385,7 @@ create POE::Session
       ping_reply => \&pong_reply,
       ping_sweep => \&pong_sweep,
     },
-    args => [ 2, \@hosts_to_ping ],
+    args => [ $ping_timeout, \@hosts_to_ping ],
   );
 
 $poe_kernel->run();
@@ -329,10 +396,10 @@ __END__
 
 # Internal hosts
 
-10.0.0.100
+10.0.0.5
 10.0.0.9
-rocco
-unix
+10.0.0.42
+10.0.0.100
 
 # ISP hosts
 
@@ -345,60 +412,17 @@ pm3-miami-fl-3.netrus.net
 atm-7513-1-s0-0-0-10.cwi.net
 sl-gw1-orl-5-0-0-TS12-T1.sprintlink.net
 
+# Popular Routers
+
+core1-fddi0-0.mae-east.megsinet.net
+
 # Frequent sites
 
+www.memepool.com
+www.infobot.org
 altavista.com
-google.com
-irc.cs.cmu.edu
+www.microsoft.com
 nerdsholm.boutell.com
 prometheus.frii.com
 www.slashdot.org
 www.sluggy.com
-
-# IRC Hops
-
-irc-w.frontiernet.net
-irc.best.net
-ircd-w.concentric.net
-irc.exodus.net
-
-# Internet routers
-
-107.ATM6-0.TR1.EWR1.ALTER.NET
-126.ATM2-0.XR1.SFO4.ALTER.NET
-189.ATM9-0-0.GW2.NYC4.ALTER.NET
-191.ATM2-0.TR1.SCL1.ALTER.NET
-197.ATM7-0.XR1.NYC4.ALTER.NET
-IPGlobal-gw.customer.alter.net
-NORDUnet-gw.Teleglobe.net
-Opentransit-fr-cy.cytanet.net
-Serial2-1-1.GW2.SFO4.ALTER.NET
-Telecom-Finland-gw.customer.ALTER.NET
-bb2.mae-w.home.net
-car1-ams-fe6-1.global-one.nl
-car2-ams-fe0-0.global-one.nl
-ci113.17.cambridge1.uk.psi.net
-core7-serial5-1-0.SanFrancisco.cw.net
-cty1-core.pos0-0-0.swip.net
-cty2-core.merlin2-0.swip.net
-cty21.fastethernet0-0.swip.net
-cust-gw.Teleglobe.net
-deshaw-gw.customer.ALTER.NET
-ebt-P1-0-gsr01.rjo.embratel.net.br
-fw.zaragoza.G-Matrix.net
-gip-amsterdam-1-atm6-0-0-632-atm.gip.net
-gip-arch-1-atm2-0-0-232-atm.gip.net
-icm-bb3-pen.icp.net
-insnet-gw.customer.ALTER.NET
-mae-west5-nap.SanFrancisco.cw.net
-paix-gw.napa.paradox.net.au
-pao-iad-oc3.pao.above.net
-sw.ext.sc.psi.net
-vogon1-gw.swip.net
-mae-east2.iconnet.net
-sl-gw1-orl-5-0-0-TS12-T1.sprintlink.net
-sl-bb11-orl-0-2.sprintlink.net
-sl-bb10-rly-1-0.sprintlink.net
-sl-bb10-rly-9-0.sprintlink.net
-sl-bb4-dc-0-0-0.sprintlink.net
-sl-e2-mae-0-1-0.sprintlink.net

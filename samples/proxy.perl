@@ -1,11 +1,12 @@
-#!/usr/bin/perl -w -I..
-# $Id: proxy.perl,v 1.11 1999/03/24 14:08:44 troc Exp $
+#!/usr/bin/perl -w
+# $Id: proxy.perl,v 1.13 2000/01/23 18:31:59 rcaputo Exp $
 
 # This is a proof of concept for proxies, or other programs that
 # employ both client and server sockets in the same sesion.  Previous
 # incarnations of POE did not easily support proxies.
 
 use strict;
+use lib '..';
 use Socket;
 use POE qw(Wheel::ListenAccept Wheel::ReadWrite Driver::SysRW Filter::Stream
            Wheel::SocketFactory
@@ -86,7 +87,7 @@ sub session_start {
       InputState => 'client_input',
       ErrorState => 'client_error',
     );
-  
+
   $heap->{wheel_server} = new POE::Wheel::SocketFactory
     ( RemoteAddress  => $remote_addr,
       RemotePort     => $remote_port,

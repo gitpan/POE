@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: tutorial-chat.perl,v 1.5 1999/05/14 06:06:16 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: tutorial-chat.perl,v 1.6 2000/01/23 18:32:01 rcaputo Exp $
 
 =pod //////////////////////////////////////////////////////////////////////////
 
@@ -25,6 +25,7 @@ Here we go:
 =cut \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\
 
 use strict;
+use lib '..';
 use Socket;
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW Filter::Line);
 

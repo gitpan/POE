@@ -1,9 +1,9 @@
-# $Id: Kernel.pm,v 1.43 1999/11/26 16:46:16 rcaputo Exp $
+# $Id: Kernel.pm,v 1.50 2000/01/23 18:30:04 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
-use POSIX qw(errno_h fcntl_h);
+use POSIX qw(errno_h fcntl_h sys_wait_h uname);
 use Carp;
 use vars qw($poe_kernel);
 
@@ -87,30 +87,36 @@ sub DEB_QUEUE    () { 0 }
 sub DEB_STRICT   () { 0 }
 sub DEB_INSERT   () { 0 }
                                         # handles & vectors structures
-sub VEC_RD      () { 0 }
-sub VEC_WR      () { 1 }
-sub VEC_EX      () { 2 }
+sub VEC_RD       () { 0 }
+sub VEC_WR       () { 1 }
+sub VEC_EX       () { 2 }
                                         # sessions structure
-sub SS_SESSION  () { 0 }
-sub SS_REFCOUNT () { 1 }
-sub SS_EVCOUNT  () { 2 }
-sub SS_PARENT   () { 3 }
-sub SS_CHILDREN () { 4 }
-sub SS_HANDLES  () { 5 }
-sub SS_SIGNALS  () { 6 }
-sub SS_ALIASES  () { 7 }
+sub SS_SESSION   () { 0 }
+sub SS_REFCOUNT  () { 1 }
+sub SS_EVCOUNT   () { 2 }
+sub SS_PARENT    () { 3 }
+sub SS_CHILDREN  () { 4 }
+sub SS_HANDLES   () { 5 }
+sub SS_SIGNALS   () { 6 }
+sub SS_ALIASES   () { 7 }
+sub SS_PROCESSES () { 8 }
+sub SS_ID        () { 9 }
                                         # session handle structure
-sub SH_HANDLE   () { 0 }
-sub SH_REFCOUNT () { 1 }
-sub SH_VECCOUNT () { 2 }
+sub SH_HANDLE    () { 0 }
+sub SH_REFCOUNT  () { 1 }
+sub SH_VECCOUNT  () { 2 }
                                         # the Kernel object itself
-sub KR_SESSIONS       () { 0 }
-sub KR_VECTORS        () { 1 }
-sub KR_HANDLES        () { 2 }
-sub KR_STATES         () { 3 }
-sub KR_SIGNALS        () { 4 }
-sub KR_ALIASES        () { 5 }
-sub KR_ACTIVE_SESSION () { 6 }
+sub KR_SESSIONS       () { 0  }
+sub KR_VECTORS        () { 1  }
+sub KR_HANDLES        () { 2  }
+sub KR_STATES         () { 3  }
+sub KR_SIGNALS        () { 4  }
+sub KR_ALIASES        () { 5  }
+sub KR_ACTIVE_SESSION () { 6  }
+sub KR_PROCESSES      () { 7  }
+sub KR_ID             () { 9  }
+sub KR_SESSION_IDS    () { 10 }
+sub KR_ID_INDEX       () { 11 }
                                         # handle structure
 sub HND_HANDLE   () { 0 }
 sub HND_REFCOUNT () { 1 }
@@ -134,12 +140,19 @@ sub EN_SIGNAL () { '_signal'          }
 sub EN_GC     () { '_garbage_collect' }
 sub EN_PARENT () { '_parent'          }
 sub EN_CHILD  () { '_child'           }
+sub EN_SCPOLL () { '_sigchld_poll'    }
 
 #------------------------------------------------------------------------------
 #
 # states: [ [ $session, $source_session, $state, \@etc, $time ],
 #           ...
 #         ];
+#
+# processes: { $pid => $parent_session, ... }
+#
+# kernel ID: { $kernel_id }
+#
+# session IDs: { $id => $session, ... }
 #
 # handles: { $handle => [ $handle, $refcount, [$ref_r, $ref_w, $ref_x ],
 #                         [ { $session => [ $handle, $session, $state ], .. },
@@ -161,6 +174,8 @@ sub EN_CHILD  () { '_child'           }
 #                           { $handle => [ $hdl, $rcnt, [ $r,$w,$e ] ], ... },
 #                           { $signal => $state, ... },
 #                           { $name => 1, ... },
+#                           { $pid => 1, ... },   # child processes
+#                           $session_id,  # session ID
 #                         ]
 #           };
 #
@@ -173,7 +188,8 @@ sub EN_CHILD  () { '_child'           }
 #==============================================================================
 
                                         # will stop sessions unless handled
-my %_terminal_signals = ( QUIT => 1, INT => 1, KILL => 1, TERM => 1, HUP => 1);
+my %_terminal_signals =
+  ( QUIT => 1, INT => 1, KILL => 1, TERM => 1, HUP => 1, IDLE => 1 );
                                         # static signal handlers
 sub _signal_handler_generic {
   if (defined(my $signal = $_[0])) {
@@ -252,12 +268,23 @@ sub new {
   unless (defined $poe_kernel) {
     my $self = $poe_kernel = bless [ ], $type;
                                         # the long way to ensure correctness
-    $self->[KR_SESSIONS] = { };
-    $self->[KR_VECTORS ] = [ '', '', '' ];
-    $self->[KR_HANDLES ] = { };
-    $self->[KR_STATES  ] = [ ];
-    $self->[KR_SIGNALS ] = { };
-    $self->[KR_ALIASES ] = { };
+    $self->[KR_SESSIONS ] = { };
+    $self->[KR_VECTORS  ] = [ '', '', '' ];
+    $self->[KR_HANDLES  ] = { };
+    $self->[KR_STATES   ] = [ ];
+    $self->[KR_SIGNALS  ] = { };
+    $self->[KR_ALIASES  ] = { };
+    $self->[KR_PROCESSES] = { };
+
+    # Kernel ID, based on Philip Gwyn's code.  I hope he still can
+    # recognize it.  KR_SESSION_IDS is a hash because it will almost
+    # always be sparse.
+    $self->[KR_ID         ] = ( (uname)[1] . '-' .
+                                unpack 'H*', pack 'N*', time, $$
+                              );
+    $self->[KR_SESSION_IDS] = { };
+    $self->[KR_ID_INDEX]    = 1;
+
                                         # initialize the vectors *as* vectors
     vec($self->[KR_VECTORS]->[VEC_RD], 0, 1) = 0;
     vec($self->[KR_VECTORS]->[VEC_WR], 0, 1) = 0;
@@ -289,7 +316,10 @@ sub new {
       }
                                         # register signal handlers by type
       if ($signal =~ /^CH?LD$/) {
-        $SIG{$signal} = \&_signal_handler_child;
+        # Leave SIGCHLD alone if running under apache.
+        unless (exists $INC{'Apache.pm'}) {
+          $SIG{$signal} = \&_signal_handler_child;
+        }
       }
       elsif ($signal eq 'PIPE') {
         $SIG{$signal} = \&_signal_handler_pipe;
@@ -310,6 +340,7 @@ sub new {
     $kernel_session->[SS_HANDLES ] = { };
     $kernel_session->[SS_SIGNALS ] = { };
     $kernel_session->[SS_ALIASES ] = { };
+    $kernel_session->[SS_ID      ] = $self->[KR_ID];
   }
                                         # return the global instance
   $poe_kernel;
@@ -334,6 +365,8 @@ sub _dispatch_state {
     $new_session->[SS_HANDLES ] = { };
     $new_session->[SS_SIGNALS ] = { };
     $new_session->[SS_ALIASES ] = { };
+    $new_session->[SS_ID      ] = $self->[KR_ID_INDEX]++;
+    $self->[KR_SESSION_IDS]->{$new_session->[SS_ID]} = $session;
                                         # add to parent's children
     if (DEB_RELATION) {
       die "$session is its own parent\a" if ($session eq $source_session);
@@ -507,6 +540,9 @@ sub _dispatch_state {
     foreach (@aliases) {
       $self->_internal_alias_remove($session, $_);
     }
+                                        # remove session ID
+    delete $self->[KR_SESSION_IDS]->{$sessions->{$session}->[SS_ID]};
+    $session->[SS_ID] = undef;
                                         # check for leaks
     if (DEB_GC) {
       my $errors = 0;
@@ -563,9 +599,9 @@ sub run {
   my $self = shift;
 
   while (keys(%{$self->[KR_SESSIONS]})) {
-                                        # send SIGZOMBIE sent if queue empty
+                                        # send SIGIDLE if queue empty
     unless (@{$self->[KR_STATES]} || keys(%{$self->[KR_HANDLES]})) {
-      $self->_enqueue_state($self, $self, EN_SIGNAL, time(), [ 'ZOMBIE' ]);
+      $self->_enqueue_state($self, $self, EN_SIGNAL, time(), [ 'IDLE' ]);
     }
                                         # select, if necessary
     my $now = time();
@@ -738,6 +774,35 @@ sub DESTROY {
 
 sub _invoke_state {
   my ($self, $source_session, $state, $etc) = @_;
+
+  if ($state eq EN_SCPOLL) {
+
+    while (my $child_pid = waitpid(-1, WNOHANG)) {
+      if (my $parent_session = delete $self->[KR_PROCESSES]->{$child_pid}) {
+        $parent_session = $self
+          unless exists $self->[KR_SESSIONS]->{$parent_session};
+        $self->_enqueue_state( $parent_session, $self,
+                               EN_SIGNAL, time(), [ 'CHLD', $child_pid, $? ]
+                             );
+      }
+      else {
+        last;
+      }
+    }
+
+    if (keys %{$self->[KR_PROCESSES]}) {
+      $self->_enqueue_state($self, $self, EN_SCPOLL, time() + 1);
+    }
+  }
+
+  elsif ($state eq EN_SIGNAL) {
+    if ($etc->[0] eq 'IDLE') {
+      unless (@{$self->[KR_STATES]} || keys(%{$self->[KR_HANDLES]})) {
+        $self->_enqueue_state($self, $self, EN_SIGNAL, time(), [ 'ZOMBIE' ]);
+      }
+    }
+  }
+
   return 1;
 }
 
@@ -926,7 +991,8 @@ sub _enqueue_state {
   }
   else {
     warn ">>>>> ", join('; ', keys(%{$self->[KR_SESSIONS]})), " <<<<<\n";
-    die "can't enqueue state for nonexistent session\a\n";
+    warn "($$ = $etc->[0])";
+    croak "can't enqueue state($state) for nonexistent session($session)\a\n";
   }
 }
 
@@ -1040,21 +1106,11 @@ sub _internal_select {
       $kr_handles->{$handle} = [ $handle, 0, [ 0, 0, 0 ], [ { }, { }, { } ] ];
                                         # for DOSISH systems like OS/2
       binmode($handle);
-                                        # set the handle non-blocking
-                                        # do it the Win32 way
-      if ($^O eq 'MSWin32') {
-        my $set_it = "1";
-                                        # 126 is FIONBIO
-        ioctl($handle, 126 | (ord('f')<<8) | (4<<16) | 0x80000000, $set_it)
-          or croak "Can't set the handle non-blocking: $!\n";
-      }
-                                        # do it the way everyone else does
-      else {
-        my $flags = fcntl($handle, F_GETFL, 0)
-          or croak "fcntl fails with F_GETFL: $!\n";
-        $flags = fcntl($handle, F_SETFL, $flags | O_NONBLOCK)
-          or croak "fcntl fails with F_SETFL: $!\n";
-      }
+                                        # don't block on pending I/O
+      my $flags = fcntl($handle, F_GETFL, 0)
+        or croak "fcntl fails with F_GETFL: $!\n";
+      $flags = fcntl($handle, F_SETFL, $flags | O_NONBLOCK)
+        or croak "fcntl fails with F_SETFL: $!\n";
 
 #      setsockopt($handle, SOL_SOCKET, &TCP_NODELAY, 1)
 #        or die "Couldn't disable Nagle's algorithm: $!\a\n";
@@ -1222,6 +1278,14 @@ sub alias_remove {
 
 sub alias_resolve {
   my ($self, $name) = @_;
+                                        # resolve against sessions
+  if (exists $self->[KR_SESSIONS]->{$name}) {
+    return $self->[KR_SESSIONS]->{$name}->[SS_SESSION];
+  }
+                                        # resolve against aliases
+  if (exists $self->[KR_ALIASES]->{$name}) {
+    return $self->[KR_ALIASES]->{$name};
+  }
                                         # resolve against current namespace
   if ($self->[KR_ACTIVE_SESSION] ne $self) {
     if ($name eq $self->[KR_ACTIVE_SESSION]->[&POE::Session::SE_NAMESPACE]) {
@@ -1229,21 +1293,97 @@ sub alias_resolve {
       return $self->[KR_ACTIVE_SESSION];
     }
   }
-                                        # resolve against itself
-  if (ref($name) ne '') {
-    return $name;
-  }
-                                        # resolve against aliases
-  if (exists $self->[KR_ALIASES]->{$name}) {
-    return $self->[KR_ALIASES]->{$name};
-  }
-                                        # resolve against sessions
-  if (exists $self->[KR_SESSIONS]->{$name}) {
-    return $self->[KR_SESSIONS]->{$name}->[SS_SESSION];
-  }
+                                        # resolve against the kernel
+  return $self if ($name eq $self);
                                         # it doesn't resolve to anything?
   $! = ESRCH;
   return undef;
+}
+
+#==============================================================================
+# Kernel ID
+#==============================================================================
+
+sub ID {
+  my $self = shift;
+  $self->[KR_ID];
+}
+
+sub ID_id_to_session {
+  my ($self, $id) = @_;
+  if (exists $self->[KR_SESSION_IDS]->{$id}) {
+    $! = 0;
+    return $self->[KR_SESSION_IDS]->{$id};
+  }
+  $! = ESRCH;
+  return undef;
+}
+
+sub ID_session_to_id {
+  my ($self, $session) = @_;
+  if (exists $self->[KR_SESSIONS]->{$session}) {
+    $! = 0;
+    return $self->[KR_SESSIONS]->{$session}->[SS_ID];
+  }
+  $! = ESRCH;
+  return undef;
+}
+
+#==============================================================================
+# Safe fork and SIGCHLD.
+#==============================================================================
+
+sub fork {
+  my ($self) = @_;
+
+  # Disable the real signal handler.  How to warn?
+  $SIG{CHLD} = 'IGNORE' if (exists $SIG{CHLD});
+  $SIG{CLD}  = 'IGNORE' if (exists $SIG{CLD});
+
+  my $new_pid = fork();
+
+  # Error.
+  unless (defined $new_pid) {
+    return( undef, $!+0, $! ) if wantarray;
+    return undef;
+  }
+
+  # Parent.
+  if ($new_pid) {
+    $self->[KR_PROCESSES]->{$new_pid} = $self->[KR_ACTIVE_SESSION];
+    $self->[KR_SESSIONS]->{ $self->[KR_ACTIVE_SESSION]
+                          }->[SS_PROCESSES]->{$new_pid} = 1;
+
+    # Went from 0 to 1 child processes; start a poll loop.  This uses
+    # a very raw, basic form of POE::Kernel::delay.
+    if (keys(%{$self->[KR_PROCESSES]}) == 1) {
+      $self->_enqueue_state($self, $self, EN_SCPOLL, time() + 1);
+    }
+
+    return( $new_pid, 0, 0 ) if wantarray;
+    return $new_pid;
+  }
+
+  # Child.
+  else {
+
+    # Build a list of unique sessions with children.
+    my %sessions;
+    foreach (values %{$self->[KR_PROCESSES]}) {
+      $sessions{$_}++;
+    }
+
+    # Clean out the children for these sessions.
+    foreach my $session (keys %sessions) {
+      $self->[KR_SESSIONS]->{$session}->[SS_PROCESSES] = { };
+    }
+
+    # Clean out POE's child process table.
+    $self->[KR_PROCESSES] = { };
+
+    return( 0, 0, 0 ) if wantarray;
+    return 0;
+  }
 }
 
 #==============================================================================
@@ -1251,12 +1391,16 @@ sub alias_resolve {
 #==============================================================================
 
 sub state {
-  my ($self, $state_name, $state_code) = @_;
+  my ($self, $state_name, $state_code, $state_alias) = @_;
+  $state_alias = $state_name unless defined $state_alias;
+
   if ( (ref($self->[KR_ACTIVE_SESSION]) ne '') &&
                                         # -><- breaks subclasses... sky has fix
        (ref($self->[KR_ACTIVE_SESSION]) ne 'POE::Kernel')
   ) {
-    $self->[KR_ACTIVE_SESSION]->register_state($state_name, $state_code);
+    $self->[KR_ACTIVE_SESSION]->register_state( $state_name, $state_code,
+                                                $state_alias
+                                              );
     return 1;
   }
                                         # no such session
@@ -1284,6 +1428,7 @@ POE::Kernel - POE Event Queue and Resource Manager
   #!/usr/bin/perl -w
   use strict;
   use POE;                 # Includes POE::Kernel and POE::Session
+  print $poe_kernel->ID(); # This process' unique ID.
   new POE::Session( ... ); # Bootstrap sessions are here.
   $poe_kernel->run();      # Run the kernel.
   exit;                    # Exit when the kernel's done.
@@ -1319,10 +1464,22 @@ POE::Kernel - POE Event Queue and Resource Manager
   $kernel->sig( $signal_name, $state_name ); # Registers a handler.
   $kernel->signal( $session, $signal_name ); # Posts a signal.
 
+  # Processes.
+  $kernel->fork();   # "Safe" fork that polls for SIGCHLD.
+
   # States:
   $kernel->state( $state_name, $code_reference );    # Inline state
   $kernel->state( $method_name, $object_reference ); # Object state
   $kernel->state( $function_name, $package_name );   # Package state
+  $kernel->state( $state_name,                       # Object or package
+                  $object_or_package_reference,      #  state, mapped to
+                  $object_or_package_method,         #  different method.
+                );
+
+  # IDs:
+  $kernel->ID();                       # Return the Kernel's unique ID.
+  $kernel->ID_id_to_session($id);      # Return undef, or the ID's session.
+  $kernel->ID_session_to_id($session); # Return undef, or the session's ID.
 
 =head1 DESCRIPTION
 
@@ -1613,10 +1770,14 @@ select.  It leaves the other two unchanged.
 The POE::Session documentation has more information about B<_signal>
 events.
 
-POE does not make Perl's signals safe.  Using signals is okay in
-short-lived programs, but long-running servers may eventually dump
-core if they receive a lot of signals.  This includes SIGCHLD from
-forked children.  Mileage varies considerably.
+POE currently does not make Perl's signals safe.  Using signals is
+okay in short-lived programs, but long-uptime servers may eventually
+dump core if they receive a lot of signals.  POE provides a "safe"
+fork() function that periodically reaps children without using
+signals; it emulates the system's SIGCHLD signal for each process in
+reaps.
+
+Mileage varies considerably.
 
 The kernel generates B<_signal> events when it receives signals from
 the operating system.  Sessions may also send signals between
@@ -1628,17 +1789,21 @@ logical true, then it means the signal was handled.  If it returns
 false, then the kernel assumes the signal wasn't handled.
 
 POE will stop sessions that don't handle some signals.  These
-"terminal" signals are QUIT, INT, KILL, TERM and HUP.
+"terminal" signals are QUIT, INT, KILL, TERM, HUP, and the fictitious
+IDLE signal.
+
+POE broadcasts SIGIDLE to all sessions when the kernel runs out of
+events to dispatch, and when there are no alarms or selects to
+generate new events.
 
 Finally, there is one fictitious signal that always stops a session:
-ZOMBIE.  When the kernel runs out of events to dispatch, and when
-there are no alarms or selects to generate new events, it sends ZOMBIE
-to any remaining sessions.  This lets these sessions (usually aliased
-"daemon" sessions) that nothing is left to do, and they're as good as
-dead anyway.
+ZOMBIE.  If the kernel remains idle after SIGIDLE is broadcast, then
+SIGZOMBIE is broadcast to force reaping of zombie sessions.  This
+tells these sessions (usually aliased "daemon" sessions) that nothing
+is left to do, and they're as good as dead anyway.
 
-It's normal for daemon sessions to receive ZOMBIE when all the
-sessions that may use them have gone away.
+It's normal for aliased sessions to receive IDLE and ZOMBIE when all
+the sessions that may use them have gone away.
 
 =over 4
 
@@ -1667,6 +1832,42 @@ does something similar to post a fictitious ZOMBIE signal.
 
 =back
 
+=head2 Process Management Methods
+
+POE's signal handling is Perl's signal handling, which means that POE
+won't safely handle signals as long as Perl has a problem with them.
+
+However, POE works around this in at least SIGCHLD's case by providing
+a "safe" fork() function.  &POE::Kernel::fork() blocks
+$SIG{'CHLD','CLD'} and starts an event loop to poll for expired child
+processes.  It emulates the system's SIGCHLD behavior by sending a
+"soft" CHLD signal to the appropriate session.
+
+Because POE knows which session called its version of fork(), it can
+signal just that session that its forked child process has completed.
+
+B<Note:> The first &POE::Kernel::fork call disables POE's usual
+SIGCHLD handler, so that the poll loop can reap children safely.
+Mixing plain fork and &POE::Kernel::fork isn't recommended.
+
+=over 4
+
+=item *
+
+POE::Kernel::fork( )
+
+The fork() method tries to fork a process in the usual Unix way.  In
+addition, it blocks SIGCHLD and/or SIGCLD and starts an event loop to
+poll for completed child processes.
+
+POE's fork() will return different things in scalar and list contexts.
+In scalar context, it returns the child PID, 0, or undef, just as
+Perl's fork() does.  In a list context, it returns three items: the
+child PID (or 0 or undef), the numeric version of $!, and the string
+version of $!.
+
+=back
+
 =head2 State Management Methods
 
 The kernel's state management method lets sessions add, change and
@@ -1680,10 +1881,15 @@ states from sessions when they're created and destroyed.
 POE::Kernel::state( $state_name, $code_reference )
 POE::Kernel::state( $method_name, $object_reference )
 POE::Kernel::state( $function_name, $package_name )
+POE::Kernel::state( $state_name, $obj_or_package_ref, $method_name )
 
 The state() method has three different uses, each for adding, updating
 or removing a different kind of state.  It manipulates states in the
 current session.
+
+The three-parameter version of state() registers an object or package
+state to a method with a different name.  Normally the object or
+package method would need to be named after the state it catches.
 
 The state() method returns 1 on success.  On failure, it returns 0 and
 sets $! to one of:
@@ -1718,6 +1924,15 @@ If $object_reference is undef, then the $method_name state will be
 removed.  Any pending events destined for $method_name will be
 redirected to _default.
 
+They can also be maintained with:
+
+  $kernel->state($state_name, $object_reference, $object_method);
+
+For example, this maps a session's B®_start¯ state to the object's
+start_state method:
+
+  $kernel->state('_start', $object_reference, 'start_state');
+
 =item *
 
 Package States
@@ -1731,6 +1946,46 @@ removed.  Any pending events destined for $function_name will be
 redirected to _default.
 
 =back
+
+=back
+
+=head2 ID Management Methods
+
+POE generates a unique ID for the process, and it maintains unique
+serial numbers for every session.  These functions retrieve various ID
+values.
+
+=over 4
+
+=item *
+
+POE::Kernel::ID()
+
+Returns a unique ID for this POE process.
+
+  my $process_id = $kernel->ID();
+
+=item *
+
+POE::Kernel::ID_id_to_session( $id );
+
+Returns a session reference for the given ID.  It returns undef if the
+ID doesn't exist.  This allows programs to uniquely identify a
+particular Session (or detect that it's gone) even if Perl reuses the
+Session reference later.
+
+=item *
+
+POE::Kernel::ID_session_to_id( $session );
+
+Returns an ID for the given POE::Session reference, or undef ith the
+session doesn't exist.
+
+Perl reuses Session references fairly frequently, but Session IDs are
+unique.  Because of this, the ID of a given reference (stringified, so
+Perl can release the referenced Session) may appear to change.  If it
+does appear to have changed, then the Session reference is probably
+invalid.
 
 =back
 

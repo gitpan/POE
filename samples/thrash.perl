@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: thrash.perl,v 1.7 1999/08/13 14:00:44 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: thrash.perl,v 1.9 2000/01/23 18:32:01 rcaputo Exp $
 
 # This program creates a server session and an infinitude of clients
 # that connect to it, all in the same process.  It's mainly used to
@@ -12,6 +12,7 @@
 #   In the "client" copy, comment out th ecall to &server_create();
 
 use strict;
+use lib '..';
 use Socket;
 
 use POE qw(Wheel::ListenAccept Wheel::ReadWrite Driver::SysRW Filter::Line
@@ -175,12 +176,11 @@ sub pool_start {
   $heap->{'bench count'} = 0;
 
   # Start five clients.  NOTE: This would not work if clients used
-  # IO::Socket::INET to connect to the server, because
-  # IO::Socket::INET's connect blocks.  It would wait for the server
-  # to accept a connectino before continuing, which would never happen
-  # since this loop is holding up the event queue.  The program can
-  # only get away with this loop because SocketFactory connections do
-  # not block.
+  # IO::Socket to connect to the server, because IO::Socket's connect
+  # blocks.  It would wait for the server to accept a connectino
+  # before continuing, which would never happen since this loop is
+  # holding up the event queue.  The program can only get away with
+  # this loop because SocketFactory connections do not block.
 
   for (my $i = 0; $i < 5; $i++) {
     &client_create(++$heap->{'client serial'});

@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: httpd.perl,v 1.7 1999/07/02 14:40:42 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: httpd.perl,v 1.8 2000/01/23 18:30:07 rcaputo Exp $
 
 # This program tests POE::Filter::HTTPD by setting up a small server.
 # By default, it will bind to port 80 of all addresses on the local
@@ -10,6 +10,7 @@
 # Revised for POE 0.06 by Rocco Caputo <troc@netrus.net>
 
 use strict;
+use lib '..';
 
 use POE qw(Wheel::ReadWrite Driver::SysRW Filter::HTTPD Wheel::SocketFactory);
 

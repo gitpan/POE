@@ -1,4 +1,4 @@
-# $Id: Curator.pm,v 1.3 1999/06/21 15:09:08 rcaputo Exp $
+# $Id: Curator.pm,v 1.4 1999/12/25 02:01:47 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
 # This program is free software; you can redistribute it and/or modify
@@ -131,13 +131,17 @@ sub attribute_fetch {
 
   if (ref($att_value) eq 'HASH') {
     my %return_att;
-    tie %return_att, 'POE::Attribute::Hash', $repository, $attribute, $id, $att_owner;
+    tie( %return_att, 'POE::Attribute::Hash',
+         $repository, $attribute, $id, $att_owner
+       );
     return (0, \%return_att);
   }
 
   if (ref($att_value) eq 'ARRAY') {
     my @return_att;
-    tie @return_att, 'POE::Attribute::Array', $repository, $attribute, $id, $att_owner;
+    tie( @return_att, 'POE::Attribute::Array',
+         $repository, $attribute, $id, $att_owner
+       );
     return (0, \@return_att);
   }
 

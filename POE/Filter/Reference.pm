@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.13 1999/11/20 05:43:51 rcaputo Exp $
+# $Id: Reference.pm,v 1.16 2000/01/24 19:27:33 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -16,7 +16,7 @@ sub _default_freezer {
   my $ret;
 
   foreach my $p (qw(Storable FreezeThaw)) {
-    eval { require "$p.pm"; import $p ();};
+    eval { require "$p.pm"; import $p (); };
     warn $@ if $@;
     return $p if $@ eq '';
   }
@@ -24,17 +24,43 @@ sub _default_freezer {
 }
 
 #------------------------------------------------------------------------------
+# Try to acquire Compress::Zlib at runtime.
+
+my $zlib_status = undef;
+sub _include_zlib {
+  local $SIG{'__DIE__'} = 'DEFAULT';
+
+  unless (defined $zlib_status) {
+    eval { require 'Compress::Zlib';
+           import Compress::Zlib qw(compress uncompress);
+         };
+    if ($@) {
+      $zlib_status = $@;
+      eval <<'      EOE';
+        sub compress { @_ }
+        sub uncompress { @_ }
+      EOE
+    }
+    else {
+      $zlib_status = '';
+    }
+  }
+
+  $zlib_status;
+}
+
+#------------------------------------------------------------------------------
 
 sub new {
-  my($type, $freezer) = @_;
-  $freezer||=_default_freezer();
+  my($type, $freezer, $compression) = @_;
+  $freezer ||= _default_freezer();
                                         # not a reference... maybe a package?
-    unless(ref $freezer) {
-      unless(exists $::{$freezer.'::'}) {
-        eval {require "$freezer.pm"; import $freezer ();};
-        croak $@ if $@;
-      }
+  unless(ref $freezer) {
+    unless(exists $::{$freezer.'::'}) {
+      eval {require "$freezer.pm"; import $freezer ();};
+      croak $@ if $@;
     }
+  }
 
   # Now get the methodes we want
   my $freeze=$freezer->can('nfreeze') || $freezer->can('freeze');
@@ -50,10 +76,23 @@ sub new {
     $tf=sub {$freeze->($freezer, @_)};
     $tt=sub {$thaw->($freezer, @_)};
   }
+
+                                        # Compression
+  $compression ||= 0;
+  if ($compression) {
+    my $zlib_status = &_include_zlib();
+    if ($zlib_status ne '') {
+      warn "Compress::Zlib load failed with error: $zlib_status\n";
+      carp "Filter::Reference compression option ignored";
+      $compression = 0;
+    }
+  }
+
   my $self = bless { buffer    => '',
                      expecting => undef,
                      thaw      => $tt,
                      freeze    => $tf,
+                     compress  => $compression,
                    }, $type;
   $self;
 }
@@ -72,11 +111,13 @@ sub get {
           )
   ) {
     last if (length $self->{buffer} < $self->{expecting});
-    push( @return,
-          $self->{thaw}->(substr( $self->{buffer}, 0, $self->{expecting}))
-        );
+
+    my $chunk = substr($self->{buffer}, 0, $self->{expecting});
     substr($self->{buffer}, 0, $self->{expecting}) = '';
     undef $self->{expecting};
+
+    $chunk = uncompress($chunk) if $self->{compress};
+    push @return, $self->{thaw}->( $chunk );
   }
 
   return \@return;
@@ -90,6 +131,7 @@ sub put {
 
   my @raw = map {
     my $frozen = $self->{freeze}->($_);
+    $frozen = compress($frozen) if $self->{compress};
     length($frozen) . "\0" . $frozen;
   } @$references;
   \@raw;
@@ -117,7 +159,7 @@ POE::Filter::Reference - POE Freeze/Thaw Protocol Abstraction
 
 =head1 SYNOPSIS
 
-  $filter = new POE::Filter::Something();
+  $filter = new POE::Filter::Reference();
   $arrayref_of_perl_references =
     $filter->get($arrayref_of_raw_chunks_from_driver);
   $arrayref_of_serialized_perl_references =
@@ -142,8 +184,9 @@ ship data between systems with different byte orders.
 POE::Filter::Reference::new( ... )
 
 The new() method creates and initializes the reference filter.  It
-accepts an optional parameter to specify a serializer.  The serializer
-may be a package or an object.
+accepts optional parameters to specify a serializer and the use of
+compression.  The serializer may be a package or an object; the
+compression flag is a Perl "boolean" value.
 
 A package serializer must have a thaw() function, and it must have
 either a freeze() or nfreeze() function.  If it has both freeze() and
@@ -158,10 +201,14 @@ reference to the reconstituted data.  The freeze() and nfreeze()
 methods receive $self and a reference; they should return a scalar
 with the reference's serialized representation.
 
+If the serializer parameter is undef, a default one will be used.
+This lets programs specify compression without having to worry about
+naming a serializer.
+
 For example:
 
   # Use the default filter (either Storable or FreezeThaw).
-  my $filter1 = new POE::Filter::Reference();
+  my $filter = new POE::Filter::Reference();
 
   # Use Storable explicitly, specified by package name.
   my $filter = new POE::Filter::Reference('Storable');
@@ -169,6 +216,11 @@ For example:
   # Use an object.
   my $filter = new POE::Filter::Reference($object);
 
+  # Use an object, with compression.
+  my $filter = new POE::Filter::Reference($object, 1);
+
+  # Use the default serializer, with compression.
+  my $filter = new POE::Filter::Reference(undef, 1);
 
 The new() method will try to require any packages it needs.
 

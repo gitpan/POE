@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: packagesessions.perl,v 1.5 1999/06/01 21:20:00 rcaputo Exp $
+# $Id: packagesessions.perl,v 1.6 2000/01/23 19:35:57 rcaputo Exp $
 
 # This is a simple test of "package sessions".  These are similar to
 # object sessions, but they work with packages instead of objects.  It
@@ -111,7 +111,7 @@ foreach my $name (qw(one two three four five six seven eight nine ten)) {
                                         # stupid scope trick, part 3 of 3
   $Counter::name = $name;
                                         # create the session
-  new POE::Session( 'Counter',
+  new POE::Session( Counter =>
                     [ qw(_start _stop increment sigint) ]
                   );
 }

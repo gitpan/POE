@@ -1,8 +1,11 @@
-#!/usr/bin/perl -w -I..
-# $Id: ref-type.perl,v 1.1 1999/05/29 20:11:14 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: ref-type.perl,v 1.2 2000/01/23 18:32:00 rcaputo Exp $
 
 # This program tests the ability of Filter::Reference to use "any"
 # package or object for freeze/thaw.
+
+use strict;
+use lib '..';
 
 ###############################################################################
 # This is the caller.

@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: refsender.perl,v 1.9 1999/05/14 06:06:14 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: refsender.perl,v 1.11 2000/01/24 15:11:54 rcaputo Exp $
 
 # This program is half of a test suite for POE::Filter::Reference.  It
 # implements a client that thaws referenced data and sends it to a
@@ -10,6 +10,7 @@
 # Revised for POE 0.06 by Rocco Caputo <troc@netrus.net>
 
 use strict;
+use lib '..';
 use Socket;
 
 use POE qw(Wheel::SocketFactory
@@ -74,7 +75,7 @@ sub client_connected {
   $heap->{'wheel'} = new POE::Wheel::ReadWrite
     ( Handle       => $socket,                    # read/write on this handle
       Driver       => new POE::Driver::SysRW,     # using sysread and syswrite
-      Filter       => new POE::Filter::Reference, # parsing data as frozen refs
+      Filter       => new POE::Filter::Reference(undef,1), # parsing refs
       InputState   => 'received',                 # generating this on input
       ErrorState   => 'error',                    # generating this on error
       FlushedState => 'flushed',                  # generating this on flush

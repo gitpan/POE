@@ -1,4 +1,4 @@
-# $Id: Object.pm,v 1.3 1999/06/21 15:09:09 rcaputo Exp $
+# $Id: Object.pm,v 1.4 1999/12/25 02:01:48 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
 # This program is free software; you can redistribute it and/or modify
@@ -24,7 +24,7 @@ sub CS_ID        () { 0 } # -><- same as POE::Curator::CS_ID
 sub _fetch_other_parameters {
   my $heap = do {
     package DB;
-    # @BD::args isn't populated without the assign to @x :(
+    # @DB::args isn't populated without the assign to @x :(
     my @x = caller(2);
     $DB::args[POE::Session::HEAP];
   };

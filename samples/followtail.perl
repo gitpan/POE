@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: followtail.perl,v 1.4 1999/05/14 06:06:12 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: followtail.perl,v 1.5 2000/01/23 18:30:07 rcaputo Exp $
 
 # This program tests Wheel::FollowTail.  The FollowTail wheel provides
 # a reusable "tail -f" behavior for drivers and filters.
@@ -8,6 +8,7 @@
 # better comments for the basic stuff.
 
 use strict;
+use lib '..';
 use POE qw(Wheel::FollowTail Driver::SysRW Filter::Line Wheel::ReadWrite);
 use IO::File;
 

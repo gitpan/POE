@@ -1,5 +1,5 @@
-#!/usr/bin/perl -w -I..
-# $Id: signals.perl,v 1.9 1999/05/14 06:06:15 rcaputo Exp $
+#!/usr/bin/perl -w
+# $Id: signals.perl,v 1.10 2000/01/23 18:32:01 rcaputo Exp $
 
 # This program tests signals.  It tests OS signals (such as SIGINT),
 # soft signals to sessions, and soft signals to kernels.  Soft
@@ -8,6 +8,7 @@
 # arbitrarily named signals.
 
 use strict;
+use lib '..';
 use POE;
 
 #==============================================================================
