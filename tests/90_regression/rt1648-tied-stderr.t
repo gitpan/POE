@@ -1,11 +1,27 @@
 #!/usr/bin/perl 
-# $Id: rt1648-tied-stderr.t,v 1.1 2004/11/27 16:52:13 rcaputo Exp $
+# $Id: rt1648-tied-stderr.t,v 1.2 2005/01/17 17:46:28 rcaputo Exp $
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He
 # suggested untying STDOUT and STDERR in the child process.  This test
 # makes sure the bad behavior does not come back.
 
 use strict;
+
+# Skip these tests if fork() is unavailable.
+BEGIN {
+  my $error;
+  if ($^O eq "MacOS") {
+    $error = "$^O does not support fork";
+  }
+  elsif ($^O eq "MSWin32") {
+    $error = "$^O does not support fork/exec properly";
+  }
+  if ($error) {
+    print "1..0 # Skip $error\n";
+    exit();
+  }
+}
+
 use Test::More tests => 1;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

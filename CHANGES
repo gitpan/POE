@@ -1,4 +1,20 @@
 ===========================
+2005-01-17 17:48:28 v0_3009
+===========================
+
+  2005-01-17 17:48:28 by rcaputo; lib/POE.pm 1.191
+
+    Bump the version to 0.3009 for a new CPAN bugfix release. 
+
+  2005-01-17 17:46:28 by rcaputo
+  tests/90_regression/rt1648-tied-stderr.t 1.2
+
+    This regression test requires fork(), but it didn't skip if the
+    system can't support fork(). This commit addresses rt.cpan.org ticket
+    #9808 and testers.cpan.org report #176869 by skipping the tests on
+    lame platforms. 
+
+===========================
 2005-01-02 17:45:38 v0_3007
 ===========================
 
@@ -1482,63 +1498,6 @@
     Hardcode some keystroke character sequences for a few common
     terminals, including the various DEC VT sequences. This should fix
     the input editing and history for most people. 
-
-  2004-01-16 16:58:36 by rcaputo; lib/POE/Resource/Events.pm 1.9
-
-    Commit Nick Williams' patches to add documentation and fix some of
-    the numbers. I also moved the "blocked" checking into
-    POE/Resource/Events so we can also calculate the average blocked
-    time. 
-
-  2004-01-16 16:44:27 by rcaputo; lib/POE/Kernel.pm 1.276
-
-    Document run_one_timeslice(). 
-
-  2004-01-16 03:46:03 by rcaputo; MANIFEST 1.92; lib/POE/Kernel.pm 1.275;
-  lib/POE/Loop/Event.pm 1.36; lib/POE/Loop/Gtk.pm 1.43;
-  lib/POE/Loop/IO_Poll.pm 1.29; lib/POE/Loop/Select.pm 1.55;
-  lib/POE/Loop/TkCommon.pm 1.5; lib/POE/Resources.pm 1.5
-
-    Apply Nick Williams' POE::Resource::Performance class and the
-    TRACE_PERFORMANCE hooks to enable runtime wallclock statistics. This
-    may be extended to include CPU time inside POE::Kernel, within POE
-    sessions, etc. It's still raw and experimental code; it does not
-    fairly compare performance between different event loops yet. The
-    various statistics have not been adequately defined, so we cannot
-    verify their accuracy. The profiling code itself contributes to POE's
-    overhead and may skew results against POE. Your mileage may vary.
-    Small parts may present a choking hazard. Use only as directed. 
-
-  2004-01-15 22:34:04 by rcaputo; lib/POE/Loop/IO_Poll.pm 1.28
-
-    Second attempt to define POLLRDBAND if it wasn't already. 
-
-  2004-01-15 22:18:44 by rcaputo
-  lib/POE/Component/Server/TCP.pm 1.44; lib/POE/Kernel.pm 1.274
-
-    Meaningless style tweaks. 
-
-  2004-01-15 22:17:46 by rcaputo; lib/POE/Loop/IO_Poll.pm 1.27
-
-    Define POLLRDBAND if it's not available. This occurs on MacOSX quite
-    frequently. 
-
-  2004-01-09 23:11:17 by rcaputo; lib/POE/Kernel.pm 1.273
-
-    Apply Graham Barr's patch to REALLY disable SIGCHLD polling when
-    running as an Apache handler. 
-
-  2004-01-05 22:37:36 by rcaputo
-  lib/POE/NFA.pm 1.28; lib/POE/Session.pm 1.97
-
-    Wrap postbacks in unblessed, anonymous subs under Tk. Tk blesses its
-    callbacks, which conflicts with our blessed postbacks. This works
-    around the problem. 
-
-  2004-01-04 06:14:06 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.30
-
-    Matt Cashner pointed out that ^D on an empty line should throw an
-    exception. This commit adds the "eot" exception to do just that. 
 
 =============================
 Beginning of Recorded History
