@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.37 2004/12/02 00:20:57 apocal Exp $
+# $Id: HTTPD.pm,v 1.38 2005/01/02 17:45:38 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,10 +17,10 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.37 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.38 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
-use HTTP::Status qw( RC_BAD_REQUEST RC_OK RC_LENGTH_REQUIRED );
+use HTTP::Status qw( status_message RC_BAD_REQUEST RC_OK RC_LENGTH_REQUIRED );
 use HTTP::Request ();
 use HTTP::Response ();
 use HTTP::Date qw(time2str);

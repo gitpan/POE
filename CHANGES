@@ -1,4 +1,21 @@
 ===========================
+2005-01-02 17:45:38 v0_3007
+===========================
+
+  2005-01-02 17:45:38 by rcaputo
+  lib/POE.pm 1.190; lib/POE/Filter/HTTPD.pm 1.38
+
+    Richard Clamp pointed out that Filter::HTTPD doesn't import all the
+    symbols it needs. This indicates a Great Need to have that filter
+    tested properly. Also bumped POE.pm to 0.3007 for a quick bugfix
+    release. 
+
+  2004-12-30 20:58:42 by rcaputo; lib/POE.pm 1.189
+
+    Bump the distro version to 0.3006 to differentiate the CVS version
+    from the CPAN release. 
+
+===========================
 2004-12-30 20:35:45 v0_3005
 ===========================
 
