@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.12 2002/01/25 04:25:08 rcaputo Exp $
+# $Id: TCP.pm,v 1.13 2002/05/27 21:48:24 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.12 $ ))[1];
+$VERSION = (qw($Revision: 1.13 $ ))[1];
 
 use Carp qw(carp croak);
 
@@ -87,6 +87,7 @@ sub new {
 
   $address = '127.0.0.1' unless defined $address;
   $filter  = POE::Filter::Line->new() unless defined $filter;
+  $filter  = $filter->new() unless ref($filter);
 
   $conn_error_callback = \&_default_error unless defined $conn_error_callback;
   $error_callback      = \&_default_error unless defined $error_callback;
@@ -366,9 +367,10 @@ requested.
 
 =item Filter
 
-Filter contains a POE::Filter object reference.  It is optional, and
-the component will default to POE::Filter::Line->new() if a Filter is
-omitted.
+Filter may contain either a POE::Filter class name, such as
+C<"POE::Filter::Stream"> or a POE::Filter instance, such as C<new
+POE::Filter::Reference>.  It is optional, and the component will
+default to "POE::Filter::Line" if a Filter is omitted.
 
 =item InlineStates
 

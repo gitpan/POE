@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 22_wheel_run.t,v 1.18 2002/03/05 00:02:42 rcaputo Exp $
+# $Id: 22_wheel_run.t,v 1.23 2002/05/28 01:59:48 rcaputo Exp $
 
 # Test the portable pipe classes and Wheel::Run, which uses them.
 
@@ -9,12 +9,22 @@ use Socket;
 use Config;
 
 use TestSetup;
-&test_setup(24);
+
+# Skip these tests if fork() is unavailable.
+BEGIN {
+  test_setup(0, "$^O does not support fork") if $^O eq 'MacOS';
+  test_setup(0, "$^O does not fully support fork/exec") if $^O eq 'MSWin32';
+}
+
+test_setup(24);
+
+# Turn on extra debugging output within this test program.
+sub DEBUG () { 0 }
 
 # Turn on all asserts, and use POE and other modules.
-# sub POE::Kernel::TRACE_DEFAULT () { 1 }
+#sub POE::Kernel::TRACE_GARBAGE () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-use POE qw( Wheel::Run Filter::Line Pipe::TwoWay Pipe::OneWay );
+use POE qw(Wheel::Run Filter::Line Pipe::TwoWay Pipe::OneWay);
 
 ### Test one-way pipe() pipe.
 { my ($uni_read, $uni_write) = POE::Pipe::OneWay->new('pipe');
@@ -161,8 +171,10 @@ $program =~ tr[\'][\"] if $^O eq "MSWin32";
           # Test event changing.
           $heap->{wheel}->event( StdoutEvent => 'stdout',
                                  StderrEvent => 'stderr',
-                                 ErrorEvent  => 'error',
                                  StdinEvent  => 'stdin',
+                               );
+          $heap->{wheel}->event( ErrorEvent  => 'error',
+                                 CloseEvent  => 'close',
                                );
 
           # Ask the child for something on stdout.
@@ -172,14 +184,9 @@ $program =~ tr[\'][\"] if $^O eq "MSWin32";
         # Error! Ow!
         error => sub { },
 
-        # Catch SIGCHLD.  Stop the wheel if the exited child is ours.
-        _signal => sub {
-          my $signame = $_[ARG0];
-          if ($signame eq 'CHLD') {
-            my ($heap, $child_pid) = @_[HEAP, ARG1];
-            delete $heap->{wheel} if $child_pid == $heap->{wheel}->PID();
-          }
-          return 0;
+        # The child has closed.  Delete its wheel.
+        close => sub {
+          delete $_[HEAP]->{wheel};
         },
 
         # Dummy _stop to prevent runtime errors.
@@ -238,8 +245,10 @@ my $coderef_flush_count = 0;
           # Test event changing.
           $heap->{wheel}->event( StdoutEvent => 'stdout',
                                  StderrEvent => 'stderr',
-                                 ErrorEvent  => 'error',
                                  StdinEvent  => 'stdin',
+                               );
+          $heap->{wheel}->event( ErrorEvent  => 'error',
+                                 CloseEvent  => 'close',
                                );
 
           # Ask the child for something on stdout.
@@ -249,14 +258,9 @@ my $coderef_flush_count = 0;
         # Error! Ow!
         error => sub { },
 
-        # Catch SIGCHLD.  Stop the wheel if the exited child is ours.
-        _signal => sub {
-          my $signame = $_[ARG0];
-          if ($signame eq 'CHLD') {
-            my ($heap, $child_pid) = @_[HEAP, ARG1];
-            delete $heap->{wheel} if $child_pid == $heap->{wheel}->PID();
-          }
-          return 0;
+        # The child has closed.  Delete its wheel.
+        close => sub {
+          delete $_[HEAP]->{wheel};
         },
 
         # Dummy _stop to prevent runtime errors.
@@ -315,9 +319,19 @@ if (POE::Wheel::Run::PTY_AVAILABLE) {
         # Catch SIGCHLD.  Stop the wheel if the exited child is ours.
         _signal => sub {
           my $signame = $_[ARG0];
+
+          DEBUG and
+            warn "session ", $_[SESSION]->ID, " caught signal $signame\n";
+
           if ($signame eq 'CHLD') {
             my ($heap, $child_pid) = @_[HEAP, ARG1];
-            delete $heap->{wheel} if $child_pid == $heap->{wheel}->PID();
+
+            DEBUG and warn "\tthe child process ID is $child_pid\n";
+
+            if ($child_pid == $heap->{wheel}->PID()) {
+              DEBUG and warn "\tthe child process is ours\n";
+              delete $heap->{wheel};
+            }
           }
           return 0;
         },

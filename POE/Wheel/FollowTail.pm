@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm,v 1.31 2002/01/10 20:39:45 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.34 2002/05/28 22:46:06 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.31 $ ))[1];
+$VERSION = (qw($Revision: 1.34 $ ))[1];
 
 use Carp;
 use Symbol;
@@ -28,7 +28,10 @@ sub SELF_STATE_WAKE  () { 10 }
 sub SELF_LAST_STAT   () { 11 }
 
 # Turn on tracing.  A lot of debugging occurred just after 0.11.
-sub TRACE () { 0 }
+sub TRACE_RESET        () { 0 }
+sub TRACE_STAT         () { 0 }
+sub TRACE_STAT_VERBOSE () { 0 }
+sub TRACE_POLL         () { 0 }
 
 # Tk doesn't provide a SEEK method, as of 800.022
 BEGIN {
@@ -58,24 +61,22 @@ sub new {
 
   # STATE-EVENT
   if (exists $params{InputState}) {
+    carp "InputState is deprecated.  Use InputEvent";
     if (exists $params{InputEvent}) {
-      carp "InputEvent takes precedence over deprecated InputState";
       delete $params{InputState};
     }
     else {
-      # deprecation warning goes here
       $params{InputEvent} = delete $params{InputState};
     }
   }
 
   # STATE-EVENT
   if (exists $params{ErrorState}) {
+    carp "ErrorState is deprecated.  Use ErrorEvent";
     if (exists $params{ErrorEvent}) {
-      carp "ErrorEvent takes precedence over deprecated ErrorState";
       delete $params{ErrorState};
     }
     else {
-      # deprecation warning goes here
       $params{ErrorEvent} = delete $params{ErrorState};
     }
   }
@@ -184,13 +185,13 @@ sub _define_states {
   my $state_read    = $self->[SELF_STATE_READ] =
     ref($self) . "($unique_id) -> select read";
   my $poll_interval = $self->[SELF_INTERVAL];
-  my $handle        = $self->[SELF_HANDLE];
   my $filename      = $self->[SELF_FILENAME];
   my $last_stat     = $self->[SELF_LAST_STAT];
+  my $handle        = $self->[SELF_HANDLE];
 
   # Define the read state.
 
-  TRACE and do { warn $state_read; };
+  TRACE_POLL and do { warn $state_read; };
 
   $poe_kernel->state
     ( $state_read,
@@ -200,73 +201,95 @@ sub _define_states {
         0 && CRIMSON_SCOPE_HACK('<');
 
         # The actual code starts here.
-        my ($k, $ses, $hdl) = @_[KERNEL, SESSION, ARG0];
-
-        $k->select_read($hdl);
+        my ($k, $ses) = @_[KERNEL, SESSION];
 
         eval {
           if (defined $filename) {
-            my @old_stat = @$last_stat;
             my @new_stat = stat($filename);
-            # warn "@new_stat\n";
+
+            TRACE_STAT_VERBOSE and do {
+              my @test_new = @new_stat;   splice(@test_new, 8, 1, "(removed)");
+              my @test_old = @$last_stat; splice(@test_old, 8, 1, "(removed)");
+              warn "=== @test_new" if "@test_new" ne "@test_old";
+            };
+
             if (@new_stat) {
-              if ( $new_stat[0] != $old_stat[0] or # device number
-                   $new_stat[1] != $old_stat[1] or # inode
-                   $new_stat[3] != $old_stat[3] or # number of hard links
-                   $new_stat[6] != $old_stat[6]    # device identifier
+              if ($new_stat[7] < $last_stat->[7]) {
+                $$event_reset and $k->call( $ses,
+                                            $$event_reset, $unique_id
+                                          );
+                $last_stat->[7] = $new_stat[7];
+              }
+
+              if ( $new_stat[1] != $last_stat->[1] or # inode's number
+                   $new_stat[0] != $last_stat->[0] or # inode's device
+                   $new_stat[6] != $last_stat->[6] or # device type
+                   $new_stat[3] != $last_stat->[3]    # number of links
                  ) {
-                if (defined $filename) {
-                  close $handle;
-                  if (open $handle, "<$filename") {
-                    $$event_reset and $k->call( $ses,
-                                                $$event_reset, $unique_id
-                                              );
-                  }
-                  else {
-                    $$event_error and
-                      $k->call( $ses, $$event_error, 'reopen',
-                                ($!+0), $!, $unique_id
-                              );
-                  }
+
+                TRACE_STAT and do {
+                  warn "inode $new_stat[1] != old $last_stat->[1]\n"
+                    if $new_stat[1] != $last_stat->[1];
+                  warn "inode device $new_stat[0] != old $last_stat->[0]\n"
+                    if $new_stat[0] != $last_stat->[0];
+                  warn "device type $new_stat[6] != old $last_stat->[6]\n"
+                    if $new_stat[6] != $last_stat->[6];
+                  warn "number of links $new_stat[3] != old $last_stat->[3]\n"
+                    if $new_stat[3] != $last_stat->[3];
+                  warn "file size $new_stat[7] < old $last_stat->[7]\n"
+                    if $new_stat[7] < $last_stat->[7];
+                };
+
+                @$last_stat = @new_stat;
+
+                close $handle;
+                unless (open $handle, "<$filename") {
+                  $$event_error and
+                    $k->call( $ses, $$event_error, 'reopen',
+                              ($!+0), $!, $unique_id
+                            );
                 }
               }
               else {
-                sysseek($hdl, 0, SEEK_CUR);
+                sysseek($handle, 0, SEEK_CUR);
               }
-              @$last_stat = @new_stat;
             }
           }
           else {
-            sysseek($hdl, 0, SEEK_CUR);
+            sysseek($handle, 0, SEEK_CUR);
           }
         };
         $! = 0;
 
-        TRACE and do { warn time . " read ok\n"; };
+        TRACE_POLL and do { warn time . " read ok\n"; };
 
-        if (defined(my $raw_input = $driver->get($hdl))) {
-          TRACE and do { warn time . " raw input\n"; };
-          foreach my $cooked_input (@{$filter->get($raw_input)}) {
-            TRACE and do { warn time . " cooked input\n"; };
-            $k->call($ses, $$event_input, $cooked_input, $unique_id);
+        if (defined(my $raw_input = $driver->get($handle))) {
+          if (@$raw_input) {
+            TRACE_POLL and do { warn time . " raw input\n"; };
+            foreach my $cooked_input (@{$filter->get($raw_input)}) {
+              TRACE_POLL and do { warn time . " cooked input\n"; };
+              $k->call($ses, $$event_input, $cooked_input, $unique_id);
+            }
           }
+        }
+        else {
+          TRACE_POLL and do { warn time . " set delay\n"; };
+          $k->delay($state_wake, $poll_interval);
+          $k->select_read($handle);
         }
 
         if ($!) {
-          TRACE and do { warn time . " error: $!\n"; };
+          TRACE_POLL and do { warn time . " error: $!\n"; };
           $$event_error and
             $k->call($ses, $$event_error, 'read', ($!+0), $!, $unique_id);
         }
-
-        TRACE and do { warn time . " set delay\n"; };
-        $k->delay($state_wake, $poll_interval);
       }
     );
 
   # Define the alarm state that periodically wakes the wheel and
   # retries to read from the file.
 
-  TRACE and do { warn $state_wake; };
+  TRACE_POLL and do { warn $state_wake; };
 
   $poe_kernel->state
     ( $state_wake,
@@ -276,7 +299,7 @@ sub _define_states {
                                         # subroutine starts here
         my $k = $_[KERNEL];
 
-        TRACE and do { warn time . " wake up and select the handle\n"; };
+        TRACE_POLL and do { warn time . " wake up and select the handle\n"; };
 
         $k->select_read($handle, $state_read);
       }
@@ -294,7 +317,7 @@ sub event {
 
     # STATE-EVENT
     if ($name =~ /^(.*?)State$/) {
-      # deprecation warning goes here
+      carp "$name is deprecated.  Use $1Event";
       $name = $1 . 'Event';
     }
 
@@ -520,6 +543,16 @@ the entire POE distribution.
 =head1 BUGS
 
 This wheel can't tail pipes and consoles on some systems.
+
+Because this wheel is cooperatively multitasked, it may lose records
+just prior to a file reset.  For a more robust way to watch files,
+consider using POE::Wheel::Run and your operating system's native
+"tail" utility instead.
+
+  $heap->{tail} = POE::Wheel::Run->new
+    ( Program     => [ "/usr/bin/tail", "-f", $file_name ],
+      StdoutEvent => "log_record",
+    );
 
 =head1 AUTHORS & COPYRIGHTS
 

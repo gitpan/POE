@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 00_coverage.t,v 1.9 2002/01/25 04:25:53 rcaputo Exp $
+# $Id: 00_coverage.t,v 1.10 2002/06/01 22:13:17 rcaputo Exp $
 
 # This test merely loads as many modules as possible so that the
 # coverage tester will see them.  It's performs a similar function as
@@ -21,7 +21,10 @@ sub load_optional_module {
 
   # Make skip messages look more proper.
   if ($reason =~ /Can\'t locate (.*?) in \@INC/) {
-    $reason = "optional module $1 not installed";
+    $reason = "optional $1 not installed";
+  }
+  elsif ($reason =~ /(\S+) not implemented on this architecture/) {
+    $reason = "optional $1 not implemented on $^O";
   }
   elsif ($reason =~ /Can\'t find a valid termcap file/) {
     $reason = "Term::Cap can't find a valid termcap file";

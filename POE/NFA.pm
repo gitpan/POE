@@ -1,15 +1,14 @@
-# $Id: NFA.pm,v 1.14 2002/02/17 19:03:44 rcaputo Exp $
+# $Id: NFA.pm,v 1.16 2002/05/29 05:24:09 rcaputo Exp $
 
 package POE::NFA;
+use POE::Preprocessor;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.14 $ ))[1];
+$VERSION = (qw($Revision: 1.16 $ ))[1];
 
 use Carp qw(carp croak confess);
-
-use POE::Preprocessor;
 
 sub SPAWN_INLINES       () { 'inline_states' }
 sub SPAWN_OPTIONS       () { 'options' }
@@ -431,8 +430,14 @@ sub register_state {
             )
       }
       else {
-        croak "object $handler does not have a '$method' method"
-          unless ($handler->can($method));
+        unless ($handler->can($method)) {
+          if (length ref($handler)) {
+            croak "object $handler does not have a '$method' method"
+          }
+          else {
+            croak "package $handler does not have a '$method' method";
+          }
+        }
       }
     }
   }

@@ -1,11 +1,11 @@
-# $Id: ListenAccept.pm,v 1.24 2002/01/10 20:39:45 rcaputo Exp $
+# $Id: ListenAccept.pm,v 1.25 2002/05/10 01:39:04 rcaputo Exp $
 
 package POE::Wheel::ListenAccept;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.24 $ ))[1];
+$VERSION = (qw($Revision: 1.25 $ ))[1];
 
 use Carp;
 use Symbol;
@@ -34,24 +34,22 @@ sub new {
 
   # STATE-EVENT
   if (exists $params{AcceptState}) {
+    carp "AcceptState is deprecated.  Use AcceptEvent";
     if (exists $params{AcceptEvent}) {
-      carp "AcceptEvent takes precedence over deprecated AcceptState";
       delete $params{AcceptState};
     }
     else {
-      # deprecation warning goes here
       $params{AcceptEvent} = delete $params{AcceptState};
     }
   }
 
   # STATE-EVENT
   if (exists $params{ErrorState}) {
+    carp "ErrorState is deprecated.  Use ErrorEvent";
     if (exists $params{ErrorEvent}) {
-      carp "ErrorEvent takes precedence over deprecated ErrorState";
       delete $params{ErrorState};
     }
     else {
-      # deprecation warning goes here
       $params{ErrorEvent} = delete $params{ErrorState};
     }
   }
@@ -83,7 +81,7 @@ sub event {
 
     # STATE-EVENT
     if ($name =~ /^(.*?)State$/) {
-      # deprecation warning goes here
+      carp "$name is deprecated.  Use $1Event";
       $name = $1 . 'Event';
     }
 

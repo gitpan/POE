@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.19 2002/01/10 20:16:34 rcaputo Exp $
+# $Id: TCP.pm,v 1.21 2002/05/27 21:48:24 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.19 $ ))[1];
+$VERSION = (qw($Revision: 1.21 $ ))[1];
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa);
@@ -79,6 +79,7 @@ sub new {
 
   if (defined $client_input) {
     $client_filter = "POE::Filter::Line" unless defined $client_filter;
+    $client_filter = $client_filter->new() unless ref($client_filter);
     $client_error  = \&_default_client_error  unless defined $client_error;
     $client_connected    = sub {} unless defined $client_connected;
     $client_disconnected = sub {} unless defined $client_disconnected;
@@ -120,7 +121,7 @@ sub new {
               $heap->{client} = POE::Wheel::ReadWrite->new
                 ( Handle       => $socket,
                   Driver       => POE::Driver::SysRW->new( BlockSize => 4096 ),
-                  Filter       => $client_filter->new(),
+                  Filter       => $client_filter,
                   InputEvent   => 'tcp_server_got_input',
                   ErrorEvent   => 'tcp_server_got_error',
                   FlushedEvent => 'tcp_server_got_flush',
@@ -205,8 +206,8 @@ sub new {
             ( BindPort     => $port,
               BindAddress  => $address,
               Reuse        => 'yes',
-              SuccessState => 'tcp_server_got_connection',
-              FailureState => 'tcp_server_got_error',
+              SuccessEvent => 'tcp_server_got_connection',
+              FailureEvent => 'tcp_server_got_error',
             );
         },
 
@@ -418,10 +419,11 @@ connection.
 
 =item ClientFilter
 
-ClientFilter is the name of a POE::Filter class.  Objects of that
-class will be instantiated to interpret and serialize data for the
-client socket.  POE::Component::Server::TCP will provide a generic
-Line filter by default.
+ClientFilter may contain either a POE::Filter class name, such as
+C<"POE::Filter::Block"> or a POE::Filter instance, such as C<new
+POE::Filter::HTTPD>.  ClientFilter is optional;
+POE::Component::Server::TCP will provide a generic Line filter by
+default.
 
 If a ClientFilter class is specified, it's up to the programmer to use
 or define that class.

@@ -1,16 +1,16 @@
-# $Id: Select.pm,v 1.26 2002/05/29 05:24:10 rcaputo Exp $
+# $Id#
 
-# Select loop substrate for POE::Kernel.
+# IO::Poll substrate for POE::Kernel.  The theory is that this will be
+# faster for large scale applications.  This file is contributed by
+# Matt Sergeant (baud).
 
 # Empty package to appease perl.
-package POE::Kernel::Select;
-
-use strict;
+package POE::Kernel::Poll;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.26 $ ))[1];
+$VERSION = (qw($Revision: 1.2 $ ))[1];
 
-# Everything plugs into POE::Kernel.
+# Everything plugs into POE::Kernel;
 package POE::Kernel;
 use POE::Preprocessor;
 
@@ -18,23 +18,18 @@ use strict;
 
 # Ensure that no other substrate module has been loaded.
 BEGIN {
-  die( "POE can't use its own loop and " . &POE_SUBSTRATE_NAME . "\n" )
+  die( "POE can't use IO::Poll and " . &POE_SUBSTRATE_NAME . "\n" )
     if defined &POE_SUBSTRATE;
 };
 
 # Declare the substrate we're using.
-sub POE_SUBSTRATE      () { SUBSTRATE_SELECT      }
-sub POE_SUBSTRATE_NAME () { SUBSTRATE_NAME_SELECT }
+sub POE_SUBSTRATE      () { SUBSTRATE_POLL      }
+sub POE_SUBSTRATE_NAME () { SUBSTRATE_NAME_POLL }
 
-# Linux has a bug on "polled" select() calls.  If select() is called
-# with a zero-second timeout, and a signal manages to interrupt it
-# anyway (it's happened), the select() function is restarted and will
-# block indefinitely.  Set the minimum select() timeout to 1us on
-# Linux systems.
-BEGIN {
-  my $timeout = ($^O eq 'linux') ? 0.001 : 0;
-  eval "sub MINIMUM_SELECT_TIMEOUT () { $timeout }";
-};
+use IO::Poll qw(POLLRDNORM POLLWRNORM POLLIN POLLOUT POLLERR POLLHUP);
+
+sub MINIMUM_POLL_TIMEOUT () { 0 }
+sub POLL_ALL () { POLLIN | POLLOUT | POLLERR }
 
 #------------------------------------------------------------------------------
 # Signal handlers.
@@ -136,47 +131,84 @@ macro substrate_pause_time_watcher {
   # does nothing
 }
 
+sub vec_to_poll {
+  return POLLIN  if $_[0] == VEC_RD;
+  return POLLOUT if $_[0] == VEC_WR;
+  return POLLERR if $_[0] == VEC_EX;
+  croak "unknown I/O vector $_[0]";
+}
+
 ### Filehandles.
 
 macro substrate_watch_filehandle (<fileno>,<vector>) {
-  if (TRACE_SELECT) {
-    warn( "??? watching fileno (", <fileno>, ") vector (", <vector>,
-          ") count($kr_fno_vec->[FVC_EV_COUNT])"
+  # Cheat.  $handle comes from the user's scope.
+
+  my $type = vec_to_poll(<vector>);
+  my $current = $POE::Kernel::Poll::KR_Poll->mask($handle) || 0;
+
+  TRACE_SELECT and
+    warn( sprintf( "Watch " . <fileno> .
+                   ": Current mask: 0x%02X - combine with 0x%02X = 0x%02X\n",
+                   $current, $type, $current | $type
+                 )
         );
-  }
-  vec($kr_vectors[<vector>], <fileno>, 1) = 1;
+
+  $POE::Kernel::Poll::KR_Poll->mask($handle, $current | $type);
   $kr_fno_vec->[FVC_ST_ACTUAL]  = HS_RUNNING;
   $kr_fno_vec->[FVC_ST_REQUEST] = HS_RUNNING;
 }
 
 macro substrate_ignore_filehandle (<fileno>,<vector>) {
-  if (TRACE_SELECT) {
-    warn( "??? ignoring fileno (", <fileno>, ") vector (", <vector>,
-          ") count($kr_fno_vec->[FVC_EV_COUNT])"
+  # Cheat.  $handle comes from the user's scope.
+
+  my $type = vec_to_poll(<vector>);
+  my $current = $POE::Kernel::Poll::KR_Poll->mask($handle) || 0;
+  my $new = $current & ~$type;
+
+  TRACE_SELECT and
+    warn( sprintf( "Ignore ". <fileno> .
+                   ": Current mask: 0x%02X - combine with 0x%02X = 0x%02X\n",
+                   $current, $type, $new
+                 )
         );
-  }
-  vec($kr_vectors[<vector>], <fileno>, 1) = 0;
+
+  $POE::Kernel::Poll::KR_Poll->mask($handle, $new);
   $kr_fno_vec->[FVC_ST_ACTUAL]  = HS_STOPPED;
   $kr_fno_vec->[FVC_ST_REQUEST] = HS_STOPPED;
 }
 
 macro substrate_pause_filehandle_watcher (<fileno>,<vector>) {
-  if (TRACE_SELECT) {
-    warn( "??? pausing fileno (", <fileno>, ") vector (", <vector>,
-          ") count($kr_fno_vec->[FVC_EV_COUNT])"
+  # Cheat.  $handle comes from the user's scope.
+
+  my $type = vec_to_poll(<vector>);
+  my $current = $POE::Kernel::Poll::KR_Poll->mask($handle) || 0;
+  my $new = $current & ~$type;
+
+  TRACE_SELECT and
+    warn( sprintf( "Pause " . <fileno> .
+                   ": Current mask: 0x%02X - combine with 0x%02X = 0x%02X\n",
+                   $current, $type, $new
+                 )
         );
-  }
-  vec($kr_vectors[<vector>], <fileno>, 1) = 0;
+
+  $POE::Kernel::Poll::KR_Poll->mask($handle, $new);
   $kr_fno_vec->[FVC_ST_ACTUAL] = HS_PAUSED;
 }
 
 macro substrate_resume_filehandle_watcher (<fileno>,<vector>) {
-  if (TRACE_SELECT) {
-    warn( "??? resuming fileno (", <fileno>, ") vector (", <vector>,
-          ") count($kr_fno_vec->[FVC_EV_COUNT])"
+  # Cheat.  $handle comes from the user's scope.
+
+  my $type = vec_to_poll(<vector>);
+  my $current = $POE::Kernel::Poll::KR_Poll->mask($handle) || 0;
+
+  TRACE_SELECT and
+    warn( sprintf( "Resume " . <fileno> .
+                   ": Current mask: 0x%02X - combine with 0x%02X = 0x%02X\n",
+                   $current, $type, $current | $type
+                 )
         );
-  }
-  vec($kr_vectors[<vector>], <fileno>, 1) = 1;
+
+  $POE::Kernel::Poll::KR_Poll->mask($handle, $current | $type);
   $kr_fno_vec->[FVC_ST_ACTUAL] = HS_RUNNING;
 }
 
@@ -189,27 +221,25 @@ macro substrate_define_callbacks {
 
 macro substrate_init_main_loop {
   # Initialize the vectors as vectors.
-  vec($kr_vectors[VEC_RD], 0, 1) = 0;
-  vec($kr_vectors[VEC_WR], 0, 1) = 0;
-  vec($kr_vectors[VEC_EX], 0, 1) = 0;
+  $POE::Kernel::Poll::KR_Poll = IO::Poll->new();
 }
 
 macro substrate_do_timeslice {
   # Check for a hung kernel.
   {% test_for_idle_poe_kernel %}
 
-  # Set the select timeout based on current queue conditions.  If
-  # there are FIFO events, then the timeout is zero to poll select and
-  # move on.  Otherwise set the select timeout until the next pending
-  # event, if there are any.  If nothing is waiting, set the timeout
-  # for some constant number of seconds.
+  # Set the poll timeout based on current queue conditions.  If there
+  # are FIFO events, then the poll timeout is zero and move on.
+  # Otherwise set the poll timeout until the next pending event, if
+  # there are any.  If nothing is waiting, set the timeout for some
+  # constant number of seconds.
 
   my $now = time();
   my $timeout;
 
   if (@kr_events) {
     $timeout = $kr_events[0]->[ST_TIME] - $now;
-    $timeout = MINIMUM_SELECT_TIMEOUT if $timeout < MINIMUM_SELECT_TIMEOUT;
+    $timeout = MINIMUM_POLL_TIMEOUT if $timeout < MINIMUM_POLL_TIMEOUT;
   }
   else {
     $timeout = 3600;
@@ -242,29 +272,29 @@ macro substrate_do_timeslice {
     }
   }
 
-  # This is heavy.  It determines whether there are any files actually
-  # being watched.  What is a better way to find a 1 bit in any of the
-  # vectors?
-
-  my $fileno = 0;
-  @filenos = ();
-  foreach (@kr_filenos) {
-    push(@filenos, $fileno)
-      if ( defined($_) and
-           ( vec($kr_vectors[VEC_RD], $fileno, 1) or
-             vec($kr_vectors[VEC_WR], $fileno, 1) or
-             vec($kr_vectors[VEC_EX], $fileno, 1)
-           )
-         );
-    $fileno++;
-  }
+  @filenos = $POE::Kernel::Poll::KR_Poll->handles();
 
   if (TRACE_SELECT) {
-    warn ",----- SELECT BITS IN -----\n";
-    warn "| READ    : ", unpack('b*', $kr_vectors[VEC_RD]), "\n";
-    warn "| WRITE   : ", unpack('b*', $kr_vectors[VEC_WR]), "\n";
-    warn "| EXPEDITE: ", unpack('b*', $kr_vectors[VEC_EX]), "\n";
-    warn "`--------------------------\n";
+    foreach (@filenos) {
+      my @types;
+      push @types, "plain-file"        if -f;
+      push @types, "directory"         if -d;
+      push @types, "symlink"           if -l;
+      push @types, "pipe"              if -p;
+      push @types, "socket"            if -S;
+      push @types, "block-special"     if -b;
+      push @types, "character-special" if -c;
+      push @types, "tty"               if -t;
+      my @modes;
+      my $flags = $POE::Kernel::Poll::KR_Poll->mask($_);
+      push @modes, 'r' if $flags & POLLIN;
+      push @modes, 'w' if $flags & POLLOUT;
+      push @modes, 'x' if $flags & POLLERR;
+      warn( "file handle $_ = fileno(" .
+            fileno($_) .
+            ") modes(@modes) types(@types)\n"
+          );
+    }
   }
 
   # Avoid looking at filehandles if we don't need to.  -><- The added
@@ -277,15 +307,11 @@ macro substrate_do_timeslice {
 
     if (@filenos) {
       # Check filehandles, or wait for a period of time to elapse.
-      my $hits = select( my $rout = $kr_vectors[VEC_RD],
-                         my $wout = $kr_vectors[VEC_WR],
-                         my $eout = $kr_vectors[VEC_EX],
-                         $timeout,
-                       );
+      my $hits = $POE::Kernel::Poll::KR_Poll->poll($timeout);
 
       if (ASSERT_SELECT) {
         if ($hits < 0) {
-          confess "select error: $!"
+          confess "poll returned $hits (error): $!"
             unless ( ($! == EINPROGRESS) or
                      ($! == EWOULDBLOCK) or
                      ($! == EINTR)
@@ -295,33 +321,33 @@ macro substrate_do_timeslice {
 
       if (TRACE_SELECT) {
         if ($hits > 0) {
-          warn "select hits = $hits\n";
+          warn "poll hits = $hits\n";
         }
         elsif ($hits == 0) {
-          warn "select timed out...\n";
+          warn "poll timed out...\n";
         }
-        warn ",----- SELECT BITS OUT -----\n";
-        warn "| READ    : ", unpack('b*', $rout), "\n";
-        warn "| WRITE   : ", unpack('b*', $wout), "\n";
-        warn "| EXPEDITE: ", unpack('b*', $eout), "\n";
-        warn "`---------------------------\n";
       }
 
-      # If select has seen filehandle activity, then gather up the
+      # If poll has seen filehandle activity, then gather up the
       # active filehandles and synchronously dispatch events to the
       # appropriate handlers.
 
       if ($hits > 0) {
 
-        # This is where they're gathered.  It's a variant on a neat
-        # hack Silmaril came up with.
+        # This is where they're gathered.
 
-        my (@rd_selects, @wr_selects, @ex_selects);
-        foreach (@filenos) {
-          push(@rd_selects, $_) if vec($rout, $_, 1);
-          push(@wr_selects, $_) if vec($wout, $_, 1);
-          push(@ex_selects, $_) if vec($eout, $_, 1);
-        }
+        my @rd_selects =
+          ( map { fileno($_) }
+            $POE::Kernel::Poll::KR_Poll->handles( POLLIN )
+          );
+        my @wr_selects =
+          ( map { fileno($_) }
+            $POE::Kernel::Poll::KR_Poll->handles( POLLOUT )
+          );
+        my @ex_selects =
+          ( map { fileno($_) }
+            $POE::Kernel::Poll::KR_Poll->handles( POLLERR )
+          );
 
         if (TRACE_SELECT) {
           if (@rd_selects) {
@@ -344,9 +370,12 @@ macro substrate_do_timeslice {
           }
         }
 
-        if (ASSERT_SELECT) {
+        # IO::Poll often returns a $hits that doesn't match the number
+        # of handles that handles() returns.  This ASSERT_SELECT has
+        # been disabled since it's not true for IO::Poll.
+        if (0 && ASSERT_SELECT) {
           unless (@rd_selects or @wr_selects or @ex_selects) {
-            die "found no selects, with $hits hits from select???\a\n";
+            die "found no selects, with $hits hits from poll???\a\n";
           }
         }
 
@@ -367,9 +396,9 @@ macro substrate_do_timeslice {
       }
     }
 
-    # No filehandles to select on.  Try to sleep instead.  Use sleep()
-    # itself on MSWin32.  Use a dummy four-argument select()
-    # everywhere else.
+    # No filehandles to poll on.  Try to sleep instead.  Use sleep()
+    # itself on MSWin32.  Use a dummy four-argument select() everywhere
+    # else.
 
     else {
       if ($^O eq 'MSWin32') {

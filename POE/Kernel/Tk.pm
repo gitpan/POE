@@ -1,4 +1,4 @@
-# $Id: Tk.pm,v 1.20 2002/01/10 20:39:45 rcaputo Exp $
+# $Id: Tk.pm,v 1.22 2002/06/07 04:13:18 rcaputo Exp $
 
 # Tk-Perl substrate for POE::Kernel.
 
@@ -6,15 +6,18 @@
 package POE::Kernel::Tk;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.20 $ ))[1];
+$VERSION = (qw($Revision: 1.22 $ ))[1];
 
 BEGIN {
   die "POE's Tk support requires version Tk 800.021 or higher.\n"
     unless defined($Tk::VERSION) and $Tk::VERSION >= 800.021;
+  die "POE's Tk support requires Perl 5.005_03 or later.\n"
+    if $] < 5.00503;
 };
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
+use POE::Preprocessor;
 
 use strict;
 
@@ -23,8 +26,6 @@ BEGIN {
   die( "POE can't use Tk and " . &POE_SUBSTRATE_NAME . "\n" )
     if defined &POE_SUBSTRATE;
 };
-
-use POE::Preprocessor;
 
 # Declare the substrate we're using.
 sub POE_SUBSTRATE      () { SUBSTRATE_TK      }

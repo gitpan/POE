@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 12_signals_ev.t,v 1.13 2001/04/03 18:49:20 rcaputo Exp $
+# $Id: 12_signals_ev.t,v 1.15 2002/05/30 06:29:40 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -8,20 +8,21 @@ use strict;
 use lib qw(./lib ../lib);
 use TestSetup;
 
-# Skip these tests if Event isn't here.
+# Skip these tests if Event or fork() isn't here.
 BEGIN {
   eval 'use Event';
   unless (exists $INC{'Event.pm'}) {
-    &test_setup(0, 'the Event module is not installed');
+    test_setup(0, 'the optional Event module is not installed');
   }
-  &test_setup(0, "Windows doesn't seem to do signals") if $^O eq 'MSWin32';
+  test_setup(0, "Windows doesn't support signals") if $^O eq 'MSWin32';
+  test_setup(0, "MacOS doesn't support fork") if $^O eq 'MacOS';
 };
 
 # Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE;
 
-&test_setup(3);
+test_setup(3);
 
 # This is the number of children to fork.  Increase this number if
 # your system can handle the resource use.  Also try increasing it if

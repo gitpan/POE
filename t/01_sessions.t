@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.16 2001/09/10 16:38:29 rcaputo Exp $
+# $Id: 01_sessions.t,v 1.18 2002/05/28 01:59:48 rcaputo Exp $
 
 # Tests basic compilation and events.
 
@@ -125,10 +125,12 @@ POE::Session->create
       sigalrm_target =>
       sub {
         $sigalrm_caught++ if $_[ARG0] eq 'ALRM';
+        $_[KERNEL]->sig_handled();
       },
       sigpipe_target =>
       sub {
         $sigpipe_caught++ if $_[ARG0] eq 'PIPE';
+        $_[KERNEL]->sig_handled();
       },
     }
   );
@@ -400,8 +402,8 @@ for (my $i=0; $i<$machine_count; $i++) {
 
 # Were all the signals caught?
 if ($^O eq 'MSWin32') {
-  print "ok 11 # skipped: Windows doesn't seem to do signals\n";
-  print "ok 12 # skipped: Windows doesn't seem to do signals\n";
+  print "ok 11 # skipped: Windows doesn't support signals\n";
+  print "ok 12 # skipped: Windows doesn't support signals\n";
 }
 else {
   print 'not ' unless $sigalrm_caught == $event_count;

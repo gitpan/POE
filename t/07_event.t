@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 07_event.t,v 1.12 2001/11/09 15:16:43 rcaputo Exp $
+# $Id: 07_event.t,v 1.13 2002/05/10 01:41:29 rcaputo Exp $
 
 # Tests FIFO, alarm, select and postback events using Event's event
 # loop.
@@ -113,6 +113,7 @@ sub io_timer_increment {
 
 sub io_sig_usr1 {
   $_[HEAP]->{signal_count}++ if $_[ARG0] eq 'USR1';
+  $_[KERNEL]->sig_handled();
 }
 
 sub io_stop {

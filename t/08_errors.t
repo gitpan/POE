@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.29 2001/12/08 03:13:33 rcaputo Exp $
+# $Id: 08_errors.t,v 1.34 2002/05/30 06:40:13 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -9,7 +9,7 @@ use lib qw(./lib ../lib);
 use TestSetup;
 
 BEGIN {
-  &test_setup(60);
+  &test_setup(59);
 };
 
 use POSIX qw(:errno_h);
@@ -20,10 +20,10 @@ BEGIN {
     qw( POE_USES_TIME_HIRES
 
         SUBSTRATE_NAME_EVENT SUBSTRATE_NAME_GTK SUBSTRATE_NAME_SELECT
-        SUBSTRATE_NAME_TK
+        SUBSTRATE_NAME_TK SUBSTRATE_NAME_POLL
 
         SUBSTRATE_EVENT SUBSTRATE_GTK SUBSTRATE_SELECT SUBSTRATE_TK
-        POE_SUBSTRATE POE_SUBSTRATE_NAME
+        SUBSTRATE_POLL POE_SUBSTRATE POE_SUBSTRATE_NAME
 
         _substrate_signal_handler_generic
         _substrate_signal_handler_pipe
@@ -59,7 +59,8 @@ BEGIN {
         CHILD_GAIN CHILD_LOSE CHILD_CREATE
 
         ET_USER ET_CALL ET_START ET_STOP ET_SIGNAL ET_GC ET_PARENT
-        ET_CHILD ET_SCPOLL ET_ALARM ET_SELECT
+        ET_CHILD ET_SCPOLL ET_ALARM ET_SELECT ET_SIGNAL_COMPATIBLE
+        ET_SIGNAL_EXPLICIT
 
         FIFO_DISPATCH_TIME LARGE_QUEUE_SIZE
 
@@ -471,44 +472,41 @@ else {
   print "ok 52\n";
 }
 
-use POE::Wheel::Run;
+if ($^O ne 'MSWin32' and $^O ne 'MacOS') {
+  require POE::Wheel::Run;
+  POE::Wheel::Run->import();
 
-eval 'POE::Wheel::Run->new( 1 )';
-print 'not ' unless defined $@ and length $@;
-print "ok 53\n";
+  eval 'POE::Wheel::Run->new( 1 )';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 53\n";
 
-eval 'POE::Wheel::Run->new( Program => 1 )';
-print 'not ' unless defined $@ and length $@;
-print "ok 54\n";
+  eval 'POE::Wheel::Run->new( Program => 1 )';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 54\n";
 
-eval 'POE::Wheel::Run->new( Program => 1, StdinEvent => 1 )';
-print 'not ' unless defined $@ and length $@;
-print "ok 55\n";
-
-if ($^O ne 'MSWin32') {
   my $pwrun =
     eval 'POE::Wheel::Run->new( Program => 1, StdinEvent => 1, Filter => 1 )';
   print 'not ' if defined $@ and length $@;
-  print "ok 56\n";
+  print "ok 55\n";
 
   eval '$pwrun->set_filter()';
   print 'not ' unless defined $@ and length $@;
-  print "ok 57\n";
+  print "ok 56\n";
 
   eval '$pwrun->set_stderr_filter()';
   print 'not ' unless defined $@ and length $@;
-  print "ok 58\n";
+  print "ok 57\n";
 
   eval '$pwrun->set_stdin_filter()';
   print 'not ' unless defined $@ and length $@;
-  print "ok 59\n";
+  print "ok 58\n";
 
   eval '$pwrun->set_stdout_filter()';
   print 'not ' unless defined $@ and length $@;
-  print "ok 60\n";
+  print "ok 59\n";
 }
 else {
-  for (56..60) {
+  for (53..59) {
     print "ok $_ # skipped: Wheel::Run not working on Win32 today\n";
   }
 }

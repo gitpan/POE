@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 11_signals_poe.t,v 1.19 2001/11/10 03:16:14 rcaputo Exp $
+# $Id: 11_signals_poe.t,v 1.20 2002/05/15 17:34:22 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -9,7 +9,8 @@ use lib qw(./lib ../lib);
 use TestSetup;
 
 BEGIN {
-  &test_setup(0, "Windows doesn't seem to do signals") if $^O eq 'MSWin32';
+  test_setup(0, "Windows doesn't support signals") if $^O eq 'MSWin32';
+  test_setup(0, "MacOS doesn't support fork()") if $^O eq 'MacOS';
 };
 
 &test_setup(3);

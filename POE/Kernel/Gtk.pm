@@ -1,4 +1,4 @@
-# $Id: Gtk.pm,v 1.15 2002/01/10 20:39:44 rcaputo Exp $
+# $Id: Gtk.pm,v 1.16 2002/05/29 05:24:10 rcaputo Exp $
 
 # Gtk-Perl substrate for POE::Kernel.
 
@@ -8,23 +8,22 @@ package POE::Kernel::Gtk;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.15 $ ))[1];
+$VERSION = (qw($Revision: 1.16 $ ))[1];
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
+use POE::Preprocessor;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.15 $ ))[1];
+$VERSION = (qw($Revision: 1.16 $ ))[1];
 
 # Ensure that no other substrate module has been loaded.
 BEGIN {
   die( "POE can't use Gtk and " . &POE_SUBSTRATE_NAME . "\n" )
     if defined &POE_SUBSTRATE;
 };
-
-use POE::Preprocessor;
 
 # Declare the substrate we're using.
 sub POE_SUBSTRATE      () { SUBSTRATE_GTK      }

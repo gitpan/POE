@@ -1,16 +1,15 @@
-# $Id: Session.pm,v 1.74 2002/02/05 01:31:55 rcaputo Exp $
+# $Id: Session.pm,v 1.78 2002/05/29 05:24:10 rcaputo Exp $
 
 package POE::Session;
+use POE::Preprocessor;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.74 $ ))[1];
+$VERSION = (qw($Revision: 1.78 $ ))[1];
 
 use Carp qw(carp croak);
 use POSIX qw(ENOSYS);
-
-use POE::Preprocessor;
 
 sub SE_NAMESPACE    () { 0 }
 sub SE_OPTIONS      () { 1 }
@@ -656,8 +655,14 @@ sub register_state {
             )
       }
       else {
-        croak "object $handler does not have a '$method' method"
-          unless ($handler->can($method));
+        unless ($handler->can($method)) {
+          if (length ref($handler)) {
+            croak "object $handler does not have a '$method' method"
+          }
+          else {
+            croak "package $handler does not have a '$method' method";
+          }
+        }
       }
     }
   }
@@ -847,7 +852,7 @@ POE::Session - an event driven abstract state machine
 
     # Plain and mapped package states.
     package_states =>
-    [ $package_one => [ 'state_six', 'state_seven', 'state_eight' },
+    [ $package_one => [ 'state_six', 'state_seven', 'state_eight' ],
       $package_two => { state_ten => 'method_ten' },
     ],
 
@@ -1565,11 +1570,10 @@ its custom parameter list is preserved as a reference in C<ARG1>.
 All the other C<_default> parameters are the same as the unhandled
 event's, with the exception of C<STATE>, which becomes C<_default>.
 
-B<Beware!> A C<_default> handler will catch unhandled signal events.
-In this case, C<_default>'s return value is used to determine whether
-the signal has been handled.  If any C<_default> handler always
-returns true, then it will catch all but the nonmaskable signals, and
-only SIGKILL may stop them.
+It is highly recommended that C<_default> handlers always return
+false.  C<_default> handlers will often catch signals, so they must
+return false if the signals are expected to stop a program.  Otherwise
+only SIGKILL will work.
 
 L<POE::Kernel> discusses signal handlers in "Signal Watcher Methods".
 It also covers the pitfals of C<_default> states in more detail
@@ -1584,24 +1588,32 @@ its new parent.
 
 =item _signal
 
-C<_signal> is a session's default signal handler.  Every signal that
-isn't mapped to a specific state will be delivered to this one.
+C<_signal> is a session's default signal handler.  Every signal not
+specified with C<sig()> will be delivered as a C<_signal> event.
+
+The C<_signal> event is deprecated as of POE 0.1901.  Programs should
+use C<sig()> to generate explicit events for the signals they are
+interested in.
+
+In all signal events...
 
 C<ARG0> contains the signal's name as it appears in Perl's %SIG hash.
-That is, it's the root name of the signal without the SIG prefix.
+That is, it is the root name of the signal without the SIG prefix.
 
 Unhandled C<_signal> events will be forwarded to C<_default>.  In this
-case, the C<_default> handler's return value becomes significant.
-It's possible to accidentally write unkillable programs this way.
+case, the C<_default> handler's return value becomes significant.  Be
+careful: It's possible to accidentally write unkillable programs this
+way.  This is one of the reasons why C<_signal> is deprecated, as are
+signal handler return values.
 
-If C<_signal> and C<_default> handlers don't exist, then signals will
+If C<_signal> and C<_default> handlers do not exist, then signals will
 always be unhandled.
 
-L<POE::Kernel>'s "Signal Watcher Methods" section is recommended
+The "Signal Watcher Methods" section in L<POE::Kernel> is recommended
 reading before using C<_signal> or C<_default>.  It discusses the
 different signal levels, the mechanics of signal propagation, and why
-it's always important to return an explicit value from a signal
-handler, among other things.
+it is important to return an explicit value from a signal handler,
+among other things.
 
 =item _start
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 09_wheels_unix.t,v 1.10 2001/10/30 20:41:47 rcaputo Exp $
+# $Id: 09_wheels_unix.t,v 1.11 2002/05/21 22:58:52 rcaputo Exp $
 
 # Exercises the wheels commonly used with UNIX domain sockets.
 
@@ -9,7 +9,7 @@ use TestSetup;
 use Socket;
 
 BEGIN {
-  &test_setup(0, "Windows doesn't seem to do UNIX sockets")
+  &test_setup(0, "Windows doesn't support UNIX sockets")
     if $^O eq 'MSWin32';
 };
 

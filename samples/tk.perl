@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: tk.perl,v 1.7 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: tk.perl,v 1.8 2002/05/11 12:52:44 rcaputo Exp $
 
 # A simple Tk application, using POE.  Please see notes after __END__
 # for design issues.
@@ -35,7 +35,12 @@ sub ui_start {
 
   $heap->{timers_running} = 0;
 
+  # Catch the UIDESTROY signal.
+
+  $kernel->sig( UIDESTROY => "signal" );
+
   # Some scalars from which we'll be making anonymous references.
+
   my $fast_text = 0;
   my $slow_text = 0;
   my $idle_text = 0;
@@ -210,6 +215,7 @@ sub ui_stop {
 sub ui_signal {
   my ($session, $signal) = @_[SESSION, ARG0];
   print "Session ", $session->ID, " caught signal $signal.\n";
+  return 0;
 }
 
 ### Timed counters logic.
@@ -326,7 +332,10 @@ POE::Session->create
   ( inline_states =>
     { _start  => \&ui_start,
       _stop   => \&ui_stop,
-      _signal => \&ui_signal,
+
+      ### Signal watchers.
+
+      signal  => \&ui_signal,
 
       ### Timed counters states, including buttons.
 

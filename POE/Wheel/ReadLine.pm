@@ -1,16 +1,17 @@
-# $Id: ReadLine.pm,v 1.15 2002/03/04 23:59:18 rcaputo Exp $
+# $Id: ReadLine.pm,v 1.19 2002/06/01 22:12:07 rcaputo Exp $
 
 package POE::Wheel::ReadLine;
+use POE::Preprocessor;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.15 $ ))[1];
+$VERSION = (qw($Revision: 1.19 $ ))[1];
 
 use Carp;
 use Symbol qw(gensym);
 use POE qw(Wheel);
-use POE::Preprocessor;
+use POSIX qw(B38400);
 
 # Things we'll need to interact with the terminal.
 use Term::Cap;
@@ -68,21 +69,20 @@ sub CRIMSON_SCOPE_HACK ($) { 0 }
 # Unicode-- please let me know.
 
 my (%normalized_character, @normalized_extra_width);
-BEGIN {
-  for (my $ord = 0; $ord < 256; $ord++) {
-    $normalized_extra_width[$ord] =
-      length
-        ( $normalized_character{chr($ord)} =
-          ( ($ord > 126)
-            ? (sprintf "<%2x>", $ord)
-            : ( ($ord > 31)
-                ? chr($ord)
-                : ( '^' . chr($ord+64) )
-              )
-          )
-        ) - 1;
-  }
-};
+
+for (my $ord = 0; $ord < 256; $ord++) {
+  $normalized_extra_width[$ord] =
+    length
+      ( $normalized_character{chr($ord)} =
+        ( ($ord > 126)
+          ? (sprintf "<%2x>", $ord)
+          : ( ($ord > 31)
+              ? chr($ord)
+              : ( '^' . chr($ord+64) )
+            )
+        )
+      ) - 1;
+}
 
 # Wipe the current input line.  Implemented as a macro to avoid
 # circular closure problems with $self.
@@ -174,66 +174,67 @@ sub preprocess_keystroke {
   normalize( $keystroke );
 }
 
-# One-time setup.
-BEGIN {
-  # Get the terminal speed for Term::Cap.
+# Get the terminal speed for Term::Cap.
+my $ospeed = B38400;
+eval {
   my $termios = POSIX::Termios->new();
   $termios->getattr();
-  my $ospeed = $termios->getospeed();
-
-  # Get the current terminal's capabilities.
-  $termcap = Term::Cap->Tgetent( { TERM => undef, OSPEED => $ospeed } );
-  die "could not determine terminal capabilities: $!" unless defined $termcap;
-
-  # Require certain capabilites.
-  $termcap->Trequire( qw( LE RI cl ku kd kl kr ) );
-
-  # Some things are optional.
-  eval { $termcap->Trequire( 'kE' ) };
-  $tc_has_ke = 1 unless $@;
-
-  # o/` You can ring my bell, ring my bell. o/`
-  my $bell = $termcap->Tputs( bl => 1 );
-  $bell = $termcap->Tputs( vb => 1 ) unless defined $bell;
-  $tc_bell = (defined $bell) ? $bell : '';
-
-  # Arrow keys.  These are required.
-  $tck_up    = preprocess_keystroke( 'ku' );
-  $tck_down  = preprocess_keystroke( 'kd' );
-  $tck_left  = preprocess_keystroke( 'kl' );
-  $tck_right = preprocess_keystroke( 'kr' );
-
-  # Insert key.
-  eval { $termcap->Trequire( 'kI' ) };
-  if ($@) { $tck_insert = '';                           }
-  else    { $tck_insert = preprocess_keystroke( 'kI' ); }
-
-  # Delete key.
-  eval { $termcap->Trequire( 'kD' ) };
-  if ($@) { $tck_delete = '';                           }
-  else    { $tck_delete = preprocess_keystroke( 'kD' ); }
-
-  # Home key.
-  eval { $termcap->Trequire( 'kh' ) };
-  if ($@) { $tck_home = '';                           }
-  else    { $tck_home = preprocess_keystroke( 'kh' ); }
-
-  # End key.
-  eval { $termcap->Trequire( 'kH' ) };
-  if ($@) { $tck_end = '';                           }
-  else    { $tck_end = preprocess_keystroke( 'kH' ); }
-
-  # Backspace key.
-  eval { $termcap->Trequire( 'kb' ) };
-  if ($@) { $tck_backspace = '';                           }
-  else    { $tck_backspace = preprocess_keystroke( 'kb' ); }
-
-  # Terminal size.
-  ($trk_cols, $trk_rows) = Term::ReadKey::GetTerminalSize($stdout);
-
-  # Esc is the generic meta prefix.
-  $meta_prefix{chr(27)} = 1;
+  $ospeed = $termios->getospeed() || B38400;
 };
+
+# Get the current terminal's capabilities.
+my $term = $ENV{TERM} || 'vt100';
+$termcap = Term::Cap->Tgetent( { TERM => $term, OSPEED => $ospeed } );
+die "could not find termcap entry for ``$term'': $!" unless defined $termcap;
+
+# Require certain capabilites.
+$termcap->Trequire( qw( LE RI cl ku kd kl kr ) );
+
+# Some things are optional.
+eval { $termcap->Trequire( 'kE' ) };
+$tc_has_ke = 1 unless $@;
+
+# o/` You can ring my bell, ring my bell. o/`
+my $bell = $termcap->Tputs( bl => 1 );
+$bell = $termcap->Tputs( vb => 1 ) unless defined $bell;
+$tc_bell = (defined $bell) ? $bell : '';
+
+# Arrow keys.  These are required.
+$tck_up    = preprocess_keystroke( 'ku' );
+$tck_down  = preprocess_keystroke( 'kd' );
+$tck_left  = preprocess_keystroke( 'kl' );
+$tck_right = preprocess_keystroke( 'kr' );
+
+# Insert key.
+eval { $termcap->Trequire( 'kI' ) };
+if ($@) { $tck_insert = '';                           }
+else    { $tck_insert = preprocess_keystroke( 'kI' ); }
+
+# Delete key.
+eval { $termcap->Trequire( 'kD' ) };
+if ($@) { $tck_delete = '';                           }
+else    { $tck_delete = preprocess_keystroke( 'kD' ); }
+
+# Home key.
+eval { $termcap->Trequire( 'kh' ) };
+if ($@) { $tck_home = '';                           }
+else    { $tck_home = preprocess_keystroke( 'kh' ); }
+
+# End key.
+eval { $termcap->Trequire( 'kH' ) };
+if ($@) { $tck_end = '';                           }
+else    { $tck_end = preprocess_keystroke( 'kH' ); }
+
+# Backspace key.
+eval { $termcap->Trequire( 'kb' ) };
+if ($@) { $tck_backspace = '';                           }
+else    { $tck_backspace = preprocess_keystroke( 'kb' ); }
+
+# Terminal size.
+($trk_cols, $trk_rows) = Term::ReadKey::GetTerminalSize($stdout);
+
+# Esc is the generic meta prefix.
+$meta_prefix{chr(27)} = 1;
 
 #------------------------------------------------------------------------------
 # The methods themselves.

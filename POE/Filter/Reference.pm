@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.23 2002/01/10 20:39:44 rcaputo Exp $
+# $Id: Reference.pm,v 1.24 2002/05/27 21:49:51 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -8,7 +8,7 @@ package POE::Filter::Reference;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.23 $ ))[1];
+$VERSION = (qw($Revision: 1.24 $ ))[1];
 
 use Carp qw(carp croak);
 
@@ -250,7 +250,11 @@ have a thaw() function as well as etither an nfreeze() or a freeze()
 function.
 
   # Use Storable explicitly, specified by package name.
-  my $filter = POE::Filter::Reference->new('Storable');
+  my $filter = POE::Filter::Reference->new("Storable");
+
+  # Use YAML, perhaps to pass data to programs not written with POE or
+  # even in Perl at all.
+  my $filter = POE::Filter::Reference->new("YAML");
 
 If SERIALIZER is an object reference, it's assumed to have a thaw()
 method as well as either an nfreeze() or freeze() method.

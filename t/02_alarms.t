@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 02_alarms.t,v 1.9 2001/07/29 18:37:02 rcaputo Exp $
+# $Id: 02_alarms.t,v 1.10 2002/05/10 01:41:29 rcaputo Exp $
 
 # Tests alarms.
 
@@ -424,12 +424,13 @@ POE::Session->create
 
       # These should be dispatched in a certain order.
       _default => sub {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
 
         # Save the test's argument on the heap. Check during _stop.
-        push( @{$_[HEAP]->{tests}}, $_[ARG1]->[0] ) if $_[ARG0] =~ /test_\d+/;
+        push( @{$heap->{tests}}, $_[ARG1]->[0] ) if $_[ARG0] =~ /test_\d+/;
 
-        # Return 0 so we don't accidentally handle signals.
-        return 0;
+        # Handle the signal.
+        $kernel->sig_handled();
       },
 
       _stop => sub {

@@ -1,18 +1,21 @@
-# $Id: Run.pm,v 1.27 2002/01/10 20:39:45 rcaputo Exp $
+# $Id: Run.pm,v 1.32 2002/05/28 22:49:15 rcaputo Exp $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.27 $ ))[1];
+$VERSION = (qw($Revision: 1.32 $ ))[1];
 
 use Carp;
 use POSIX;  # termios stuff
 
-use POE qw(Wheel Pipe::TwoWay Pipe::OneWay Driver::SysRW);
+use POE qw( Wheel Pipe::TwoWay Pipe::OneWay Driver::SysRW Filter::Line );
 
 BEGIN {
+  die "$^O does not support fork()\n" if $^O eq 'MacOS';
+  die "$^O does not fully support fork/exec\n" if $^O eq 'MSWin32';
+
   local $SIG{'__DIE__'} = 'DEFAULT';
   eval    { require IO::Pty; };
   if ($@) { eval 'sub PTY_AVAILABLE () { 0 }';  }
@@ -52,25 +55,27 @@ BEGIN {
 sub UNIQUE_ID     () {  0 }
 sub DRIVER        () {  1 }
 sub ERROR_EVENT   () {  2 }
-sub PROGRAM       () {  3 }
-sub CHILD_PID     () {  4 }
-sub CONDUIT_TYPE  () {  5 }
+sub CLOSE_EVENT   () {  3 }
+sub PROGRAM       () {  4 }
+sub CHILD_PID     () {  5 }
+sub CONDUIT_TYPE  () {  6 }
+sub IS_ACTIVE     () {  7 }
 
-sub HANDLE_STDIN  () {  6 }
-sub FILTER_STDIN  () {  7 }
-sub EVENT_STDIN   () {  8 }
-sub STATE_STDIN   () {  9 }
-sub OCTETS_STDIN  () { 10 }
+sub HANDLE_STDIN  () {  8 }
+sub FILTER_STDIN  () {  9 }
+sub EVENT_STDIN   () { 10 }
+sub STATE_STDIN   () { 11 }
+sub OCTETS_STDIN  () { 12 }
 
-sub HANDLE_STDOUT () { 11 }
-sub FILTER_STDOUT () { 12 }
-sub EVENT_STDOUT  () { 13 }
-sub STATE_STDOUT  () { 14 }
+sub HANDLE_STDOUT () { 13 }
+sub FILTER_STDOUT () { 14 }
+sub EVENT_STDOUT  () { 15 }
+sub STATE_STDOUT  () { 16 }
 
-sub HANDLE_STDERR () { 15 }
-sub FILTER_STDERR () { 16 }
-sub EVENT_STDERR  () { 17 }
-sub STATE_STDERR  () { 18 }
+sub HANDLE_STDERR () { 17 }
+sub FILTER_STDERR () { 18 }
+sub EVENT_STDERR  () { 19 }
+sub STATE_STDERR  () { 20 }
 
 # Used to work around a bug in older perl versions.
 sub CRIMSON_SCOPE_HACK ($) { 0 }
@@ -116,6 +121,9 @@ sub new {
           );
 
   my $all_filter    = delete $params{Filter};
+  $all_filter = POE::Filter::Line->new(Literal => "\n")
+    unless defined $all_filter;
+
   my $stdin_filter  = delete $params{StdinFilter};
   my $stdout_filter = delete $params{StdoutFilter};
   my $stderr_filter = delete $params{StderrFilter};
@@ -140,7 +148,8 @@ sub new {
   croak "$type needs either Filter or StderrFilter"
     if defined($stderr_event) and not defined($stderr_filter);
 
-  my $error_event   = delete $params{ErrorEvent};
+  my $error_event = delete $params{ErrorEvent};
+  my $close_event  = delete $params{CloseEvent};
 
   # Make sure the user didn't pass in parameters we're not aware of.
   if (scalar keys %params) {
@@ -334,13 +343,19 @@ sub new {
   close $stdout_write if defined $stdout_write;
   close $stderr_write if defined $stderr_write;
 
+  my $handle_count = 0;
+  $handle_count++ if defined $stdout_read;
+  $handle_count++ if defined $stderr_read;
+
   my $self = bless
     [ &POE::Wheel::allocate_wheel_id(),  # UNIQUE_ID
       POE::Driver::SysRW->new(),         # DRIVER
       $error_event,   # ERROR_EVENT
+      $close_event,   # CLOSE_EVENT
       $program,       # PROGRAM
       $pid,           # CHILD_PID
       $conduit,       # CONDUIT_TYPE
+      $handle_count,  # IS_ACTIVE
       # STDIN
       $stdin_write,   # HANDLE_STDIN
       $stdin_filter,  # FILTER_STDIN
@@ -383,8 +398,10 @@ sub _define_stdin_flusher {
   my $unique_id     = $self->[UNIQUE_ID];
   my $driver        = $self->[DRIVER];
   my $error_event   = \$self->[ERROR_EVENT];
+  my $close_event   = \$self->[CLOSE_EVENT];
   my $stdin_filter  = $self->[FILTER_STDIN];
   my $stdin_event   = \$self->[EVENT_STDIN];
+  my $is_active     = \$self->[IS_ACTIVE];
 
   # Read/write members.  These are done by reference, to avoid pushing
   # $self into the anonymous sub.  Extra copies of $self are bad and
@@ -404,7 +421,7 @@ sub _define_stdin_flusher {
         # When you can't write, nothing else matters.
         if ($!) {
           $$error_event && $k->call( $me, $$error_event,
-                                     'write', ($!+0), $!, $unique_id
+                                     'write', ($!+0), $!, $unique_id, "STDIN"
                                    );
           $k->select_write($handle);
         }
@@ -446,8 +463,10 @@ sub _define_stdout_reader {
     my $unique_id     = $self->[UNIQUE_ID];
     my $driver        = $self->[DRIVER];
     my $error_event   = \$self->[ERROR_EVENT];
+    my $close_event   = \$self->[CLOSE_EVENT];
     my $stdout_filter = $self->[FILTER_STDOUT];
     my $stdout_event  = \$self->[EVENT_STDOUT];
+    my $is_active     = \$self->[IS_ACTIVE];
 
     $poe_kernel->state
       ( $self->[STATE_STDOUT] = ref($self) . "($unique_id) -> select stdout",
@@ -464,7 +483,13 @@ sub _define_stdout_reader {
           }
           else {
             $$error_event and
-              $k->call( $me, $$error_event, 'read', ($!+0), $!, $unique_id );
+              $k->call( $me, $$error_event,
+                        'read', ($!+0), $!, $unique_id, 'STDOUT'
+                      );
+            unless (--$$is_active) {
+              $k->call( $me, $$close_event, $unique_id )
+                if defined $$close_event;
+            }
             $k->select_read($handle);
           }
         }
@@ -495,8 +520,10 @@ sub _define_stderr_reader {
     my $unique_id     = $self->[UNIQUE_ID];
     my $driver        = $self->[DRIVER];
     my $error_event   = \$self->[ERROR_EVENT];
+    my $close_event   = \$self->[CLOSE_EVENT];
     my $stderr_filter = $self->[FILTER_STDERR];
     my $stderr_event  = \$self->[EVENT_STDERR];
+    my $is_active     = \$self->[IS_ACTIVE];
 
     $poe_kernel->state
       ( $self->[STATE_STDERR] = ref($self) . "($unique_id) -> select stderr",
@@ -513,7 +540,13 @@ sub _define_stderr_reader {
           }
           else {
             $$error_event and
-              $k->call( $me, $$error_event, 'read', ($!+0), $!, $unique_id );
+              $k->call( $me, $$error_event,
+                        'read', ($!+0), $!, $unique_id, 'STDERR'
+                      );
+            unless (--$$is_active) {
+              $k->call( $me, $$close_event, $unique_id )
+                if defined $$close_event;
+            }
             $k->select_read($handle);
           }
         }
@@ -561,7 +594,9 @@ sub event {
     }
     elsif ($name eq 'ErrorEvent') {
       $self->[ERROR_EVENT] = $event;
-      $redefine_stdin = $redefine_stdout = $redefine_stderr = 1;
+    }
+    elsif ($name eq 'CloseEvent') {
+      $self->[CLOSE_EVENT] = $event;
     }
     else {
       carp "ignoring unknown Run parameter '$name'";
@@ -686,11 +721,12 @@ POE::Wheel::Run - event driven fork/exec with added value
   $program = [ '/usr/bin/cat', '-' ];
 
   $wheel = POE::Wheel::Run->new(
-    Program    => $program,
-    Priority   => +5,                 # Adjust priority.  May need to be root.
-    User       => getpwnam('nobody'), # Adjust UID. May need to be root.
-    Group      => getgrnam('nobody'), # Adjust GID. May need to be root.
-    ErrorEvent => 'oops',             # Event to emit on errors.
+    Program     => $program,
+    Priority    => +5,                 # Adjust priority.  May need to be root.
+    User        => getpwnam('nobody'), # Adjust UID. May need to be root.
+    Group       => getgrnam('nobody'), # Adjust GID. May need to be root.
+    ErrorEvent  => 'oops',             # Event to emit on errors.
+    CloseEvent  => 'child_closed',     # Child closed all output.
 
     StdinEvent  => 'stdin',  # Event to emit when stdin is flushed to child.
     StdoutEvent => 'stdout', # Event to emit with child stdout information.
@@ -741,6 +777,8 @@ process.  It may either be 'pipe' (the default), or 'pty'.
 
 Pty conduits require the IO::Pty module.
 
+=item CloseEvent
+
 =item ErrorEvent
 
 =item StdinEvent
@@ -749,8 +787,15 @@ Pty conduits require the IO::Pty module.
 
 =item StderrEvent
 
+C<CloseEvent> contains the name of an event to emit when the child
+process closes all its output handles.  This is a consistent
+notification that the child will not be sending any more output.  It
+does not, however, signal that the client process has stopped
+accepting input.
+
 C<ErrorEvent> contains the name of an event to emit if something
-fails.  It's optional, and if omitted, it won't emit any errors.
+fails.  It is optional.  If omitted, the wheel will not notify its
+session if any errors occur.
 
 Wheel::Run requires at least one of the following three events:
 
@@ -770,12 +815,16 @@ STDOUT or STDERR handles, respectively.
 
 =item StderrFilter
 
-C<Filter> contains a reference to a POE::Filter class that describes
-how the child process performs input and output.  C<Filter> will be
-used to describe the child's stdin, stdout and stderr.
+C<Filter> contains an instance of a POE::Filter subclass.  The filter
+describes how the child process performs input and output.  C<Filter>
+will be used to describe the child's stdin, stdout and stderr.
+C<Filter> is optional.  If left blank, it will default to an instance
+of C<POE::Filter::Line->new(Literal => "\n");>
 
 C<StdinFilter>, C<StdoutFilter> and C<StderrFilter> can be used
-instead of C<Filter> to set different filters for each handle.
+instead of or in addition to C<Filter>.  They will override the
+default filter's selection in situations where a process' input and
+output are in different formats.
 
 =item Group
 
@@ -872,9 +921,29 @@ tend to be reluctant to exit when their terminals are closed.
 
 =over 2
 
+=item CloseEvent
+
+CloseEvent contains the name of the event Wheel::Run emits whenever a
+child process has closed all its output handles.  It signifies that
+the child will not be sending more information.  In addition to the
+usual POE parameters, each CloseEvent comes with one of its own:
+
+C<ARG0> contains the wheel's unique ID.  This can be used to keep
+several child processes separate when they're managed by the same
+session.
+
+A sample close event handler:
+
+  sub close_state {
+    my ($heap, $wheel_id) = @_[HEAP, ARG0];
+
+    my $child = delete $heap->{child}->{$wheel_id};
+    print "Child ", $child->PID, " has finished.\n";
+  }
+
 =item ErrorEvent
 
-ErrorEvent contains the name on an event that Wheel::Run emits
+ErrorEvent contains the name of an event that Wheel::Run emits
 whenever an error occurs.  Every error event comes with four
 parameters:
 
@@ -886,6 +955,12 @@ C<ARG1> and C<ARG2> hold numeric and string values for C<$!>,
 respectively.
 
 C<ARG3> contains the wheel's unique ID.
+
+C<ARG4> contains the name of the child filehandle that has the error.
+It may be "STDIN", "STDOUT", or "STDERR".  The sense of C<ARG0> will
+be the opposite of what you might normally expect for these handles.
+For example, Wheel::Run will report a "read" error on "STDOUT" because
+it tried to read data from that handle.
 
 A sample error event handler:
 
@@ -943,9 +1018,6 @@ Filter changing hasn't been implemented yet.  Let the author know if
 it's needed.  Better yet, patch the file based on the code in
 Wheel::ReadWrite.
 
-Wheel::Run generates SIGCHLD.  This may eventually cause Perl to
-segfault.  Bleah.
-
 Priority is a delta; there's no way to set it directly to some value.
 
 User must be specified by UID.  It would be nice to support login
@@ -954,7 +1026,7 @@ names.
 Group must be specified by GID.  It would be nice to support group
 names.
 
-ActiveState Perl is not going to like this module one bit.
+ActiveState Perl doesn't like this module one bit.
 
 =head1 AUTHORS & COPYRIGHTS
 

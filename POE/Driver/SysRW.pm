@@ -1,4 +1,4 @@
-# $Id: SysRW.pm,v 1.18 2002/01/10 20:39:44 rcaputo Exp $
+# $Id: SysRW.pm,v 1.20 2002/05/22 19:06:10 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
@@ -9,7 +9,7 @@ package POE::Driver::SysRW;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.18 $ ))[1];
+$VERSION = (qw($Revision: 1.20 $ ))[1];
 
 use POSIX qw(EAGAIN);
 use Carp qw(croak);
@@ -75,13 +75,38 @@ sub get {
   my ($self, $handle) = @_;
 
   my $result = sysread($handle, my $buffer = '', $self->[BLOCK_SIZE]);
-  if (defined $result and ($result || ($! == EAGAIN))) {
+
+  # sysread() was sucessful.  Return whatever was read.
+  return [ $buffer ] if $result;
+
+  # 18:01 <dngor> sysread() clears $! when it returns 0 for eof?
+  # 18:01 <merlyn> nobody clears $!
+  # 18:01 <merlyn> returning 0 is not an error
+  # 18:01 <merlyn> returning -1 is an error, and sets $!
+  # 18:01 <merlyn> eof is not an error. :)
+
+  # 18:21 <dngor> perl -wle '$!=1; warn "\$!=",$!+0; \
+  #               warn "sysread=",sysread(STDIN,my $x="",100); \
+  #               die "\$!=",$!+0' < /dev/null
+  # 18:23 <lathos> $!=1 at foo line 1.
+  # 18:23 <lathos> sysread=0 at foo line 1.
+  # 18:23 <lathos> $!=0 at foo line 1.
+  # 18:23 <lathos> 5.6.0 on Darwin.
+  # 18:23 <dngor> Same, 5.6.1 on fbsd 4.4-stable.
+  #               read(2) must be clearing errno or something.
+
+  # sysread() returned 0, signifying EOF.  Although $! is magically
+  # set to 0 on EOF, it may not be portable to rely on this.
+  if (defined $result) {
     $! = 0;
-    [ $buffer ];
+    return undef;
   }
-  else {
-    undef;
-  }
+
+  # Nonfatal sysread() error.  Return an empty list.
+  return [ ] if $! == EAGAIN;
+
+  # fatal sysread error
+  undef;
 }
 
 #------------------------------------------------------------------------------

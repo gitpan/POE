@@ -1,17 +1,16 @@
-# $Id: Kernel.pm,v 1.174 2002/03/05 00:06:21 rcaputo Exp $
+# $Id: Kernel.pm,v 1.184 2002/06/01 22:06:16 rcaputo Exp $
 
 package POE::Kernel;
+use POE::Preprocessor;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.174 $ ))[1];
+$VERSION = (qw($Revision: 1.184 $ ))[1];
 
 use POSIX qw(errno_h fcntl_h sys_wait_h);
 use Carp qw(carp croak confess);
 use Sys::Hostname qw(hostname);
-
-use POE::Preprocessor;
 
 # People expect these to be lexical.
 
@@ -93,6 +92,14 @@ my @kr_vectors = ( '', '', '' );
 #   }
 # }
 my %kr_signals;
+
+# Bookkeeping per dispatched signal.
+
+my @kr_signaled_sessions;
+my $kr_signal_total_handled;
+my $kr_signal_handled_implicitly;
+my $kr_signal_handled_explicitly;
+my $kr_signal_type;
 
 # The table of session aliases, and the sessions they refer to.
 #
@@ -274,6 +281,12 @@ sub ET_SCPOLL () { 0x0100 }  # _sigchild_poll
 sub ET_ALARM  () { 0x0200 }  # Alarm events.
 sub ET_SELECT () { 0x0400 }  # File activity events.
 
+# Temporary signal subtypes, used during signal dispatch semantics
+# deprecation and reformation.
+
+sub ET_SIGNAL_EXPLICIT   () { 0x0800 }  # Explicitly requested signal.
+sub ET_SIGNAL_COMPATIBLE () { 0x1000 }  # Backward-compatible semantics.
+
 # A hash of reserved names.  It's used to test whether someone is
 # trying to use an internal event directoly.
 
@@ -354,11 +367,19 @@ macro sig_remove (<session>,<signal>) {
 }
 
 macro sid (<session>) {
-  "session " . <session>->ID . " (<session>)"
+  "session " . <session>->ID . " (" .
+    ( (keys %{$kr_sessions{<session>}->[SS_ALIASES]})
+      ? join(", ", keys(%{$kr_sessions{<session>}->[SS_ALIASES]}) )
+      : <session>
+    ). ")"
 }
 
 macro ssid {
-  "session " . $session->ID
+  "session " . $session->ID . " (" .
+    ( (keys %{$kr_sessions{$session}->[SS_ALIASES]})
+      ? join(", ", keys(%{$kr_sessions{$session}->[SS_ALIASES]}) )
+      : $session
+    ). ")"
 }
 
 macro ses_leak_hash (<field>) {
@@ -369,8 +390,22 @@ macro ses_leak_hash (<field>) {
 }
 
 macro kernel_leak_hash (<field>) {
-  if (my $leaked = keys <field>) {
-    warn "*** KERNEL HASH   LEAK: \<field> = $leaked\a\n";
+  if (my $leaked = keys %<field>) {
+    warn "*** KERNEL HASH   LEAK: \%<field> = $leaked items\a\n";
+    foreach my $key (keys %<field>) {
+      my $warning = "\t$key";
+      my $value = $<field>{$key};
+      if (ref($value) eq 'HASH') {
+        $warning .= ": (" . join("; ", keys %$value) . ")";
+      }
+      elsif (ref($value) eq 'ARRAY') {
+        $warning .= ": (" . join("; ", @$value) . ")";
+      }
+      else {
+        $warning .= ": $value";
+      }
+      warn $warning, "\n";
+    }
   }
 }
 
@@ -384,15 +419,16 @@ macro kernel_leak_vec (<field>) {
 
 macro kernel_leak_array (<field>) {
   if (my $leaked = <field>) {
-    warn "*** KERNEL ARRAY  LEAK: \<field> = $leaked\a\n";
+    warn "*** KERNEL ARRAY  LEAK: \<field> = $leaked items\a\n";
+    warn "\t(<field>)\n";
   }
 }
 
 macro assert_session_refcount (<session>,<count>) {
-  if (ASSERT_REFCOUNT) { # include
+  if (ASSERT_REFCOUNT) {
     die {% sid <session> %}, " reference count <count> went below zero"
       if $kr_sessions{<session>}->[<count>] < 0;
-  } # include
+  }
 }
 
 
@@ -422,10 +458,10 @@ macro remove_extra_reference (<session>,<tag>) {
   {% ses_refcount_dec <session> %}
 
   $kr_extra_refs--;
-  if (ASSERT_REFCOUNT) { # include
+  if (ASSERT_REFCOUNT) {
     die( "--- ", {% ssid %}, " refcounts for kernel dropped below 0")
       if $kr_extra_refs < 0;
-  } # include
+  }
 }
 
 # There is an string equality test in alias_resolve that should not be
@@ -458,12 +494,12 @@ macro collect_garbage (<session>) {
     # like a kludge, but I'm currently not smart enough to figure out
     # what it's working around.
     if (exists $kr_sessions{<session>}) {
-      if (TRACE_GARBAGE) { # include
+      if (TRACE_GARBAGE) {
         $self->trace_gc_refcount(<session>);
-      } # include
-      if (ASSERT_GARBAGE) { # include
+      }
+      if (ASSERT_GARBAGE) {
         $self->assert_gc_refcount(<session>);
-      } # include
+      }
 
       if ( (exists $kr_sessions{<session>})
            and (!$kr_sessions{<session>}->[SS_REFCOUNT])
@@ -494,9 +530,9 @@ macro event_to_enqueue {
 
 macro test_resolve (<name>,<resolved>) {
   unless (defined <resolved>) {
-    if (ASSERT_SESSIONS) { # include
+    if (ASSERT_SESSIONS) {
       confess "Cannot resolve <name> into a session reference\n";
-    } # include
+    }
     $! = ESRCH;
     TRACE_RETURNS  and carp  "session not resolved: $!";
     ASSERT_RETURNS and croak "session not resolved: $!";
@@ -506,7 +542,7 @@ macro test_resolve (<name>,<resolved>) {
 
 macro test_for_idle_poe_kernel {
   my @filenos = grep { defined $_ } @kr_filenos;
-  if (TRACE_REFCOUNT) { # include
+  if (TRACE_REFCOUNT) {
     warn( ",----- Kernel Activity -----\n",
           "| Events : ", scalar(@kr_events), "\n",
           "| Files  : ", scalar(@filenos), "\n",
@@ -515,7 +551,7 @@ macro test_for_idle_poe_kernel {
           "`---------------------------\n",
           " ..."
          );
-  } # include
+  }
 
   unless ( @kr_events > 1    or  # > 1 for signal poll loop
            @filenos          or
@@ -597,13 +633,15 @@ macro enqueue_ready_selects (<fileno>,<vector>) {
 
 sub SUBSTRATE_NAME_EVENT  () { 'Event.pm' }
 sub SUBSTRATE_NAME_GTK    () { 'Gtk.pm'   }
+sub SUBSTRATE_NAME_POLL   () { 'Poll.pm'  }
 sub SUBSTRATE_NAME_SELECT () { 'select()' }
 sub SUBSTRATE_NAME_TK     () { 'Tk.pm'    }
 
 sub SUBSTRATE_EVENT  () { 0x01 }
 sub SUBSTRATE_GTK    () { 0x02 }
-sub SUBSTRATE_SELECT () { 0x04 }
-sub SUBSTRATE_TK     () { 0x08 }
+sub SUBSTRATE_POLL   () { 0x04 }
+sub SUBSTRATE_SELECT () { 0x08 }
+sub SUBSTRATE_TK     () { 0x10 }
 
 BEGIN {
   if (exists $INC{'Gtk.pm'}) {
@@ -621,11 +659,21 @@ BEGIN {
     POE::Kernel::Event->import();
   }
 
+  if (exists $INC{'IO/Poll.pm'}) {
+    if ($^O eq 'MSWin32') {
+      warn "IO::Poll has issues on $^O.  Using select() instead for now.\n";
+    }
+    else {
+      require POE::Kernel::Poll;
+      POE::Kernel::Poll->import();
+    }
+  }
+
   unless (defined &POE_SUBSTRATE) {
     require POE::Kernel::Select;
     POE::Kernel::Select->import();
   }
-};
+}
 
 # Bring some things from the substrate into this file.  This lets the
 # substrate's things have direct access to our package-lexical Kernel
@@ -636,12 +684,25 @@ BEGIN {
 # SIGNALS
 #==============================================================================
 
-# A list of signals that must be handled lest they terminate sessions.
-# "Terminal" signals are the ones that UNIX defaults to killing
-# processes with.  Thus STOP is not terminal.
+# A list of special signal types.  Signals that aren't listed here are
+# benign (they do not kill sessions at all).  "Terminal" signals are
+# the ones that UNIX defaults to killing processes with.  Thus STOP is
+# not terminal.
 
-my %_terminal_signals =
-  ( QUIT => 1, INT => 1, KILL => 1, TERM => 1, HUP => 1, IDLE => 1 );
+sub SIGTYPE_BENIGN      () { 0x00 }
+sub SIGTYPE_TERMINAL    () { 0x01 }
+sub SIGTYPE_NONMASKABLE () { 0x02 }
+
+my %_signal_types =
+  ( QUIT => SIGTYPE_TERMINAL,
+    INT  => SIGTYPE_TERMINAL,
+    KILL => SIGTYPE_TERMINAL,
+    TERM => SIGTYPE_TERMINAL,
+    HUP  => SIGTYPE_TERMINAL,
+    IDLE => SIGTYPE_TERMINAL,
+    ZOMBIE    => SIGTYPE_NONMASKABLE,
+    UIDESTROY => SIGTYPE_NONMASKABLE,
+  );
 
 # As of version 0.1206, signal handlers and the functions that watch
 # them have been moved into substrate modules.
@@ -689,6 +750,16 @@ sub signal {
       EN_SIGNAL, ET_SIGNAL, [ $signal, @etc ],
       time(), (caller)[1,2]
     );
+}
+
+# Public interface for flagging signals as handled.  This will replace
+# the handlers' return values as an implicit flag.  Returns undef so
+# it may be used as the last function in an event handler.
+
+sub sig_handled {
+  my $self = shift;
+  $kr_signal_total_handled = 1;
+  $kr_signal_handled_explicitly = 1;
 }
 
 #==============================================================================
@@ -804,12 +875,11 @@ sub _dispatch_event {
        $file, $line, $seq
      ) = @_;
 
-  # A copy of the event name, in case we have to change it.
   my $local_event = $event;
 
-  if (TRACE_PROFILE) { # include
+  if (TRACE_PROFILE) {
     $profile{$event}++;
-  } # include
+  }
 
   # Pre-dispatch processing.
 
@@ -845,7 +915,7 @@ sub _dispatch_event {
       # For the ID to session reference lookup.
       $kr_session_ids{$kr_id_index} = $session;
 
-      if (ASSERT_RELATIONS) { # include
+      if (ASSERT_RELATIONS) {
         # Ensure sanity.
         die {% ssid %}, " is its own parent\a" if $session == $source_session;
 
@@ -854,7 +924,7 @@ sub _dispatch_event {
            )
           if (exists $kr_sessions{$source_session}->[SS_CHILDREN]->{$session});
 
-      } # include
+      }
 
       # Add the new session to its parent's children.
       $kr_sessions{$source_session}->[SS_CHILDREN]->{$session} = $session;
@@ -961,29 +1031,67 @@ sub _dispatch_event {
     elsif ($type & ET_SIGNAL) {
       my $signal = $etc->[0];
 
-      # Propagate the signal to this session's children.  This happens
-      # first, making the signal's traversal through the parent/child
-      # tree depth first.  It ensures that signals posted to the
-      # Kernel are delivered to the Kernel last.
+      TRACE_SIGNALS and
+        warn( "!!! dispatching ET_SIGNAL ($signal) to session",
+              $session->ID, "\n"
+            );
 
+      # Step 0: Reset per-signal structures.
+
+      undef $kr_signal_total_handled;
+      $kr_signal_type = $_signal_types{$signal} || SIGTYPE_BENIGN;
+      undef @kr_signaled_sessions;
+
+      # Step 1: Propagate the signal to sessions that are watching it.
+
+      if (exists $kr_signals{$signal}) {
+        while (my ($session, $event) = each(%{$kr_signals{$signal}})) {
+          my $session_ref = $kr_sessions{$session}->[SS_SESSION];
+
+          TRACE_SIGNALS and
+            warn( "!!! propagating explicit signal $event ($signal) ",
+                  "to session ", $session_ref->ID, "\n"
+                );
+
+          $self->_dispatch_event
+            ( $session_ref, $self,
+              $event, ET_SIGNAL_EXPLICIT, $etc,
+              time(), $file, $line, undef
+            );
+        }
+      }
+    }
+
+    # Step 2: Propagate the signal to this session's children.  This
+    # happens first, making the signal's traversal through the
+    # parent/child tree depth first.  It ensures that signals posted
+    # to the Kernel are delivered to the Kernel last.
+
+    if ($type & (ET_SIGNAL | ET_SIGNAL_COMPATIBLE)) {
+      my $signal = $etc->[0];
       my @children = values %{$kr_sessions{$session}->[SS_CHILDREN]};
       foreach (@children) {
+
+        TRACE_SIGNALS and
+          warn( "!!! propagating compatible signal ($signal) to session ",
+                $_->ID, "\n"
+              );
+
         $self->_dispatch_event
           ( $_, $self,
-            $event, ET_SIGNAL, $etc,
+            $event, ET_SIGNAL_COMPATIBLE, $etc,
             time(), $file, $line, undef
           );
       }
 
-      # Translate the '_signal' event to its handler's name.  This is
-      # a two-tier exists to prevent the second one from autovivifying
-      # elements in %kr_signals.
-
-      if ( exists $kr_signals{$signal} and
-           exists $kr_signals{$signal}->{$session}
-         ) {
-        $local_event = $kr_signals{$signal}->{$session};
-      }
+      # If this session already received a signal in step 1, then
+      # ignore dispatching it again in this step.  This uses a
+      # two-step exists so that the longer one does not autovivify
+      # keys in the shorter one.
+      return if ( ($type & ET_SIGNAL_COMPATIBLE) and
+                  exists($kr_signals{$signal}) and
+                  exists($kr_signals{$signal}->{$session})
+                );
     }
   }
 
@@ -992,28 +1100,35 @@ sub _dispatch_event {
 
   unless (exists $kr_sessions{$session}) {
 
-    if (TRACE_EVENTS) { # include
+    if (TRACE_EVENTS) {
       warn ">>> discarding $event to nonexistent ", {% ssid %}, "\n";
-    } # include
+    }
 
     return;
   }
 
-  if (TRACE_EVENTS) { # include
+  if (TRACE_EVENTS) {
     warn ">>> dispatching $event to $session ", {% ssid %}, "\n";
     if ($event eq EN_SIGNAL) {
       warn ">>>     signal($etc->[0])\n";
     }
-  } # include
+  }
 
   # Prepare to call the appropriate handler.  Push the current active
   # session on Perl's call stack.
   my $hold_active_session = $kr_active_session;
   $kr_active_session = $session;
 
+  # Clear the implicit/explicit signal handler flags for this event
+  # dispatch.  We'll use them afterward to carp at the user if they
+  # handled something implicitly but not explicitly.
+
+  undef $kr_signal_handled_implicitly;
+  undef $kr_signal_handled_explicitly;
+
   # Dispatch the event, at long last.
   my $return =
-    $session->_invoke_state($source_session, $local_event, $etc, $file, $line);
+    $session->_invoke_state($source_session, $event, $etc, $file, $line);
 
   # Stringify the handler's return value if it belongs in the POE
   # namespace.  $return's scope exists beyond the post-dispatch
@@ -1032,9 +1147,9 @@ sub _dispatch_event {
   # Pop the active session, now that it's not active anymore.
   $kr_active_session = $hold_active_session;
 
-  if (TRACE_EVENTS) { # include
+  if (TRACE_EVENTS) {
     warn "<<< ", {% ssid %}, " -> $event returns ($return)\n";
-  } # include
+  }
 
   # Post-dispatch processing.  This is a user event (but not a call),
   # so garbage collect it.  Also garbage collect the sender.
@@ -1066,13 +1181,13 @@ sub _dispatch_event {
     my $parent = $kr_sessions{$session}->[SS_PARENT];
     if (defined $parent) {
 
-      if (ASSERT_RELATIONS) { # include
+      if (ASSERT_RELATIONS) {
         die {% ssid %}, " is its own parent\a" if ($session == $parent);
         die {% ssid %}, " is not a child of ", {% sid $parent %}, "\a"
           unless ( ($session == $parent) or
                    exists($kr_sessions{$parent}->[SS_CHILDREN]->{$session})
                  );
-      } # include
+      }
 
       delete $kr_sessions{$parent}->[SS_CHILDREN]->{$session};
       {% ses_refcount_dec $parent %}
@@ -1083,10 +1198,10 @@ sub _dispatch_event {
     my @children = values %{$kr_sessions{$session}->[SS_CHILDREN]};
     foreach (@children) {
 
-      if (ASSERT_RELATIONS) { # include
+      if (ASSERT_RELATIONS) {
         die {% sid $_ %}, " is already a child of ", {% sid $parent %}, "\a"
           if (exists $kr_sessions{$parent}->[SS_CHILDREN]->{$_});
-      } # include
+      }
 
       $kr_sessions{$_}->[SS_PARENT] = $parent;
       if (defined $parent) {
@@ -1121,12 +1236,12 @@ sub _dispatch_event {
 
     my $index = @kr_events;
     while ( $index-- &&
-            ( $kr_sessions{$session}->[SS_EVCOUNT] or
-              $kr_sessions{$session}->[SS_POST_COUNT]
+            ( $kr_sessions{$session}->[SS_EVCOUNT]
+              or $kr_sessions{$session}->[SS_POST_COUNT]
             )
           ) {
-      if ( $kr_events[$index]->[ST_SESSION] == $session or
-           $kr_events[$index]->[ST_SOURCE]  == $session
+      if ( $kr_events[$index]->[ST_SESSION] == $session
+           or $kr_events[$index]->[ST_SOURCE]  == $session
          ) {
         {% ses_refcount_dec2 $kr_events[$index]->[ST_SESSION], SS_EVCOUNT %}
         {% ses_refcount_dec2 $kr_events[$index]->[ST_SOURCE], SS_POST_COUNT %}
@@ -1159,7 +1274,7 @@ sub _dispatch_event {
     # And finally, check all the structures for leakage.  POE's pretty
     # complex internally, so this is a happy fun check.
 
-    if (ASSERT_GARBAGE) { # include
+    if (ASSERT_GARBAGE) {
       my $errors = 0;
 
       if (my $leaked = $kr_sessions{$session}->[SS_REFCOUNT]) {
@@ -1185,7 +1300,7 @@ sub _dispatch_event {
 
       die "\a\n" if ($errors);
 
-    } # include
+    }
 
     # Remove the session's structure from the kernel's structure.
     delete $kr_sessions{$session};
@@ -1201,22 +1316,37 @@ sub _dispatch_event {
     }
   }
 
-  # Check for death by terminal signal.
+  # Step 3: Check for death by terminal signal.
 
-  elsif ($type & ET_SIGNAL) {
-    my $signal = $etc->[0];
+  elsif ($type & (ET_SIGNAL | ET_SIGNAL_EXPLICIT | ET_SIGNAL_COMPATIBLE)) {
+    push @kr_signaled_sessions, $session;
+    $kr_signal_total_handled += !!$return;
+    $kr_signal_handled_implicitly += !!$return;
 
-    # Determine if the signal is fatal and some junk.
-    if ( ($signal eq 'ZOMBIE') or
-         ($signal eq 'UIDESTROY') or
-         (!$return && exists($_terminal_signals{$signal}))
-       ) {
-      $self->session_free($session);
+    unless ($kr_signal_handled_explicitly) {
+      if ($kr_signal_handled_implicitly) {
+        # -><- DEPRECATION WARNING GOES HERE
+        # warn( { % ssid % } . " implicitly handled SIG$etc->[0]\n" );
+      }
     }
 
-    # It's not fatal.  Collect garbage.
-    else {
-      {% collect_garbage $session %}
+    if ($type & ET_SIGNAL) {
+      if ( ($kr_signal_type & SIGTYPE_NONMASKABLE) or
+           ( $kr_signal_type & SIGTYPE_TERMINAL and !$kr_signal_total_handled )
+         ) {
+        foreach my $dead_session (@kr_signaled_sessions) {
+          TRACE_SIGNALS and
+            warn( "!!! freeing signaled session ", $dead_session->ID, "\n" );
+          $self->session_free($dead_session);
+        }
+      }
+      else {
+        foreach my $dead_session (@kr_signaled_sessions) {
+          TRACE_SIGNALS and
+            warn( "!!! garbage testing signaled ", $dead_session->ID, "\n" );
+          {% collect_garbage $dead_session %}
+        }
+      }
     }
   }
 
@@ -1253,21 +1383,21 @@ macro finalize_kernel {
   # Let's make sure POE isn't leaking things.
 
   if (ASSERT_GARBAGE) {
-    {% kernel_leak_hash  %kr_sessions    %}
-    {% kernel_leak_vec   VEC_RD          %}
-    {% kernel_leak_vec   VEC_WR          %}
-    {% kernel_leak_vec   VEC_EX          %}
-    {% kernel_leak_hash  %kr_signals     %}
-    {% kernel_leak_hash  %kr_aliases     %}
-    {% kernel_leak_array @kr_events      %}
-    {% kernel_leak_hash  %kr_session_ids %}
-    {% kernel_leak_hash  %kr_event_ids   %}
+    {% kernel_leak_hash  kr_sessions    %}
+    {% kernel_leak_vec   VEC_RD         %}
+    {% kernel_leak_vec   VEC_WR         %}
+    {% kernel_leak_vec   VEC_EX         %}
+    {% kernel_leak_hash  kr_signals     %}
+    {% kernel_leak_hash  kr_aliases     %}
+    {% kernel_leak_array @kr_events     %}
+    {% kernel_leak_hash  kr_session_ids %}
+    {% kernel_leak_hash  kr_event_ids   %}
 
     # Because undef values are okay here.  Destructive is okay too
     # because we're not going to use these afterwards.
 
     @kr_filenos = grep {defined} @kr_filenos;
-    {% kernel_leak_array @kr_filenos     %}
+    {% kernel_leak_array @kr_filenos    %}
   }
 
   if (TRACE_PROFILE) {
@@ -1335,9 +1465,7 @@ sub _invoke_state {
       # waitpid(2) returned a process ID.  Emit an appropriate SIGCHLD
       # event and loop around again.
 
-      if ( (RUNNING_IN_HELL and $pid < -1) or
-           (!RUNNING_IN_HELL and $pid > 0)
-         ) {
+      if ((RUNNING_IN_HELL and $pid < -1) or ($pid > 0)) {
         if (RUNNING_IN_HELL or WIFEXITED($?) or WIFSIGNALED($?)) {
 
           TRACE_SIGNALS and
@@ -1412,7 +1540,7 @@ sub _invoke_state {
     }
   }
 
-  return 1;
+  return 0;
 }
 
 #==============================================================================
@@ -1425,10 +1553,10 @@ sub _invoke_state {
 sub session_alloc {
   my ($self, $session, @args) = @_;
 
-  if (ASSERT_RELATIONS) { # include
+  if (ASSERT_RELATIONS) {
     die {% ssid %}, " already exists\a"
       if (exists $kr_sessions{$session});
-  } # include
+  }
 
   $self->_dispatch_event
     ( $session, $kr_active_session,
@@ -1448,10 +1576,10 @@ sub session_alloc {
 sub session_free {
   my ($self, $session) = @_;
 
-  if (ASSERT_RELATIONS) { # include
+  if (ASSERT_RELATIONS) {
     die {% ssid %}, " doesn't exist\a"
       unless (exists $kr_sessions{$session});
-  } # include
+  }
 
   $self->_dispatch_event
     ( $session, $kr_active_session,
@@ -1644,9 +1772,11 @@ sub _enqueue_event {
        $file, $line
      ) = @_;
 
-  if (TRACE_EVENTS) { # include
-    warn "}}} enqueuing event '$event' for ", {% ssid %}, " at $time\n";
-  } # include
+  if (TRACE_EVENTS) {
+    warn( "}}} enqueuing event '$event' from session ", $source_session->ID,
+          " to ", {% ssid %}, " at $time"
+        );
+  }
 
   if (exists $kr_sessions{$session}) {
 
@@ -1780,6 +1910,7 @@ sub post {
   # various things.
 
   my $session = {% alias_resolve $destination %};
+
   {% test_resolve $destination, $session %}
 
   # Enqueue the event for "now", which simulates FIFO in our
@@ -2600,16 +2731,21 @@ sub _internal_select {
 
         $kr_fno_vec->[FVC_REFCOUNT]--;
 
-        if (ASSERT_REFCOUNT) { # include
+        if (ASSERT_REFCOUNT) {
           die "fileno vector refcount went below zero"
             if $kr_fno_vec->[FVC_REFCOUNT] < 0;
-        } # include
+        }
 
         # If the "vector" count drops to zero, then stop selecting the
         # handle.
 
         unless ($kr_fno_vec->[FVC_REFCOUNT]) {
           {% substrate_ignore_filehandle $fileno, $select_index %}
+
+          # The session is not watching handles anymore.  Remove the
+          # session entirely the fileno structure.
+          delete $kr_fno_vec->[FVC_SESSIONS]->{$session}
+            unless keys %{$kr_fno_vec->[FVC_SESSIONS]->{$session}};
         }
 
         # Decrement the kernel record's handle reference count.  If
@@ -2620,10 +2756,10 @@ sub _internal_select {
 
         $kr_fileno->[FNO_TOT_REFCOUNT]--;
 
-        if (ASSERT_REFCOUNT) { # include
+        if (ASSERT_REFCOUNT) {
           die "fileno refcount went below zero"
             if $kr_fileno->[FNO_TOT_REFCOUNT] < 0;
-        } # include
+        }
 
         unless ($kr_fileno->[FNO_TOT_REFCOUNT]) {
           if (TRACE_SELECT) {
@@ -2653,9 +2789,9 @@ sub _internal_select {
 
         $ss_handle->[SH_REFCOUNT]--;
 
-        if (ASSERT_REFCOUNT) { # include
+        if (ASSERT_REFCOUNT) {
           die if ($ss_handle->[SH_REFCOUNT] < 0);
-        } # include
+        }
 
         unless ($ss_handle->[SH_REFCOUNT]) {
           delete $kr_session->[SS_HANDLES]->{$handle};
@@ -2759,7 +2895,7 @@ sub select_pause_write {
   my $kr_fileno  = $kr_filenos[fileno($handle)];
   my $kr_fno_vec = $kr_fileno->[VEC_WR];
   if (TRACE_SELECT) {
-    warn( "=== fileno(" . fileno($handle) . ") vector(VEC_WR) " .
+    warn( "=== pause test: fileno(" . fileno($handle) . ") vector(VEC_WR) " .
           "count($kr_fno_vec->[FVC_EV_COUNT])"
         );
   }
@@ -2796,7 +2932,7 @@ sub select_resume_write {
   my $kr_fileno = $kr_filenos[fileno($handle)];
   my $kr_fno_vec = $kr_fileno->[VEC_WR];
   if (TRACE_SELECT) {
-    warn( "=== fileno(" . fileno($handle) . ") vector(VEC_WR) " .
+    warn( "=== resume test: fileno(" . fileno($handle) . ") vector(VEC_WR) " .
           "count($kr_fno_vec->[FVC_EV_COUNT])"
         );
   }
@@ -2833,7 +2969,7 @@ sub select_pause_read {
   my $kr_fileno = $kr_filenos[fileno($handle)];
   my $kr_fno_vec = $kr_fileno->[VEC_RD];
   if (TRACE_SELECT) {
-    warn( "=== fileno(" . fileno($handle) . ") vector(VEC_RD) " .
+    warn( "=== pause test: fileno(" . fileno($handle) . ") vector(VEC_RD) " .
           "count($kr_fno_vec->[FVC_EV_COUNT])"
         );
   }
@@ -2870,7 +3006,7 @@ sub select_resume_read {
   my $kr_fileno = $kr_filenos[fileno($handle)];
   my $kr_fno_vec = $kr_fileno->[VEC_RD];
   if (TRACE_SELECT) {
-    warn( "=== fileno(" . fileno($handle) . ") vector(VEC_RD) " .
+    warn( "=== resume test: fileno(" . fileno($handle) . ") vector(VEC_RD) " .
           "count($kr_fno_vec->[FVC_EV_COUNT])"
         );
   }
@@ -2978,7 +3114,7 @@ sub alias_list {
   }
 
   # Return whatever can be found.
-  return grep {$kr_aliases{$_} == $search_session} keys %kr_aliases;
+  return keys %{$kr_sessions{$search_session}->[SS_ALIASES]};
 }
 
 #==============================================================================
@@ -3060,26 +3196,26 @@ sub refcount_increment {
 
     my $refcount = ++$kr_sessions{$session}->[SS_EXTRA_REFS]->{$tag};
 
-    if (TRACE_REFCOUNT) { # include
+    if (TRACE_REFCOUNT) {
       carp( "+++ ", {% ssid %}, " refcount for tag '$tag' incremented to ",
             $refcount
           );
-    } # include
+    }
 
     if ($refcount == 1) {
       {% ses_refcount_inc $session %}
 
-      if (TRACE_REFCOUNT) { # include
+      if (TRACE_REFCOUNT) {
           carp( "+++ ", {% ssid %}, " refcount for session is at ",
                 $kr_sessions{$session}->[SS_REFCOUNT]
              );
-      } # include
+      }
 
       $kr_extra_refs++;
 
-      if (TRACE_REFCOUNT) { # include
+      if (TRACE_REFCOUNT) {
         carp( "+++ session refcounts in kernel: $kr_extra_refs" );
-      } # include
+      }
 
     }
 
@@ -3117,25 +3253,25 @@ sub refcount_decrement {
 
     my $refcount = --$kr_sessions{$session}->[SS_EXTRA_REFS]->{$tag};
 
-    if (ASSERT_REFCOUNT) { # include
+    if (ASSERT_REFCOUNT) {
       croak( "--- ", {% ssid %}, " refcount for tag '$tag' dropped below 0" )
         if $refcount < 0;
-    } # include
+    }
 
-    if (TRACE_REFCOUNT) { # include
+    if (TRACE_REFCOUNT) {
       carp( "--- ", {% ssid %}, " refcount for tag '$tag' decremented to ",
             $refcount
           );
-    } # include
+    }
 
     unless ($refcount) {
       {% remove_extra_reference $session, $tag %}
 
-      if (TRACE_REFCOUNT) { # include
+      if (TRACE_REFCOUNT) {
         carp( "--- ", {% ssid %}, " refcount for session is at ",
               $kr_sessions{$session}->[SS_REFCOUNT]
             );
-      } # include
+      }
     }
 
     {% collect_garbage $session %}
@@ -3205,11 +3341,11 @@ written entirely in Perl.  To use it, simply:
 
   use POE;
 
-POE's event loop will also work cooperatively with Gtk's, Tk's or
-Event's.  POE will see one of these three modules if it's used first
-and change its behavior accordingly.
+POE can adapt itself to work with other event loops and I/O multiplex
+systems.  Currently it adapts to Gtk, Tk, Event.pm, or IO::Poll when
+one of those modules is used before POE::Kernel.
 
-  use Gtk;  # or use Tk; or use Event;
+  use Gtk;  # Or Tk, Event, or IO::Poll;
   use POE;
 
 Methods to manage the process' global Kernel instance:
@@ -3333,11 +3469,14 @@ Filehandle watcher methods:
 
 Signal watcher and generator methods:
 
-  # Generate an event when a particular signal arrives.
+  # Watch for a signal, and generate an event when it arrives.
   $kernel->sig( $signal_name, $event );
 
   # Stop watching for a signal.
   $kernel->sig( $signal_name );
+
+  # Handle a signal, preventing the program from terminating.
+  $kernel->sig_handled();
 
   # Post a signal through POE rather than through the underlying OS.
   # This only works within the same process.
@@ -3484,9 +3623,12 @@ they're dispatched.
 
 =item yield EVENT_NAME
 
-yield() enqueues an event to be dispatched to EVENT_NAME in the same
-session.  If a PARAMETER_LIST is included, its values will be passed
-as argumets to EVENT_NAME's handler.
+yield() enqueues an EVENT_NAME event for the session that calls it.
+If a PARAMETER_LIST is included, its values will be passed as
+arguments to EVENT_NAME's handler.
+
+yield() is shorthand for post() where the event's destination is the
+current session.
 
 Events posted with yield() must propagate through POE's FIFO before
 they're dispatched.  This effectively yields timeslices to other
@@ -3494,6 +3636,11 @@ sessions which have events enqueued before it.
 
   $kernel->yield( 'do_this' );
   $kernel->yield( 'do_that', @with_these );
+
+The previous yield() calls are equivalent to these post() calls.
+
+  $kernel->post( $session, 'do_this' );
+  $kernel->post( $session, 'do_that', @with_these );
 
 The yield() method does not return a meaningful value.
 
@@ -4096,39 +4243,56 @@ This method does not return a meaningful value.
 
 =head2 Signal Watcher Methods
 
-Sessions always receive events for signals.  By default, signals are
-sent as _signal events.  Signal "watchers" just map particular signals
-to events other than _signal.
+First some general notes about signal events and handling them.
 
-The default _signal event is covered in more detail in
-L<POE::Session>, along with the other standard events.
+Signal events are dispatched to sessions that have registered interest
+in them via the C<sig()> method.  For backward compatibility, every
+other session will receive a _signal event after that.  The _signal
+event is scheduled to be removed in version 0.22, so please use
+C<sig()> to register signal handlers instead.  In the meantime,
+_signal events contain the same parameters as ones generated by
+C<sig()>.  L<POE::Session> covers signal events in more details.
 
-Signal watchers do not prevent sessions from spontaneously stopping.
-
-Perl's signal handling is not safe by itself, and while POE tries its
-best to avoid signal problems, they will occur.  The Event module
-implements safe signals, and POE will take advantage of them when
-Event is used before it.
-
-Signal events propagate from a session's children up to it.  This
-ensures that the leaves of a session's family tree are signalled
-before branches, and so on up to it.  By the time a session receives a
-signal, all its descendents already have.
+Signal events propagate to child sessions before their parents.  This
+ensures that leaves of the parent/child tree are signaled first.  By
+the time a session receives a signal, all its descendents already
+have.
 
 The Kernel acts as the ancestor of every session.  Signalling it, as
 the operating system does, propagates signal events to every session.
 
-It's possible to post fictitious signals from within POE.  These are
-injected into the queue as if they came from the underlying operating
-system, but they are not limited to the signals that the system
-recognizes.  POE uses fictitious signals to notify every session about
-certain global events.
+It is possible to post fictitious signals from within POE.  These are
+injected into the queue as if they came from the operating system, but
+they are not limited to signals that the system recognizes.  POE uses
+fictitious signals to notify every session about certain global
+events, such as when a user interface has been destroyed.
 
-Sessions that don't handle signal events may incur side effects.
-Event handlers tell the Kernel that they've handled a signal by
-returning true.  The Kernel will consider a signal unhandled if its
-event handler returns false or doesn't exist.  Either way, the signal
-will continue propagating up the ancestor tree.
+Sessions that do not handle signal events may incur side effects.  In
+particular, some signals are "terminal", in that they terminate a
+program if they are not handled.  Many of the signals that usually
+stop a program in UNIX are terminal in POE.
+
+POE also recognizes "non-maskable" signals.  These will terminate a
+program even when they are handled.  The signal that indicates user
+interface destruction is just such a non-maskable signal.
+
+Event handlers use C<sig_handled()> to tell POE when a signal has been
+handled.  Some unhandled signals will terminate a program.  Handling
+them is important if that is not desired.
+
+Event handlers can also implicitly tell POE when a signal has been
+handled, simply by returning some true value.  This is deprecated,
+however, because it has been the source of constant trouble in the
+past.  Please use C<sig_handled()> in its place.
+
+Handled signals will continue to propagate through the parent/child
+hierarchy.
+
+Signal handling in Perl is not safe by itself.  POE is written to
+avoid as many signal problems as it can, but they still may occur.
+SIGCHLD is a special exception: POE polls for child process exits
+using waitpid() instead of a signal handler.  Spawning child processes
+should be completely safe.
 
 There are three signal levels.  They are listed from least to most
 strident.
@@ -4137,29 +4301,36 @@ strident.
 
 =item benign
 
-Benign signals just notify sessions that signals have been caught.
-They have no side effects if they aren't handled.
+Benign signals just notify sessions that signals have been received.
+They have no side effects if they are not handled.
 
 =item terminal
 
-Terminal signals will stop any session that doesn't handle them.  The
-terminal system signals are: HUP, INT, KILL, QUIT and TERM.  There is
-also one terminal fictitious signal, IDLE, which is used to notify
-leftover sessions that the program has run out of things to do.
+Terminal signal may stop a program if they go unhandled.  If any event
+handler calls C<sig_handled()>, however, then the program will
+continue to live.
+
+In the past, only sessions that handled signals would survive.  All
+others would be terminated.  This led to inconsistent states when some
+programs were signaled.
+
+The terminal system signals are: HUP, INT, KILL, QUIT and TERM.  There
+is also one terminal fictitious signal, IDLE, which is used to notify
+leftover sessions when a program has run out of things to do.
 
 =item nonmaskable
 
 Nonmaskable signals are similar to terminal signals, but they stop a
-session regardless of its handler's return value.  There are two
-nonmaskable signals, both of which are fictitious:
+program regardless whether it has been handled.  POE implements two
+nonmaskable signals, both of which are fictitious.
 
-ZOMBIE is fired if the terminal signal IDLE did not wake anything up;
-it's used to stop the remaining "zombie" sessions so that an inactive
-program will exit.
+ZOMBIE is fired if the terminal signal IDLE did not wake anything up.
+It is used to stop the remaining "zombie" sessions so that an inactive
+program will exit cleanly.
 
-UIDESTROY is fired when a program's main or top-level widget has been
-destroyed.  It's used to shut down programs when their interfaces have
-been closed.
+UIDESTROY is fired when a main or top-level user interface widget has
+been destroyed.  It is used to shut down programs when their
+interfaces have been closed.
 
 =back
 
@@ -4171,32 +4342,38 @@ SIGPIPE, and SIGWINCH.
 =item SIGCHLD/SIGCLD Events
 
 POE::Kernel generates the same event when it receives either a SIGCHLD
-or SIGCLD signal from the operating system.  This is done so sessions
-don't have to worry about which one they'll receive.
+or SIGCLD signal from the operating system.  This alleviates the need
+for sessions to check both signals.
 
-Additionally, the Kernel's SIGCHLD/SIGCLD handler determines the
-exiting child's process ID and return value on behalf of sessions.
-This lets several sessions receive that information without deciding
-which will call waitpid(2).
+Additionally, the Kernel will determine the ID and return value of the
+exiting child process.  The values are broadcast to every session, so
+several sessions can check whether a departing child process is
+theirs.
 
 The SIGCHLD/SIGCHLD signal event comes with three custom parameters.
-C<ARG0> contains 'CHLD' even if SIGCLD was caught.  C<ARG1> contains
-the child's process ID.  C<ARG2> contains the child's return value
-from C<$?>.
+
+C<ARG0> contains 'CHLD', even if SIGCLD was caught.  C<ARG1> contains
+the ID of the exiting child process.  C<ARG2> contains the return
+value from C<$?>.
 
 =item SIGPIPE Events
 
 Normally, system signals are posted to the Kernel so they can
-propagate to every session.  SIGPIPE is an exception to this rule;
-it's posted to the session that's currently running.  It still will
-propagate through that session's children, but it won't go beyond that
-parent/child tree.
+propagate to every session.  SIGPIPE is an exception to this rule.  It
+is posted to the session that is currently running.  It still will
+propagate through that session's children, but it will not go beyond
+that parent/child tree.
 
 =item SIGWINCH Events
 
 Window resizes can generate a large number of signals very quickly,
 and this can easily cause perl to dump core.  Because of this, POE
-ignores SIGWINCH outright unless it's using Event's safe signals.
+usually ignores SIGWINCH outright.
+
+Signal handling in Perl 5.8.0 will be safer, and POE will take
+advantage of that to enable SIGWINCH again.
+
+POE will also handle SIGWINCH if the Event module is used.
 
 =back
 
@@ -4227,12 +4404,18 @@ generated through POE's signal() method instead of kill(2).
 
 The sig() method does not return a meaningful value.
 
+=item sig_handled
+
+sig_handled() informs POE that a signal was handled.  It is only
+meaningful within event handlers that are triggered by signals.
+
 =item signal SESSION, SIGNAL_NAME
 
-signal() posts a signal event to a session through POE::Kernel rather
-than actually signalling the process through the operating system.
-Because it injects signal events directly into POE's Kernel, its
-SIGNAL_NAME doesn't have to be one the operating system understands.
+signal() posts a signal event to a particular session (and its
+children) through POE::Kernel rather than actually signalling the
+process through the operating system.  Because it injects signal
+events directly into POE's Kernel, its SIGNAL_NAME doesn't have to be
+one the operating system understands.
 
 For example, this posts a fictitious signal to some session:
 
@@ -4450,10 +4633,24 @@ allows it to implement safe signals.
 This loop allows POE to work in graphical programs using the Gtk-Perl
 library.
 
+  use Gtk;
+  use POE;
+
+=item IO::Poll
+
+IO::Poll is potentially more efficient than POE's default select()
+code in large scale clients and servers.
+
+  use IO::Poll;
+  use POE;
+
 =item Tk's Event Loop
 
 This loop allows POE to work in graphical programs using the Tk-Perl
 library.
+
+  use Event;
+  use POE;
 
 =back
 
