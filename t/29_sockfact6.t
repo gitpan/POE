@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 29_sockfact6.t,v 1.8 2003/05/08 22:54:43 rcaputo Exp $
+# $Id: 29_sockfact6.t,v 1.11 2003/07/09 18:20:41 rcaputo Exp $
 
 # Exercises Client and Server TCP components, which exercise
 # SocketFactory in AF_INET6 mode.
@@ -20,8 +20,10 @@ BEGIN {
     unless defined $addr;
 }
 
-# Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE qw( Component::Client::TCP Component::Server::TCP );
 
 my $tcp_server_port = 31909;
@@ -31,6 +33,7 @@ test_setup(5);
 ok(1);
 
 warn(
+  "\n",
   "***\n",
   "*** This test may hang if your firewall blocks IPv6\n",
   "*** packets across your localhost interface.\n",

@@ -1,4 +1,4 @@
-# $Id: Trace.pm,v 1.7 2002/01/10 20:39:45 rcaputo Exp $
+# $Id: Trace.pm,v 1.8 2003/06/03 04:53:47 rcaputo Exp $
 
 # This is a `perl -d` debugger module that simply traces execution.
 # It's optional, and it may not even work.
@@ -8,7 +8,7 @@ package Trace; # satisfies 'use'
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.7 $ ))[1];
+$VERSION = (qw($Revision: 1.8 $ ))[1];
 
 package DB;
 use vars qw($sub @args);
@@ -34,7 +34,8 @@ BEGIN {
 
 sub DB {
     # Try to block signal delivery while this is recording information.
-    sigprocmask( SIG_BLOCK, $signal_set );
+    # -><- Was causing trouble in the signals tests.  Commented out.
+    #sigprocmask( SIG_BLOCK, $signal_set );
 
     my ($package, $file, $line) = caller;
 
@@ -51,7 +52,8 @@ sub DB {
     $statistics{$file}->{$line}->[CALL_COUNT]++;
 
     # Unblock signals now that we're done.
-    sigprocmask( SIG_UNBLOCK, $signal_set );
+    # -><- Was causing trouble in the signals tests.  Commented out.
+    #sigprocmask( SIG_UNBLOCK, $signal_set );
 }
 
 # &sub is a proxy function that's used to trace function calls.  It's
@@ -72,8 +74,11 @@ END {
   foreach my $file (keys %statistics) {
     my $sub_name = '(unknown)';
     for (my $line=1; $line<@{$::{"_<$file"}}; $line++) {
+      my $source = $::{"_<$file"}->[$line];
 
-      if ($::{"_<$file"}->[$line] =~ /^sub\s+(\S+)/) {
+      $source = "(undefined)" unless defined $source;
+
+      if ($source =~ /^sub\s+(\S+)/) {
         $sub_name = $1;
       }
 
@@ -90,7 +95,7 @@ END {
         }
       }
 
-      if ($::{"_<$file"}->[$line] =~ /^\}/) {
+      if ($source =~ /^\}/) {
         $sub_name = '(unknown)';
       }
     }

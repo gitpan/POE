@@ -1,18 +1,19 @@
 #!/usr/bin/perl -w
-# $Id: 04_selects.t,v 1.17 2003/02/06 20:07:15 rcaputo Exp $
+# $Id: 04_selects.t,v 1.19 2003/07/09 18:20:40 rcaputo Exp $
 
 # Tests basic select operations.
 
 use strict;
+
 use lib qw(./lib ../lib .. .);
 use TestSetup;
 
-&test_setup(16);
-
-# Turn on all asserts.
-#sub POE::Kernel::TRACE_EVENTS () { 1 }
-#sub POE::Kernel::TRACE_SELECT () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+test_setup(16);
+
 use POE qw(Pipe::OneWay Pipe::TwoWay);
 
 ### Test parameters.

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 28_windows.t,v 1.5 2003/03/16 07:46:10 rcaputo Exp $
+# $Id: 28_windows.t,v 1.7 2003/07/09 18:20:41 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -15,8 +15,10 @@ BEGIN {
 
 test_setup(1);
 
-# Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE;
 
 # POE::Kernel in version 0.19 assumed that SIGCHLD on Windows would

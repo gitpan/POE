@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 21_gtk.t,v 1.16 2003/02/01 04:52:07 cwest Exp $
+# $Id: 21_gtk.t,v 1.18 2003/07/09 18:20:41 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Gtk postback events using Gk's event
 # loop.
@@ -37,9 +37,10 @@ warn( "\n",
       "***\n",
     );
 
-# Turn on all asserts.
-# sub POE::Kernel::TRACE_DEFAULT () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW Pipe::OneWay);
 
 # How many things to push through the pipe.

@@ -1,4 +1,4 @@
-# $Id: Select.pm,v 1.44 2003/03/03 15:51:46 sungo Exp $
+# $Id: Select.pm,v 1.50 2003/09/16 14:58:14 rcaputo Exp $
 
 # Select loop bridge for POE::Kernel.
 
@@ -7,14 +7,16 @@ package POE::Loop::Select;
 
 use strict;
 
+# Include common signal handling.
+use POE::Loop::PerlSignals;
+
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.44 $ ))[1];
+$VERSION = (qw($Revision: 1.50 $ ))[1];
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
 
 use strict;
-use Carp qw(confess);
 
 # Delcare which event loop bridge is being used, but first ensure that
 # no other bridge has been loaded.
@@ -55,6 +57,9 @@ my @loop_vectors = ("", "", "");
 # A record of the file descriptors we are actively watching.
 my %loop_filenos;
 
+# Allow $^T to change without affecting our internals.
+my $start_time = $^T;
+
 #------------------------------------------------------------------------------
 # Loop construction and destruction.
 
@@ -67,7 +72,6 @@ sub loop_initialize {
   vec($loop_vectors[MODE_WR], 0, 1) = 0;
   vec($loop_vectors[MODE_EX], 0, 1) = 0;
 }
-
 
 sub loop_finalize {
   my $self = shift;
@@ -83,92 +87,13 @@ sub loop_finalize {
   while (my ($mode_name, $mode_offset) = each(%kernel_modes)) {
     my $bits = unpack('b*', $loop_vectors[$mode_offset]);
     if (index($bits, '1') >= 0) {
-      warn "<rc> LOOP VECTOR LEAK: $mode_name = $bits\a\n";
+      POE::Kernel::_warn "<rc> LOOP VECTOR LEAK: $mode_name = $bits\a\n";
     }
   }
 }
 
 #------------------------------------------------------------------------------
-# Signal handlers/callbacks.
-
-sub _loop_signal_handler_generic {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing generic SIG$_[0] event";
-  }
-
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-      __FILE__, __LINE__, time()
-    );
-  $SIG{$_[0]} = \&_loop_signal_handler_generic;
-}
-
-sub _loop_signal_handler_pipe {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing PIPE-like SIG$_[0] event";
-  }
-
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-      __FILE__, __LINE__, time()
-    );
-    $SIG{$_[0]} = \&_loop_signal_handler_pipe;
-}
-
-# Special handler.  Stop watching for children; instead, start a loop
-# that polls for them.
-sub _loop_signal_handler_child {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing CHLD-like SIG$_[0] event";
-  }
-
-  $SIG{$_[0]} = 'DEFAULT';
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SCPOLL, ET_SCPOLL, [ ],
-      __FILE__, __LINE__, time()
-    );
-}
-
-#------------------------------------------------------------------------------
 # Signal handler maintenance functions.
-
-sub loop_watch_signal {
-  my ($self, $signal) = @_;
-
-  # Child process has stopped.
-  if ($signal eq 'CHLD' or $signal eq 'CLD') {
-
-    # Begin constant polling loop.  Only start it on CHLD or on CLD if
-    # CHLD doesn't exist.
-    $SIG{$signal} = 'DEFAULT';
-    $self->_data_ev_enqueue
-      ( $self, $self, EN_SCPOLL, ET_SCPOLL, [ ],
-        __FILE__, __LINE__, time() + 1
-      ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
-
-    return;
-  }
-
-  # Broken pipe.
-  if ($signal eq 'PIPE') {
-    $SIG{$signal} = \&_loop_signal_handler_pipe;
-    return;
-  }
-
-  # Artur Bergman (sky) noticed that xterm resizing can generate a LOT
-  # of WINCH signals.  That rapidly crashes perl, which, with the help
-  # of most libc's, can't handle signals well at all.  We ignore
-  # WINCH, therefore.
-  return if $signal eq 'WINCH';
-
-  # Everything else.
-  $SIG{$signal} = \&_loop_signal_handler_generic;
-}
-
-sub loop_ignore_signal {
-  my ($self, $signal) = @_;
-  $SIG{$signal} = "DEFAULT";
-}
 
 sub loop_attach_uidestroy {
   # does nothing
@@ -251,11 +176,13 @@ sub loop_do_timeslice {
   }
 
   if (TRACE_EVENTS) {
-    warn( '<ev> Kernel::run() iterating.  ' .
-          sprintf("now(%.4f) timeout(%.4f) then(%.4f)\n",
-                  $now-$^T, $timeout, ($now-$^T)+$timeout
-                 )
-        );
+    POE::Kernel::_warn(
+      '<ev> Kernel::run() iterating.  ' .
+      sprintf(
+        "now(%.4f) timeout(%.4f) then(%.4f)\n",
+        $now - $start_time, $timeout, ($now - $start_time) + $timeout
+      )
+    );
   }
 
   # Determine which files are being watched.
@@ -265,12 +192,13 @@ sub loop_do_timeslice {
   }
 
   if (TRACE_FILES) {
-    warn( "<fh> ,----- SELECT BITS IN -----\n",
-          "<fh> | READ    : ", unpack('b*', $loop_vectors[MODE_RD]), "\n",
-          "<fh> | WRITE   : ", unpack('b*', $loop_vectors[MODE_WR]), "\n",
-          "<fh> | EXPEDITE: ", unpack('b*', $loop_vectors[MODE_EX]), "\n",
-          "<fh> `--------------------------\n"
-        );
+    POE::Kernel::_warn(
+      "<fh> ,----- SELECT BITS IN -----\n",
+      "<fh> | READ    : ", unpack('b*', $loop_vectors[MODE_RD]), "\n",
+      "<fh> | WRITE   : ", unpack('b*', $loop_vectors[MODE_WR]), "\n",
+      "<fh> | EXPEDITE: ", unpack('b*', $loop_vectors[MODE_EX]), "\n",
+      "<fh> `--------------------------\n"
+    );
   }
 
   # Avoid looking at filehandles if we don't need to.  -><- The added
@@ -283,15 +211,16 @@ sub loop_do_timeslice {
 
     if (@filenos) {
       # Check filehandles, or wait for a period of time to elapse.
-      my $hits = select( my $rout = $loop_vectors[MODE_RD],
-                         my $wout = $loop_vectors[MODE_WR],
-                         my $eout = $loop_vectors[MODE_EX],
-                         $timeout,
-                       );
+      my $hits = select(
+        my $rout = $loop_vectors[MODE_RD],
+        my $wout = $loop_vectors[MODE_WR],
+        my $eout = $loop_vectors[MODE_EX],
+        $timeout,
+      );
 
       if (ASSERT_FILES) {
         if ($hits < 0) {
-          confess "<fh> select error: $!"
+          POE::Kernel::_trap("<fh> select error: $!")
             unless ( ($! == EINPROGRESS) or
                      ($! == EWOULDBLOCK) or
                      ($! == EINTR)
@@ -301,17 +230,18 @@ sub loop_do_timeslice {
 
       if (TRACE_FILES) {
         if ($hits > 0) {
-          warn "<fh> select hits = $hits\n";
+          POE::Kernel::_warn "<fh> select hits = $hits\n";
         }
         elsif ($hits == 0) {
-          warn "<fh> select timed out...\n";
+          POE::Kernel::_warn "<fh> select timed out...\n";
         }
-        warn( "<fh> ,----- SELECT BITS OUT -----\n",
-              "<fh> | READ    : ", unpack('b*', $rout), "\n",
-              "<fh> | WRITE   : ", unpack('b*', $wout), "\n",
-              "<fh> | EXPEDITE: ", unpack('b*', $eout), "\n",
-              "<fh> `---------------------------\n"
-            );
+        POE::Kernel::_warn(
+          "<fh> ,----- SELECT BITS OUT -----\n",
+          "<fh> | READ    : ", unpack('b*', $rout), "\n",
+          "<fh> | WRITE   : ", unpack('b*', $wout), "\n",
+          "<fh> | EXPEDITE: ", unpack('b*', $eout), "\n",
+          "<fh> `---------------------------\n"
+        );
       }
 
       # If select has seen filehandle activity, then gather up the
@@ -332,28 +262,33 @@ sub loop_do_timeslice {
 
         if (TRACE_FILES) {
           if (@rd_selects) {
-            warn( "<fh> found pending rd selects: ",
-                  join( ', ', sort { $a <=> $b } @rd_selects ),
-                  "\n"
-                );
+            POE::Kernel::_warn(
+              "<fh> found pending rd selects: ",
+              join( ', ', sort { $a <=> $b } @rd_selects ),
+              "\n"
+            );
           }
           if (@wr_selects) {
-            warn( "<sl> found pending wr selects: ",
-                  join( ', ', sort { $a <=> $b } @wr_selects ),
-                  "\n"
-                );
+            POE::Kernel::_warn(
+              "<sl> found pending wr selects: ",
+              join( ', ', sort { $a <=> $b } @wr_selects ),
+              "\n"
+            );
           }
           if (@ex_selects) {
-            warn( "<sl> found pending ex selects: ",
-                  join( ', ', sort { $a <=> $b } @ex_selects ),
-                  "\n"
-                );
+            POE::Kernel::_warn(
+              "<sl> found pending ex selects: ",
+              join( ', ', sort { $a <=> $b } @ex_selects ),
+              "\n"
+            );
           }
         }
 
         if (ASSERT_FILES) {
           unless (@rd_selects or @wr_selects or @ex_selects) {
-            confess "<fh> found no selects, with $hits hits from select???\n";
+            POE::Kernel::_trap(
+              "<fh> found no selects, with $hits hits from select???\n"
+            );
           }
         }
 

@@ -1,10 +1,14 @@
 #!/usr/bin/perl -w
-# $Id: 24_filter_stack.t,v 1.3 2003/02/01 04:52:07 cwest Exp $
+# $Id: 24_filter_stack.t,v 1.5 2003/07/09 18:20:41 rcaputo Exp $
 
 # Exercises Filter::Stack (and friends) without the rest of POE.
 
 use strict;
 use lib qw(./lib ../lib .. .);
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
 use POE::Filter::Stackable;
 use POE::Filter::Grep;

@@ -1,17 +1,19 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.22 2003/02/01 04:52:06 cwest Exp $
+# $Id: 01_sessions.t,v 1.24 2003/07/09 18:20:40 rcaputo Exp $
 
 # Tests basic compilation and events.
 
 use strict;
+
 use lib qw(./lib ../lib .. .);
 use TestSetup;
-&test_setup(29);
 
-# Turn on all asserts.
-# sub POE::Kernel::TRACE_DEFAULT  () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Session::ASSERT_STATES () { 0 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+test_setup(29);
+
 use POE;
 
 ### Test parameters and results.

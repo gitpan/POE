@@ -1,11 +1,11 @@
-# $Id: Session.pm,v 1.83 2003/01/01 04:24:40 rcaputo Exp $
+# $Id: Session.pm,v 1.87 2003/07/09 18:20:40 rcaputo Exp $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.83 $ ))[1];
+$VERSION = (qw($Revision: 1.87 $ ))[1];
 
 use Carp qw(carp croak);
 use POSIX qw(ENOSYS);
@@ -196,11 +196,11 @@ sub new {
       # Check for common problems.
 
       unless ((defined $first) && (length $first)) {
-        carp "deprecated: using an undefined state name";
+        carp "deprecated: using an undefined event name";
       }
 
       if (ref($first) eq 'CODE') {
-        croak "using a code reference as an state name is not allowed";
+        croak "using a code reference as an event name is not allowed";
       }
 
       # Try to determine what sort of state it is.  A lot of WIM is D
@@ -339,7 +339,7 @@ sub create {
   # here with a Perl error, we'll catch it and blame it on the user.
 
   if (@params & 1) {
-    croak "odd number of states/handlers (missing one or the other?)";
+    croak "odd number of events/handlers (missing one or the other?)";
   }
   my %params = @params;
 
@@ -392,7 +392,7 @@ sub create {
         unless (ref($param_value) eq 'HASH');
 
       while (my ($state, $handler) = each(%$param_value)) {
-        croak "inline state '$state' needs a CODE reference"
+        croak "inline state for '$state' needs a CODE reference"
           unless (ref($handler) eq 'CODE');
         $self->register_state($state, $handler);
       }
@@ -514,7 +514,7 @@ sub create {
   else {
     carp( "discarding session ",
           $POE::Kernel::poe_kernel->ID_session_to_id($self),
-          " - no '_start' state"
+          " - no '_start' event handler"
         );
     $self = undef;
   }
@@ -556,9 +556,10 @@ sub _invoke_state {
   # Trace the state invocation if tracing is enabled.
 
   if ($self->[SE_OPTIONS]->{+OPT_TRACE}) {
-    warn( $POE::Kernel::poe_kernel->ID_session_to_id($self),
-          " -> $state (from $file at $line)\n"
-        );
+    POE::Kernel::_warn(
+      $POE::Kernel::poe_kernel->ID_session_to_id($self),
+      " -> $state (from $file at $line)\n"
+    );
   }
 
   # The desired destination state doesn't exist in this session.
@@ -573,12 +574,13 @@ sub _invoke_state {
     unless (exists $self->[SE_STATES]->{+EN_DEFAULT}) {
       $! = ENOSYS;
       if ($self->[SE_OPTIONS]->{+OPT_DEFAULT} and $state ne EN_SIGNAL) {
-        warn( "a '$state' state was sent from $file at $line to session ",
-              $POE::Kernel::poe_kernel->ID_session_to_id($self),
-              ", but session ",
-              $POE::Kernel::poe_kernel->ID_session_to_id($self),
-              " has neither that state nor a _default state to handle it\n"
-            );
+        my $loggable_self =
+          $POE::Kernel::poe_kernel->_data_alias_loggable($self);
+        POE::Kernel::_warn(
+          "a '$state' event was sent from $file at $line to $loggable_self ",
+          "but $loggable_self has neither a handler for it ",
+          "nor one for _default\n"
+        );
       }
       return undef;
     }
@@ -587,9 +589,10 @@ sub _invoke_state {
     # the transition to.  Trace the redirection.
 
     if ($self->[SE_OPTIONS]->{+OPT_TRACE}) {
-      warn( $POE::Kernel::poe_kernel->ID_session_to_id($self),
-            " -> $state redirected to _default\n"
-          );
+      POE::Kernel::_warn(
+        $POE::Kernel::poe_kernel->ID_session_to_id($self),
+        " -> $state redirected to _default\n"
+      );
     }
 
     # Transmogrify the original state transition into a corresponding
@@ -643,6 +646,7 @@ sub register_state {
   my ($self, $name, $handler, $method) = @_;
   $method = $name unless defined $method;
 
+  # Deprecate _signal.
   if ($name eq EN_SIGNAL) {
 
     # Report the problem outside POE.
@@ -653,9 +657,12 @@ sub register_state {
       $Carp::CarpLevel++;
     }
 
-    carp( "The _signal event is deprecated.  ",
-          "Please use sig() to register a signal handler"
-        );
+    croak(
+      ",----- DEPRECATION ERROR -----\n",
+      "| The _signal event is deprecated.  Please use sig() to register\n",
+      "| an explicit signal handler instead.\n",
+      "`-----------------------------\n",
+   );
   }
 
   # There is a handler, so try to define the state.  This replaces an
@@ -666,7 +673,7 @@ sub register_state {
     # Coderef handlers are inline states.
 
     if (ref($handler) eq 'CODE') {
-      carp( "redefining state($name) for session(",
+      carp( "redefining handler for event($name) for session(",
             $POE::Kernel::poe_kernel->ID_session_to_id($self), ")"
           )
         if ( $self->[SE_OPTIONS]->{+OPT_DEBUG} &&
@@ -679,7 +686,7 @@ sub register_state {
     # the method belongs to the handler.
 
     elsif ($handler->can($method)) {
-      carp( "redefining state($name) for session(",
+      carp( "redefining handler for event($name) for session(",
             $POE::Kernel::poe_kernel->ID_session_to_id($self), ")"
           )
         if ( $self->[SE_OPTIONS]->{+OPT_DEBUG} &&
@@ -696,7 +703,7 @@ sub register_state {
            $self->[SE_OPTIONS]->{+OPT_TRACE}
          ) {
         carp( $POE::Kernel::poe_kernel->ID_session_to_id($self),
-              " : state($name) is not a proper ref - not registered"
+              " : handler for event($name) is not a proper ref - not registered"
             )
       }
       else {

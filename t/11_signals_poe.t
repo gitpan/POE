@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 11_signals_poe.t,v 1.24 2003/02/01 04:52:07 cwest Exp $
+# $Id: 11_signals_poe.t,v 1.26 2003/07/09 18:20:41 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -8,16 +8,17 @@ use strict;
 use lib qw(./lib ../lib .. .);
 use TestSetup;
 
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 BEGIN {
   test_setup(0, "$^O does not support signals.") if $^O eq "MSWin32";
   test_setup(0, "$^O does not support fork.") if $^O eq "MacOS";
 };
 
-&test_setup(4);
+test_setup(4);
 
-# Turn on all asserts.
-#sub POE::Kernel::TRACE_SIGNALS  () { 1 }
-sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE;
 
 # This is the number of children to fork.  Increase this number if

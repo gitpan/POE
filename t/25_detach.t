@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 25_detach.t,v 1.4 2003/02/01 04:52:07 cwest Exp $
+# $Id: 25_detach.t,v 1.6 2003/07/09 18:20:41 rcaputo Exp $
 
 # Tests session detaching.
 
@@ -11,11 +11,10 @@ use TestSetup;
 # Trace output local to this test program.
 sub DEBUG () { 0 }
 
-# Turn on all asserts.  This makes the tests slower, but it also
-# ensures that internal checks are performed within POE::Kernel.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Session::ASSERT_STATES () { 0 }
-#sub POE::Kernel::TRACE_SIGNALS () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE;
 
 # Moved "global" test accumulation variables out of the "main" session

@@ -1,14 +1,14 @@
-# $Id: TCP.pm,v 1.31 2003/03/05 17:20:13 rcaputo Exp $
+# $Id: TCP.pm,v 1.35 2003/09/16 14:50:12 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.31 $ ))[1];
+$VERSION = (qw($Revision: 1.35 $ ))[1];
 
 use Carp qw(carp croak);
-use POSIX qw(ETIMEDOUT);
+use POSIX qw(ETIMEDOUT ECONNRESET);
 
 # Explicit use to import the parameter constants;
 use POE::Session;
@@ -180,7 +180,7 @@ sub new {
           # Ok to overwrite like this as of 0.13.
           $_[HEAP]->{server} = POE::Wheel::ReadWrite->new
             ( Handle       => $socket,
-              Driver       => POE::Driver::SysRW->new( BlockSize => 4096 ),
+              Driver       => POE::Driver::SysRW->new(),
               Filter       => $filter->new(@filter_args),
               InputEvent   => 'got_server_input',
               ErrorEvent   => 'got_server_error',
@@ -265,9 +265,11 @@ sub new {
 # The default error handler logs to STDERR and shuts down the socket.
 
 sub _default_error {
-  warn( 'Client ', $_[SESSION]->ID,
-        " got $_[ARG0] error $_[ARG1] ($_[ARG2])\n"
-      );
+  unless ($_[ARG0] eq "read" and ($_[ARG1] == 0 or $_[ARG1] == ECONNRESET)) {
+    warn(
+      'Client ', $_[SESSION]->ID, " got $_[ARG0] error $_[ARG1] ($_[ARG2])\n"
+    );
+  }
   delete $_[HEAP]->{server};
 }
 
@@ -521,7 +523,8 @@ pipe:
   Filter => [ "POE::Filter::Line", InputLiteral => "|" ],
 
 Filter is optional.  The component will supply a "POE::Filter::Line"
-instance none is specified.
+instance none is specified.  If you supply a different value for
+Filter, then you must also C<use> that filter class.
 
 =item InlineStates
 

@@ -1,12 +1,15 @@
 #!/usr/bin/perl -w
-# $Id: 18_filter_line.t,v 1.7 2003/02/01 04:52:07 cwest Exp $
+# $Id: 18_filter_line.t,v 1.9 2003/07/09 18:20:41 rcaputo Exp $
 
 # Exercises Filter::Line without the rest of POE.
 
 use strict;
 use lib qw(./lib ../lib .. .);
 
-sub POE::Kernel::TRACE_DEFAULT () { 1 } # not needed though
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE::Filter::Line;
 
 my ($filter, $received, $sent, $base);

@@ -1,17 +1,19 @@
 #!/usr/bin/perl -w
-# $Id: 02_alarms.t,v 1.12 2003/02/01 04:52:06 cwest Exp $
+# $Id: 02_alarms.t,v 1.15 2003/07/10 20:17:31 rcaputo Exp $
 
 # Tests alarms.
 
 use strict;
+
 use lib qw(./lib ../lib .. .);
 use TestSetup qw(ok not_ok ok_if ok_unless results test_setup);
 
-&test_setup(30);
-
-# Turn on all asserts.
-#sub POE::Kernel::TRACE_DEFAULT () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+test_setup(30);
+
 use POE;
 
 ### Test parameters.
@@ -168,8 +170,9 @@ sub test_stop {
   ok_if(  9, $heap->{test}->{path_nine}  == 11 );
   ok_if( 10, $heap->{test}->{path_ten}   == 1  );
 
-  # Here's where we check the overall run time.
-  ok_unless( 11, time() - $heap->{start_time} > 3 );
+  # Here's where we check the overall run time.  Increased to 5s for
+  # extremely slow, overtaxed machines like my NT test platform.
+  ok_unless( 11, time() - $heap->{start_time} > 5 );
 
   # And test alarm order.
   ok_if( 12,

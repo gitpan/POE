@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 12_signals_ev.t,v 1.17 2003/02/01 04:52:07 cwest Exp $
+# $Id: 12_signals_ev.t,v 1.19 2003/07/09 18:20:41 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -7,6 +7,10 @@
 use strict;
 use lib qw(./lib ../lib .. .);
 use TestSetup;
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
 # Skip these tests if Event or fork() isn't here.
 BEGIN {
@@ -18,8 +22,6 @@ BEGIN {
   test_setup(0, "$^O does not support fork.") if $^O eq "MacOS";
 };
 
-# Turn on all asserts.
-sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE;
 
 test_setup(3);

@@ -1,4 +1,4 @@
-# $Id: Event.pm,v 1.32 2002/10/25 06:56:09 rcaputo Exp $
+# $Id: Event.pm,v 1.33 2003/07/09 18:20:40 rcaputo Exp $
 
 # Event.pm event loop bridge for POE::Kernel.
 
@@ -8,7 +8,7 @@ package POE::Loop::Event;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.32 $ ))[1];
+$VERSION = (qw($Revision: 1.33 $ ))[1];
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -47,8 +47,9 @@ sub loop_finalize {
   foreach my $fd (0..$#fileno_watcher) {
     next unless defined $fileno_watcher[$fd];
     foreach my $mode (MODE_RD, MODE_WR, MODE_EX) {
-      warn "Mode $mode watcher for fileno $fd is defined during loop finalize"
-        if defined $fileno_watcher[$fd]->[$mode];
+      POE::Kernel::_warn(
+        "Mode $mode watcher for fileno $fd is defined during loop finalize"
+      ) if defined $fileno_watcher[$fd]->[$mode];
     }
   }
 }
@@ -58,7 +59,7 @@ sub loop_finalize {
 
 sub _loop_signal_handler_generic {
   if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing generic SIG$_[0] event";
+    POE::Kernel::_warn "<sg> Enqueuing generic SIG$_[0] event";
   }
 
   $poe_kernel->_data_ev_enqueue
@@ -69,7 +70,7 @@ sub _loop_signal_handler_generic {
 
 sub _loop_signal_handler_pipe {
   if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing PIPE-like SIG$_[0] event";
+    POE::Kernel::_warn "<sg> Enqueuing PIPE-like SIG$_[0] event";
   }
 
   $poe_kernel->_data_ev_enqueue
@@ -81,7 +82,7 @@ sub _loop_signal_handler_pipe {
 
 sub _loop_signal_handler_child {
   if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing CHLD-like SIG$_[0] event";
+    POE::Kernel::_warn "<sg> Enqueuing CHLD-like SIG$_[0] event";
   }
 
   $poe_kernel->_data_ev_enqueue

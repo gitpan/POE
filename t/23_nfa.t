@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 23_nfa.t,v 1.6 2003/04/29 15:52:59 rcaputo Exp $
+# $Id: 23_nfa.t,v 1.8 2003/07/09 18:20:41 rcaputo Exp $
 
 # Tests NFA sessions.
 
@@ -8,8 +8,10 @@ use lib qw(./lib ../lib .. .);
 use TestSetup;
 &test_setup(20);
 
-# Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE qw(NFA);
 
 ### Plain NFA.  This simulates a pushbutton that toggles a light.

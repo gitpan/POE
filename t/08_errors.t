@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.44 2003/04/05 06:45:37 rcaputo Exp $
+# $Id: 08_errors.t,v 1.50 2003/07/10 20:17:31 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -8,8 +8,12 @@ use strict;
 use lib qw(./lib ../lib .. .);
 use TestSetup;
 
+sub POE::Kernel::ASSERT_DEFAULT () { 0 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 BEGIN {
-  &test_setup(49);
+  test_setup(49);
 };
 
 use POSIX qw(:errno_h);
@@ -21,6 +25,10 @@ BEGIN {
 
         POE/Loop/Event.pm POE/Loop/Gtk.pm
         POE/Loop/Select.pm POE/Loop/Tk.pm
+
+        POE/Loop/PerlSignals.pm
+        POE/Loop/TkCommon.pm
+        POE/Loop/TkActiveState.pm
 
         Event.pm Gtk.pm Tk.pm
       );
@@ -83,9 +91,7 @@ print "not " unless defined $@ and length $@;
 print "ok 4\n";
 
 # Test that an error occurs when trying to instantiate POE directly.
-stderr_pause();
 eval 'my $x = new POE;';
-stderr_resume();
 print "not " unless defined $@ and length $@;
 print "ok 5\n";
 
@@ -174,15 +180,18 @@ print "ok 19\n";
 { my $warnings = 0;
   local $SIG{__WARN__} = sub { $warnings++; };
 
-  stderr_pause();
   POE::Component::Server::TCP->new
     ( Port => -1,
       Acceptor => sub { die },
       Nonexistent => 'woobly',
     );
-  stderr_resume();
 
-  print "not " unless $warnings == 1;
+  if ($^O eq "MSWin32") {
+    print "not " unless $warnings == 15;
+  }
+  else {
+    print "not " unless $warnings == 1;
+  }
   print "ok 20\n";
 }
 
@@ -205,12 +214,10 @@ print "ok 19\n";
         "ok 21 # skipped: $^O does not support listen on unbound sockets.\n";
     }
     else {
-      stderr_pause();
       POE::Wheel::SocketFactory->new
         ( SuccessEvent => [ ],
           FailureEvent => [ ],
         );
-      stderr_resume();
 
       print "not " unless $warnings == 2;
       print "ok 21\n";
@@ -218,14 +225,12 @@ print "ok 19\n";
 
     # Any protocol on UNIX sockets.
     $warnings = 0;
-    stderr_pause();
     POE::Wheel::SocketFactory->new
       ( SocketDomain   => AF_UNIX,
         SocketProtocol => "tcp",
         SuccessEvent   => "okay",
         FailureEvent   => "okay",
       );
-    stderr_resume();
 
     print "not " unless $warnings == 1;
     print "ok 22\n";

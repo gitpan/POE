@@ -1,4 +1,4 @@
-# $Id: Gtk.pm,v 1.31 2002/10/25 06:56:09 rcaputo Exp $
+# $Id: Gtk.pm,v 1.36 2003/07/15 14:58:21 rcaputo Exp $
 
 # Gtk-Perl event loop bridge for POE::Kernel.
 
@@ -7,8 +7,11 @@ package POE::Loop::Gtk;
 
 use strict;
 
+# Include common signal handling.
+use POE::Loop::PerlSignals;
+
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.31 $ ))[1];
+$VERSION = (qw($Revision: 1.36 $ ))[1];
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -35,103 +38,25 @@ my @fileno_watcher;
 sub loop_initialize {
   my $self = shift;
 
-  Gtk->init;
+  # Must Gnome->init() yourselves, as it takes parameters.
+  unless (exists $INC{'Gnome.pm'}) {
+    Gtk->init();
+  }
 }
 
 sub loop_finalize {
   foreach my $fd (0..$#fileno_watcher) {
     next unless defined $fileno_watcher[$fd];
     foreach my $mode (MODE_RD, MODE_WR, MODE_EX) {
-      warn "Mode $mode watcher for fileno $fd is defined during loop finalize"
-        if defined $fileno_watcher[$fd]->[$mode];
+      POE::Kernel::_warn(
+        "Mode $mode watcher for fileno $fd is defined during loop finalize"
+      ) if defined $fileno_watcher[$fd]->[$mode];
     }
   }
 }
 
 #------------------------------------------------------------------------------
-# Signal handlers/callbacks.
-
-sub _loop_signal_handler_generic {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing generic SIG$_[0] event";
-  }
-
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-      __FILE__, __LINE__, time(),
-    );
-  $SIG{$_[0]} = \&_loop_signal_handler_generic;
-}
-
-sub _loop_signal_handler_pipe {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing PIPE-like SIG$_[0] event";
-  }
-
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-      __FILE__, __LINE__, time(),
-    );
-    $SIG{$_[0]} = \&_loop_signal_handler_pipe;
-}
-
-# Special handler.  Stop watching for children; instead, start a loop
-# that polls for them.
-sub _loop_signal_handler_child {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing CHLD-like SIG$_[0] event";
-  }
-
-  $SIG{$_[0]} = 'DEFAULT';
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SCPOLL, ET_SCPOLL, [ ],
-      __FILE__, __LINE__, time(),
-    );
-}
-
-#------------------------------------------------------------------------------
 # Signal handler maintenance functions.
-
-sub loop_watch_signal {
-  my ($self, $signal) = @_;
-
-  # Child process has stopped.
-  if ($signal eq 'CHLD' or $signal eq 'CLD') {
-
-    # For SIGCHLD triggered polling loop.
-    # $SIG{$signal} = \&_loop_signal_handler_child;
-
-    # Begin constant polling loop.  Only start it on CHLD or on CLD if
-    # CHLD doesn't exist.
-    $SIG{$signal} = 'DEFAULT';
-    $self->_data_ev_enqueue
-      ( $self, $self, EN_SCPOLL, ET_SCPOLL, [ ],
-        __FILE__, __LINE__, time() + 1,
-      ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
-
-    return;
-  }
-
-  # Broken pipe.
-  if ($signal eq 'PIPE') {
-    $SIG{$signal} = \&_loop_signal_handler_pipe;
-    return;
-  }
-
-  # Artur Bergman (sky) noticed that xterm resizing can generate a LOT
-  # of WINCH signals.  That rapidly crashes perl, which, with the help
-  # of most libc's, can't handle signals well at all.  We ignore
-  # WINCH, therefore.
-  return if $signal eq 'WINCH';
-
-  # Everything else.
-  $SIG{$signal} = \&_loop_signal_handler_generic;
-}
-
-sub loop_ignore_signal {
-  my ($self, $signal) = @_;
-  $SIG{$signal} = "DEFAULT";
-}
 
 # This function sets us up a signal when whichever window is passed to
 # it closes.
@@ -151,7 +76,7 @@ sub loop_attach_uidestroy {
               __FILE__, __LINE__, time(), -__LINE__
             );
         }
-        return undef;
+        return 0;
       }
     );
 }
@@ -198,7 +123,7 @@ sub loop_watch_filehandle {
   }
 
   if (TRACE_FILES) {
-    warn "<fh> watching $handle in mode $mode";
+    POE::Kernel::_warn "<fh> watching $handle in mode $mode";
   }
 
   # Register the new watcher.
@@ -226,7 +151,7 @@ sub loop_ignore_filehandle {
   my $fileno = fileno($handle);
 
   if (TRACE_FILES) {
-    warn "<fh> ignoring $handle in mode $mode";
+    POE::Kernel::_warn "<fh> ignoring $handle in mode $mode";
   }
 
   # Don't bother removing a select if none was registered.
@@ -241,7 +166,7 @@ sub loop_pause_filehandle {
   my $fileno = fileno($handle);
 
   if (TRACE_FILES) {
-    warn "<fh> pausing $handle in mode $mode";
+    POE::Kernel::_warn "<fh> pausing $handle in mode $mode";
   }
 
   Gtk::Gdk->input_remove($fileno_watcher[$fileno]->[$mode]);
@@ -256,7 +181,7 @@ sub loop_resume_filehandle {
   return 1 if defined $fileno_watcher[$fileno]->[$mode];
 
   if (TRACE_FILES) {
-    warn "<fh> resuming $handle in mode $mode";
+    POE::Kernel::_warn "<fh> resuming $handle in mode $mode";
   }
 
   $fileno_watcher[$fileno]->[$mode] =
@@ -305,7 +230,7 @@ sub _loop_select_read_callback {
   my ($handle, $fileno, $hash) = @_;
 
   if (TRACE_FILES) {
-    warn "<fh> got read callback for $handle";
+    POE::Kernel::_warn "<fh> got read callback for $handle";
   }
 
   $self->_data_handle_enqueue_ready(MODE_RD, $fileno);
@@ -320,7 +245,7 @@ sub _loop_select_write_callback {
   my ($handle, $fileno, $hash) = @_;
 
   if (TRACE_FILES) {
-    warn "<fh> got write callback for $handle";
+    POE::Kernel::_warn "<fh> got write callback for $handle";
   }
 
   $self->_data_handle_enqueue_ready(MODE_WR, $fileno);
@@ -335,7 +260,7 @@ sub _loop_select_expedite_callback {
   my ($handle, $fileno, $hash) = @_;
 
   if (TRACE_FILES) {
-    warn "<fh> got expedite callback for $handle";
+    POE::Kernel::_warn "<fh> got expedite callback for $handle";
   }
 
   $self->_data_handle_enqueue_ready(MODE_EX, $fileno);
@@ -353,11 +278,21 @@ sub loop_do_timeslice {
 }
 
 sub loop_run {
-  Gtk->main;
+  if (exists $INC{'Gnome.pm'}) {
+    Gnome->main();
+  }
+  else {
+    Gtk->main;
+  }
 }
 
 sub loop_halt {
-  Gtk->main_quit();
+  if (exists $INC{'Gnome.pm'}) {
+    Gnome->main_quit();
+  }
+  else {
+    Gtk->main_quit();
+  }
 }
 
 1;

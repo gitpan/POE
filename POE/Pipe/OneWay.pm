@@ -1,4 +1,4 @@
-# $Id: OneWay.pm,v 1.10 2002/06/22 06:15:33 rcaputo Exp $
+# $Id: OneWay.pm,v 1.12 2003/07/17 18:25:03 rcaputo Exp $
 
 # Portable one-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::OneWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.10 $ ))[1];
+$VERSION = (qw($Revision: 1.12 $ ))[1];
 
 use Symbol qw(gensym);
 use IO::Socket;
@@ -17,11 +17,6 @@ use POE::Pipe;
 @POE::Pipe::OneWay::ISA = qw( POE::Pipe );
 
 sub DEBUG () { 0 }
-sub RUNNING_IN_HELL () { $^O eq 'MSWin32' or $^O eq 'MacOS' }
-
-# This flag is set true/false after the first attempt at using plain
-# INET sockets as pipes.
-my $can_run_socket = undef;
 
 sub new {
   my $type         = shift;
@@ -34,116 +29,106 @@ sub new {
   my $a_read  = gensym();
   my $b_write = gensym();
 
-  # Try the pipe if no preferred conduit type is specified, or if the
-  # specified conduit type is 'pipe'.
-  if ( (not RUNNING_IN_HELL) and
-       ( (not defined $conduit_type) or
-         ($conduit_type eq 'pipe')
-       ) and
-       ( not defined $can_run_socket )
-     ) {
-
-    eval {
-      pipe($a_read, $b_write) or die "pipe failed: $!";
-    };
-
-    # Pipe succeeded.
-    unless (length $@) {
-      DEBUG and do {
-        warn "using a pipe";
-        warn "ar($a_read) bw($b_write)\n";
-      };
-
-      # Turn off buffering.  POE::Kernel does this for us, but
-      # someone might want to use the pipe class elsewhere.
-      select((select($b_write), $| = 1)[0]);
-      return($a_read, $b_write);
-    }
-    elsif (DEBUG) {
-      warn "pipe failed: $@";
-    }
+  if (defined $conduit_type) {
+    return ($a_read, $b_write)
+      if $self->_try_type($conduit_type, \$a_read, \$b_write);
   }
 
-  # Try UNIX-domain socketpair if no preferred conduit type is
-  # specified, or if the specified conduit type is 'socketpair'.
-  if ( (not RUNNING_IN_HELL) and
-       ( (not defined $conduit_type) or
-         ($conduit_type eq 'socketpair')
-       ) and
-       ( not defined $can_run_socket )
-     ) {
-
-    eval {
-      socketpair($a_read, $b_write, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
-        or die "socketpair failed: $!";
-    };
-
-    # Socketpair succeeded.
-    unless (length $@) {
-      DEBUG and do {
-        warn "using a UNIX domain socketpair";
-        warn "ar($a_read) bw($b_write)\n";
-      };
-
-      # It's one-way, so shut down the unused directions.
-      shutdown($a_read,  1);
-      shutdown($b_write, 0);
-
-      # Turn off buffering.  POE::Kernel does this for us, but someone
-      # might want to use the pipe class elsewhere.
-      select((select($b_write), $| = 1)[0]);
-      return($a_read, $b_write);
-    }
-    elsif (DEBUG) {
-      warn "socketpair failed: $@";
-    }
-  }
-
-  # Try a pair of plain INET sockets if no preffered conduit type is
-  # specified, or if the specified conduit type is 'inet'.
-  if ( ( RUNNING_IN_HELL or
-         (not defined $conduit_type) or
-         ($conduit_type eq 'inet')
-       ) and
-       ( $can_run_socket or (not defined $can_run_socket) )
-     ) {
-
-    # Try using a pair of plain INET domain sockets.
-
-    eval {
-      ($a_read, $b_write) = $self->make_socket();
-    };
-
-    # Sockets worked.
-    unless (length $@) {
-      DEBUG and do {
-        warn "using a plain INET socket";
-        warn "ar($a_read) bw($b_write)\n";
-      };
-
-      # Try sockets more often.
-      $can_run_socket = 1;
-
-      # It's one-way, so shut down the unused directions.
-      shutdown($a_read,  1);
-      shutdown($b_write, 0);
-
-      # Turn off buffering.  POE::Kernel does this for us, but someone
-      # might want to use the pipe class elsewhere.
-      select((select($b_write), $| = 1)[0]);
-      return($a_read, $b_write);
-    }
-
-    # Sockets failed.  Don't try them again.
-    else {
-      DEBUG and warn "make_socket failed: $@";
-      $can_run_socket = 0;
-    }
+  while (my $try_type = $self->get_next_preference()) {
+    return ($a_read, $b_write)
+      if $self->_try_type($try_type, \$a_read, \$b_write);
+    $self->shift_preference();
   }
 
   # There's nothing left to try.
   DEBUG and warn "nothing worked";
-  return(undef, undef);
+  return;
+}
+
+# Try a pipe by type.
+
+sub _try_type {
+  my ($self, $type, $a_read, $b_write) = @_;
+
+  # Try a pipe().
+  if ($type eq "pipe") {
+    eval {
+      pipe($$a_read, $$b_write) or die "pipe failed: $!";
+    };
+
+    # Pipe failed.
+    if (length $@) {
+      warn "pipe failed: $@" if DEBUG;
+      return;
+    }
+
+    DEBUG and do {
+      warn "using a pipe";
+      warn "ar($$a_read) bw($$b_write)\n";
+    };
+
+    # Turn off buffering.  POE::Kernel does this for us, but
+    # someone might want to use the pipe class elsewhere.
+    select((select($$b_write), $| = 1)[0]);
+    return 1;
+  }
+
+  # Try a UNIX-domain socketpair.
+  if ($type eq "socketpair") {
+    eval {
+      socketpair($$a_read, $$b_write, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
+        or die "socketpair failed: $!";
+    };
+
+    if (length $@) {
+      warn "socketpair failed: $@" if DEBUG;
+      return;
+    }
+
+    DEBUG and do {
+      warn "using a UNIX domain socketpair";
+      warn "ar($$a_read) bw($$b_write)\n";
+    };
+
+    # It's one-way, so shut down the unused directions.
+    shutdown($$a_read,  1);
+    shutdown($$b_write, 0);
+
+    # Turn off buffering.  POE::Kernel does this for us, but someone
+    # might want to use the pipe class elsewhere.
+    select((select($$b_write), $| = 1)[0]);
+    return 1;
+  }
+
+  # Try a pair of plain INET sockets.
+  if ($type eq "inet") {
+    eval {
+      ($$a_read, $$b_write) = $self->make_socket();
+    };
+
+    if (length $@) {
+      warn "make_socket failed: $@" if DEBUG;
+      return;
+    }
+
+    DEBUG and do {
+      warn "using a plain INET socket";
+      warn "ar($$a_read) bw($$b_write)\n";
+    };
+
+    # It's one-way, so shut down the unused directions.
+    shutdown($$a_read,  1);
+    shutdown($$b_write, 0);
+
+    # Turn off buffering.  POE::Kernel does this for us, but someone
+    # might want to use the pipe class elsewhere.
+    select((select($$b_write), $| = 1)[0]);
+    return 1;
+  }
+
+  # There's nothing left to try.
+  DEBUG and warn "unknown OneWay socket type ``$type''";
+  return;
 }
 
 ###############################################################################

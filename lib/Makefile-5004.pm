@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.12 2002/09/10 19:55:31 rcaputo Exp $
+# $Id: Makefile-5004.pm,v 1.15 2003/06/03 17:39:49 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
 
@@ -40,6 +40,7 @@ WriteMakefile
                     'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
                   ),
     },
+    test           => { TESTS => 't/*/*.t t/*.t' },
     PREREQ_PM      => { Carp               => 0,
                         Exporter           => 0,
                         IO                 => 0,
@@ -57,6 +58,9 @@ WriteMakefile
     # happens, I'll rename the 'lib' driectory to 'privlib'.
 
     PMLIBDIRS      => [ 'POE' ],
+    clean => {
+        FILES => 'poe_report.xml test-output.err coverage.report',
+    }
   );
 
 1;

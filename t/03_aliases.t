@@ -1,17 +1,20 @@
 #!/usr/bin/perl -w
-# $Id: 03_aliases.t,v 1.12 2003/02/01 04:52:06 cwest Exp $
+# $Id: 03_aliases.t,v 1.14 2003/07/09 18:20:40 rcaputo Exp $
 
 # Tests basic session aliases.
 
 use strict;
+
 use lib qw(./lib ../lib .. .);
 use TestSetup;
-&test_setup(21);
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+test_setup(21);
 
 use POSIX qw (:errno_h);
-
-# Turn on all asserts.
-sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 
 use POE;
 

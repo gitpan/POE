@@ -1,22 +1,23 @@
 #!/usr/bin/perl -w
-# $Id: 09_wheels_unix.t,v 1.14 2003/02/01 04:52:07 cwest Exp $
+# $Id: 09_wheels_unix.t,v 1.16 2003/07/09 18:20:41 rcaputo Exp $
 
 # Exercises the wheels commonly used with UNIX domain sockets.
 
 use strict;
 use lib qw(./lib ../lib .. .);
 use TestSetup;
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use Socket;
 
 BEGIN {
-  &test_setup(0, "$^O does not support UNIX sockets")
+  test_setup(0, "$^O does not support UNIX sockets")
     if $^O eq "MSWin32" or $^O eq "MacOS";
 };
 
-# Turn on all asserts.
-#sub POE::Kernel::TRACE_DEFAULT () { 1 }
-#sub POE::Kernel::TRACE_SELECT () { 1 }
-sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE qw( Wheel::SocketFactory
             Wheel::ReadWrite
             Filter::Line
@@ -26,7 +27,7 @@ use POE qw( Wheel::SocketFactory
 my $unix_server_socket = '/tmp/poe-usrv';
 
 # Congratulations! We made it this far!
-&test_setup(15);
+test_setup(15);
 &ok(1);
 
 ###############################################################################

@@ -1,12 +1,18 @@
 #!/usr/bin/perl -w
-# $Id: 001_queue.t,v 1.2 2003/02/01 04:52:06 cwest Exp $
+# $Id: 001_queue.t,v 1.5 2003/07/28 05:14:14 rcaputo Exp $
 
 # Tests basic queue operations.
 
 use strict;
+
 use lib qw(./lib ../lib .. .);
 use TestSetup;
-&test_setup(1061);
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+test_setup(2061);
 
 use POSIX qw(EPERM ESRCH);
 
@@ -121,8 +127,8 @@ ok_if(60, compare_lists($items[5], [60, 20, "f"]));
 ok_if(61, $q->get_item_count() == 0);
 
 ### Large Queue Tests.  The only functions that use large queues are
-### enqueue() and adjust_priority().  Large queues are over ~500
-### elements.
+### enqueue(), adjust_priority(), and set_priority().  Large queues
+### are over ~500 elements.
 
 sub shuffled_list {
   my $limit = shift() - 1;
@@ -135,35 +141,72 @@ sub shuffled_list {
   @list;
 }
 
-my @ids;
-for my $major (shuffled_list(10)) {
-  for my $minor (shuffled_list(100)) {
-    my $priority = sprintf("%2d%02d", $major, $minor);
-    push @ids, $q->enqueue($priority, $priority);
-  }
-}
-
 sub is_even { !($_[0] % 2) }
 sub is_odd  {   $_[0] % 2  }
 
-foreach my $id (@ids) { $q->adjust_priority($id, \&is_even, -1000); }
-foreach my $id (@ids) { $q->adjust_priority($id, \&is_odd,   1000); }
-
 my $test_index = 62;
-my $low_priority = -999999;
 
-while (my ($pri, $id, $item) = $q->dequeue_next()) {
-  if ($pri < 0) {
-    ok_if( $test_index++,
-           ($pri > $low_priority) && ($pri - $item == -1000)
-         );
+sub verify_queue {
+  my $start_index = shift;
+  my $low_priority = -999999;
+
+  while (my ($pri, $id, $item) = $q->dequeue_next()) {
+    if ($pri < 0) {
+      ok_if( $test_index++,
+             ($pri > $low_priority) && ($item - $pri == 1000),
+             "$item - $pri != 1000"
+           );
+    }
+    else {
+      ok_if( $test_index++,
+             ($pri > $low_priority) && ($pri - $item == 1000),
+             "$pri - $item != 1000"
+           );
+    }
+    $low_priority = $pri;
   }
-  else {
-    ok_if( $test_index++,
-           ($pri > $low_priority) && ($pri - 1000 == $item)
-         );
-  }
-  $low_priority = $pri;
 }
+
+# Verify adjust_priority().
+
+{
+  my @ids;
+  for my $major (shuffled_list(10)) {
+    for my $minor (shuffled_list(100)) {
+      my $priority = sprintf("%2d%02d", $major, $minor);
+      push @ids, $q->enqueue($priority, $priority);
+    }
+  }
+
+  foreach my $id (@ids) { $q->adjust_priority($id, \&is_even, -1000); }
+  foreach my $id (@ids) { $q->adjust_priority($id, \&is_odd,   1000); }
+
+  verify_queue($test_index);
+}
+
+# Verify set_priority().
+
+{
+  my @id_recs;
+  for my $major (shuffled_list(10)) {
+    for my $minor (shuffled_list(100)) {
+      my $priority = sprintf("%2d%02d", $major, $minor);
+      push @id_recs,  [ $q->enqueue($priority, $priority), $priority ];
+    }
+  }
+
+  foreach my $id_rec (@id_recs) {
+    my ($id, $pri) = @$id_rec;
+    $q->set_priority($id, \&is_even, $pri - 1000);
+  }
+  foreach my $id_rec (@id_recs) {
+    my ($id, $pri) = @$id_rec;
+    $q->set_priority($id, \&is_odd, $pri + 1000);
+  }
+
+  verify_queue($test_index);
+}
+
+### And we're done.  Do the results thing.
 
 results;

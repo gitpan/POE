@@ -1,11 +1,11 @@
-# $Id: Line.pm,v 1.22 2002/01/10 20:39:44 rcaputo Exp $
+# $Id: Line.pm,v 1.23 2003/07/03 16:34:57 rcaputo Exp $
 
 package POE::Filter::Line;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.22 $ ))[1];
+$VERSION = (qw($Revision: 1.23 $ ))[1];
 
 use Carp qw(carp croak);
 
@@ -37,7 +37,7 @@ sub new {
   # Literal newline for both incoming and outgoing.  Every other known
   # parameter conflicts with this one.
   if (defined $params{Literal}) {
-    croak "Literal must be defined and have a nonzero length"
+    croak "A defined Literal must have a nonzero length"
       unless defined($params{Literal}) and length($params{Literal});
     $input_regexp   = quotemeta $params{Literal};
     $output_literal = $params{Literal};

@@ -1,11 +1,11 @@
-# $Id: Run.pm,v 1.46 2003/04/03 04:01:56 rcaputo Exp $
+# $Id: Run.pm,v 1.51 2003/09/10 23:30:40 rcaputo Exp $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.46 $ ))[1];
+$VERSION = (qw($Revision: 1.51 $ ))[1];
 
 use Carp qw(carp croak);
 use POSIX qw( sysconf _SC_OPEN_MAX ECHO ICANON IEXTEN ISIG BRKINT ICRNL
@@ -123,10 +123,34 @@ sub new {
   my $user_id  = delete $params{User};
   my $group_id = delete $params{Group};
 
+  # The following $stdio_pipe_type is new.  $conduit is kept around
+  # for now to preserve the logic of the rest of the module.  This
+  # change allows a Session using POE::Wheel::Run to define the type
+  # of pipe to be created for stdin and stdout.  Read the POD on
+  # Conduit.  However, the documentation lies, because if Conduit is
+  # undefined, $stdio_pipe_type is set to undefined (so the default
+  # pipe type provided by POE::Pipe::TwoWay will be used). Otherwise,
+  # $stdio_pipe_type determines what type of pipe Pipe:TwoWay creates
+  # unless it's 'pty'.
+
   my $conduit = delete $params{Conduit};
-  $conduit = 'pipe' unless defined $conduit;
-  croak "$type needs a known Conduit type (pty or pipe, not $conduit)"
-    if $conduit ne 'pipe' and $conduit ne 'pty';
+  my $stdio_pipe_type;
+  if (defined $conduit) {
+    croak "$type\'s Conduit type ($conduit) is unknown"
+      if (
+        $conduit ne 'pipe' and
+        $conduit ne 'pty'  and
+        $conduit ne 'socketpair' and
+        $conduit ne 'inet'
+      );
+    unless ($conduit eq "pty") {
+      $stdio_pipe_type = $conduit;
+      $conduit = "pipe";
+    }
+  }
+  else {
+    $conduit = "pipe";
+  }
 
   my $stdin_event  = delete $params{StdinEvent};
   my $stdout_event = delete $params{StdoutEvent};
@@ -218,9 +242,9 @@ sub new {
     # We make more pipes than strictly necessary in case someone wants
     # to turn some on later.  Uses a TwoWay pipe for STDIN/STDOUT and
     # a OneWay pipe for STDERR.  This may save 2 filehandles if
-    # socketpair() is available.
+    # socketpair() is available and no other $stdio_pipe_type is selected.
     ($stdin_read, $stdout_write, $stdout_read, $stdin_write) =
-      POE::Pipe::TwoWay->new();
+      POE::Pipe::TwoWay->new($stdio_pipe_type);
     croak "could not make stdin pipe: $!"
       unless defined $stdin_read and defined $stdin_write;
     croak "could not make stdout pipe: $!"
@@ -321,16 +345,16 @@ sub new {
       }
     }
 
-    # Fix the user ID.  -><- Add getpwnam so user IDs can be specified
-    # by name.  -><- Warn if not superuser to begin with.
-    if (defined $user_id) {
-      $< = $> = $user_id;
-    }
-
     # Fix the group ID.  -><- Add getgrnam so group IDs can be
     # specified by name.  -><- Warn if not superuser to begin with.
     if (defined $group_id) {
       $( = $) = $group_id;
+    }
+
+    # Fix the user ID.  -><- Add getpwnam so user IDs can be specified
+    # by name.  -><- Warn if not superuser to begin with.
+    if (defined $user_id) {
+      $< = $> = $user_id;
     }
 
     # Close what the child won't need.
@@ -1036,7 +1060,7 @@ POE::Wheel::Run - event driven fork/exec with added value
 
   # Kill the child.
   $wheel->kill();
-  $wheel->kill( -9 );
+  $wheel->kill(9);
 
 =head1 DESCRIPTION
 
@@ -1060,7 +1084,15 @@ new() accepts lots of stuff.  Each parameter is name/value pair.
 =item Conduit
 
 C<Conduit> describes how Wheel::Run should talk with the child
-process.  It may either be 'pipe' (the default), or 'pty'.
+process.  By default it will try various forms of inter-process
+communication to build a pipe between the parent and child processes.
+If a particular method is preferred, it can be set to "pipe",
+"socketpair", or "inet".  It may also be set to "pty" if the child
+process should have its own pseudo tty.
+
+The reasons to define this parameter would be if you want to use
+"pty", if the default pipe type doesn't work properly on your
+system, or the default pipe type's performance is poor.
 
 Pty conduits require the IO::Pty module.
 
@@ -1348,6 +1380,30 @@ ID.
   }
 
 =back
+
+=head1 TIPS AND TRICKS
+
+One common task is scrubbing a child process' environment.  This
+amounts to clearing the contents of %ENV and setting it up with some
+known, secure values.
+
+Environment scrubbing is easy when the child process is running a
+subroutine, but it's not so easy---or at least not as intuitive---when
+executing external programs.
+
+The way we do it is to run a small subroutine in the child process
+that performs the exec() call for us.
+
+  Program => \&exec_with_scrubbed_env,
+
+  sub exec_with_scrubbed_env {
+    delete @ENV{keys @ENV};
+    $ENV{PATH} = "/bin";
+    exec(@program_and_args);
+  }
+
+That deletes everything from the environment, sets a simple, secure
+PATH, and executes a program with its arguments.
 
 =head1 SEE ALSO
 

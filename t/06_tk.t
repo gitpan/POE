@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.40 2003/02/06 03:30:38 rcaputo Exp $
+# $Id: 06_tk.t,v 1.44 2003/07/09 18:20:40 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Tk postback events using Tk's event
 # loop.
@@ -10,6 +10,10 @@ use lib qw(./lib ../lib .. .);
 
 use Symbol;
 use TestSetup;
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
 # Skip if Tk isn't here or if environmental requirements don't apply.
 BEGIN {
@@ -33,16 +37,21 @@ BEGIN {
   &test_setup(0, "Tk 800.021 or newer is needed for these tests")
     if $Tk::VERSION < 800.021;
 
-  # ActivePerl 5.8.0 + Tk = T3H NOT SUPPR0TED BY P03!
-  if ($^O eq "MSWin32" and $] == 5.008) {
-    &test_setup(0, "See http://bugs.activestate.com/show_bug.cgi?id=22619");
-  }
-
   # Tk and Perl before 5.005_03 don't mix.
   &test_setup( 0, "Tk requires Perl 5.005_03 or newer." ) if $] < 5.005_03;
 };
 
-&test_setup(11);
+# Test whether we can connect to the display.
+BEGIN {
+  eval {
+    require POE::Kernel;
+  };
+  if ($@ and $@ =~ /(couldn't connect to display ".*?")/) {
+    test_setup(0, $1);
+  }
+}
+
+test_setup(11);
 
 warn( "\n",
       "***\n",
@@ -50,9 +59,12 @@ warn( "\n",
       "***\n",
     );
 
-# Turn on all asserts.
-sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW Pipe::TwoWay);
+use POE::Kernel;
+use POE::Session;
+use POE::Wheel::ReadWrite;
+use POE::Filter::Line;
+use POE::Driver::SysRW;
+use POE::Pipe::TwoWay;
 
 # How many things to push through the pipe.
 my $write_max = 10;

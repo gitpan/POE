@@ -1,15 +1,15 @@
-# $Id: TCP.pm,v 1.35 2003/02/07 05:03:43 hachi Exp $
+# $Id: TCP.pm,v 1.39 2003/09/16 14:50:12 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.35 $ ))[1];
+$VERSION = (qw($Revision: 1.39 $ ))[1];
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa);
-use POSIX qw(ECONNABORTED);
+use POSIX qw(ECONNABORTED ECONNRESET);
 
 # Explicit use to import the parameter constants.
 use POE::Session;
@@ -161,15 +161,15 @@ sub new {
                 $heap->{remote_port} = $remote_port;
 
                 $heap->{client} = POE::Wheel::ReadWrite->new
-                  ( Handle       => $socket,
-                    Driver       => POE::Driver::SysRW->new(BlockSize => 4096),
-                    Filter       => $client_filter->new(@client_filter_args),
-                    InputEvent   => 'tcp_server_got_input',
-                    ErrorEvent   => 'tcp_server_got_error',
+                  ( Handle      => $socket,
+                    Driver      => POE::Driver::SysRW->new(),
+                    Filter      => $client_filter->new(@client_filter_args),
+                    InputEvent  => 'tcp_server_got_input',
+                    ErrorEvent  => 'tcp_server_got_error',
                     FlushedEvent => 'tcp_server_got_flush',
                   );
 
-                $kernel->yield( tcp_server_client_connected => @_[ARG0 .. $#_] );
+                $kernel->yield(tcp_server_client_connected => @_[ARG0 .. $#_]);
               },
 
               # To quiet ASSERT_STATES.
@@ -291,10 +291,13 @@ sub _default_server_error {
 
 sub _default_client_error {
   my ($syscall, $errno, $error) = @_[ARG0..ARG2];
-  $error = "Normal disconnection" unless $errno;
-  warn( 'Client session ', $_[SESSION]->ID,
-        " got $syscall error $errno ($error)\n"
-      );
+  unless ($syscall eq "read" and ($errno == 0 or $errno == ECONNRESET)) {
+    $error = "(no error)" unless $errno;
+    warn(
+      'Client session ', $_[SESSION]->ID,
+      " got $syscall error $errno ($error)\n"
+    );
+  }
 }
 
 1;
@@ -508,7 +511,9 @@ bar:
   ClientFilter => [ "POE::Filter::Line", InputLiteral => "|" ],
 
 ClientFilter is optional.  The component will supply a
-"POE::Filter::Line" instance if none is specified.
+"POE::Filter::Line" instance if none is specified.  If you supply a
+different value for Filter, then you must also C<use> that filter
+class.
 
 =item ClientInput
 

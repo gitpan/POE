@@ -1,14 +1,18 @@
 #!/usr/bin/perl -w
-# $Id: 05_macros.t,v 1.6 2003/02/01 04:52:07 cwest Exp $
+# $Id: 05_macros.t,v 1.8 2003/07/09 18:20:40 rcaputo Exp $
 
 # Tests basic macro features.
 
 use strict;
 use lib qw(./lib ../lib .. .);
 use TestSetup;
-&test_setup(20);
 
-sub POE::Kernel::TRACE_DEFAULT () { 1 } # not needed though
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+test_setup(20);
+
 use POE::Preprocessor;
 
 # Did we get this far?

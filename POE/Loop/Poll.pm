@@ -1,4 +1,4 @@
-# $Id: Poll.pm,v 1.19 2002/10/25 06:56:09 rcaputo Exp $
+# $Id: Poll.pm,v 1.23 2003/09/16 14:58:48 rcaputo Exp $
 
 # IO::Poll event loop bridge for POE::Kernel.  The theory is that this
 # will be faster for large scale applications.  This file is
@@ -8,7 +8,10 @@
 package POE::Loop::Poll;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.19 $ ))[1];
+$VERSION = (qw($Revision: 1.23 $ ))[1];
+
+# Include common signal handling.
+use POE::Loop::PerlSignals;
 
 # Everything plugs into POE::Kernel;
 package POE::Kernel;
@@ -35,6 +38,9 @@ sub MINIMUM_POLL_TIMEOUT () { 0 }
 
 my %poll_fd_masks;
 
+# Allow $^T to change without affecting our internals.
+my $start_time = $^T;
+
 #------------------------------------------------------------------------------
 # Loop construction and destruction.
 
@@ -48,86 +54,7 @@ sub loop_finalize {
 }
 
 #------------------------------------------------------------------------------
-# Signal handlers/callbacks.
-
-sub _loop_signal_handler_generic {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing generic SIG$_[0] event";
-  }
-
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-      __FILE__, __LINE__, time(),
-    );
-  $SIG{$_[0]} = \&_loop_signal_handler_generic;
-}
-
-sub _loop_signal_handler_pipe {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing PIPE-like SIG$_[0] event";
-  }
-
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-      __FILE__, __LINE__, time(),
-    );
-    $SIG{$_[0]} = \&_loop_signal_handler_pipe;
-}
-
-# Special handler.  Stop watching for children; instead, start a loop
-# that polls for them.
-sub _loop_signal_handler_child {
-  if (TRACE_SIGNALS) {
-    warn "<sg> Enqueuing CHLD-like SIG$_[0] event";
-  }
-
-  $SIG{$_[0]} = 'DEFAULT';
-  $poe_kernel->_data_ev_enqueue
-    ( $poe_kernel, $poe_kernel, EN_SCPOLL, ET_SCPOLL, [ ],
-      __FILE__, __LINE__, time(),
-    );
-}
-
-#------------------------------------------------------------------------------
 # Signal handler maintenance functions.
-
-sub loop_watch_signal {
-  my ($self, $signal) = @_;
-
-  # Child process has stopped.
-  if ($signal eq 'CHLD' or $signal eq 'CLD') {
-
-    # Begin constant polling loop.  Only start it on CHLD or on CLD if
-    # CHLD doesn't exist.
-    $SIG{$signal} = 'DEFAULT';
-    $self->_data_ev_enqueue
-      ( $self, $self, EN_SCPOLL, ET_SCPOLL, [ ],
-        __FILE__, __LINE__, time() + 1,
-      ) if $signal eq 'CHLD' or not exists $SIG{CHLD};
-
-    return;
-  }
-
-  # Broken pipe.
-  if ($signal eq 'PIPE') {
-    $SIG{$signal} = \&_loop_signal_handler_pipe;
-    return;
-  }
-
-  # Artur Bergman (sky) noticed that xterm resizing can generate a LOT
-  # of WINCH signals.  That rapidly crashes perl, which, with the help
-  # of most libc's, can't handle signals well at all.  We ignore
-  # WINCH, therefore.
-  return if $signal eq 'WINCH';
-
-  # Everything else.
-  $SIG{$signal} = \&_loop_signal_handler_generic;
-}
-
-sub loop_ignore_signal {
-  my ($self, $signal) = @_;
-  $SIG{$signal} = "DEFAULT";
-}
 
 sub loop_attach_uidestroy {
   # does nothing
@@ -169,11 +96,13 @@ sub loop_watch_filehandle {
   my $new = $current | $type;
 
   if (TRACE_FILES) {
-    warn( sprintf( "<fh> Watch $fileno: " .
-                   "Current mask: 0x%02X - including 0x%02X = 0x%02X\n",
-                   $current, $type, $new
-                 )
-        );
+    POE::Kernel::_warn(
+      sprintf(
+        "<fh> Watch $fileno: " .
+        "Current mask: 0x%02X - including 0x%02X = 0x%02X\n",
+        $current, $type, $new
+      )
+    );
   }
 
   $poll_fd_masks{$fileno} = $new;
@@ -188,11 +117,13 @@ sub loop_ignore_filehandle {
   my $new = $current & ~$type;
 
   if (TRACE_FILES) {
-    warn( sprintf( "<fh> Ignore $fileno: " .
-                   ": Current mask: 0x%02X - removing 0x%02X = 0x%02X\n",
-                   $current, $type, $new
-                 )
-        );
+    POE::Kernel::_warn(
+      sprintf(
+        "<fh> Ignore $fileno: " .
+        ": Current mask: 0x%02X - removing 0x%02X = 0x%02X\n",
+        $current, $type, $new
+      )
+    );
   }
 
   if ($new) {
@@ -212,11 +143,13 @@ sub loop_pause_filehandle {
   my $new = $current & ~$type;
 
   if (TRACE_FILES) {
-    warn( sprintf( "<fh> Pause $fileno: " .
-                   ": Current mask: 0x%02X - removing 0x%02X = 0x%02X\n",
-                   $current, $type, $new
-                 )
-        );
+    POE::Kernel::_warn(
+      sprintf(
+        "<fh> Pause $fileno: " .
+        ": Current mask: 0x%02X - removing 0x%02X = 0x%02X\n",
+        $current, $type, $new
+      )
+    );
   }
 
   if ($new) {
@@ -236,11 +169,13 @@ sub loop_resume_filehandle {
   my $new = $current | $type;
 
   if (TRACE_FILES) {
-    warn( sprintf( "<fh> Resume $fileno: " .
-                   "Current mask: 0x%02X - including 0x%02X = 0x%02X\n",
-                   $current, $type, $new
-                 )
-        );
+    POE::Kernel::_warn(
+      sprintf(
+        "<fh> Resume $fileno: " .
+        "Current mask: 0x%02X - including 0x%02X = 0x%02X\n",
+        $current, $type, $new
+      )
+    );
   }
 
   $poll_fd_masks{$fileno} = $new;
@@ -273,11 +208,13 @@ sub loop_do_timeslice {
   }
 
   if (TRACE_EVENTS) {
-    warn( '<ev> Kernel::run() iterating.  ' .
-          sprintf("now(%.4f) timeout(%.4f) then(%.4f)\n",
-                  $now-$^T, $timeout, ($now-$^T)+$timeout
-                 )
-        );
+    POE::Kernel::_warn(
+      '<ev> Kernel::run() iterating.  ' .
+      sprintf(
+        "now(%.4f) timeout(%.4f) then(%.4f)\n",
+        $now-$start_time, $timeout, ($now-$start_time)+$timeout
+       )
+    );
   }
 
   my @filenos = %poll_fd_masks;
@@ -298,7 +235,9 @@ sub loop_do_timeslice {
       push @modes, 'r' if $flags & (POLLIN | POLLHUP | POLLERR);
       push @modes, 'w' if $flags & (POLLOUT | POLLHUP | POLLERR);
       push @modes, 'x' if $flags & (POLLRDBAND | POLLHUP | POLLERR);
-      warn( "<fh> file descriptor $_ = modes(@modes) types(@types)\n" );
+      POE::Kernel::_warn(
+        "<fh> file descriptor $_ = modes(@modes) types(@types)\n"
+      );
     }
   }
 
@@ -316,7 +255,7 @@ sub loop_do_timeslice {
 
       if (ASSERT_FILES) {
         if ($hits < 0) {
-          confess "<fh> poll returned $hits (error): $!"
+          POE::Kernel::_trap("<fh> poll returned $hits (error): $!")
             unless ( ($! == EINPROGRESS) or
                      ($! == EWOULDBLOCK) or
                      ($! == EINTR)
@@ -326,10 +265,10 @@ sub loop_do_timeslice {
 
       if (TRACE_FILES) {
         if ($hits > 0) {
-          warn "<fh> poll hits = $hits\n";
+          POE::Kernel::_warn "<fh> poll hits = $hits\n";
         }
         elsif ($hits == 0) {
-          warn "<fh> poll timed out...\n";
+          POE::Kernel::_warn "<fh> poll timed out...\n";
         }
       }
 
@@ -350,7 +289,7 @@ sub loop_do_timeslice {
                $got_mask & (POLLIN | POLLHUP | POLLERR)
              ) {
             if (TRACE_FILES) {
-              warn "<fh> enqueuing read for fileno $fd";
+              POE::Kernel::_warn "<fh> enqueuing read for fileno $fd";
             }
 
             $self->_data_handle_enqueue_ready(MODE_RD, $fd);
@@ -360,7 +299,7 @@ sub loop_do_timeslice {
                $got_mask & (POLLOUT | POLLHUP | POLLERR)
              ) {
             if (TRACE_FILES) {
-              warn "<fh> enqueuing write for fileno $fd";
+              POE::Kernel::_warn "<fh> enqueuing write for fileno $fd";
             }
 
             $self->_data_handle_enqueue_ready(MODE_WR, $fd);
@@ -370,7 +309,7 @@ sub loop_do_timeslice {
                $got_mask & (POLLRDBAND | POLLHUP | POLLERR)
              ) {
             if (TRACE_FILES) {
-              warn "<fh> enqueuing expedite for fileno $fd";
+              POE::Kernel::_warn "<fh> enqueuing expedite for fileno $fd";
             }
 
             $self->_data_handle_enqueue_ready(MODE_EX, $fd);

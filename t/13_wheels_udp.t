@@ -1,21 +1,24 @@
 #!/usr/bin/perl -w
-# $Id: 13_wheels_udp.t,v 1.4 2003/02/01 04:52:07 cwest Exp $
+# $Id: 13_wheels_udp.t,v 1.6 2003/07/09 18:20:41 rcaputo Exp $
 
 # Exercises the wheels commonly used with UDP sockets.
 
 use strict;
 use lib qw(./lib ../lib .. .);
 use TestSetup;
+
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use Socket;
 
-# Turn on all asserts.
-sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE qw( Wheel::SocketFactory );
 
 my $max_send_count = 10;
 
 # Congratulations! We made it this far!
-&test_setup(13);
+test_setup(13);
 
 ###############################################################################
 # Both a UDP server and a client in one session.  This is a contrived

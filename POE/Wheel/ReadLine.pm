@@ -1,15 +1,15 @@
-# $Id: ReadLine.pm,v 1.26 2002/11/19 19:23:00 rcaputo Exp $
+# $Id: ReadLine.pm,v 1.28 2003/09/16 19:49:43 rcaputo Exp $
 
 package POE::Wheel::ReadLine;
 
 use strict;
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.26 $ ))[1];
+$VERSION = (qw($Revision: 1.28 $ ))[1];
 
 use Carp;
 use Symbol qw(gensym);
 use POE qw(Wheel);
-use POSIX qw(B38400);
+use POSIX;
 
 # Things we'll need to interact with the terminal.
 use Term::Cap;
@@ -85,12 +85,17 @@ for (my $ord = 0; $ord < 256; $ord++) {
 # Gather information about the user's terminal.  This just keeps
 # getting uglier.
 
+# Some platforms don't define this constant.
+unless (defined \&POSIX::B38400) {
+  eval "sub POSIX::B38400 () { 0 }";
+}
+
 # Get the terminal speed for Term::Cap.
-my $ospeed = B38400;
+my $ospeed = POSIX::B38400();
 eval {
   my $termios = POSIX::Termios->new();
   $termios->getattr();
-  $ospeed = $termios->getospeed() || B38400;
+  $ospeed = $termios->getospeed() || POSIX::B38400();
 };
 
 # Get the current terminal's capabilities.
@@ -375,7 +380,8 @@ sub _define_idle_state {
 
   # This handler is called when input has become idle.
   $poe_kernel->state
-    ( $self->[SELF_STATE_IDLE] = ref($self) . "($unique_id) -> input timeout",
+    ( $self->[SELF_STATE_IDLE] =
+        ref($self) . "($unique_id) -> input timeout",
       sub {
         # Prevents SEGV in older Perls.
         0 && CRIMSON_SCOPE_HACK('<');

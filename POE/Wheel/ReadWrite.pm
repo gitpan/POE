@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm,v 1.62 2003/05/02 12:36:20 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.64 2003/09/16 14:48:26 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.62 $ ))[1];
+$VERSION = (qw($Revision: 1.64 $ ))[1];
 
 use Carp;
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -428,19 +428,34 @@ sub DESTROY {
 }
 
 #------------------------------------------------------------------------------
+# TODO - We set the high/low watermark state here, but we don't fire
+# events for it.  My assumption is that the return value tells us
+# all we want to know.
 
 sub put {
   my ($self, @chunks) = @_;
-  if ( $self->[DRIVER_BUFFERED_OUT_OCTETS] =
-       $self->[DRIVER_BOTH]->put($self->[FILTER_OUTPUT]->put(\@chunks))
-  ) {
+
+  my $old_buffered_out_octets = $self->[DRIVER_BUFFERED_OUT_OCTETS];
+  my $new_buffered_out_octets =
+    $self->[DRIVER_BUFFERED_OUT_OCTETS] =
+    $self->[DRIVER_BOTH]->put($self->[FILTER_OUTPUT]->put(\@chunks));
+
+  # Resume write-ok if the output buffer gets data.  This avoids
+  # redundant calls to select_resume_write(), which is probably a good
+  # thing.
+  if ($new_buffered_out_octets and !$old_buffered_out_octets) {
     $poe_kernel->select_resume_write($self->[HANDLE_OUTPUT]);
   }
 
-  # Return true if the high watermark has been reached.
-  ( $self->[WATERMARK_WRITE_MARK_HIGH] &&
-    $self->[DRIVER_BUFFERED_OUT_OCTETS] >= $self->[WATERMARK_WRITE_MARK_HIGH]
-  );
+  # If the high watermark has been reached, return true.
+  if (
+    $self->[WATERMARK_WRITE_MARK_HIGH] and
+    $new_buffered_out_octets >= $self->[WATERMARK_WRITE_MARK_HIGH]
+  ) {
+    return $self->[WATERMARK_WRITE_STATE] = 1;
+  }
+
+  return $self->[WATERMARK_WRITE_STATE] = 0;
 }
 
 #------------------------------------------------------------------------------
@@ -826,6 +841,9 @@ InputEvent contains the event that the wheel emits for every complete
 record read.  Every InputEvent is accompanied by two parameters.
 C<ARG0> contains the record which was read.  C<ARG1> contains the
 wheel's unique ID.
+
+The wheel will not attempt to read from its Handle or InputHandle if
+InputEvent is omitted.
 
 A sample InputEvent handler:
 

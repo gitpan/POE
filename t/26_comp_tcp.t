@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 26_comp_tcp.t,v 1.3 2003/02/01 04:52:07 cwest Exp $
+# $Id: 26_comp_tcp.t,v 1.5 2003/07/09 18:20:41 rcaputo Exp $
 
 # Exercise Server::TCP and later, when it's available, Client::TCP.
 
@@ -9,8 +9,10 @@ use TestSetup;
 
 test_setup(18);
 
-# Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE qw( Component::Server::TCP Wheel::ReadWrite Component::Client::TCP );
 
 # Create a server.  This one uses Acceptor to create a session of the

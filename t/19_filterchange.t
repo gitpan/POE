@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 19_filterchange.t,v 1.11 2003/02/01 04:52:07 cwest Exp $
+# $Id: 19_filterchange.t,v 1.13 2003/07/09 18:20:41 rcaputo Exp $
 
 # Exercises filter changing.  A lot of this code comes from Philip
 # Gwyn's filterchange.perl sample.
@@ -13,6 +13,9 @@ use MyOtherFreezer;
 sub DEBUG () { 0 }
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE qw( Wheel::ReadWrite Driver::SysRW
             Filter::Block Filter::Line Filter::Reference Filter::Stream
             Pipe::OneWay Pipe::TwoWay

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 22_wheel_run.t,v 1.31 2003/03/24 16:48:58 rcaputo Exp $
+# $Id: 22_wheel_run.t,v 1.33 2003/07/09 18:20:41 rcaputo Exp $
 
 # Test the portable pipe classes and Wheel::Run, which uses them.
 
@@ -21,9 +21,10 @@ test_setup(24);
 # Turn on extra debugging output within this test program.
 sub DEBUG () { 0 }
 
-# Turn on all asserts, and use POE and other modules.
-#sub POE::Kernel::TRACE_GARBAGE () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 use POE qw(Wheel::Run Filter::Line Pipe::TwoWay Pipe::OneWay);
 
 ### Test one-way pipe() pipe.

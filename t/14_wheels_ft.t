@@ -1,18 +1,21 @@
 #!/usr/bin/perl -w
-# $Id: 14_wheels_ft.t,v 1.11 2003/02/01 04:52:07 cwest Exp $
+# $Id: 14_wheels_ft.t,v 1.14 2003/07/13 16:39:40 rcaputo Exp $
 
 # Exercises Wheel::FollowTail, Wheel::ReadWrite, and Filter::Block.
+# -><- Needs tests for Seek and SeekBack.
 
 use strict;
 use lib qw(./lib ../lib .. .);
 use Socket;
 
 use TestSetup;
-&test_setup(9);
 
-# Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Session::ASSERT_STATES () { 0 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+test_setup(9);
+
 use POE qw( Component::Server::TCP
             Wheel::FollowTail
             Wheel::ReadWrite

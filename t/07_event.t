@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 07_event.t,v 1.16 2003/02/01 04:52:07 cwest Exp $
+# $Id: 07_event.t,v 1.18 2003/07/09 18:20:41 rcaputo Exp $
 
 # Tests FIFO, alarm, select and postback events using Event's event
 # loop.
@@ -10,6 +10,10 @@ use Symbol;
 
 use TestSetup;
 
+sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Kernel::TRACE_DEFAULT  () { 1 }
+sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
 # Skip if Event isn't here.
 BEGIN {
   eval 'use Event';
@@ -19,11 +23,8 @@ BEGIN {
        );
 };
 
-&test_setup(8);
+test_setup(8);
 
-# Turn on all asserts.
-sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-sub POE::Session::ASSERT_STATES () { 0 }
 use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW Pipe::OneWay);
 
 # Congratulate ourselves for getting this far.
