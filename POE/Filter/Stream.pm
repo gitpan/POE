@@ -1,4 +1,4 @@
-# $Id: Stream.pm,v 1.6 2000/06/19 04:08:58 rcaputo Exp $
+# $Id: Stream.pm,v 1.9 2000/12/26 06:14:12 rcaputo Exp $
 
 package POE::Filter::Stream;
 
@@ -39,11 +39,11 @@ __END__
 
 =head1 NAME
 
-POE::Filter::Stream - POE Stream (Null) Protocol Abstraction
+POE::Filter::Stream - pass through data unchanged (a do-nothing filter)
 
 =head1 SYNOPSIS
 
-  $filter = new POE::Filter::Stream();
+  $filter = POE::Filter::Stream->new();
   $arrayref_of_logical_chunks =
     $filter->get($arrayref_of_raw_chunks_from_driver);
   $arrayref_of_streamable_chunks_for_driver =
@@ -51,12 +51,14 @@ POE::Filter::Stream - POE Stream (Null) Protocol Abstraction
 
 =head1 DESCRIPTION
 
-This filter passes data through unchanged.  It is a "null" filter.
+This filter passes data through unchanged.
 
 =head1 SEE ALSO
 
-POE::Filter; POE::Filter::HTTPD; POE::Filter::Line;
-POE::Filter::Reference; POE::Filter::Stream
+POE::Filter.
+
+The SEE ALSO section in L<POE> contains a table of contents covering
+the entire POE distribution.
 
 =head1 BUGS
 
@@ -64,6 +66,6 @@ Oh, probably some.
 
 =head1 AUTHORS & COPYRIGHTS
 
-Please see the POE manpage.
+Please see L<POE> for more information about authors and contributors.
 
 =cut

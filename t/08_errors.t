@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.5 2000/11/19 17:05:15 rcaputo Exp $
+# $Id: 08_errors.t,v 1.10 2001/04/03 20:21:06 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -15,40 +15,83 @@ BEGIN {
 use POSIX qw(:errno_h);
 use Socket;
 
-# Test that errors occur when multiple event loops are enabled.
+my (@symbols_to_clean_up, @files_to_unuse);
+
 BEGIN {
-  # Tk + Event
-  $INC{'Tk.pm'} = 'whatever';
-  $INC{'Event.pm'} = 'whatever';
-  stderr_pause();
-  eval 'use POE::Kernel;';
-  stderr_resume();
-  print 'not ' unless defined $@ and length $@;
-  print "ok 1\n";
+  @symbols_to_clean_up =
+    qw( POE_USES_TIME_HIRES SUBSTRATE_NAME_EVENT SUBSTRATE_NAME_GTK
+        SUBSTRATE_NAME_SELECT SUBSTRATE_NAME_TK SUBSTRATE_EVENT
+        SUBSTRATE_GTK SUBSTRATE_SELECT SUBSTRATE_TK POE_SUBSTRATE
+        POE_SUBSTRATE_NAME _substrate_signal_handler_generic
+        _substrate_signal_handler_pipe _substrate_signal_handler_child
 
-  # Tk + Gtk
-  delete @INC{'POE/Kernel.pm', 'Event.pm'};
-  $INC{'Gtk.pm'} = 'whatever';
-  stderr_pause();
-  eval 'use POE::Kernel;';
-  stderr_resume();
-  print 'not ' unless defined $@ and length $@;
-  print "ok 2\n";
+        VEC_RD VEC_WR VEC_EX SS_SESSION SS_REFCOUNT SS_EVCOUNT
+        SS_PARENT SS_CHILDREN SS_HANDLES SS_SIGNALS SS_ALIASES
+        SS_PROCESSES SS_ID SS_EXTRA_REFS SS_ALCOUNT SH_HANDLE
+        SH_REFCOUNT SH_VECCOUNT KR_SESSIONS KR_VECTORS KR_HANDLES
+        KR_STATES KR_SIGNALS KR_ALIASES KR_ACTIVE_SESSION KR_PROCESSES
+        KR_ALARMS KR_ID KR_SESSION_IDS KR_ID_INDEX KR_WATCHER_TIMER
+        KR_WATCHER_IDLE KR_EXTRA_REFS KR_SIZE HND_HANDLE HND_REFCOUNT
+        HND_VECCOUNT HND_SESSIONS HND_WATCHERS HSS_HANDLE HSS_SESSION
+        HSS_STATE ST_SESSION ST_SOURCE ST_NAME ST_TYPE ST_ARGS ST_TIME
+        ST_OWNER_FILE ST_OWNER_LINE ST_SEQ EN_START EN_STOP EN_SIGNAL
+        EN_GC EN_PARENT EN_CHILD EN_SCPOLL CHILD_GAIN CHILD_LOSE
+        CHILD_CREATE ET_USER ET_CALL ET_START ET_STOP ET_SIGNAL ET_GC
+        ET_PARENT ET_CHILD ET_SCPOLL ET_ALARM ET_SELECT
+        FIFO_DISPATCH_TIME
 
-  # Gtk + Event
-  delete @INC{'POE/Kernel.pm', 'Tk.pm'};
-  $INC{'Event.pm'} = 'whatever';
-  stderr_pause();
-  eval 'use POE::Kernel;';
-  stderr_resume();
-  print 'not ' unless defined $@ and length $@;
-  print "ok 3\n";
+        import signal_ui_destroy
+      );
 
-  # Clean up after previous tests.
-  delete @INC{ 'POE/Kernel.pm', 'Tk.pm', 'Event.pm', 'Gtk.pm' };
+  @files_to_unuse =
+    qw( POE/Kernel.pm POE/Kernel/Event.pm POE/Kernel/Gtk.pm
+        POE/Kernel/Select.pm POE/Kernel/Tk.pm Event.pm Gtk.pm Tk.pm
+      );
 };
 
-use POE qw( Component::Server::TCP Wheel::SocketFactory );
+# Clean up after destructive tests.
+sub test_cleanup {
+  POE::Preprocessor->clear_package( 'POE::Kernel' );
+
+  foreach my $symbol (@symbols_to_clean_up) {
+    delete $POE::Kernel::{$symbol};
+  }
+
+  delete @INC{ @files_to_unuse };
+}
+
+# Test that errors occur when multiple event loops are enabled.
+BEGIN {
+  # Event + Tk
+  @INC{'Event.pm', 'Tk.pm'} = (1,1);
+  eval 'use POE::Kernel';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 1\n";
+  test_cleanup();
+
+  # Gtk + Tk
+  @INC{'Gtk.pm', 'Tk.pm'} = (1, 1);
+  eval 'use POE::Kernel';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 2\n";
+  test_cleanup();
+
+  # Event + Gtk
+  @INC{'Event.pm', 'Gtk.pm'} = (1, 1);
+  eval 'use POE::Kernel';
+  print 'not ' unless defined $@ and length $@;
+  print "ok 3\n";
+  test_cleanup();
+};
+
+use POE::Kernel;
+use POE::Session;
+use POE::Component::Server::TCP;
+use POE::Wheel::SocketFactory;
+
+die if $@;
+
+#use POE qw( Component::Server::TCP Wheel::SocketFactory );
 
 # Test that errors occur when nonexistent modules are used.
 stderr_pause();

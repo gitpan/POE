@@ -1,4 +1,4 @@
-# $Id: SocketFactory.pm,v 1.39 2000/11/12 00:39:00 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.44 2001/04/03 18:04:32 rcaputo Exp $
 
 package POE::Wheel::SocketFactory;
 
@@ -12,6 +12,19 @@ use POE qw(Wheel);
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 sub DEBUG () { 0 }
+
+sub MY_SOCKET_HANDLE   () {  0 }
+sub MY_UNIQUE_ID       () {  1 }
+sub MY_STATE_SUCCESS   () {  2 }
+sub MY_STATE_FAILURE   () {  3 }
+sub MY_SOCKET_DOMAIN   () {  4 }
+sub MY_STATE_ACCEPT    () {  5 }
+sub MY_STATE_CONNECT   () {  6 }
+sub MY_MINE_SUCCESS    () {  7 }
+sub MY_MINE_FAILURE    () {  8 }
+sub MY_SOCKET_PROTOCOL () {  9 }
+sub MY_SOCKET_TYPE     () { 10 }
+sub MY_SOCKET_SELECTED () { 11 }
 
 # Provide a dummy EINPROGRESS for systems that don't have one.  Give
 # it a documented value.
@@ -80,14 +93,14 @@ sub condition_unix_address {
 sub _define_accept_state {
   my $self = shift;
 
-  my $domain = $map_family_to_domain{ $self->{socket_domain} };
+  my $domain = $map_family_to_domain{ $self->[MY_SOCKET_DOMAIN] };
   $domain = '(undef)' unless defined $domain;
-  my $success_state = \$self->{state_success};
-  my $failure_state = \$self->{state_failure};
-  my $unique_id     =  $self->{unique_id};
+  my $success_state = \$self->[MY_STATE_SUCCESS];
+  my $failure_state = \$self->[MY_STATE_FAILURE];
+  my $unique_id     =  $self->[MY_UNIQUE_ID];
 
   $poe_kernel->state
-    ( $self->{state_accept} = $self . ' select accept',
+    ( $self->[MY_STATE_ACCEPT] = $self . ' select accept',
       sub {
         # prevents SEGV
         0 && CRIMSON_SCOPE_HACK('<');
@@ -123,7 +136,10 @@ sub _define_accept_state {
       }
     );
 
-  $poe_kernel->select_read($self->{socket_handle}, $self->{state_accept});
+  $self->[MY_SOCKET_SELECTED] = 'yes';
+  $poe_kernel->select_read( $self->[MY_SOCKET_HANDLE],
+                            $self->[MY_STATE_ACCEPT]
+                          );
 }
 
 #------------------------------------------------------------------------------
@@ -133,20 +149,22 @@ sub _define_accept_state {
 sub _define_connect_state {
   my $self = shift;
 
-  my $domain = $map_family_to_domain{ $self->{socket_domain} };
+  my $domain = $map_family_to_domain{ $self->[MY_SOCKET_DOMAIN] };
   $domain = '(undef)' unless defined $domain;
-  my $success_state = \$self->{state_success};
-  my $failure_state = \$self->{state_failure};
-  my $unique_id     =  $self->{unique_id};
+  my $success_state   = \$self->[MY_STATE_SUCCESS];
+  my $failure_state   = \$self->[MY_STATE_FAILURE];
+  my $unique_id       =  $self->[MY_UNIQUE_ID];
+  my $socket_selected = \$self->[MY_SOCKET_SELECTED];
 
   $poe_kernel->state
-    ( $self->{state_connect} = $self . ' -> select connect',
+    ( $self->[MY_STATE_CONNECT] = $self . ' -> select connect',
       sub {
         # This prevents SEGV in older versions of Perl.
         0 && CRIMSON_SCOPE_HACK('<');
 
         # Grab some values and stop watching the socket.
         my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+        undef $$socket_selected;
         $k->select($handle);
 
         # Throw a failure if the connection failed.
@@ -206,7 +224,10 @@ sub _define_connect_state {
       }
     );
 
-  $poe_kernel->select_write( $self->{socket_handle}, $self->{state_connect} );
+  $self->[MY_SOCKET_SELECTED] = 'yes';
+  $poe_kernel->select_write( $self->[MY_SOCKET_HANDLE],
+                             $self->[MY_STATE_CONNECT]
+                           );
 }
 
 #------------------------------------------------------------------------------
@@ -221,43 +242,49 @@ sub event {
     if ($name eq 'SuccessState') {
       if (defined $event) {
         if (ref($event) eq 'CODE') {
+          carp( "SuccessState coderefs are depreciated " .
+                "(and will go away after version 0.13)"
+              );
           $poe_kernel->state
-            ( $self->{state_success} = $self . ' success',
+            ( $self->[MY_STATE_SUCCESS] = $self . ' success',
               $event
             );
-          $self->{mine_success} = 'yes';
+          $self->[MY_MINE_SUCCESS] = 'yes';
         }
         else {
           if (ref($event) ne '') {
             carp "Strange reference used as SuccessState event";
           }
-          $self->{state_success} = $event;
-          delete $self->{mine_success};
+          $self->[MY_STATE_SUCCESS] = $event;
+          undef $self->[MY_MINE_SUCCESS];
         }
       }
       else {
-        carp "SuccessState requires an event name or coderef.  ignoring undef";
+        carp "SuccessState requires an event name.  ignoring undef";
       }
     }
     elsif ($name eq 'FailureState') {
       if (defined $event) {
         if (ref($event) eq 'CODE') {
+          carp( "FailureState coderefs are depreciated " .
+                "(and will go away after version 0.13)"
+              );
           $poe_kernel->state
-            ( $self->{state_failure} = $self . ' failure',
+            ( $self->[MY_STATE_FAILURE] = $self . ' failure',
               $event
             );
-          $self->{mine_failure} = 'yes';
+          $self->[MY_MINE_FAILURE] = 'yes';
         }
         else {
           if (ref($event) ne '') {
             carp "Strange reference used as FailureState event (ignored)"
           }
-          $self->{state_failure} = $event;
-          delete $self->{mine_failure};
+          $self->[MY_STATE_FAILURE] = $event;
+          undef $self->[MY_MINE_FAILURE];
         }
       }
       else {
-        carp "FailureState requires an event name or coderef.  ignoring undef";
+        carp "FailureState requires an event name.  ignoring undef";
       }
     }
     else {
@@ -265,11 +292,16 @@ sub event {
     }
   }
 
-  if (exists $self->{state_accept}) {
-    $poe_kernel->select_read($self->{socket_handle}, $self->{state_accept});
+  $self->[MY_SOCKET_SELECTED] = 'yes';
+  if (defined $self->[MY_STATE_ACCEPT]) {
+    $poe_kernel->select_read($self->[MY_SOCKET_HANDLE],
+                             $self->[MY_STATE_ACCEPT]
+                            );
   }
-  elsif (exists $self->{state_connect}) {
-    $poe_kernel->select_write($self->{socket_handle}, $self->{state_connect});
+  elsif (defined $self->[MY_STATE_CONNECT]) {
+    $poe_kernel->select_write( $self->[MY_SOCKET_HANDLE],
+                               $self->[MY_STATE_CONNECT]
+                             );
   }
   else {
     die "POE developer error - no state defined";
@@ -280,12 +312,12 @@ sub event {
 
 sub getsockname {
   my $self = shift;
-  return undef unless defined $self->{socket_handle};
-  return getsockname($self->{socket_handle});
+  return undef unless defined $self->[MY_SOCKET_HANDLE];
+  return getsockname($self->[MY_SOCKET_HANDLE]);
 }
 
 sub ID {
-  return $_[0]->{unique_id};
+  return $_[0]->[MY_UNIQUE_ID];
 }
 
 #------------------------------------------------------------------------------
@@ -307,24 +339,35 @@ sub new {
 
   # Create the SocketServer.  Cache a copy of the socket handle.
   my $socket_handle = gensym();
-  my $self = bless { socket_handle => $socket_handle,
-                     state_success => $params{SuccessState},
-                     state_failure => $params{FailureState},
-                     unique_id     => &POE::Wheel::allocate_wheel_id(),
-                   }, $type;
+  my $self = bless
+    ( [ $socket_handle,                   # MY_SOCKET_HANDLE
+        &POE::Wheel::allocate_wheel_id(), # MY_UNIQUE_ID
+        $params{SuccessState},            # MY_STATE_SUCCESS
+        $params{FailureState},            # MY_STATE_FAILURE
+        undef,                            # MY_SOCKET_DOMAIN
+        undef,                            # MY_STATE_ACCEPT
+        undef,                            # MY_STATE_CONNECT
+        undef,                            # MY_MINE_SUCCESS
+        undef,                            # MY_MINE_FAILURE
+        undef,                            # MY_SOCKET_PROTOCOL
+        undef,                            # MY_SOCKET_TYPE
+        undef,                            # MY_SOCKET_SELECTED
+      ],
+      $type
+    );
 
   # Default to Internet sockets.
-  $self->{socket_domain} = ( (defined $params{SocketDomain})
+  $self->[MY_SOCKET_DOMAIN] = ( (defined $params{SocketDomain})
                              ? $params{SocketDomain}
                              : AF_INET
                            );
 
   # Abstract the socket domain into something we don't have to keep
   # testing duplicates of.
-  my $abstract_domain = $map_family_to_domain{$self->{socket_domain}};
+  my $abstract_domain = $map_family_to_domain{$self->[MY_SOCKET_DOMAIN]};
   unless (defined $abstract_domain) {
     $poe_kernel->yield( $state_failure,
-                        'domain', 0, '', $self->{unique_id}
+                        'domain', 0, '', $self->[MY_UNIQUE_ID]
                       );
     return $self;
   }
@@ -342,7 +385,7 @@ sub new {
   if ($abstract_domain eq DOM_UNIX) {
     carp 'SocketProtocol ignored for Unix socket'
       if defined $params{SocketProtocol};
-    $self->{socket_protocol} = PF_UNSPEC;
+    $self->[MY_SOCKET_PROTOCOL] = PF_UNSPEC;
     $protocol_name = 'none';
   }
 
@@ -355,7 +398,7 @@ sub new {
     if ($socket_protocol !~ /^\d+$/) {
       unless ($socket_protocol = getprotobyname($socket_protocol)) {
         $poe_kernel->yield( $state_failure,
-                            'getprotobyname', $!+0, $!, $self->{unique_id}
+                            'getprotobyname', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -367,7 +410,7 @@ sub new {
     $protocol_name = lc(getprotobynumber($socket_protocol));
     unless ($protocol_name) {
       $poe_kernel->yield( $state_failure,
-                          'getprotobynumber', $!+0, $!, $self->{unique_id}
+                          'getprotobynumber', $!+0, $!, $self->[MY_UNIQUE_ID]
                         );
       return $self;
     }
@@ -376,7 +419,7 @@ sub new {
       croak "SocketFactory does not support Internet $protocol_name sockets";
     }
 
-    $self->{socket_protocol} = $socket_protocol;
+    $self->[MY_SOCKET_PROTOCOL] = $socket_protocol;
   }
   else {
     die "Mail this error to the author of POE: Internal consistency error";
@@ -384,23 +427,23 @@ sub new {
 
   # If no SocketType, default it to something appropriate.
   if (defined $params{SocketType}) {
-    $self->{socket_type} = $params{SocketType};
+    $self->[MY_SOCKET_TYPE] = $params{SocketType};
   }
   else {
     unless (defined $default_socket_type{$abstract_domain}->{$protocol_name}) {
       croak "SocketFactory does not support $abstract_domain $protocol_name";
     }
-    $self->{socket_type} =
+    $self->[MY_SOCKET_TYPE] =
       $default_socket_type{$abstract_domain}->{$protocol_name};
   }
 
   # Create the socket.
-  unless (socket( $socket_handle, $self->{socket_domain},
-                  $self->{socket_type}, $self->{socket_protocol}
+  unless (socket( $socket_handle, $self->[MY_SOCKET_DOMAIN],
+                  $self->[MY_SOCKET_TYPE], $self->[MY_SOCKET_PROTOCOL]
                 )
   ) {
     $poe_kernel->yield( $state_failure,
-                        'socket', $!+0, $!, $self->{unique_id}
+                        'socket', $!+0, $!, $self->[MY_UNIQUE_ID]
                       );
     return $self;
   }
@@ -429,7 +472,7 @@ sub new {
          )
       or do {
         $poe_kernel->yield( $state_failure,
-                            'ioctl', $!+0, $!, $self->{unique_id}
+                            'ioctl', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       };
@@ -440,14 +483,14 @@ sub new {
     my $flags = fcntl($socket_handle, F_GETFL, 0)
       or do {
         $poe_kernel->yield( $state_failure,
-                            'fcntl', $!+0, $!, $self->{unique_id}
+                            'fcntl', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       };
     $flags = fcntl($socket_handle, F_SETFL, $flags | O_NONBLOCK)
       or do {
         $poe_kernel->yield( $state_failure,
-                            'fcntl', $!+0, $!, $self->{unique_id}
+                            'fcntl', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       };
@@ -465,7 +508,7 @@ sub new {
     setsockopt($socket_handle, SOL_SOCKET, SO_REUSEADDR, 1)
       or do {
         $poe_kernel->yield( $state_failure,
-                            'setsockopt', $!+0, $!, $self->{unique_id}
+                            'setsockopt', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       };
@@ -497,7 +540,7 @@ sub new {
       unless (defined $bind_address) {
         $! = EADDRNOTAVAIL;
         $poe_kernel->yield( $state_failure,
-                            'inet_aton', $!+0, $!, $self->{unique_id}
+                            'inet_aton', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -510,7 +553,7 @@ sub new {
         unless (defined $bind_port) {
           $! = EADDRNOTAVAIL;
           $poe_kernel->yield( $state_failure,
-                              'getservbyname', $!+0, $!, $self->{unique_id}
+                              'getservbyname', $!+0, $!, $self->[MY_UNIQUE_ID]
                             );
           return $self;
         }
@@ -519,7 +562,7 @@ sub new {
       $bind_address = pack_sockaddr_in($bind_port, $bind_address);
       unless (defined $bind_address) {
         $poe_kernel->yield( $state_failure,
-                            'pack_sockaddr_in', $!+0, $!, $self->{unique_id}
+                            'pack_sockaddr_in', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -536,7 +579,7 @@ sub new {
       if (defined $params{RemotePort}) {
         $! = EADDRINUSE;
         $poe_kernel->yield( $state_failure,
-                            'bind', $!+0, $!, $self->{unique_id}
+                            'bind', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -545,7 +588,7 @@ sub new {
       $bind_address = pack_sockaddr_un($bind_address);
       unless ($bind_address) {
         $poe_kernel->yield( $state_failure,
-                            'pack_sockaddr_un', $!+0, $!, $self->{unique_id}
+                            'pack_sockaddr_un', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -562,7 +605,7 @@ sub new {
   if (defined $bind_address) {
     unless (bind($socket_handle, $bind_address)) {
       $poe_kernel->yield( $state_failure,
-                          'bind', $!+0, $!, $self->{unique_id}
+                          'bind', $!+0, $!, $self->[MY_UNIQUE_ID]
                         );
       return $self;
     }
@@ -591,7 +634,7 @@ sub new {
         unless ($remote_port = getservbyname($remote_port, $protocol_name)) {
           $! = EADDRNOTAVAIL;
           $poe_kernel->yield( $state_failure,
-                              'getservbyname', $!+0, $!, $self->{unique_id}
+                              'getservbyname', $!+0, $!, $self->[MY_UNIQUE_ID]
                             );
           return $self;
         }
@@ -601,7 +644,7 @@ sub new {
       unless (defined $connect_address) {
         $! = EADDRNOTAVAIL;
         $poe_kernel->yield( $state_failure,
-                            'inet_aton', $!+0, $!, $self->{unique_id}
+                            'inet_aton', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -610,7 +653,7 @@ sub new {
       unless ($connect_address) {
         $! = EADDRNOTAVAIL;
         $poe_kernel->yield( $state_failure,
-                            'pack_sockaddr_in', $!+0, $!, $self->{unique_id}
+                            'pack_sockaddr_in', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -625,7 +668,7 @@ sub new {
       $connect_address = pack_sockaddr_un($connect_address);
       unless (defined $connect_address) {
         $poe_kernel->yield( $state_failure,
-                            'pack_sockaddr_un', $!+0, $!, $self->{unique_id}
+                            'pack_sockaddr_un', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -654,7 +697,7 @@ sub new {
 
       if ($! and ($! != EINPROGRESS) and ($! != EWOULDBLOCK)) {
         $poe_kernel->yield( $state_failure,
-                            'connect', $!+0, $!, $self->{unique_id}
+                            'connect', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -662,7 +705,7 @@ sub new {
 
     DEBUG && warn "connect";
 
-    $self->{socket_handle} = $socket_handle;
+    $self->[MY_SOCKET_HANDLE] = $socket_handle;
     $self->_define_connect_state();
     $self->event( SuccessState => $params{SuccessState},
                   FailureState => $params{FailureState},
@@ -687,14 +730,14 @@ sub new {
       ($listen_queue > SOMAXCONN) && ($listen_queue = SOMAXCONN);
       unless (listen($socket_handle, $listen_queue)) {
         $poe_kernel->yield( $state_failure,
-                            'listen', $!+0, $!, $self->{unique_id}
+                            'listen', $!+0, $!, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
 
       DEBUG && warn "listen";
 
-      $self->{socket_handle} = $socket_handle;
+      $self->[MY_SOCKET_HANDLE] = $socket_handle;
       $self->_define_accept_state();
       $self->event( SuccessState => $params{SuccessState},
                     FailureState => $params{FailureState},
@@ -708,7 +751,7 @@ sub new {
         # Do nothing.  Duh.  Fire off a success event immediately, and
         # return.
         $poe_kernel->yield( $state_success,
-                            $socket_handle, undef, undef, $self->{unique_id}
+                            $socket_handle, undef, undef, $self->[MY_UNIQUE_ID]
                           );
         return $self;
       }
@@ -729,31 +772,32 @@ sub new {
 sub DESTROY {
   my $self = shift;
 
-  if (exists $self->{socket_handle}) {
-    $poe_kernel->select($self->{socket_handle});
+  if (defined $self->[MY_SOCKET_SELECTED]) {
+    undef $self->[MY_SOCKET_SELECTED];
+    $poe_kernel->select($self->[MY_SOCKET_HANDLE]);
   }
 
-  if (exists $self->{state_accept}) {
-    $poe_kernel->state($self->{state_accept});
-    delete $self->{state_accept};
+  if (defined $self->[MY_STATE_ACCEPT]) {
+    $poe_kernel->state($self->[MY_STATE_ACCEPT]);
+    undef $self->[MY_STATE_ACCEPT];
   }
 
-  if (exists $self->{state_connect}) {
-    $poe_kernel->state($self->{state_connect});
-    delete $self->{state_connect};
+  if (defined $self->[MY_STATE_CONNECT]) {
+    $poe_kernel->state($self->[MY_STATE_CONNECT]);
+    undef $self->[MY_STATE_CONNECT];
   }
 
-  if (exists $self->{mine_success}) {
-    $poe_kernel->state($self->{state_success});
-    delete $self->{state_success};
+  if (defined $self->[MY_MINE_SUCCESS]) {
+    $poe_kernel->state($self->[MY_STATE_SUCCESS]);
+    undef $self->[MY_STATE_SUCCESS];
   }
 
-  if (exists $self->{mine_failure}) {
-    $poe_kernel->state($self->{state_failure});
-    delete $self->{state_failure};
+  if (defined $self->[MY_MINE_FAILURE]) {
+    $poe_kernel->state($self->[MY_STATE_FAILURE]);
+    undef $self->[MY_STATE_FAILURE];
   }
 
-  &POE::Wheel::free_wheel_id($self->{unique_id});
+  &POE::Wheel::free_wheel_id($self->[MY_UNIQUE_ID]);
 }
 
 ###############################################################################
@@ -763,14 +807,14 @@ __END__
 
 =head1 NAME
 
-POE::Wheel::SocketFactory - POE Socket Creation Logic Abstraction
+POE::Wheel::SocketFactory - non-blocking socket creation and management
 
 =head1 SYNOPSIS
 
   use Socket; # For the constants
 
   # Listening Unix domain socket.
-  $wheel = new POE::Wheel::SocketFactory(
+  $wheel = POE::Wheel::SocketFactory->new(
     SocketDomain => AF_UNIX,               # Sets the socket() domain
     BindAddress  => $unix_socket_address,  # Sets the bind() address
     SuccessState => $success_state,        # State to call upon accept()
@@ -780,7 +824,7 @@ POE::Wheel::SocketFactory - POE Socket Creation Logic Abstraction
   );
 
   # Connecting Unix domain socket.
-  $wheel = new POE::Wheel::SocketFactory(
+  $wheel = POE::Wheel::SocketFactory->new(
     SocketDomain  => AF_UNIX,              # Sets the socket() domain
     RemoteAddress => $unix_server_address, # Sets the connect() address
     SuccessState  => $success_state,       # State to call on connection
@@ -792,7 +836,7 @@ POE::Wheel::SocketFactory - POE Socket Creation Logic Abstraction
   );
 
   # Listening Internet domain socket.
-  $wheel = new POE::Wheel::SocketFactory(
+  $wheel = POE::Wheel::SocketFactory->new(
     BindAddress    => $inet_address,       # Sets the bind() address
     BindPort       => $inet_port,          # Sets the bind() port
     SuccessState   => $success_state,      # State to call upon accept()
@@ -806,7 +850,7 @@ POE::Wheel::SocketFactory - POE Socket Creation Logic Abstraction
   );
 
   # Connecting Internet domain socket.
-  $wheel = new POE::Wheel::SocketFactory(
+  $wheel = POE::Wheel::SocketFactory->new(
     RemoteAddress  => $inet_address,       # Sets the connect() address
     RemotePort     => $inet_port,          # Sets the connect() port
     SuccessState   => $success_state,      # State to call on connection
@@ -824,229 +868,240 @@ POE::Wheel::SocketFactory - POE Socket Creation Logic Abstraction
 
 =head1 DESCRIPTION
 
-This wheel creates sockets, generating events when something happens
-to them.  Success events come with connected, ready to use sockets.
-Failure events are accompanied by error codes, similar to other
-wheels'.
+SocketFactory creates sockets.  It can create connectionless sockets
+like UDP, or connected sockets like UNIX domain streams and TCP
+sockets.
 
-SocketFactory currently supports Unix domain sockets, and TCP sockets
-within the Internet domain.  Other protocols are forthcoming,
-eventually; let the author or mailing list know if they're needed
-sooner.
+The SocketFactory manages connecting and listening sockets on behalf
+of the session that created it.  It will watch a connecting socket and
+fire a SuccessState or FailureState event when something happens.  It
+will watch a listening socket and fire a SuccessState or FailureState
+event for every connection.
 
 =head1 PUBLIC METHODS
 
-=over 4
+=over 2
 
-=item *
+=item new LOTS_OF_THINGS
 
-POE::Wheel::SocketFactory::new()
+new() creates a new socket.  If necessary, it registers event handlers
+to manage the socket.  new() has parameters for just about every
+aspect of socket creation; thankfully they all aren't needed at once.
 
-The new() method does most of the work.  It has parameters for just
-about every aspect of socket creation: socket(), setsockopt(), bind(),
-listen(), connect() and accept().  Thankfully they all aren't used at
-the same time.
+new() always returns a SocketFactory wheel reference, even if a socket
+couldn't be created.
 
-(!!!) The new() method always returns the SocketFactory wheel's
-reference, even if the constructor didn't succeed.  This is different
-from versions before 0.1106.
-
-The parameters:
+These parameters provide information for the SocketFactory's socket()
+call.
 
 =over 2
 
-=item *
+=item SocketDomain
 
-SocketDomain
+SocketDomain supplies socket() with its DOMAIN parameter.  Supported
+values are AF_UNIX, AF_INET, PF_UNIX and PF_INET.  If SocketDomain is
+omitted, it defaults to AF_INET.
 
-SocketDomain is the DOMAIN parameter for the socket() call.  Currently
-supported values are AF_UNIX, AF_INET, PF_UNIX and PF_INET.  It
-defaults to AF_INET if omitted.
+=item SocketType
 
-=item *
+SocketType supplies socket() with its TYPE parameter.  Supported
+values are SOCK_STREAM and SOCK_DGRAM, although datagram sockets
+haven't been tested at this time.  If SocketType is omitted, it
+defaults to SOCK_STREAM.
 
-SocketType
+=item SocketProtocol
 
-SocketType is the TYPE parameter for the socket() call.  Currently
-supported values are SOCK_STREAM and SOCK_DGRAM (although datagram
-sockets aren't tested at this time).  It defaults to SOCK_STREAM if
-omitted.
+SocketProtocol supplies socket() with its PROTOCOL parameter.
+Protocols may be specified by number or by a name that can be found in
+the system's protocol (or equivalent) database.  SocketProtocol is
+ignored for UNIX domain sockets.  It defaults to 'tcp' if it's omitted
+from an INET socket factory.
 
-=item *
+=back
 
-SocketProtocol
+These parameters provide information for the SocketFactory's bind()
+call.
 
-SocketProtocol is the PROTOCOL parameter for the socket() call.
-Protocols may be specified by name or number (see /etc/protocols, or
-the equivalent file).  The only supported protocol at this time is
-'tcp'.  SocketProtocol is ignored for Unix domain sockets.  It
-defaults to 'tcp' if omitted from an Internet socket constructor.
+=over 2
 
-=item *
+=item BindAddress
 
-BindAddress
+BindAddress supplies the address where a socket will be bound to.  It
+has different meanings and formats depending on the socket domain.
 
-BindAddress is the local interface address that the socket will be
-bound to.
+BindAddress may contain either a string or a packed Internet address
+when it's specified for INET sockets.  The string form of BindAddress
+should hold a dotted numeric address or resolvable host name.
+BindAddress is optional for INET sockets, and SocketFactory will use
+INADDR_ANY by default.
 
-For Internet domain sockets: The bind address may be a string
-containing a dotted quad, a host name, or a packed Internet address
-(without the port).  It defaults to INADDR_ANY if it's not specified,
-which will try to bind the socket to every interface.  If any
-interface has a socket already bound to the BindPort, then bind() (and
-the SocketFactory) will fail.
+When used to bind a UNIX domain socket, BindAddress should contain a
+path describing the socket's filename.  This is required for server
+sockets and datagram client sockets.  BindAddress has no default value
+for UNIX sockets.
 
-For Unix domain sockets: The bind address is a path where the socket
-will be created.  It is required for server sockets and datagram
-client sockets.  If a file exists at the bind address, then bind()
-(and the SocketFactory) will fail.
+=item BindPort
 
-=item *
+BindPort is only meaningful for INET domain sockets.  It contains a
+port on the BindAddress interface where the socket will be bound.  It
+defaults to 0 if omitted.
 
-BindPort
+BindPort may be a port number or a name that can be looked up in the
+system's services (or equivalent) database.
 
-BindPort is the port of the local interface(s) that the socket will
-try to bind to.  It is ignored for Unix sockets and recommended for
-Internet sockets.  It defaults to 0 if omitted, which will bind the
-socket to an unspecified available port.
+=back
 
-The bind port may be a number, or a name in the /etc/services (or
-equivalent) database.
+These parameters are used for outbound sockets.
 
-=item *
+=over 2
 
-ListenQueue
+=item RemoteAddress
 
-ListenQueue specifies the length of the socket's listen() queue.  It
-defaults to SOMAXCONN if omitted.  SocketFactory will ensure that
-ListenQueue doesn't exceed SOMAXCONN.
-
-It should go without saying that ListenQueue is only appropriate for
-listening sockets.
-
-=item *
-
-RemoteAddress
-
-RemoteAddress is the remote address to which the socket should
+RemoteAddress specifies the remote address to which a socket should
 connect.  If present, the SocketFactory will create a connecting
-socket; otherwise, the SocketFactory will make a listening socket.
+socket.  Otherwise, it will make a listening socket, should the
+protocol warrant it.
 
-The remote address may be a string containing a dotted quad, a host
-name, a packed Internet address, or a Unix socket path.  It will be
-packed, with or without an accompanying RemotePort as necessary for
-the socket domain.
+Like with the bind address, RemoteAddress may be a string containing a
+dotted quad or a resolvable host name.  It may also be a packed
+Internet address, or a UNIX socket path.  It will be packed, with or
+without an accompanying RemotePort, as necessary for the socket
+domain.
 
-=item *
-
-RemotePort
+=item RemotePort
 
 RemotePort is the port to which the socket should connect.  It is
 required for connecting Internet sockets and ignored in all other
 cases.
 
-The remote port may be a number, or a name in the /etc/services (or
+The remote port may be a number or a name in the /etc/services (or
 equivalent) database.
 
 =back
 
-=item *
+This parameter is used for listening sockets.
 
-POE::Wheel::SocketFactory::event(...)
+=over 2
 
-Please see POE::Wheel.
+=item ListenQueue
 
-=item *
+ListenQueue specifies the length of the socket's listen() queue.  It
+defaults to SOMAXCONN if omitted.  SocketFactory will ensure that it
+doesn't exceed SOMAXCONN.
 
-POE::Wheel::SocketFactory::getsockname()
+=back
 
-Returns the value of getsockname() as called with the SocketFactory's
-socket.
+=item event EVENT_TYPE => EVENT_NAME, ...
 
-This is useful for finding out what the SocketFactory's internal
-socket has bound to when it's been instructed to use BindAddress =>
-INADDR_ANY and/or BindPort => INADDR_ANY.
+event() is covered in the POE::Wheel manpage.
 
-=item *
+=item getsockname
 
-POE::Wheel::SocketFactory::ID()
+getsockname() behaves like the built-in function of the same name.
+Because the SocketFactory's underlying socket is hidden away, it's
+hard to do this directly.
 
-Returns the SocketFactory wheel's unique ID.  This can be used to
-associate the wheel's events back to the wheel itself.
+It's useful for finding which address and/or port the SocketFactory
+has bound to when it's been instructed to use BindAddress =>
+INADDR_ANY or BindPort => 0.
+
+=item ID
+
+The ID method returns a FollowTail wheel's unique ID.  This ID will be
+included in every event the wheel generates, and it can be used to
+match events with the wheels which generated them.
 
 =back
 
 =head1 EVENTS AND PARAMETERS
 
-=over 4
+=over 2
 
-=item *
+=item SuccessState
 
-SuccessState
+SuccessState defines the event that will be emitted when a socket has
+been established successfully.  The SuccessState event is fired when
+outbound sockets have connected or whenever listening sockets accept
+new connections.
 
-The SuccessState parameter defines a state name or coderef to call
-upon a successful connect or accept.  The operation it succeeds on
-depends on the type of socket created.
+SuccessState must be the name of a state within the current session.
 
-For connecting sockets, the success state/coderef is called when the
-socket has connected.  For listening sockets, the success
-state/coderef is called for each successfully accepted client
-connection.
+In all cases, C<ARG0> holds the new socket handle.  C<ARG3> holds the
+wheel's unique ID.  The parameters between them differ according to
+the socket's domain and whether it's listening or connecting.
 
-ARG0 contains the connected or accepted socket.
+For INET sockets, C<ARG1> and C<ARG2> hold the socket's remote address
+and port, respectively.
 
-For INET sockets, ARG1 and ARG2 hold the socket's remote address and
-port, respectively.
+For UNIX B<client> sockets, C<ARG1> holds the server address.  It may
+be undefined on systems that have trouble retrieving a UNIX socket's
+remote address.  C<ARG2> is always undefined for UNIX B<client>
+sockets.
 
-For Unix client sockets, ARG1 contains the server address and ARG2 is
-undefined.  Some systems have trouble getting the address of a socket's
-remote end, so ARG1 may be undefined if there was trouble determining
-it.
+According to _Perl Cookbook_, the remote address returned by accept()
+on UNIX sockets is undefined, so C<ARG1> and C<ARG2> are also
+undefined in this case.
 
-ARG3 contains a unique ID for the SocketFactory that generated the
-event.  This is useful for associating socket statuses with particular
-socket factories.
+A sample SuccessState event handler:
 
-According to _Perl Cookbook_, the remote address for accepted Unix
-domain sockets is undefined.  So ARG1 and ARG2 are, too.
+  sub server_accept {
+    my $accepted_handle = $_[ARG0];
 
-=item *
+    my $peer_host = inet_ntoa($_[ARG1]);
+    print( "Wheel $_[ARG3] accepted a connection from ",
+           "$peer_host port $peer_port\n"
+         );
 
-FailureState
+    # Do something with the new connection.
+    &spawn_connection_session( $accepted_handle );
+  }
 
-The FailureState parameter defines a state name or coderef to call
-when a socket error occurs.  The SocketFactory knows what to do with
-EAGAIN, so that's not considered an error.
+=item FailureState
 
-The ARG0 parameter contains the name of the function that failed.
-ARG1 and ARG2 contain the numeric and string versions of $! at the
-time of the error, respectively.
+FailureState defines the event that will be emitted when a socket
+error occurs.  EAGAIN does not count as an error since the
+SocketFactory knows what to do with it.
 
-ARG3 contains a unique ID for the SocketFactory that generated the
-event.  This is useful for associating socket statuses with particular
-socket factories.
+FailureState must be the name of a state within the current session.
 
-A sample ErrorState state:
+The FailureState event comes with the standard error event parameters.
+
+C<ARG0> contains the name of the operation that failed.  C<ARG1> and
+C<ARG2> hold numeric and string values for C<$!>, respectively.
+C<ARG3> contains the wheel's unique ID, which may be matched back to
+the wheel itself via the $wheel->ID call.
+
+A sample ErrorState event handler:
 
   sub error_state {
-    my ($operation, $errnum, $errstr) = @_[ARG0, ARG1, ARG2];
-    warn "$operation error $errnum: $errstr\n";
+    my ($operation, $errnum, $errstr, $wheel_id) = @_[ARG0..ARG3];
+    warn "Wheel $wheel_id generated $operation error $errnum: $errstr\n";
+    delete $heap->{wheels}->{$wheel_id}; # shut down that wheel
   }
 
 =back
 
 =head1 SEE ALSO
 
-POE::Wheel; POE::Wheel::FollowTail; POE::Wheel::ListenAccept;
-POE::Wheel::ReadWrite; POE::Wheel::SocketFactory
+POE::Wheel.
+
+The SEE ALSO section in L<POE> contains a table of contents covering
+the entire POE distribution.
 
 =head1 BUGS
 
 Many (if not all) of the croak/carp/warn/die statements should fire
 back $state_failure instead.
 
+SocketFactory is only tested with UNIX streams and INET sockets using
+the UDP and TCP protocols.  Others may or may not work, but the latest
+design is data driven and should be easy to extend.  Patches are
+welcome, as are test cases for new families and protocols.  Even if
+test cases fail, they'll make nice reference code to test additions to
+the SocketFactory class.
+
 =head1 AUTHORS & COPYRIGHTS
 
-Please see the POE manpage.
+Please see L<POE> for more information about authors and contributors.
 
 =cut

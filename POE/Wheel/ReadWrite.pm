@@ -1,4 +1,4 @@
-# $Id: ReadWrite.pm,v 1.36 2000/11/12 00:38:59 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.45 2001/02/12 15:25:17 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
@@ -123,7 +123,7 @@ sub new {
       undef,                            # STATE_READ
       # Unique ID.
       &POE::Wheel::allocate_wheel_id(), # UNIQUE_ID
-    ];
+    ], $type;
 
   if (scalar keys %params) {
     carp( "unknown parameters in $type constructor call: ",
@@ -328,7 +328,9 @@ sub event {
 
 sub DESTROY {
   my $self = shift;
-                                        # remove tentacles from our owner
+
+  # Turn off the select.  This is a problem if a wheel is being
+  # swapped, since it will turn off selects for the other wheel.
   $poe_kernel->select($self->[HANDLE_INPUT]);
 
   if ($self->[STATE_READ]) {
@@ -410,6 +412,20 @@ sub set_output_filter {
   $self->[FILTER_OUTPUT] = $new_filter;
 }
 
+# Get the current input filter; used for accessing the filter's custom
+# methods, as in: $wheel->get_input_filter()->filter_method();
+sub get_input_filter {
+  my $self = shift;
+  return $self->[FILTER_INPUT];
+}
+
+# Get the current input filter; used for accessing the filter's custom
+# methods, as in: $wheel->get_input_filter()->filter_method();
+sub get_output_filter {
+  my $self = shift;
+  return $self->[FILTER_OUTPUT];
+}
+
 # Set the high water mark.
 
 sub set_high_mark {
@@ -480,31 +496,31 @@ __END__
 
 =head1 NAME
 
-POE::Wheel::ReadWrite - POE Read/Write Logic Abstraction
+POE::Wheel::ReadWrite - buffered non-blocking I/O
 
 =head1 SYNOPSIS
 
-  $wheel = new POE::Wheel::ReadWrite(
+  $wheel = POE::Wheel::ReadWrite->new(
 
     # To read and write from the same handle, such as a socket, use
     # the Handle parameter:
-    Handle       => $file_or_socket_handle,       # Handle to read/write
+    Handle       => $file_or_socket_handle,  # Handle to read/write
 
     # To read and write from different handles, such as a dual pipe to
     # a child process, or a console, use InputHandle and OutputHandle:
-    InputHandle  => $readable_filehandle,         # Handle to read
-    OutputHandle => $writable_filehandle,         # Handle to write
+    InputHandle  => $readable_filehandle,    # Handle to read
+    OutputHandle => $writable_filehandle,    # Handle to write
 
-    Driver       => new POE::Driver::Something(), # How to read/write it
+    Driver       => POE::Driver::Something->new(), # How to read/write it
 
     # To read and write using the same line discipline, such as
     # Filter::Line, use the Filter parameter:
-    Filter       => new POE::Filter::Something(), # How to parse in and out
+    Filter       => POE::Filter::Something->new(), # How to parse in and out
 
     # To read and write using different line disciplines, such as
     # stream out and line in:
-    InputFilter  => new POE::Filter::Something(),     # Read data one way
-    OUtputFilter => new POE::Filter::SomethingElse(), # Write data another
+    InputFilter  => POE::Filter::Something->new(),     # Read data one way
+    OUtputFilter => POE::Filter::SomethingElse->new(), # Write data another
 
     InputState   => $input_state_name,  # Input received state
     FlushedState => $flush_state_name,  # Output flushed state
@@ -522,11 +538,11 @@ POE::Wheel::ReadWrite - POE Read/Write Logic Abstraction
   $wheel->event( ... );
 
   # To set both the input and output filters at once:
-  $wheel->set_filter( new POE::Filter::Something );
+  $wheel->set_filter( POE::Filter::Something->new() );
 
   # To set an input filter or an output filter:
-  $wheel->set_input_filter( new POE::Filter::Something );
-  $wheel->set_output_filter( new POE::Filter::Something );
+  $wheel->set_input_filter( POE::Filter::Something->new() );
+  $wheel->set_output_filter( POE::Filter::Something->new() );
 
   # To alter the high or low water marks:
   $wheel->set_high_mark( $new_high_mark_octets );
@@ -541,98 +557,95 @@ POE::Wheel::ReadWrite - POE Read/Write Logic Abstraction
 
 =head1 DESCRIPTION
 
-The ReadWrite wheel does buffered, select-based I/O on a filehandle.
-It generates events for common file conditions, such as when data has
-been read or flushed.  This wheel includes a put() method.
+ReadWrite performs buffered, select-based I/O on filehandles.  It
+generates events for common file conditions, such as when data has
+been read or flushed.
 
 =head1 PUBLIC METHODS
 
-=over 4
+=over 2
 
-=item *
+=item put LISTREF_OF_RECORDS
 
-POE::Wheel::ReadWrite::put($logical_data_chunk)
+put() queues records for transmission.  They may not be transmitted
+immediately.  ReadWrite uses its Filter to translate the records into
+a form suitable for writing.  It uses its Driver to queue and send
+them.
 
-The put() method uses a POE::Filter to translate the logical data
-chunk into a serialized (streamable) representation.  It then uses a
-POE::Driver to enqueue or write the data to a filehandle.  It also
-manages the wheel's write select so that any buffered data can be
-flushed when the handle is ready.
+put() accepts a reference to a list of records.  It returns a boolean
+value indicating whether the wheel's high-water mark has been reached.
+It always returns false if a wheel doesn't have a high-water mark set.
 
-The put() method returns a boolean value indicating whether the
-wheel's high water mark has been reached.  It will always return false
-if the wheel doesn't have a high water mark set.
+This will quickly fill a wheel's output queue if it has a high-water
+mark set.  Otherwise it will loop infinitely, eventually exhausting
+memory.
 
-Data isn't flushed to the underlying filehandle, so it's easy for
-put() to exceed a wheel's high water mark without generating a
-HighState event.
+  1 while $wheel->put( &get_next_thing_to_send );
 
-=item *
+=item event EVENT_TYPE => EVENT_NAME, ...
 
-POE::Wheel::ReadWrite::event(...)
+event() is covered in the POE::Wheel manpage.
 
-Please see POE::Wheel.
+=item set_filter POE_FILTER
 
-=item *
+=item set_input_filter POE_FILTER
 
-POE::Wheel::ReadWrite::set_filter( $poe_filter )
+=item set_output_filter POE_FILTER
 
-The set_filter method changes the filter that the ReadWrite wheel uses
-to translate between streams and logical chunks of data.  It sets both
-the read and write filters.  It uses filters' get_pending() method to
-preserve any unprocessed input between the previous and new filters.
+set_input_filter() changes the filter a wheel uses for reading.
+set_output_filter() changes a wheel's output filter.  set_filter()
+changes them both at once.
 
-Please be aware that this method has complex and perhaps non-obvious
-side effects.  The description of POE::Filter::get_pending() discusses
-them further.
+These methods let programs change a wheel's underlying protocol while
+it runs.  It retrieves the existing filter's unprocessed input using
+its get_pending() method and passes that to the new filter.
 
-POE::Filter::HTTPD does not support the get_pending() method.
-Switching from an HTTPD filter to another one will display a reminder
-that it sn't supported.
+Switching filters can be tricky.  Please see the discussion of
+get_pending() in L<POE::Filter>.
 
-=item *
+The HTTPD filter does not support get_pending(), and it will complain
+if a program tries to switch away from one.
 
-POE::Wheel::ReadWrite::set_input_filter( $poe_filter )
-POE::Wheel::ReadWrite::set_output_filter( $poe_filter )
+=item get_input_filter
 
-These perform similar functions to the &set_filter method, but they
-change the input or output filters separately.
+=item get_output_filter
 
-=item *
+Return the wheel's input or output filter.  In many cases, they both
+may be the same.  This is used to access custom methods on the filter
+itself; for example, Filter::Stackable has methods to push and pop
+filters on its stack.
 
-POE::Wheel::ReadWrite::set_high_mark( $high_mark_octets )
-POE::Wheel::ReadWrite::set_low_mark( $low_mark_octets )
+  $wheel->get_input_filter()->pop();
 
-Sets the high and low watermark octet counts.  They will not take
-effect until the next $wheel->put() or internal buffer flush.
-POE::Wheel::ReadWrite->event() can change the high and low watermark
-events.
+=item set_high_mark HIGH_MARK_OCTETS
 
-=item *
+=item set_low_mark LOW_MARK_OCTETS
 
-POE::Wheel::ReadWrite::ID()
+These methods set a wheel's high- and low-water marks.  New values
+will not take effect until the next put() call or internal buffer
+flush.  The event() method can change the events emitted by high- and
+low-water marks.
 
-Returns the ReadWrite wheel's unique ID.  This can be used to
-associate the wheel's events back to the wheel itself.
+=item ID
+
+The ID method returns a FollowTail wheel's unique ID.  This ID will be
+included in every event the wheel generates, and it can be used to
+match events with the wheels which generated them.
 
 =back
 
 =head1 EVENTS AND PARAMETERS
 
-=over 4
+=over 2
 
-=item *
+=item InputState
 
-InputState
+InputState contains the event that the wheel emits for every complete
+record read.  Every InputState event is accompanied by two parameters.
+C<ARG0> contains the record which was read.  C<ARG1> contains the
+wheel's unique ID.
 
-The InputState event contains the name of the state that will be
-called for each chunk of logical data returned by the ReadWrite
-wheel's filter.
-
-The ARG0 parameter contains the chunk of logical data that was
-received.  ARG1 contains the ID of the wheel that received the input.
-
-A sample InputState state:
+A sample InputState event handler:
 
   sub input_state {
     my ($heap, $input, $wheel_id) = @_[HEAP, ARG0, ARG1];
@@ -640,16 +653,17 @@ A sample InputState state:
     $heap->{wheel}->put($input);     # Echo it back.
   }
 
-=item *
+=item FlushedState
 
-FlushedState
+FlushedState contains the event that ReadWrite emits whenever its
+output queue becomes empty.  This signals that all pending data has
+been written, and it's often used to wait for "goodbye" messages to be
+sent before a session shuts down.
 
-The FlushedState event contains the name of the state that will be
-called whenever the wheel's driver's output queue becomes empty.  This
-signals that all pending data has been written.  It comes with a
-single parameter, ARG0, that indicates which wheel flushed its buffer.
+FlushedState comes with a single parameter, C<ARG0>, that indicates
+which wheel flushed its buffer.
 
-A sample FlushedState state:
+A sample FlushedState event handler:
 
   sub flushed_state {
     # Stop a wheel after all outgoing data is flushed.
@@ -658,66 +672,54 @@ A sample FlushedState state:
     delete $_[HEAP]->{wheel}->{$_[ARG0]};
   }
 
-=item *
+=item ErrorState
 
-ErrorState
+ErrorState contains the event that ReadWrite emits whenever an error
+occurs.  Every ErrorState event comes with four parameters:
 
-The ErrorState event contains the name of the state that will be
-called when a file error occurs.  The ReadWrite wheel knows what to do
-with EAGAIN, so it's not considered a true error.
+C<ARG0> contains the name of the operation that failed.  This usually
+is 'read'.  Note: This is not necessarily a function name.  The wheel
+doesn't know which function its Driver is using.
 
-The ARG0 parameter contains the name of the function that failed.
-ARG1 and ARG2 contain the numeric and string versions of $! at the
-time of the error, respectively.  ARG3 holds the ID of the wheel that
-encountered an error; this is good for times when you have several
-wheels and need to know which one's having trouble.
+C<ARG1> and C<ARG2> hold numeric and string values for C<$!>,
+respectively.
 
-A sample ErrorState state:
+C<ARG3> contains the wheel's unique ID.
+
+A sample ErrorState event handler:
 
   sub error_state {
-    my ($heap, $operation, $errnum, $errstr, $wheel_id) =
-      @_[HEAP, ARG0, ARG1..ARG3];
-    warn "$operation error $errnum: $errstr\n";
+    my ($operation, $errnum, $errstr, $wheel_id) = @_[ARG0..ARG3];
+    warn "Wheel $wheel_id generated $operation error $errnum: $errstr\n";
     delete $heap->{wheels}->{$wheel_id}; # shut down that wheel
   }
 
-=item *
+=item HighState
 
-HighState
+=item LowState
 
-The HighState event indicates when the wheel's driver's output buffer
-has grows to reach HighMark octets of unwritten data.  This event will
-fire once when the output buffer reaches HighMark, and it will not
-fire again until a LowState event occurs.
+ReadWrite emits a HighState event when a wheel's pending output queue
+has grown to be at least HighMark octets.  A LowState event is emitted
+when a wheel's pending octet count drops below the value of LowMark.
 
-HighState and LowState together are used for flow control.  The idea
-is to perform some sort of throttling when HighState is called and
-resume full-speed transmission when LowState is called.
+HighState and LowState flip-flop.  Once a HighState event has been
+fired, it won't be fired again until LowState's event is.  Likewise,
+LowState will not be fired again until HighState is.  ReadWrite always
+starts in a low-water state.
 
-HighState comes with ARG0, the ID of the wheel that encountered the
-high-water condition.
-
-=item *
-
-LowState
-
-The LowState event indicates when a wheel's driver's output buffer
-shrinks down to LowMark octets of unwritten data.  This event will
-only fire when the output buffer reaches LowMark after a HighState event.
-
-HighState and LowState together are used for flow control.  The idea
-is to perform some sort of throttling when HighState is called and
-resume full-speed transmission when LowState is called.
-
-LowState comes with ARG0, the ID of the wheel that encounterd the
-low-water condition.
+Streaming sessions are encouraged to used these states for flow
+control.  Sessions can reduce their transmission rates or stop
+transmitting altogether upon receipt of a HighState event.  They can
+resume full-speed transmission once LowState arrives.
 
 =back
 
 =head1 SEE ALSO
 
-POE::Wheel; POE::Wheel::FollowTail; POE::Wheel::ListenAccept;
-POE::Wheel::SocketFactory
+POE::Wheel.
+
+The SEE ALSO section in L<POE> contains a table of contents covering
+the entire POE distribution.
 
 =head1 BUGS
 
@@ -725,6 +727,6 @@ Oh, probably some.
 
 =head1 AUTHORS & COPYRIGHTS
 
-Please see the POE manpage.
+Please see L<POE> for more information about authors and contributors.
 
 =cut

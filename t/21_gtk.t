@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 21_gtk.t,v 1.2 2000/10/06 20:05:52 rcaputo Exp $
+# $Id: 21_gtk.t,v 1.12 2001/04/03 17:15:09 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Gtk postback events using Gk's event
 # loop.
@@ -10,7 +10,6 @@ use lib qw(./lib ../lib);
 use Symbol;
 
 use TestSetup;
-use TestPipe;
 
 # Skip if Gtk isn't here.
 BEGIN {
@@ -41,7 +40,7 @@ warn( "\n",
 # Turn on all asserts.
 # sub POE::Kernel::TRACE_DEFAULT () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW);
+use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW Pipe::OneWay);
 
 # How many things to push through the pipe.
 my $write_max = 10;
@@ -53,12 +52,6 @@ my @after_alarms;
 # Congratulate ourselves for getting this far.
 print "ok 1\n";
 
-# # Attempt to set the window position.  This was borrowed from one of
-# # Tk's own tests.  It glues the window into place so the program can
-# # continue.  This may be unfriendly, but it minimizes the amount of
-# # user interaction needed to perform this test.
-# eval { $poe_main_window->geometry('+10+10') };
-
 # I/O session
 
 sub io_start {
@@ -66,11 +59,9 @@ sub io_start {
 
   # A pipe.
 
-  my ($a_read, $a_write, $b_read, $b_write) = TestPipe->new();
+  my ($a_read, $b_write) = POE::Pipe::OneWay->new();
 
   # Keep a copy of the unused handles so the pipes remain whole.
-  $heap->{unused_pipe_1} = $b_read;
-  $heap->{unused_pipe_2} = $a_write;
   unless (defined $a_read) {
     print "skip 2 # $@\n";
   }
@@ -90,10 +81,16 @@ sub io_start {
     $kernel->delay( ev_pipe_write => 1 );
   }
 
+  # Start a main window.  POE stopped doing this for you in version
+  # 0.1207.
+
+  $heap->{main_window} = Gtk::Window->new('toplevel');
+  $kernel->signal_ui_destroy( $heap->{main_window} );
+
   # And counters to monitor read/write progress.
 
   my $box = Gtk::VBox->new(0, 0);
-  $poe_main_window->add($box);
+  $heap->{main_window}->add($box);
   $box->show();
 
   { my $label = Gtk::Label->new( 'Write Count' );
@@ -154,7 +151,7 @@ sub io_start {
     7 => "not ok 7\n",
   };
 
-  $poe_main_window->show();
+  $heap->{main_window}->show();
 }
 
 sub io_pipe_write {
@@ -164,10 +161,10 @@ sub io_pipe_write {
   $heap->{write_label}->set_text( ++$heap->{write_count} );
 
   if ($heap->{write_count} < $write_max) {
-    $kernel->delay( ev_pipe_write => 1 );
+    $kernel->delay( ev_pipe_write => 0.25 );
   }
   else {
-    Gtk->timeout_add( 1000, $_[SESSION]->postback( ev_postback => 5 ) );
+    Gtk->timeout_add( 500, $_[SESSION]->postback( ev_postback => 5 ) );
   }
 }
 
@@ -185,11 +182,11 @@ sub io_pipe_read {
 sub io_idle_increment {
   $_[HEAP]->{idle_label}->set_text( ++$_[HEAP]->{idle_count} );
 
-  if ($_[HEAP]->{idle_count} < 100) {
+  if ($_[HEAP]->{idle_count} < 10) {
     $_[KERNEL]->yield( 'ev_idle_increment' );
   }
   else {
-    Gtk->timeout_add( 1000, $_[SESSION]->postback( ev_postback => 6 ) );
+    Gtk->timeout_add( 500, $_[SESSION]->postback( ev_postback => 6 ) );
     undef;
   }
 }
@@ -207,7 +204,7 @@ sub io_timer_increment {
   # given at creation time.
 
   else {
-    Gtk->timeout_add( 1000, $_[SESSION]->postback( ev_postback => 7 ) );
+    Gtk->timeout_add( 500, $_[SESSION]->postback( ev_postback => 7 ) );
     undef;
   }
 }
@@ -231,10 +228,11 @@ sub io_stop {
   }
 }
 
-# Collect postbacks and cache results.
+# Collect postbacks and cache results.  We only expect three, so try
+# to force the program closed when we get them.
 
 sub io_postback {
-  my ($session, $postback_given) = @_[SESSION, ARG0];
+  my ($kernel, $session, $postback_given) = @_[KERNEL, SESSION, ARG0];
   my $test_number = $postback_given->[0];
 
   if ($test_number =~ /^\d+$/) {

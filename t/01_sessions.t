@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.11 2000/11/19 20:29:45 rcaputo Exp $
+# $Id: 01_sessions.t,v 1.12 2001/04/04 03:53:06 rcaputo Exp $
 
 # Tests basic compilation and events.
 
@@ -100,12 +100,12 @@ POE::Session->create
         $_[HEAP]->{kills_to_go} = $event_count;
         $_[KERNEL]->sig( ALRM => 'sigalrm_target' );
         $_[KERNEL]->sig( PIPE => 'sigpipe_target' );
-        $_[KERNEL]->delay( fire_signals => 1 );
+        $_[KERNEL]->delay( fire_signals => 0.5 );
       },
       fire_signals =>
       sub {
         if ($_[HEAP]->{kills_to_go}--) {
-          $_[KERNEL]->delay( fire_signals => 1 );
+          $_[KERNEL]->delay( fire_signals => 0.5 );
           kill ALRM => $$;
           kill PIPE => $$;
         }

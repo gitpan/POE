@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.8 2000/07/20 22:00:19 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.11 2000/12/26 06:14:12 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -208,11 +208,11 @@ __END__
 
 =head1 NAME
 
-POE::Filter::HTTPD - POE HTTP 1.0 (Server Side) Protocol Abstraction
+POE::Filter::HTTPD - convert stream to HTTP::Request; HTTP::Response to stream
 
 =head1 SYNOPSIS
 
-  $httpd = new POE::Filter::HTTPD();
+  $httpd = POE::Filter::HTTPD->new();
   $arrayref_with_http_response_as_string =
     $httpd->put($full_http_response_object);
   $arrayref_with_http_request_object =
@@ -221,8 +221,8 @@ POE::Filter::HTTPD - POE HTTP 1.0 (Server Side) Protocol Abstraction
 =head1 DESCRIPTION
 
 The HTTPD filter parses the first HTTP 1.0 request from an incoming
-stream into an HTTP::Request object.  It accepts a single
-HTTP::Response object, and returns a HTTP 1.0 stream for sending.
+stream into an HTTP::Request object.  To send a response, give its
+put() method a HTTP::Response object.
 
 Please see the documentation for HTTP::Request and HTTP::Response.
 
@@ -232,8 +232,10 @@ Please see POE::Filter.
 
 =head1 SEE ALSO
 
-POE::Filter; POE::Filter::Line; POE::Filter::Reference;
-POE::Filter::Stream; HTTP::Request; HTTP::Response
+POE::Filter.
+
+The SEE ALSO section in L<POE> contains a table of contents covering
+the entire POE distribution.
 
 =head1 BUGS
 
@@ -243,7 +245,6 @@ Keep-alive is not supported.
 
 The HTTPD filter was contributed by Artur Bergman.
 
-Please see the POE manpage for more information about authors and
-contributors.
+Please see L<POE> for more information about authors and contributors.
 
 =cut

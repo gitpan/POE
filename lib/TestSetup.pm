@@ -1,5 +1,5 @@
 # Standard test setup things.
-# $Id: TestSetup.pm,v 1.6 2000/06/21 19:49:40 rcaputo Exp $
+# $Id: TestSetup.pm,v 1.8 2001/01/14 03:13:16 rcaputo Exp $
 
 package TestSetup;
 
@@ -9,11 +9,14 @@ use Exporter;
 @TestSetup::ISA = qw(Exporter);
 @TestSetup::EXPORT = qw( &test_setup
                          &stderr_pause &stderr_resume
-                         &ok &not_ok &ok_if &ok_unless &results &many_not_ok
+                         &ok &not_ok &ok_if &ok_unless &results
+                         &many_not_ok &many_ok
                        );
 
 my $test_count;
 my @test_results;
+
+sub TRACE_RESULTS () { 0 }
 
 sub test_setup {
   $test_count = shift;
@@ -60,7 +63,7 @@ sub results {
 }
 
 sub ok {
-  my $test_number = shift;
+  my ($test_number, $reason) = @_;
 
   if (defined $test_results[$test_number]) {
     $test_results[$test_number] = "not ok $test_number # duplicate outcome";
@@ -69,8 +72,14 @@ sub ok {
     $test_results[$test_number] = "not ok $test_number # above $test_count";
   }
   else {
-    $test_results[$test_number] = "ok $test_number";
+    $test_results[$test_number] = "ok $test_number" .
+      ( (defined $reason and length $reason)
+        ? " # $reason"
+        : ''
+      );
   }
+
+  TRACE_RESULTS and warn "<<< $test_results[$test_number] >>>\n";
 }
 
 sub not_ok {
@@ -89,6 +98,8 @@ sub not_ok {
         : ''
       );
   }
+
+  TRACE_RESULTS and warn "<<< $test_results[$test_number] >>>\n";
 }
 
 sub many_not_ok {
@@ -96,6 +107,14 @@ sub many_not_ok {
 
   for (my $test = $start_number; $test <= $end_number; $test++) {
     &not_ok($test, $reason);
+  }
+}
+
+sub many_ok {
+  my ($start_number, $end_number, $reason) = @_;
+
+  for (my $test = $start_number; $test <= $end_number; $test++) {
+    &ok($test, $reason);
   }
 }
 

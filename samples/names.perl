@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: names.perl,v 1.7 2000/11/03 21:59:02 rcaputo Exp $
+# $Id: names.perl,v 1.8 2001/02/12 15:25:17 rcaputo Exp $
 
 # Aliases were originally called Names.
 
@@ -136,7 +136,7 @@ sub lock {
 # protocol, similar to lock's.
 
 sub unlock {
-  my ($kernel, $heap, $sender, $lock_name, $success, $failure) = 
+  my ($kernel, $heap, $sender, $lock_name, $success, $failure) =
     @_[KERNEL, HEAP, SENDER, ARG0, ARG1, ARG2];
                                         # if the lock exists...
   if (exists $heap->{$lock_name}) {

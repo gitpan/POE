@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 07_event.t,v 1.6 2000/08/17 05:16:23 rcaputo Exp $
+# $Id: 07_event.t,v 1.9 2001/03/23 05:00:42 rcaputo Exp $
 
 # Tests FIFO, alarm, select and postback events using Event's event
 # loop.
@@ -9,7 +9,6 @@ use lib qw(./lib ../lib);
 use Symbol;
 
 use TestSetup;
-use TestPipe;
 
 # Skip if Event isn't here.
 BEGIN {
@@ -24,7 +23,7 @@ BEGIN {
 
 # Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW);
+use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW Pipe::OneWay);
 
 # Congratulate ourselves for getting this far.
 print "ok 1\n";
@@ -36,7 +35,7 @@ sub io_start {
 
   # A pipe.
 
-  my ($a_read, $a_write, $b_read, $b_write) = TestPipe->new();
+  my ($a_read, $b_write) = POE::Pipe::OneWay->new();
   unless (defined $a_read) {
     print "skip 2 # $@\n";
   }
@@ -81,7 +80,7 @@ sub io_start {
 sub io_pipe_write {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
   $heap->{pipe_wheel}->put( scalar localtime );
-  $kernel->delay( ev_pipe_write => 1 ) if ++$heap->{write_count} < 10;
+  $kernel->delay( ev_pipe_write => 0.25 ) if ++$heap->{write_count} < 10;
 }
 
 sub io_pipe_read {

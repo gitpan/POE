@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 19_filterchange.t,v 1.4 2000/08/15 14:31:36 rcaputo Exp $
+# $Id: 19_filterchange.t,v 1.6 2000/12/29 05:28:33 rcaputo Exp $
 
 # Exercises filter changing.  A lot of this code comes from Philip
 # Gwyn's filterchange.perl sample.
@@ -9,13 +9,13 @@ use lib qw(./lib ../lib);
 
 use TestSetup qw(ok not_ok results test_setup ok_if many_not_ok);
 use MyOtherFreezer;
-use TestPipe;
 
 sub DEBUG () { 0 }
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE qw( Wheel::ReadWrite Driver::SysRW
             Filter::Block Filter::Line Filter::Reference Filter::Stream
+            Pipe::TwoWay
           );
 
 # Showstopper here.  Try to build a pair of file handles.  This will
@@ -24,7 +24,8 @@ use POE qw( Wheel::ReadWrite Driver::SysRW
 # will be tested on my test platforms.
 
 # Socketpair.  Read and write handles are the same.
-my ($master_read, $master_write, $slave_read, $slave_write) = TestPipe->new();
+my ($master_read, $master_write, $slave_read, $slave_write) =
+  POE::Pipe::TwoWay->new();
 unless (defined $master_read) {
   &test_setup(0, "could not create a pipe in any form");
 }

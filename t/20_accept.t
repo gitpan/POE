@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 20_accept.t,v 1.1 2000/08/09 19:29:23 rcaputo Exp $
+# $Id: 20_accept.t,v 1.2 2001/04/04 03:57:18 rcaputo Exp $
 
 # Exercises the ListenAccept wheel.
 
@@ -36,9 +36,13 @@ sub listener_start {
 
   $heap->{listener_wheel} = POE::Wheel::ListenAccept->new
     ( Handle      => $listening_socket,
-      AcceptState => 'got_connection',
-      ErrorState  => 'got_error'
+      AcceptState => 'got_connection_nonexistent',
+      ErrorState  => 'got_error_nonexistent'
     );
+
+  $heap->{listener_wheel}->event( AcceptState => 'got_connection',
+                                  ErrorState  => 'got_error'
+                                );
 
   $heap->{accept_count} = 0;
   $_[KERNEL]->delay( got_timeout => 15 );

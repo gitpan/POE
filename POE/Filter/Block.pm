@@ -1,4 +1,4 @@
-# $Id: Block.pm,v 1.4 2000/11/12 00:38:59 rcaputo Exp $
+# $Id: Block.pm,v 1.8 2001/02/26 04:46:55 rcaputo Exp $
 
 package POE::Filter::Block;
 
@@ -109,28 +109,28 @@ __END__
 
 =head1 NAME
 
-POE::Filter::Block - POE Block Protocol Abstraction
+POE::Filter::Block - filter between streams and blocks
 
 =head1 SYNOPSIS
 
-  $filter = new POE::Filter::Block( BlockSize => 1024 );
+  $filter = POE::Filter::Block->new( BlockSize => 1024 );
   $arrayref_of_blocks =
     $filter->get($arrayref_of_raw_chunks_from_driver);
   $arrayref_of_streamable_chunks_for_driver =
     $filter->put($arrayref_of_blocks);
-  $arrayref_of_streamable_chunks_for_driver =
-    $filter->put($single_block);
   $arrayref_of_leftovers =
     $filter->get_pending();
 
 =head1 DESCRIPTION
 
-The Block filter translates streams to and from blocks of bytes.  If a
-block size is specified when the filter is constructed, then
-fixed-length blocks of that size will be built or parsed.  Otherwise
-it builds and parses length-prepended variable-sized blocks.  Programs
-that specify block sizes less than 1 byte are soundly spanked, just as
-they deserve.
+The Block filter translates data between serial streams and blocks.
+It can handle two kinds of block: fixed-length and length-prepended.
+
+Fixed-length blocks are used when Block's constructor is given a block
+size.  Otherwise the Block filter uses length-prepended blocks.
+
+Users who specify block sizes less than one deserve to be soundly
+spanked.
 
 Extra bytes are buffered until more bytes arrive to complete a block.
 
@@ -140,19 +140,20 @@ Please see POE::Filter.
 
 =head1 SEE ALSO
 
-POE::Filter; POE::Filter::HTTPD; POE::Filter::Reference;
-POE::Filter::Stream; POE::Filter::Line
+POE::Filter.
+
+The SEE ALSO section in L<POE> contains a table of contents covering
+the entire POE distribution.
 
 =head1 BUGS
 
-None known.
+The put() method doesn't verify block sizes.
 
 =head1 AUTHORS & COPYRIGHTS
 
 The Block filter was contributed by Dieter Pearcey, with changes by
 Rocco Caputo.
 
-Please see the POE manpage for more information about authors and
-contributors.
+Please see L<POE> for more information about authors and contributors.
 
 =cut

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 10_wheels_tcp.t,v 1.6 2000/09/01 19:53:55 rcaputo Exp $
+# $Id: 10_wheels_tcp.t,v 1.8 2001/01/10 15:10:11 rcaputo Exp $
 
 # Exercises the wheels commonly used with TCP sockets.
 
@@ -42,7 +42,8 @@ sub sss_new {
 sub sss_start {
   my ($heap, $socket, $peer_addr, $peer_port) = @_[HEAP, ARG0..ARG2];
 
-  delete $heap->{wheel};
+  # Swap the SocketFactory for the ReadWrite.  This exercises a subtle
+  # bug in SocketFactory which should now be fixed.
   $heap->{wheel} = POE::Wheel::ReadWrite->new
     ( Handle       => $socket,
       Driver       => POE::Driver::SysRW->new( BlockSize => 10 ),
@@ -175,6 +176,7 @@ sub client_tcp_got_flush {
 
 POE::Component::Server::TCP->new
   ( Port     => $tcp_server_port,
+    Address  => '127.0.0.1',
     Acceptor => sub { &sss_new(@_[ARG0..ARG2]);
                       # This next badness is just for testing.
                       my $sockname = $_[HEAP]->{listener}->getsockname();
@@ -183,7 +185,7 @@ POE::Component::Server::TCP->new
                       my ($port, $addr) = sockaddr_in($sockname);
                       $addr = inet_ntoa($addr);
                       &ok_if( 10,
-                              ($addr eq '0.0.0.0') &&
+                              ($addr eq '127.0.0.1') &&
                               ($port == $tcp_server_port)
                             )
                     },

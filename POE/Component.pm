@@ -1,4 +1,4 @@
-# $Id: Component.pm,v 1.2 2000/11/19 17:05:12 rcaputo Exp $
+# $Id: Component.pm,v 1.4 2000/12/23 06:54:30 rcaputo Exp $
 # Copyrights and documentation are after __end__.
 
 package POE::Component;
@@ -17,7 +17,7 @@ __END__
 
 =head1 NAME
 
-POE::Component - POE Stand-Alone Sessions
+POE::Component - a POE servlet class
 
 =head1 SYNOPSIS
 
@@ -25,21 +25,32 @@ Varies from component to component.
 
 =head1 DESCRIPTION
 
-POE components are sessions that have been designed as stand-alone
-modules.  They tend to be interfaced through POE::Kernel::post() or
-call(), but this is not a formal convention.
+POE components are event-driven modules, many of which act as little
+daemons that supply services to the programs they're parts of.  In
+general, they talk with other sessions by receiving and posting
+events, but this is not a formal convention.  A component's interface
+design should prefer to make sense; for example, an SMTP client should
+have a method to just "send a message" rather than (or in addition to)
+several others that deal with the intricacies of the SMTP protocol.
 
-The POE::Component namespace was started to provide a place for others
-publish their POE modules without requiring coordination with the main
-POE distribution.
+The POE::Component namespace was started as place for contributors to
+publish their POE-based modules without requiring coordination with
+the main POE distribution.
 
-=head1 BUGS
+=head1 SEE ALSO
 
-The POE::Component namespace should probably be coordinated, but who
-has time for that?
+The SEE ALSO section in L<POE> contains a table of contents covering
+the entire POE distribution.
+
+=head1 TO DO
+
+Document the customary (but not mandatory!) process of creating and
+publishing a component.
 
 =head1 AUTHORS & COPYRIGHTS
 
-Please see the POE manpage or manpages for specific components.
+Each component is written and copyrighted by its author.
+
+Please see L<POE> for more information about authors and contributors.
 
 =cut

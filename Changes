@@ -1,11 +1,9 @@
-$Id: Changes,v 1.161 2000/11/19 15:02:38 rcaputo Exp $
+$Id: Changes,v 1.207 2001/04/20 19:06:34 rcaputo Exp $
 
 Revision history for POE
 ========================
 
 Changes marked with "(!!!)" may break backward compatibility.
-
-Changes marked with "(???)" are informational.
 
 Version numbers have four fields: X.YYZZAA
 
@@ -24,6 +22,361 @@ Version numbers have four fields: X.YYZZAA
 | cvs tag -Rc v0_11   .
 | cvs tag -Rc v0_1009 .
 `------------------------------------------------------------------------------
+
+Future ????.??.?? (!!!)
+-----------------------
+
+POE is due for a round of breakage to make things more consistent.
+
+  1. In the wheels, rename /.*State/ to /.*Event/.  Wheels don't
+     define states, they emit events.  Calling Wheels' parameters
+     /.*State/ is inconsistent and confusing.
+
+  2. ARG0..ARG9 in built-in events are silly.  The whole point of
+     using array slices and constant offsets is to avoid positional
+     dependencies.  Using ARG0..ARG9 defeats most of this technique's
+     benefits.  D'oh!
+
+     a. Introduce new constants for different built-in events.
+        Document them instead of ARG0..ARG9.  Document that ARG0..ARG9
+        will no longer be guaranteed true for built-in events.  Revise
+        the tests and samples to avoid ARG0..ARG9 for built-in events.
+
+     b. Generate warnings when ARG0..ARG9 are used for built-in
+        events.  There will be a performance penalty during this phase
+        since ARG0..ARG9 will be computed and not truly constant.
+        Bleah!
+
+     c. Remove the warnings from ARG0..ARG9.  Users are on their own.
+        Keep the documentation to that effect.
+
+  3. Split some of the optionally useful bits out into a separate
+     Bundle which is included in Bundle::POE.  Let people install
+     subsets of POE as needed.  This may not happen, but it's listed
+     here for others' consideration.
+
+     a. Set up Bundle::POE, Bundle::POE-Tk, Bundle::POE-Gtk, and
+        Bundle::POE-Event.  Document them, and make Bundle::POE the
+        default.  Bundle::POE-Options to include optional required
+        modules?
+
+     b. Split wheels out of POE itself.  Split samples out, too.  Make
+        them separate distributions included with Bundle::POE.
+
+  4. Whatever else I can break.  I may as well break as much as I can
+     in one big lump.  Has anyone been holding off on requests because
+     they'd break stuff?  Now's the time to speak up.
+
+I've come up with this tentative depreciation schedule in the hopes
+it'll minimize people's grief.
+
+  1. Release POE as/is with this depreciation schedule.  This is the
+     RFC phase, and interested people should comment on it.  This
+     may be version 0.13.
+
+  2. Release POE with new the new parameters/behaviors/etc. and the
+     depreciated ones side-by-side.  The documentation will be altered
+     to cover new things and briefly tell about the depreciated
+     things.  This may be version 0.14.
+
+  3. Add warnings for depreciated things.  Try not to make them too
+     obnoxious.  This may be version 0.15.
+
+  4. Remove the depreciated things altogether.  This may be version
+     0.16.
+
+My plan is to wait at least a month between each CPAN release.
+Bleeding edge interim releases will start off as maintenance on the
+previous version and then become release candidates for the next one.
+If it all goes as planned, this will give people at least 1/4 year to
+update their programs.
+
+
+0.13 2001.04.20
+---------------
+
+Add Dieter Pearcey's Stackable filter, allowing ReadWrite (and other
+wheels) to pass data through two or more filters.  Stackable comes
+with other helpful filters: Map and Grep to transform data while it's
+still in a filter stack, and RecordBlock to group several records into
+a block of them.
+
+Add t/24_filter_stack.t as a start for testing stackable filters.
+This so far is the only sample code for using these filters, and it's
+not very friendly in that regard.
+
+Add ASSERT_USAGE.  Setting this POE::Kernel debugging constant causes
+it to check the values passed to its parameters and croak if they're
+bad.
+
+(!!!) David Huggins-Daines discovered that POE versions 0.1205 and
+later don't work with older Tk versions.  Make the Tk substrate fail
+if it's working with an older Perl-Tk library.
+
+(!!!) Gtk+ does not require a top-level window in order for POE to use
+its event loop.  Furthermore, Mandrake says it's common for Gtk+
+programs not to have any given "main" window which closes a program
+when it's destroyed.  POE::Kernel no longer creates a top-level window
+when using Gtk+, and it has a new method, signal_ui_destroy, which can
+be used to fire UIDESTROY when some arbitrary widget is destroyed.
+See the POE::Kernel documentation.
+
+Tk requires at least one widget to use the event loop, so POE::Kernel
+continues to create one and set $poe_main_window when Tk is in effect.
+
+(!!!) Depreciate support for coderefs in SocketFactory's SuccessState
+and FailureState parameters.
+
+Applied Peter Scott's code/doc/test patches to allow Wheel::Run to
+fork off coderefs instead of new programs.
+
+David Huggins-Daines pointed out that Sys::Hostname, while it's
+improved in 5.6.0, is pretty poor in prior perls.  Added a manual
+POSIX::uname check in POE::Kernel.
+
+Peter Scott pointed out that Wheel::Run won't flush output to a child
+process' STDIN unless a StdinEvent parameter is included.  Changed
+Wheel::Run to flush to the child's STDIN handle even without
+StdinEvent.
+
+Added an Alias parameter to POE::Component::Server::TCP so that it can
+receive events from other sessions.
+
+Added a 'shutdown' event handler to POE::Component::Server::TCP.
+Combined with the component's alias, this lets some other session shut
+down a server.
+
+Began using SourceForge's compile farm for cross-platform testing.
+The time reduction in POE's signal tests was too aggressive, causing
+some problems on the Debian test system.  Increased the delay a little
+bit.
+
+Add POE::Wheel::Curses to provide non-blocking input for Curses
+programs.
+
+
+0.1206 2001.03.23
+-----------------
+
+Enhance POE::Preprocessor to track macros and constants per package.
+Now multiple files sharing the same package also share the same macros
+and constants.
+
+Split event substrates into other modules.  It seems like the right
+thing to do at the moment.
+
+Karsten Sperling found that POSIX::uname wasn't supported back on
+5.005_02 for Win32, but Sys::Hostname is.  Applied Karsten's patch to
+use Sys::Hostname, which uses POSIX::uname internally wherever
+possible, instead.
+
+Replaced many enum/const statements with constant subs.  Fewer of
+these mean less regexps to run against the source code, so startup
+should be a little peppier.
+
+Made more Kernel data structures package lexicals.  Runtime should be
+slightly quicker.
+
+Remove Exporter use from Kernel and Session, although other modules
+like Carp already use it, so it gets loaded no matter what.  I'm about
+tapped for startup-optimizing ideas that don't involve rewriting
+POE::Preprocessor.
+
+Removed the object layer; files are being restructured as a separate
+component.  This is ahead of schedule.
+
+Added POE::Wheel::ReadLine.  This is a Term::ReadLine subset that
+cooperates with POE.  Now how do I test it non-interactively?
+
+Remove documentation in POE::Filter::Line and ::Block saying their
+put() methods can be used with single logical records.  They can't.
+
+POE::Preprocessor would make regular expressions like /(|a|b)/ when a
+sub-expression was optional.  Tweaked it to generate /(a|b)?/ instead.
+
+Rearranged the README sections in an effort to make it more readable.
+
+Fix samples/tk.perl to use C<$poe_main_window> instead of the older
+C<$poe_tk_main_window>.  I'm surprised this was overlooked so long.
+
+Eliminated spurous CHLD signals generated by Sys::Hostname.
+
+Some tests have built-in delays.  Reduce the amount of time they take
+to run on fast systems.
+
+Stop pausing alarm watchers unnecessarily.
+
+
+0.1205 2001.02.12
+-----------------
+
+Added TRACE_RESULTS to lib/TestSetup.  One of the tests in 0.1204 hung
+on a user's machine, and it was impossible to figure it out remotely
+without first seeing which test hung.
+
+Solaris wasn't setting termios parameters without TCSANOW.  Wheel::Run
+wouldn't work in pty mode because the terminal parameters weren't
+being set.
+
+Make Wheel::Run's pty conduits run in "raw" or cbreak mode.
+
+Rob Bloodgood found some POD breakage; C<=item>s without blank lines
+between them, and things like that.  Patch applied, and I went through
+everything and cleaned up some trailing whitespace (none of it
+significant) just for kicks.
+
+Newton Brown found a bug in POE's Tk support, which turns out to be a
+known issue with Tk's fileevent mechanism.  Thanks to "good_call" via
+usenet news for pointing me at
+<http://www.xray.mpe.mpg.de/mailing-lists/ptk/2000-12/msg00060.html>,
+which explains fileevent's pitfalls and provides their work-arounds.
+
+Oh.  I added a test to t/06_tk.t to exercise the fileevent bug.
+
+Added Tk workarounds to make the new failing tests pass.  Hooray!
+
+Added file/line reporting in Session's trace option, so the sources of
+events are now reported.
+
+Apply a bunch of notes Rob Bloodgood sent in about the postback
+documentation in POE::Session.
+
+Added ReadWrite methods: get_input_filter and get_output_filter, so
+that filters' methods can be manipulated directly.
+
+
+0.1204 2001.01.13
+-----------------
+
+Fletch pointed out that SunOS has a psrinfo command to describe a
+Sparc's processors.  Excellent!  Updated the README.
+
+Added IO::Pty support to Wheel::Run.  Skip the Pty tests if IO::Pty
+isn't available, so's not to break testing for people without it.
+
+Torvald Riegel pointed out that POE::NFA's goto_state() method
+required an entry event.  The documentation says it's not mandatory,
+so I added his patch to make it optional.
+
+Added a STATE parameter to POE::NFA event handlers.  STATE contains
+the name of the machine's current state.
+
+Added a get_current_state() method to POE::NFA.  It returns the
+machine's current state's name.
+
+Added t/23_nfa.t to exercise bits of POE::NFA.
+
+Added code to prevent session IDs from colliding after integer
+increment wraps.
+
+Devolped a depreciation schedule for some iffy current features and to
+make the names of things more consistent.
+
+Added TRACE_RETURNS and ASSERT_RETURNS to generate warnings and/or
+hard errors whenever a Kernel function will return an error.
+
+Updated POE::Session's postback() documentation based on user
+feedback.  Thanks again to Rob Bloodgood.
+
+Rob Bloodgood sent in a patch for POE::Component::Server::TCP to let
+it bind to specific interface addresses.  The default behavior is the
+same as before: bind to INADDR_ANY.
+
+
+0.1203 2000.12.29
+-----------------
+
+Very minor optimization to Gtk read/write resuming.  Replace Gtk's
+noisy warning about resuming unpaused handles with quiet acceptance.
+
+Added POE::Pipe::OneWay, a portable way to create one-way pipes.  It
+tries pipe first, then unix domain socketpair, then inet sockets
+before failing.
+
+Added POE::Pipe::TwoWay, a portable way to create two-way pipes.  It
+tries unix socketpair first, two pipes, then inet sockets before
+failing.  It can be more frugal with filehandles than two one-way
+pipes.
+
+Added Wheel::Run, an open2/open3 style wheel that lets sessions spawn
+off background processes.  It takes care of the whole pipe, fork, exec
+deal.
+
+Removed lib/TestPipe and replaced all its uses with either
+Pipe::OneWay or Pipe::TwoWay.
+
+Added &many_ok to TestSetup so that lots of tests can be marked ok at
+once.  More importantly, lots of them can be marked as skipped in one
+swell foop.
+
+Added t/22_wheel_run.t to test uni- and bidirectional pipes, plus the
+Wheel::Run wheel which uses them.
+
+
+0.1202 2000.12.26
+-----------------
+
+Happy Boxing Day!
+
+Revised nearly all the documentation.
+
+Documented FollowTail's SeekBack parameter.  Whoops!  Changed
+FollowTail's object implementation from a hashref to a listref while I
+was in it.
+
+Added a conceptual cross-reference to POE's "SEE ALSO" section, so now
+it acts as a table of contents for the entire distribution.  Pointed
+all the other SEE ALSOs at it.
+
+Replaced a stupid regexp in POE::Preprocessor with a faster one.
+
+Fixed a couple spots in SocketFactory where the conversion from
+hashref to listref was incomplete.  Thanks to Rob Bloodgood!
+
+Added wheel IDs to the events ListenAccept emit.  Changed
+ListenAccept's object implementation from a hashref to a listref.
+
+
+0.1201 2000.12.15
+-----------------
+
+Added a program, lib/deptest.perl, which tries to determine and test
+the distribution's dependencies.  If any are missing, it reports them,
+and it may stop the module from being installed.
+
+Tentatively moved POE development to SourceForge (project name: "poe",
+at <http://sourceforge.net/projects/poe/>).  I'm really regretting it
+at the moment: SF is experiencing severe growing/moving pains, and all
+sorts of things have been broken.
+
+Documented the object layer depreciation.  The object layer will be
+moved to a separate component after 0.13 is released.  [note: Decided
+to remove it early.]
+
+Documented the samples depreciation.  They will be moved to a separate
+distribution after 0.13 is released.
+
+Moved POE::Kernel's data structures out of $self and into lexicals.
+Kept references to the structures in $self so Data::Dumper can dump
+the whole shebang at once.
+
+Mike Fletcher found a bug in the TRACE_SELECT code that kept it from
+showing the input bits for read select.  D'oh.
+
+Fixed Wheel::SocketFactory to prevent it from clobbering another
+wheel's selects upon destruction.  This fixes the longstanding "wheel
+swap" bug listed in the FAQ (on the web site).  Replaced its blessed
+hashref with a blessed listref, so it should be a wee bit faster too.
+
+Fixed t/10_wheels_tcp.t to stop working around the longstanding "wheel
+swap" bug.  This exercises the previous SocketFactory fix.
+
+Dave Paris found a recurring bug in t/04_selects.t.  It was opening
+40-some filehandles at once, which consistently runs out of available
+handles in some situations.  I cut the number of handles approximately
+in half, so it should work better everywhere.  This has the
+unfortunate side-effect of cutting 10 tests from the suite.  We're
+still not sure how the environment is using extra handles, though.
 
 
 0.12 2000.11.19
@@ -633,8 +986,8 @@ documentation.
 0.1005 2000.05.23
 -----------------
 
-I forgot to document POE::Session's constructors.  Oops!  Now thery
-are documented.
+I forgot to document POE::Session's constructors.  Oops!  Now they are
+documented.
 
 Rewrote the POE::Wheel POD.
 

@@ -1,12 +1,15 @@
-# $Id: Preprocessor.pm,v 1.15 2000/10/31 03:04:28 rcaputo Exp $
+# $Id: Preprocessor.pm,v 1.22 2001/03/01 20:53:30 rcaputo Exp $
 
 package POE::Preprocessor;
 
 use strict;
+use Carp qw(croak);
 use Filter::Util::Call;
 
 sub MAC_PARAMETERS () { 0 }
 sub MAC_CODE       () { 1 }
+sub MAC_NAME       () { 2 } # only used in temporary %macro
+sub MAC_LINE       () { 3 } # only used in temporary %macro
 
 sub STATE_PLAIN     () { 0x0000 }
 sub STATE_MACRO_DEF () { 0x0001 }
@@ -14,6 +17,10 @@ sub STATE_MACRO_DEF () { 0x0001 }
 sub COND_FLAG   () { 0 }
 sub COND_LINE   () { 1 }
 sub COND_INDENT () { 2 }
+
+#sub DEBUG () { 1 }
+#sub DEBUG_INVOKE () { 1 }
+#sub DEBUG_DEFINE () { 1 }
 
 BEGIN {
   defined &DEBUG        or eval 'sub DEBUG        () { 0 }'; # preprocessor
@@ -70,10 +77,23 @@ sub text_trie_as_regexp {
     $regexp .= '|' if $num++;
     if (ref $_ eq 'ARRAY') {
       $regexp .= $_->[0] . '(?:';
-      if ($#$_ > 1) {
-        $regexp .= text_trie_as_regexp( @{$_}[1 .. $#$_] );
+
+      # If the first tail is empty, make the whole group optional.
+      my ($tail, $first);
+      if (length $_->[1]) {
+        $tail  = ')';
+        $first = 1;
       }
-      $regexp .= ')';
+      else {
+        $tail  = ')?';
+        $first = 2;
+      }
+
+      # Recurse into the group of tails.
+      if ($#$_ > 1) {
+        $regexp .= text_trie_as_regexp( @{$_}[$first .. $#$_] );
+      }
+      $regexp .= $tail;
     }
     else {
       $regexp .= $_;
@@ -102,10 +122,12 @@ sub fix_exclude {
   }
 }
 
+my (%constants, %macros, %const_regexp, %macro);
+
 sub import {
   # Outer closure to define a unique scope.
   { my $macro_name = '';
-    my ( %macros, $macro_line, %constants, $const_regexp, $enum_index );
+    my ($macro_line, $enum_index);
     my ($package_name, $file_name, $line_number) = (caller)[0,1,2];
     my $const_regexp_dirty = 0;
     my $state = STATE_PLAIN;
@@ -116,11 +138,12 @@ sub import {
     my $set_const = sub {
       my ($name, $value) = @_;
 
-      if (exists $constants{$name}) {
-        warn "const $name redefined at $file_name line $line_number\n";
+      if (exists $constants{$package_name}->{$name}) {
+        warn "const $name redefined at $file_name line $line_number\n"
+          unless $constants{$package_name}->{$name} eq $value;
       }
 
-      $constants{$name} = $value;
+      $constants{$package_name}->{$name} = $value;
       $const_regexp_dirty++;
 
       DEBUG_DEFINE and
@@ -151,7 +174,7 @@ sub import {
           ### are hardcoded and always handled.
 
           # Only do the conditionals if there's a flag present.
-          if (/include/) {
+          if (/\#\s*include/) {
 
             # if (...) { # include
             if (/^(\s*)if\s*\((.+)\)\s*\{\s*\#\s*include\s*$/) {
@@ -170,7 +193,7 @@ sub import {
                 local $_ = $_;
                 s/B/\# B/;
                 $macro_line++;
-                $macros{$macro_name}->[MAC_CODE] .= $_;
+                $macro{$package_name}->[MAC_CODE] .= $_;
                 DEBUG and
                   warn sprintf "%4d M: # mac 1: %s", $line_number, $_;
               }
@@ -229,7 +252,7 @@ sub import {
                 local $_ = $_;
                 s/B/\# B/;
                 $macro_line++;
-                $macros{$macro_name}->[MAC_CODE] .= $_;
+                $macro{$package_name}->[MAC_CODE] .= $_;
                 DEBUG and
                   warn sprintf "%4d M: # mac 2: %s", $line_number, $_;
               }
@@ -263,7 +286,7 @@ sub import {
                 local $_ = $_;
                 s/B/\# B/;
                 $macro_line++;
-                $macros{$macro_name}->[MAC_CODE] .= $_;
+                $macro{$package_name}->[MAC_CODE] .= $_;
                 DEBUG and
                   warn sprintf "%4d M: # mac 3: %s", $line_number, $_;
               }
@@ -298,18 +321,30 @@ sub import {
               $state = STATE_PLAIN;
 
               DEBUG_DEFINE and
-                warn( ",-----\n",
-                      "| Defined macro $macro_name\n",
-                      "| Parameters: ",
-                      @{$macros{$macro_name}->[MAC_PARAMETERS]}, "\n",
-                      "| Code: {\n",
-                      $macros{$macro_name}->[MAC_CODE],
-                      "| }\n",
-                      "`-----\n"
-                    );
+                warn
+                  ( ",-----\n",
+                    "| Defined macro $macro_name\n",
+                    "| Parameters: ",
+                    @{$macro{$package_name}->[MAC_PARAMETERS]}, "\n",
+                    "| Code: {\n",
+                    $macro{$package_name}->[MAC_CODE],
+                    "| }\n",
+                    "`-----\n"
+                  );
 
-              $macros{$macro_name}->[MAC_CODE] =~ s/^\s*//;
-              $macros{$macro_name}->[MAC_CODE] =~ s/\s*$//;
+              $macro{$package_name}->[MAC_CODE] =~ s/^\s*//;
+              $macro{$package_name}->[MAC_CODE] =~ s/\s*$//;
+
+              if (exists $macros{$package_name}->{$macro_name}) {
+                warn( "macro $macro_name redefined at ",
+                      "$file_name line $line_number\n"
+                    )
+                  if ( $macros{$package_name}->{$macro_name}->[MAC_CODE] ne
+                       $macro{$package_name}->[MAC_CODE]
+                     );
+              }
+
+              $macros{$package_name}->{$macro_name} = $macro{$package_name};
 
               $macro_name = '';
             }
@@ -317,7 +352,7 @@ sub import {
             # Otherwise append this line to the macro.
             else {
               $macro_line++;
-              $macros{$macro_name}->[MAC_CODE] .= $_;
+              $macro{$package_name}->[MAC_CODE] .= $_;
             }
 
             # Either way, the code must not go on.
@@ -382,15 +417,12 @@ sub import {
                 : ()
               );
 
-            if (exists $macros{$macro_name}) {
-              warn( "macro $macro_name redefined ",
-                    "at $file_name line $line_number\n"
-                  );
-            }
-
-            $macros{$macro_name} = [ ];
-            $macros{$macro_name}->[MAC_PARAMETERS] = \@macro_params;
-            $macros{$macro_name}->[MAC_CODE] = '';
+            $macro{$package_name} =
+              [ \@macro_params, # MAC_PARAMETERS
+                '',             # MAC_CODE
+                $macro_name,    # MAC_NAME
+                $line_number,   # MAC_LINE
+              ];
 
             $_ = "# $temp_line";
             DEBUG and warn sprintf "%4d D: %s", $line_number, $_;
@@ -399,16 +431,21 @@ sub import {
 
           ### Perform macro substitutions.
           my $substitutions = 0;
-          while (/^(.*?)\{\%\s+(\S+)\s*(.*?)\s*\%\}(.*)$/s) {
-            my ($left, $name, $params, $right) = ($1, $2, $3, $4);
+          while (/(\{\%\s+(\S+)\s*(.*?)\s*\%\})/gs) {
+            my ($name, $params) = ($2, $3);
+
+            # Backtrack to the beginning of the substitution so that
+            # the newly inserted text may also be checked.
+            pos($_) -= length($1);
 
             DEBUG_INVOKE and
               warn ",-----\n| macro invocation: $name $params\n";
 
-            if (exists $macros{$name}) {
+            if (exists $macros{$package_name}->{$name}) {
 
               my @use_params = split /\s*\,\s*/, $params;
-              my @mac_params = @{$macros{$name}->[MAC_PARAMETERS]};
+              my @mac_params =
+                @{$macros{$package_name}->{$name}->[MAC_PARAMETERS]};
 
               if (@use_params != @mac_params) {
                 warn( "macro $name paramter count (",
@@ -421,7 +458,7 @@ sub import {
               }
 
               # Build a new bit of code here.
-              my $substitution = $macros{$name}->[MAC_CODE];
+              my $substitution = $macros{$package_name}->{$name}->[MAC_CODE];
 
               foreach my $mac_param (@mac_params) {
                 my $use_param = shift @use_params;
@@ -441,7 +478,7 @@ sub import {
                 $substitution = join "\n", @sub_lines;
               }
 
-              $_ = $left . $substitution . $right;
+              substr($_, pos($_), length($1)) = $substitution;
               $_ .= "# line " . ($line_number+1) . " \"$file_name\"\n"
                 unless $^P;
 
@@ -461,14 +498,18 @@ sub import {
           # prevents redundant regexp rebuilds when defining several
           # constants all together.
           if ($const_regexp_dirty) {
-            $const_regexp =
-              text_trie_as_regexp(text_trie_trie(keys %constants));
+            $const_regexp{$package_name} =
+              text_trie_as_regexp
+                ( text_trie_trie(keys %{$constants{$package_name}})
+                );
             $const_regexp_dirty = 0;
           }
 
           # Perform constant substitutions.
-          if (defined $const_regexp) {
-            $substitutions += s/\b($const_regexp)\b/$constants{$1}/sg;
+          if (defined $const_regexp{$package_name}) {
+            $substitutions +=
+              s[\b($const_regexp{$package_name})\b]
+               [$constants{$package_name}->{$1}]sg;
           }
 
           # Trace substitutions.
@@ -489,13 +530,22 @@ sub import {
   }
 }
 
+# Clear a package's macros.  Used for destructive testing.
+sub clear_package {
+  my ($self, $package) = @_;
+  delete $constants{$package};
+  delete $macros{$package};
+  delete $const_regexp{$package};
+  delete $macro{$package};
+}
+
 1;
 
 __END__
 
 =head1 NAME
 
-POE::Preprocessor - A Macro Preprocessor
+POE::Preprocessor - a macro/const/enum preprocessor
 
 =head1 SYNOPSIS
 
@@ -511,11 +561,11 @@ POE::Preprocessor - A Macro Preprocessor
 
   print "PI\n";  # Substitutions don't grok Perl!
 
-  enum ONE TWO THREE
+  enum ZERO ONE TWO
   enum 12 TWELVE THIRTEEN FOURTEEN
   enum + FIFTEEN SIXTEEN SEVENTEEN
 
-  print "ONE TWO THREE TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN\n";
+  print "ZERO ONE TWO TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN\n";
 
   if ($expression) {      # include
      ... lines of code ...
@@ -532,43 +582,64 @@ POE::Preprocessor - A Macro Preprocessor
 =head1 DESCRIPTION
 
 POE::Preprocessor is a Perl source filter that implements a simple
-macro substitution language.
+macro substitution language.  Think of it like compile-time code
+templates.
 
 =head2 Macros
 
-The preprocessor defines a "macro" compile-time directive:
+Macros are defined with the C<macro> statement.  The syntax is similar
+to Perl subs:
 
   macro macro_name (parameter_0, parameter_1) {
     macro code ... parameter_0 ... parameter_1 ...
   }
 
+The open brace is required to be on the same line as the C<macro>
+statement.  The Preprocessor doesn't analyze macro bodies.  Instead,
+it assumes that any closing brace in the leftmost column ends an open
+macro.
+
 The parameter list is optional for macros that don't accept
 parameters.
+
+  macro macro_name {
+    macro code;
+  }
 
 Macros are substituted into a program with a syntax borrowed from
 Iaijutsu and altered slightly to jive with Perl's native syntax.
 
-  {% macro_name parameter_0, parameter_1 %}
+  {% macro_name $param_1, 'param two' %}
+
+This is the code the first macro would generate:
+
+  macro code ... $param_1 ... 'param two' ...
+
+It's very simplistic.  See POE::Kernel for extensive macro use.
 
 =head2 Constants and Enumerations
 
-Constants are defined this way:
+The C<const> command defines a constant.
 
   const CONSTANT_NAME    'constant value'
   const ANOTHER_CONSTANT 23
 
-Enumerations can begin with 0:
+Enumerations are defined with the C<emun> command.  Enumerations start
+from zero by default:
 
   enum ZEROTH FIRST SECOND ...
 
-Or some other number:
+If the first parameter of an enumeration is a number, then the
+enumerated constants will start with that value:
 
   enum 10 TENTH ELEVENTH TWELFTH
 
-Or continue where the previous one left off, which is necessary
-because an enumeration can't span lines:
+C<enum> statements may not span lines.  If the first enumeration
+parameter is a plus sign, the constants will start where a previous
+C<enum> left off.
 
-  enum + THIRTEENTH FOURTEENTH FIFTEENTH ...
+  enum 13 THIRTEENTH FOURTEENTH  FIFTEENTH
+  enum +  SIXTEENTH  SEVENTEENTH EIGHTEENTH
 
 =head2 Conditional Code Inclusion (#ifdef)
 
@@ -594,49 +665,47 @@ excluded in the compiled code depending on the outcome of its
 EXPRESSION.
 
 Conditional includes are nestable, but else and elsif must be on the
-same line as the previous block's closing brace.  This may change
-later.
+same line as the previous block's closing brace, as they are in the
+previous example.
+
+Conditional includes are experimental pending a decision on how useful
+they are.
 
 =head1 DEBUGGING
 
-POE::Preprocessor has three debugging constants: DEBUG (which traces
-source filtering to stderr); DEBUG_INVOKE (which traces macro
-substitutions); and DEBUG_DEFINE (which traces macro, const and enum
-definitions).  They can be overridden prior to POE::Preprocessor's
-use:
+POE::Preprocessor has three debugging constants which may be defined
+before the first time POE::Preprocessor is used.
 
-  sub POE::Preprocessor::DEBUG        () { 1 } # trace preprocessor
-  sub POE::Preprocessor::DEBUG_INVOKE () { 1 } # trace macro use
-  sub POE::Preprocessor::DEBUG_DEFINE () { 1 } # trace macro/const/enum defs
-  use POE::Preprocessor;
+To trace source filtering in general, and to see the resulting code
+and operations performed on each line:
+
+  sub POE::Preprocessor::DEBUG () { 1 }
+
+To trace macro invocations as they happen:
+
+  sub POE::Preprocessor::DEBUG_INVOKE () { 1 }
+
+To see macro, constant, and enum definitions:
+
+  sub POE::Preprocessor::DEBUG_DEFINE () { 1 }
 
 =head1 BUGS
 
-=over 2
-
-=item *
-
 Source filters are line-based, and so is the macro language.  The only
-constructs that may span lines are the brace-delimited macro
-definitions.  And those *must* span lines.
-
-=item *
+constructs that may span lines are macro definitions, and those *must*
+span lines.
 
 The regular expressions that detect and replace code are simplistic
 and may not do the right things when given challenging Perl syntax to
-parse.  This includes placing constants in strings.
-
-=item *
+parse.  For example, constants are replaced within strings.
 
 Substitution is done in two phases: macros first, then constants.  It
 would be nicer (and more dangerous) if the phases looped around and
 around until no more substitutions occurred.
 
-=item *
-
-Optimum matches aren't, but they're better than nothing.
-
-=back
+The regexp builder makes silly subexpressions like /(?:|m)/.  That
+could be done better as /m?/ or /(?:jklm)?/ if the literal is longer
+than a single character.
 
 =head1 SEE ALSO
 

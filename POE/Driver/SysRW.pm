@@ -1,4 +1,4 @@
-# $Id: SysRW.pm,v 1.13 2000/11/12 00:38:58 rcaputo Exp $
+# $Id: SysRW.pm,v 1.16 2000/12/26 06:14:12 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
 # This program is free software; you can redistribute it and/or modify
@@ -127,11 +127,11 @@ __END__
 
 =head1 NAME
 
-POE::Driver::SysRW - POE sysread/syswrite Abstraction
+POE::Driver::SysRW - an abstract sysread/syswrite file driver
 
 =head1 SYNOPSIS
 
-  $driver = new POE::Driver::SysRW();
+  $driver = POE::Driver::SysRW->new();
   $arrayref_of_data_chunks = $driver->get($filehandle);
   $queue_octets = $driver->put($arrayref_of_data_chunks);
   $queue_octets = $driver->flush($filehandle);
@@ -139,35 +139,35 @@ POE::Driver::SysRW - POE sysread/syswrite Abstraction
 
 =head1 DESCRIPTION
 
-This driver provides an abstract interface to sysread and syswrite.
+This driver implements an abstract interface to sysread and syswrite.
 
 =head1 PUBLIC METHODS
 
-=over 4
+=over 2
 
-=item *
+=item new BlockSize => $block_size
 
-POE::Driver::SysRW::new( ... );
+=item new
 
-The new() constructor accepts one optional parameter:
+new() creates a new SysRW driver.  It accepts one optional named
+parameter, BlockSize, which tells it how much information to read and
+write at a time.  BlockSize defaults to 512 if it's omitted.
 
-  BlockSize => $block_size
+  my $driver = POE::Driver::SysRW->new( BlockSize => $block_size );
 
-This is the maximum data size that the SysRW driver will read at once.
-If omitted, $block_size defaults to 512.
+  my $driver = POE::Driver::SysRW->new;
 
 =back
 
 =head1 SEE ALSO
 
-POE::Driver
+POE::Driver.
 
-=head1 BUGS
-
-Oh, probably some.
+The SEE ALSO section in L<POE> contains a table of contents covering
+the entire POE distribution.
 
 =head1 AUTHORS & COPYRIGHTS
 
-Please see the POE manpage.
+Please see L<POE> for more information about authors and contributors.
 
 =cut

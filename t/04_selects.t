@@ -1,24 +1,23 @@
 #!/usr/bin/perl -w
-# $Id: 04_selects.t,v 1.7 2000/11/17 22:33:18 rcaputo Exp $
+# $Id: 04_selects.t,v 1.10 2000/12/29 05:28:33 rcaputo Exp $
 
 # Tests basic select operations.
 
 use strict;
 use lib qw(./lib ../lib);
 use TestSetup;
-use TestPipe;
 
-&test_setup(23);
+&test_setup(13);
 
 # Turn on all asserts.
-# sub POE::Kernel::TRACE_DEFAULT () { 1 }
+#sub POE::Kernel::TRACE_DEFAULT () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
-use POE;
+use POE qw(Pipe::TwoWay);
 
 ### Test parameters.
 
-my $pair_count = 10;
-my $chat_count = 10;
+my $pair_count = 5;
+my $chat_count = 5;
 
 ### Register for individual test results.
 
@@ -41,7 +40,7 @@ sub master_start {
   $test_index *= 2;
 
   my ($master_read, $master_write, $slave_read, $slave_write) =
-    TestPipe->new();
+    POE::Pipe::TwoWay->new();
 
   unless (defined $master_read) {
     $test_results[$test_index] = $test_results[$test_index + 1] = undef;
@@ -237,6 +236,6 @@ for (my $index = 0; $index < $pair_count << 1; $index++) {
 }
 
 # And one to grow on.
-print "ok 23\n";
+print "ok 13\n";
 
 exit;

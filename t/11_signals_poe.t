@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 11_signals_poe.t,v 1.14 2000/10/04 15:09:29 rcaputo Exp $
+# $Id: 11_signals_poe.t,v 1.16 2001/04/03 18:10:59 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -85,7 +85,7 @@ POE::Session->create
         # other tests' timeouts.
         my $elapsed = time() - $fork_start_time;
         $heap->{fork_time} = $elapsed * 2;
-        $heap->{fork_time} = 15 if $heap->{fork_time} < 15;
+        $heap->{fork_time} = 10 if $heap->{fork_time} < 10;
 
         warn( "\n",
               "***\n",

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 03_aliases.t,v 1.3 2000/05/29 02:43:03 rcaputo Exp $
+# $Id: 03_aliases.t,v 1.4 2001/01/11 20:54:24 rcaputo Exp $
 
 # Tests basic session aliases.
 
@@ -52,7 +52,7 @@ sub machine_start {
   print "ok 7\n";
 
   # Resolve against something that doesn't exist.
-  $resolved_session = $kernel->alias_resolve( 'nonexistent' );
+  $resolved_session = eval { $kernel->alias_resolve( 'nonexistent' ) };
   print "not " if defined $resolved_session;
   print "ok 8\n";
 

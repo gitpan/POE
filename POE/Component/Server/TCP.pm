@@ -1,13 +1,14 @@
-# $Id: TCP.pm,v 1.3 2000/08/08 03:39:29 rcaputo Exp $
+# $Id: TCP.pm,v 1.7 2001/04/03 17:20:31 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use Carp qw(carp croak);
+use Socket qw(INADDR_ANY);
 use vars qw($VERSION);
 
-$VERSION = 1.00;
+$VERSION = 1.01;
 
 # Explicit use to import the parameter constants.
 use POE::Session;
@@ -34,9 +35,14 @@ sub new {
   croak "$mi needs an Acceptor parameter" unless exists $param{Acceptor};
 
   # Extract parameters.
-  my $port = delete $param{Port};
+  my $alias           = delete $param{Alias};
+  my $address         = delete $param{Address};
+  my $port            = delete $param{Port};
   my $accept_callback = delete $param{Acceptor};
-  my $error_callback = delete $param{Error};
+  my $error_callback  = delete $param{Error};
+
+  # Defaults.
+  $address = INADDR_ANY unless defined $address;
 
   # Complain about strange things we're given.
   foreach (sort keys %param) {
@@ -52,8 +58,14 @@ sub new {
     # sockets.
     ( _start =>
       sub {
+        if (defined $alias) {
+          $_[HEAP]->{alias} = $alias;
+          $_[KERNEL]->alias_set( $alias );
+        }
+
         $_[HEAP]->{listener} = POE::Wheel::SocketFactory->new
           ( BindPort     => $port,
+            BindAddress  => $address,
             Reuse        => 'yes',
             SuccessState => 'got_connection',
             FailureState => 'got_error',
@@ -68,6 +80,13 @@ sub new {
 
       # We accepted a connection.  Do something with it.
       got_connection => $accept_callback,
+
+      # Shut down.
+      shutdown => sub {
+        delete $_[HEAP]->{listener};
+        $_[KERNEL]->alias_remove( $_[HEAP]->{alias} )
+          if defined $_[HEAP]->{alias};
+      },
     );
 
   # Return undef so nobody can use the POE::Session reference.  This
@@ -89,7 +108,7 @@ __END__
 
 =head1 NAME
 
-POE::Component::Server::TCP - simplified TCP server
+POE::Component::Server::TCP - a simplified TCP server
 
 =head1 SYNOPSIS
 
@@ -106,46 +125,88 @@ POE::Component::Server::TCP - simplified TCP server
     # possibly shut down the server
   }
 
-  new POE::Component::Server::TCP
+  POE::Component::Server::TCP->new
     ( Port     => $bind_port,
+      Address  => $bind_address,    # Optional.
       Acceptor => \&accept_handler,
       Error    => \&error_handler,  # Optional.
     );
 
 =head1 DESCRIPTION
 
-POE::Component::Server::TCP is a wrapper around
-POE::Wheel::SocketFactory.  It abstracts the steps required to create
-a TCP server, taking away equal measures of responsibility and control
-for listening for and accepting remote socket connections.
+The TCP server component hides the steps needed to create a server
+using Wheel::SocketFactory.  The steps aren't many, but they're still
+repetitive and thus boring.
 
-At version 1.0, the Server::TCP component takes three arguments:
+POE::Component::Server::TCP helps out by supplying a default error
+handler.  This handler will write an error message on STDERR and shut
+the server down.
+
+The TCP server component takes three named arguments.  It's expected
+to accept other parameters as it evolves.
 
 =over 2
 
-=item *
+=item Address
 
-Port
+Address is the optional interface address the listening socket will be
+bound to.  When omitted, it defaults to INADDR_ANY.
+
+  Address => '127.0.0.1'
+
+It's passed directly to SocketFactory's BindAddress parameter, and so
+it can be in whatever form SocketFactory supports.  At the time of
+this writing, that's a dotted quad, a host name, or a packed Internet
+address.
+
+=item Alias
+
+Alias is an optional name by which this server may be referenced.
+It's used to pass events to a TCP server from other sessions.
+
+  Alias => 'chargen'
+
+Later on, the 'chargen' service can be shut down with:
+
+  $kernel->post( chargen => 'shutdown' );
+
+=item Port
 
 Port is the port the listening socket will be bound to.
 
-=item *
+  Port => 30023
 
-Acceptor
+=item Acceptor
 
 Acceptor is a coderef which will be called to handle accepted sockets.
 The coderef is used as POE::Wheel::SocketFactory's SuccessState, so it
 accepts the same parameters.
 
-=item *
+  Acceptor => \&success_state
 
-Error
+=item Error
 
 Error is an optional coderef which will be called to handle server
 socket errors.  The coderef is used as POE::Wheel::SocketFactory's
 FailureState, so it accepts the same parameters.  If it is omitted, a
-fairly standard error handler will be provided.  The default handler
-will log the error to STDERR and shut down the server.
+default error handler will be provided.  The default handler will log
+the error to STDERR and shut down the server.
+
+=back
+
+=head1 EVENTS
+
+It's possible to manipulate a TCP server component from some other
+session.  This is useful for shutting them down, and little else so
+far.
+
+=over 2
+
+=item shutdown
+
+Shuts down the TCP server.  This entails destroying the SocketFactory
+that's listening for connections and removing the TCP server's alias,
+if one is set.
 
 =back
 
@@ -155,8 +216,9 @@ POE::Wheel::SocketFactory
 
 =head1 BUGS
 
-POE::Component::Server::TCP does not accept many of the options that
-POE::Wheel::SocketFactory does.
+POE::Component::Server::TCP currently does not accept many of the
+options that POE::Wheel::SocketFactory does, but it can be expanded
+easily to do so.
 
 =head1 AUTHORS & COPYRIGHTS
 
