@@ -1,3 +1,16 @@
+===========================
+2004-11-25 20:11:19 v0_3001
+===========================
+
+  2004-11-25 20:11:19 by rcaputo; lib/POE.pm 1.182
+
+    Module::Build seems to enable YAML support at install time. If you
+    don't have YAML then, then you don't get full META.yml files later
+    on.
+    
+    Bump the release to 0.3001. This distribution's built AFTER
+    reinstalling YAML then Module::Build at gunpoint. 
+
 =========================
 2004-11-25 19:44:12 v0_30
 =========================
