@@ -1,6 +1,66 @@
 ============================
-2004-04-27 01:21:19 untagged
+2004-05-24 22:08:23 v0_28_06
 ============================
+
+  2004-05-24 22:08:23 by rcaputo; lib/POE.pm 1.175
+
+    Bump version to 0.24_06 for another release candidate. 
+
+  2004-05-24 22:07:03 by rcaputo; lib/POE/Kernel.pm 1.284
+
+    Clarify the description of session lifespans when aliases are in
+    effect. This is in response to a comment by Matt Cashner. 
+
+  2004-05-24 21:50:25 by rcaputo; mylib/testreport.pl 1.13
+
+    Set the PERL_DL_NONLAZY environment variable for the test report
+    generator's harness. I am hoping this will solve some of the
+    differences in behavior between "make test" and "make testreport". 
+
+  2004-05-24 21:48:20 by rcaputo; lib/POE/Wheel/SocketFactory.pm 1.77
+
+    Specify the address family and socket type to getaddrinfo() calls.
+    Whereas they pass on Mac OS X, the calls will fail without these
+    parameters on less forgiving systems like FreeBSD. 
+
+  2004-05-24 14:02:08 by rcaputo
+  lib/POE/Preprocessor.pm 1.32; lib/POE/Resources.pm 1.9
+
+    Lance Braswell made some specific recommendations for using
+    POE::Preprocessor with PerlApp. This commit notes the dynamically
+    loaded POE::Resource classes, and it relaxes the error checking for
+    missing modules in POE::Resources. 
+
+  2004-05-24 04:34:10 by rcaputo
+  lib/POE/Wheel/SocketFactory.pm 1.76; t/29_sockfact6.t 1.14
+
+    Migrated the Socket6 code from the deprecated gethostbyname2() to the
+    current standard getaddrinfo(). The new call is heavy on
+    context-sensitive features, but it combines gethostbyname2() and
+    pack_sockaddr_in6() so it's not all bad. Also, Solaris should like
+    it, so this closes RT#6191.
+    
+    Oh, and I made the t/29_sockfact6.t skip messages a little more
+    informative.
+    
+    As usual, CVS is committing touched files along for the ride. It
+    doesn't matter that their content hasn't changed. 
+
+  2004-05-22 05:16:59 by rcaputo; mylib/Makefile-5004.pm 1.22;
+  mylib/Makefile-5005.pm 1.39; t/30_filter_httpd.t 1.10
+
+    Worked around t/30_filter_httpd.t failing on outdated versions of
+    ActivePerl. Updated the dependencies versions to request the most
+    recent ActivePerl LWP modules. Skip the failing test on ActivePerl
+    versions before 5.008003. The things I do for a clean CPAN Testers
+    bill of health.... 
+
+  2004-05-21 22:37:45 by rcaputo; lib/POE/Loop/Event.pm 1.38
+
+    Ton Hospel discovered that POE::Loop::Event wasn't terminating when a
+    single select_read() was turned on and off. This commit moves idle
+    detection in Loop::Event's dispatcher forward a little so it's sure
+    to run all the time. 
 
   2004-04-27 01:21:19 by rcaputo; lib/POE.pm 1.174
 
@@ -1365,101 +1425,6 @@
   mylib/Makefile-5004.pm 1.13; mylib/Makefile-5005.pm 1.29
 
     remove poe_report.xml in make clean/realclean 
-
-  2003-05-20 22:20:19 by rcaputo
-  MANIFEST.SKIP 1.3; lib/POE/NFA.pm 1.21; lib/POE/Session.pm 1.85
-
-    Clear up some of the terminology in the session warnings/errors. 
-
-  2003-05-20 19:13:07 by rcaputo; MANIFEST.SKIP 1.2;
-  lib/POE/Kernel.pm 1.242; lib/POE/NFA.pm 1.20;
-  lib/POE/Resource/Signals.pm 1.2; lib/POE/Session.pm 1.84
-
-    Upgrade the mandatory signal deprecation warnings to errors.
-    Originally scheduled for January 2003. 
-
-  2003-05-13 03:42:19 by rcaputo; MANIFEST 1.81; lib/POE/Kernel.pm 1.241;
-  lib/POE/Resource/Aliases.pm 1.1; lib/POE/Resource/Events.pm 1.1;
-  lib/POE/Resource/Extrefs.pm 1.1; lib/POE/Resource/FileHandles.pm 1.1;
-  lib/POE/Resource/SIDs.pm 1.1; lib/POE/Resource/Sessions.pm 1.1;
-  lib/POE/Resource/Signals.pm 1.1
-
-    Split out the "resource" functions from POE::Kernel. The major data
-    structures within POE::Kernel have been broken into subsystems and
-    moved, along with their accessors, into POE::Resource::*.pm files.
-    Each handles the lowest-level data management functions for its
-    resource type. This is a step towards implementing XS versions of
-    some of POE's hottest code, which will go a long way towards speeding
-    things up in the future. 
-
-  2003-05-13 03:29:03 by rcaputo; t/29_sockfact6.t 1.9
-
-    Typographical change in a status warning. No big deal. 
-
-=========================
-2003-05-10 17:20:21 v0_26
-=========================
-
-  2003-05-10 17:20:21 by rcaputo; README 1.104; lib/POE.pm 1.159
-
-    Increase the version number to 0.26 for release. Revise the README
-    for clarity, conciseness, etc. 
-
-  2003-05-08 22:54:43 by rcaputo; t/29_sockfact6.t 1.8
-
-    Add a warning to explain the most likely cause of this module
-    hanging. Thanks to Somni for reminding me of the problem. 
-
-  2003-05-04 04:35:59 by rcaputo; lib/POE.pm 1.158
-
-    Increase version from 0.2502 (first release candidate for 0.26) to
-    0.2503 (live CVS for any last minute bug fixes before 0.26). 
-
-  2003-05-04 04:33:37 by rcaputo; lib/POE.pm 1.157
-
-    Increasing the version from 0.2501 (CVS after 0.25) to 0.2502 (first
-    release candidate for 0.26). 
-
-  2003-05-03 01:46:16 by rcaputo; lib/POE/Wheel/SocketFactory.pm 1.71
-
-    A previous patch to shutdown client sockets before they had closed
-    used $self in closures which themselves were stored in $self,
-    resulting in circular references that would prevent the patch from
-    actually working. This patch goes through some gyrations to break
-    those circular references. 
-
-  2003-05-02 12:55:23 by rcaputo; mylib/Makefile-5005.pm 1.28
-
-    Require ExtUtils::AutoInstall version 0.50. 
-
-  2003-05-02 12:48:14 by rcaputo; mylib/Makefile-5005.pm 1.27
-
-    Add ExtUtils::AutoInstall's postamble() so the automatic installation
-    things work. 
-
-  2003-05-02 12:36:20 by rcaputo; lib/POE/Wheel/ReadWrite.pm 1.62
-
-    Added the ability to shutdown() input/output on a ReadWrite wheel
-    attached to a socket. Thanks to Peter Chen for suggesting it. 
-
-  2003-04-29 22:18:31 by rcaputo; lib/POE/Kernel.pm 1.240
-
-    Applied Nick Williams' patch to avoid internal inconsistency problems
-    with signals use:
-    
-    > When using the kernel's signal() method to send a user-defined >
-    signal, it's possible to get a signal dispatched to a session which >
-    is in the process of shutting down (i.e. about to call the _stop >
-    event). However, the garbage collection in >
-    _data_sig_free_terminated_sessions doesn't take this into account >
-    and can cause POE to die screaming with an internal inconsistency >
-    error in _data_ses_collect_garbage. 
-
-  2003-04-29 15:52:59 by rcaputo
-  lib/POE/Kernel.pm 1.239; lib/POE/NFA.pm 1.19; t/23_nfa.t 1.6
-
-    Fix POE::NFA's stop() method. Previously it was using POE::Kernel's
-    session_free() method, which was recently renamed. 
 
 =============================
 Beginning of Recorded History

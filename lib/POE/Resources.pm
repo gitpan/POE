@@ -3,7 +3,7 @@ package POE::Resources;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.9 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 my @resources = qw(
   POE::XS::Resource::Aliases
@@ -25,7 +25,7 @@ sub initialize {
     if ($@) {
       # Retry the resource, removing XS:: if it couldn't be loaded.
       # If there's no XS:: to be removed, fall through and die.
-      redo if $@ =~ /^Can't locate/ and $resource =~ s/::XS::/::/;
+      redo if $@ =~ /Can't locate.*?in \@INC/ and $resource =~ s/::XS::/::/;
       die;
     }
   }

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 29_sockfact6.t,v 1.13 2004/01/31 06:58:30 rcaputo Exp $
+# $Id: 29_sockfact6.t,v 1.14 2004/05/24 04:34:10 rcaputo Exp $
 
 # Exercises Client and Server TCP components, which exercise
 # SocketFactory in AF_INET6 mode.
@@ -81,7 +81,10 @@ sub server_got_disconnect {
 
 sub server_got_error {
   my ($syscall, $errno, $error) = @_[ARG0..ARG2];
-  ok(2, "# skipped: AF_INET6 probably not supported");
+  ok(
+    2,
+    "skipped: AF_INET6 probably not supported ($syscall error $errno: $error)"
+  );
 }
 
 ###############################################################################
@@ -131,8 +134,14 @@ sub client_got_disconnect {
 
 sub client_got_connect_error {
   my ($syscall, $errno, $error) = @_[ARG0..ARG2];
-  ok(3, "# skipped: AF_INET6 probably not supported");
-  ok(4, "# skipped: AF_INET6 probably not supported");
+  ok(
+    3,
+    "skipped: AF_INET6 probably not supported ($syscall error $errno: $error)"
+  );
+  ok(
+    4,
+    "skipped: AF_INET6 probably not supported ($syscall error $errno: $error)"
+  );
 }
 
 ### main loop

@@ -1,6 +1,6 @@
 --- #YAML:1.0
 name: POE
-version: 0.28_04
+version: 0.28_06
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: |-
@@ -16,7 +16,7 @@ conflicts: {}
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.28_04
+    version: 0.28_06
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.0002
@@ -76,7 +76,7 @@ provides:
     version: 1.0004
   POE::Loop::Event:
     file: lib/POE/Loop/Event.pm
-    version: 1.0037
+    version: 1.0038
   POE::Loop::Gtk:
     file: lib/POE/Loop/Gtk.pm
     version: 1.0044
@@ -112,7 +112,7 @@ provides:
     version: 1.0016
   POE::Preprocessor:
     file: lib/POE/Preprocessor.pm
-    version: 1.0031
+    version: 1.0032
   POE::Queue:
     file: lib/POE/Queue.pm
     version: 1.0003
@@ -124,7 +124,7 @@ provides:
     version: 1.0003
   POE::Resources:
     file: lib/POE/Resources.pm
-    version: 1.0008
+    version: 1.0009
   POE::Resources::Aliases:
     file: lib/POE/Resource/Aliases.pm
     version: 1.0010
@@ -178,5 +178,5 @@ provides:
     version: 1.0058
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
-    version: 1.0075
+    version: 1.0077
 generated_by: Module::Build version 0.22

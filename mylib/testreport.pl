@@ -6,7 +6,7 @@ testreport.pl - generate a test report in xml
 
 =head1 VERSION
 
-$Revision: 1.12 $
+$Revision: 1.13 $
 
 =head1 USAGE
 
@@ -27,9 +27,12 @@ use base qw(Test::Harness::Straps);
 use Sys::Hostname;
 use vars qw($VERSION);
 
-$VERSION = (qw($Revision: 1.12 $))[1];
+$VERSION = (qw($Revision: 1.13 $))[1];
 
 local $| = 1;
+
+# Makefile.PL does it.  Why don't we?
+$ENV{PERL_DL_NONLAZY} = 1;
 
 my $s = My::Strap->new;
 

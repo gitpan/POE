@@ -1,4 +1,4 @@
-# $Id: Event.pm,v 1.37 2004/01/21 17:27:00 rcaputo Exp $
+# $Id: Event.pm,v 1.38 2004/05/21 22:37:45 rcaputo Exp $
 
 # Event.pm event loop bridge for POE::Kernel.
 
@@ -8,7 +8,7 @@ package POE::Loop::Event;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.37 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.38 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -217,6 +217,7 @@ sub _loop_event_callback {
   }
 
   $self->_data_ev_dispatch_due();
+  $self->_test_if_kernel_is_idle();
 
   # Register the next timed callback if there are events left.
 
@@ -234,11 +235,6 @@ sub _loop_event_callback {
     if ($self->_data_ses_count() == 1) {
       $self->_test_if_kernel_is_idle();
     }
-  }
-
-  # Make sure the kernel can still run.
-  else {
-    $self->_test_if_kernel_is_idle();
   }
 
   # Transfering control back to Event; this is idle time.

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.38 2004/02/02 17:24:51 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.39 2004/05/22 05:16:59 rcaputo Exp $
 
 use strict;
 
@@ -88,11 +88,11 @@ ExtUtils::AutoInstall->import
     "Optional modules for web applications (client & server)." => [
         -default => 0,
         -tests => [ qw(t/30_filter_httpd.t) ],
-        'HTTP::Status'   => '',
-        'HTTP::Request'  => '',
-        'HTTP::Date'     => '',
-        'HTTP::Response' => '',
-        'URI'            => '',
+        'HTTP::Status'   => '1.28',
+        'HTTP::Request'  => '1.34',
+        'HTTP::Date'     => '1.46',
+        'HTTP::Response' => '1.41',
+        'URI'            => '1.27',
     ],
     "Optional modules for Curses text interfaces." => [
         -default => 0,

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.21 2004/04/20 00:52:13 sungo Exp $
+# $Id: Makefile-5004.pm,v 1.22 2004/05/22 05:16:59 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
 use File::Find;
@@ -29,10 +29,10 @@ EOF
 
 my @tests;
 
-find( 
-  sub { 
-    /\.t$/ && 
-    push @tests, File::Spec->catfile($File::Find::dir,$_) 
+find(
+  sub {
+    /\.t$/ &&
+    push @tests, File::Spec->catfile($File::Find::dir,$_)
   },
   't/',
 );

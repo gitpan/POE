@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.283 2004/04/18 18:56:30 sungo Exp $
+# $Id: Kernel.pm,v 1.284 2004/05/24 22:07:03 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.283 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.284 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(fcntl_h sys_wait_h);
@@ -2979,9 +2979,15 @@ separate alias_set() call.
 
   $kernel->alias_set( 'ishmael' ); # o/` A name I call myself. o/`
 
-Having an alias "daemonizes" a session, allowing it to stay alive even
-when there's nothing for it to do.  Sessions can use this to become
-autonomous services that other sessions refer to by name.
+Aliases allow sessions to stay alive even when they may have nothing
+to do.  Sessions can use them to become autonomous services that other
+sessions refer to by name.
+
+Aliases keep sessions alive as long as the program has work to do.  If
+a program's remaining sessions are being kept alive solely by aliases,
+they will be terminated.  This prevents running, the remaining
+sessions will be terminated.  This prevents deadlocks where two or
+more sessions are idly waiting for events from each other.
 
   $kernel->alias_set( 'httpd' );
   $kernel->post( httpd => set_handler => $uri_regexp => 'callback_event' );
