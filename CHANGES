@@ -1,4 +1,17 @@
 ============================
+2004-05-26 04:45:41 v0_28_08
+============================
+
+  2004-05-26 04:45:41 by rcaputo; lib/POE.pm 1.176
+
+    Bump the version for the next release candidate. 
+
+  2004-05-26 03:57:35 by rcaputo; t/30_filter_httpd.t 1.11
+
+    Anonymous Coward reported a bug in the code that skips testing a
+    broken HTTP::Request object. This commit should fix it. 
+
+============================
 2004-05-24 22:08:23 v0_28_06
 ============================
 
