@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.29 2003/09/15 20:26:52 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.35 2004/01/26 00:20:06 sungo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,7 +17,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.29 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.35 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 use HTTP::Status;
@@ -34,9 +34,9 @@ my $HTTP_1_1 = _http_version("HTTP/1.1");
 sub new {
   my $type = shift;
   my $self = { type   => 0,
-	       buffer => '',
+               buffer => '',
                finish => 0,
-	     };
+             };
   bless $self, $type;
   $self;
 }
@@ -122,7 +122,7 @@ sub get {
   # Parse the request line.
 
   if ($buf !~ s/^(\w+)[ \t]+(\S+)(?:[ \t]+(HTTP\/\d+\.\d+))?[^\012]*\012//) {
-    return [ $self->build_error(RC_BAD_REQUEST) ];
+    return [ $self->build_error(RC_BAD_REQUEST, "Request line parse failure.") ];
   }
   my $proto = $3 || "HTTP/0.9";
 
@@ -142,12 +142,12 @@ sub get {
       $_ = $1;
       s/\015$//;
       if (/^([\w\-~]+)\s*:\s*(.*)/) {
-	$r->push_header($key, $val) if $key;
-	($key, $val) = ($1, $2);
+        $r->push_header($key, $val) if $key;
+        ($key, $val) = ($1, $2);
       } elsif (/^\s+(.*)/) {
-	$val .= " $1";
+        $val .= " $1";
       } else {
-	last HEADER;
+        last HEADER;
       }
     }
     $r->push_header($key,$val) if($key);
@@ -175,8 +175,19 @@ sub get {
 #    print length($buf)."-".$r->content_length()."\n";
 
     my $cl = $r->content_length();
-    return [ $self->build_error(RC_LENGTH_REQUIRED) ] unless defined $cl;
-    return [ $self->build_error(RC_BAD_REQUEST    ) ] unless $cl =~ /^\d+$/;
+    unless(defined $cl) {
+        if($self->{'httpd_client_proto'} == 9) {
+            return [ $self->build_error(RC_BAD_REQUEST,  "POST request detected in an HTTP 0.9 transaction. POST is not a valid HTTP 0.9 transaction type. Please verify your HTTP version and transaction content.") ];
+
+        } else { 
+            return [ $self->build_error(RC_LENGTH_REQUIRED, 
+                        "No content length found.") ];
+        }
+    }
+        
+    return [ $self->build_error(RC_BAD_REQUEST, "Content length contains non-digits.") ] 
+        unless $cl =~ /^\d+$/;
+
     if (length($buf) >= $cl) {
       $r->content($buf);
       $self->{finish}++;
@@ -338,6 +349,29 @@ Please see the documentation for HTTP::Request and HTTP::Response.
 
 Please see POE::Filter.
 
+=head1 CAVEATS
+
+It is possible to generate invalid HTTP using libwww. This is specifically a
+problem if you are talking to a Filter::HTTPD driven daemon using libwww. For
+example, the following code (taken almost verbatim from the
+HTTP::Request::Common documentation) will cause an error in a Filter::HTTPD
+daemon:
+
+    use HTTP::Request::Common;
+    use LWP::UserAgent;
+
+    my $ua = LWP::UserAgent->new();
+    $ua->request(POST 'http://some/poe/driven/site', [ foo => 'bar' ]);
+
+By default, HTTP::Request is HTTP version agnostic. It makes no attempt to add
+an HTTP version header unless you specifically declare a protocol using
+C<< $request->protocol('HTTP/1.0') >>. 
+
+According to the HTTP 1.0 RFC (1945), when faced with no HTTP version header,
+the parser is to default to HTTP/0.9. Filter::HTTPD follows this convention. In
+the transaction detailed above, the Filter::HTTPD based daemon will return a 400
+error since POST is not a valid HTTP/0.9 request type.  
+
 =head1 Streaming Media
 
 It is perfectly possible to use Filter::HTTPD for streaming output
@@ -358,7 +392,13 @@ the entire POE distribution.
 
 =head1 BUGS
 
-Keep-alive is not supported.
+=over 4
+
+=item * Keep-alive is not supported.
+
+=item * The full http 1.0 spec is not supported, specifically DELETE, LINK, and UNLINK.
+
+=back
 
 =head1 AUTHORS & COPYRIGHTS
 

@@ -1,4 +1,4 @@
-# $Id: Tk.pm,v 1.41 2003/06/09 17:28:21 rcaputo Exp $
+# $Id: Tk.pm,v 1.43 2003/12/12 04:05:06 rcaputo Exp $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
@@ -10,19 +10,25 @@ use POE::Loop::PerlSignals;
 use POE::Loop::TkCommon;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.41 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.43 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
-BEGIN {
-  die "POE's Tk support requires version Tk 800.021 or higher.\n"
-    unless defined($Tk::VERSION) and $Tk::VERSION >= 800.021;
-  die "POE's Tk support requires Perl 5.005_03 or later.\n"
-    if $] < 5.00503;
-};
+use Tk 800.021;
+use 5.00503;
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
 
 use strict;
+
+# Hand off to POE::Loop::TkActiveState if we're running under
+# ActivePerl.
+BEGIN {
+  if ($^O eq "MSWin32") {
+    require POE::Loop::TkActiveState;
+    POE::Loop::TkActiveState->import();
+    die "not really dying";
+  }
+}
 
 my @_fileno_refcount;
 

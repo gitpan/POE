@@ -1,11 +1,11 @@
-# $Id: Preprocessor.pm,v 1.30 2002/06/13 23:49:32 rcaputo Exp $
+# $Id: Preprocessor.pm,v 1.31 2003/11/21 05:08:25 rcaputo Exp $
 
 package POE::Preprocessor;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.30 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.31 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 use Filter::Util::Call;

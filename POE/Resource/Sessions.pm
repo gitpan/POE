@@ -1,11 +1,11 @@
-# $Id: Sessions.pm,v 1.9 2003/09/16 14:53:40 rcaputo Exp $
+# $Id: Sessions.pm,v 1.14 2003/12/13 05:37:29 rcaputo Exp $
 
 # Manage session data structures on behalf of POE::Kernel.
 
 package POE::Resources::Sessions;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.9 $))[1];
+$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -172,7 +172,7 @@ sub _data_ses_free {
   $self->_data_sid_clear($session);            # Remove from SID tables.
   $self->_data_sig_clear_session($session);    # Remove all leftover signals.
 
-  # Things which dohold reference counts.
+  # Things which do hold reference counts.
 
   $self->_data_alias_clear_session($session);  # Remove all leftover aliases.
   $self->_data_extref_clear_session($session); # Remove all leftover extrefs.
@@ -182,16 +182,6 @@ sub _data_ses_free {
   # Remove the session itself.
 
   delete $kr_sessions{$session};
-
-  # GC the parent, if there is one.
-  if (defined $parent) {
-    $self->_data_ses_collect_garbage($parent);
-  }
-
-  # Stop the main loop if everything is gone.
-  unless (keys %kr_sessions) {
-    $self->loop_halt();
-  }
 }
 
 ### Move a session to a new parent.
@@ -254,6 +244,12 @@ sub _data_ses_move_child {
   }
 
   $self->_data_ses_refcount_inc($new_parent);
+
+  # We do not call _data_ses_collect_garbage() here.  This function is
+  # called in batch for a departing session, to move its children to
+  # its parent.  The GC test would be superfluous here.  Rather, it's
+  # up to the caller to do the proper GC test after moving things
+  # around.
 }
 
 ### Get a session's parent.
@@ -261,7 +257,8 @@ sub _data_ses_move_child {
 sub _data_ses_get_parent {
   my ($self, $session) = @_;
   if (ASSERT_DATA) {
-    _trap() unless exists $kr_sessions{$session};
+    _trap("retrieving parent of a nonexistent session")
+      unless exists $kr_sessions{$session};
   }
   return $kr_sessions{$session}->[SS_PARENT];
 }
@@ -271,7 +268,8 @@ sub _data_ses_get_parent {
 sub _data_ses_get_children {
   my ($self, $session) = @_;
   if (ASSERT_DATA) {
-    _trap() unless exists $kr_sessions{$session};
+    _trap("retrieving children of a nonexistent session")
+      unless exists $kr_sessions{$session};
   }
   return values %{$kr_sessions{$session}->[SS_CHILDREN]};
 }
@@ -281,7 +279,8 @@ sub _data_ses_get_children {
 sub _data_ses_is_child {
   my ($self, $parent, $child) = @_;
   if (ASSERT_DATA) {
-    _trap() unless exists $kr_sessions{$parent};
+    _trap("testing is-child of a nonexistent parent session")
+      unless exists $kr_sessions{$parent};
   }
   return exists $kr_sessions{$parent}->[SS_CHILDREN]->{$child};
 }
@@ -419,14 +418,14 @@ sub _data_ses_collect_garbage {
 
   if (ASSERT_DATA) {
     my $ss = $kr_sessions{$session};
-    my $calc_ref =
-      ( $self->_data_ev_get_count_to($session) +
-        $self->_data_ev_get_count_from($session) +
-        scalar(keys(%{$ss->[SS_CHILDREN]})) +
-        $self->_data_handle_count_ses($session) +
-        $self->_data_extref_count_ses($session) +
-        $self->_data_alias_count_ses($session)
-      );
+    my $calc_ref = (
+      $self->_data_ev_get_count_to($session) +
+      $self->_data_ev_get_count_from($session) +
+      scalar(keys(%{$ss->[SS_CHILDREN]})) +
+      $self->_data_handle_count_ses($session) +
+      $self->_data_extref_count_ses($session) +
+      $self->_data_alias_count_ses($session)
+    );
 
     # The calculated reference count really ought to match the one
     # POE's been keeping track of all along.
@@ -451,6 +450,8 @@ sub _data_ses_count {
 
 ### Close down a session by force.
 
+# Stop a session, dispatching _stop, _parent, and _child as necessary.
+#
 # Dispatch _stop to a session, removing it from the kernel's data
 # structures as a side effect.
 
@@ -465,11 +466,55 @@ sub _data_ses_stop {
     _trap unless exists $kr_sessions{$session};
   }
 
-  $self->_dispatch_event
-    ( $session, $self->get_active_session(),
-      EN_STOP, ET_STOP, [],
+  # Maintain referential integrity between parents and children.
+  # First move the children of the stopping session up to its parent.
+  my $parent = $self->_data_ses_get_parent($session);
+
+  foreach my $child ($self->_data_ses_get_children($session)) {
+    $self->_dispatch_event(
+      $parent, $self,
+      EN_CHILD, ET_CHILD, [ CHILD_GAIN, $child ],
       __FILE__, __LINE__, time(), -__LINE__
     );
+    $self->_dispatch_event(
+      $child, $self,
+      EN_PARENT, ET_PARENT,
+      [ $self->_data_ses_get_parent($child), $parent, ],
+      __FILE__, __LINE__, time(), -__LINE__
+    );
+  }
+
+  # If the departing session has a parent, notify it that the session
+  # is being lost.
+
+  if (defined $parent) {
+    $self->_dispatch_event(
+      $parent, $self,
+      EN_CHILD, ET_CHILD, [ CHILD_LOSE, $session ],
+      __FILE__, __LINE__, time(), -__LINE__
+    );
+  }
+
+  # Referential integrity has been dealt with.  Now notify the session
+  # that it has been stopped.
+  $self->_dispatch_event(
+    $session, $self->get_active_session(),
+    EN_STOP, ET_STOP, [],
+    __FILE__, __LINE__, time(), -__LINE__
+  );
+
+  # Deallocate the session.
+  $self->_data_ses_free($session);
+
+  # GC the parent, if there is one.
+  if (defined $parent) {
+    $self->_data_ses_collect_garbage($parent);
+  }
+
+  # Stop the main loop if everything is gone.
+  unless (keys %kr_sessions) {
+    $self->loop_halt();
+  }
 }
 
 1;

@@ -1,11 +1,11 @@
-# $Id: Filter.pm,v 1.12 2002/01/10 20:39:44 rcaputo Exp $
+# $Id: Filter.pm,v 1.13 2003/11/21 05:08:25 rcaputo Exp $
 
 package POE::Filter;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.12 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.13 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 

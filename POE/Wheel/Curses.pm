@@ -5,7 +5,7 @@ package POE::Wheel::Curses;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.10 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.11 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 use Curses;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.44 2003/07/09 18:20:40 rcaputo Exp $
+# $Id: 06_tk.t,v 1.45 2003/12/13 05:37:29 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Tk postback events using Tk's event
 # loop.
@@ -49,6 +49,7 @@ BEGIN {
   if ($@ and $@ =~ /(couldn't connect to display ".*?")/) {
     test_setup(0, $1);
   }
+  die if $@;
 }
 
 test_setup(11);

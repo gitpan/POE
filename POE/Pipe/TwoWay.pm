@@ -1,4 +1,4 @@
-# $Id: TwoWay.pm,v 1.15 2003/07/17 18:25:03 rcaputo Exp $
+# $Id: TwoWay.pm,v 1.16 2003/11/21 05:08:26 rcaputo Exp $
 
 # Portable two-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::TwoWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.15 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.16 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Symbol qw(gensym);
 use IO::Socket;

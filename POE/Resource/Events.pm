@@ -1,11 +1,11 @@
-# $Id: Events.pm,v 1.5 2003/09/16 14:53:40 rcaputo Exp $
+# $Id: Events.pm,v 1.10 2004/01/21 17:27:01 rcaputo Exp $
 
 # Data and accessors to manage POE's events.
 
 package POE::Resources::Events;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.5 $))[1];
+$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -103,14 +103,20 @@ sub _data_ev_clear_session {
     ($_[0]->[EV_SESSION] == $session) || ($_[0]->[EV_SOURCE] == $session)
   };
 
-  my $total_event_count =
-    ( ($event_count{$session} || 0) +
-      ($post_count{$session} || 0)
-    );
+  # TODO - This is probably incorrect.  The total event count will be
+  # artificially inflated for events from/to the same session.  That
+  # is, a yield() will count twice.
+  my $total_event_count = (
+    ($event_count{$session} || 0) +
+    ($post_count{$session} || 0)
+  );
 
   foreach ($kr_queue->remove_items($my_event, $total_event_count)) {
     $self->_data_ev_refcount_dec(@{$_->[ITEM_PAYLOAD]}[EV_SOURCE, EV_SESSION]);
   }
+
+  croak if delete $event_count{$session};
+  croak if delete $post_count{$session};
 }
 
 # -><- Alarm maintenance functions may move out to a separate
@@ -188,14 +194,10 @@ sub _data_ev_refcount_dec {
   }
 
   $self->_data_ses_refcount_dec($dest_session);
-  unless (--$event_count{$dest_session}) {
-    delete $event_count{$dest_session};
-  }
+  $event_count{$dest_session}--;
 
   $self->_data_ses_refcount_dec($source_session);
-  unless (--$post_count{$source_session}) {
-    delete $post_count{$source_session};
-  }
+  $post_count{$source_session}--;
 }
 
 ### Fetch the number of pending events sent to a session.
@@ -233,6 +235,11 @@ sub _data_ev_dispatch_due {
 
     if (TRACE_EVENTS) {
       _warn("<ev> dispatching event $id ($event->[EV_NAME])");
+    }
+
+    if ($time < $now) {
+        $self->_data_stat_add('blocked', 1);
+        $self->_data_stat_add('blocked_seconds', $now - $time);
     }
 
     $self->_data_ev_refcount_dec($event->[EV_SOURCE], $event->[EV_SESSION]);

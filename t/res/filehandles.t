@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: filehandles.t,v 1.4 2003/07/10 20:17:31 rcaputo Exp $
+# $Id: filehandles.t,v 1.6 2004/01/16 16:58:37 rcaputo Exp $
 
 use strict;
 

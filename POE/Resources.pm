@@ -1,18 +1,31 @@
 package POE::Resources;
 
+use strict;
+
+use vars qw($VERSION);
+$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+
+my @resources = qw(
+  POE::XS::Resource::Aliases
+  POE::XS::Resource::Events
+  POE::XS::Resource::Extrefs
+  POE::XS::Resource::FileHandles
+  POE::XS::Resource::SIDs
+  POE::XS::Resource::Sessions
+  POE::XS::Resource::Signals
+  POE::XS::Resource::Statistics
+);
+
 sub initialize {
-    my $package = (caller())[0];
-    eval qq|
-    package $package;
-    use POE::Resource::Extrefs;     # Extra reference counts.
-    use POE::Resource::SIDs;        # Session IDs.
-    use POE::Resource::Signals;     # Signals.
-    use POE::Resource::Aliases;     # Aliases.
-    use POE::Resource::FileHandles; # File handles.
-    use POE::Resource::Events;      # Events.
-    use POE::Resource::Sessions;    # Sessions.
-    |;
-    die if $@;
+  my $package = (caller())[0];
+
+  foreach my $resource (@resources) {
+    eval "package $package; use $resource";
+    if ($@) {
+      redo if $@ =~ /^Can't locate/ and $resource =~ s/::XS::/::/;
+      die;
+    }
+  }
 }
 
 1;

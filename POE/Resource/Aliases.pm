@@ -1,4 +1,4 @@
-# $Id: Aliases.pm,v 1.8 2003/09/16 14:53:40 rcaputo Exp $
+# $Id: Aliases.pm,v 1.10 2003/11/21 05:08:26 rcaputo Exp $
 
 # Manage the POE::Kernel data structures necessary to keep track of
 # session aliases.
@@ -6,7 +6,7 @@
 package POE::Resources::Aliases;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.8 $))[1];
+$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -78,9 +78,6 @@ sub _data_alias_remove {
   my ($self, $session, $alias) = @_;
   delete $kr_aliases{$alias};
   delete $kr_ses_to_alias{$session}->{$alias};
-  unless (keys %{$kr_ses_to_alias{$session}}) {
-    delete $kr_ses_to_alias{$session};
-  }
   $self->_data_ses_refcount_dec($session);
 }
 
@@ -92,6 +89,7 @@ sub _data_alias_clear_session {
   foreach (keys %{$kr_ses_to_alias{$session}}) {
     $self->_data_alias_remove($session, $_);
   }
+  delete $kr_ses_to_alias{$session};
 }
 
 ### Resolve an alias.  Just an alias.

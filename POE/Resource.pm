@@ -1,9 +1,9 @@
-# $Id: Resource.pm,v 1.2 2003/05/31 18:18:04 rcaputo Exp $
+# $Id: Resource.pm,v 1.3 2003/11/21 05:08:25 rcaputo Exp $
 
 package POE::Resource;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.2 $))[1];
+$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 

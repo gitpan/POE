@@ -1,11 +1,11 @@
-# $Id: Wheel.pm,v 1.17 2002/11/05 21:03:32 rcaputo Exp $
+# $Id: Wheel.pm,v 1.18 2003/11/21 05:08:25 rcaputo Exp $
 
 package POE::Wheel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.17 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.18 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 

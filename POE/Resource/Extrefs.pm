@@ -1,4 +1,4 @@
-# $Id: Extrefs.pm,v 1.6 2003/09/16 14:53:40 rcaputo Exp $
+# $Id: Extrefs.pm,v 1.9 2003/11/22 05:05:10 rcaputo Exp $
 
 # The data necessary to manage tagged extra/external reference counts
 # on sessions, and the accessors to get at them sanely from other
@@ -7,7 +7,7 @@
 package POE::Resources::Extrefs;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.6 $))[1];
+$VERSION = do {my@r=(q$Revision: 1.9 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -108,10 +108,9 @@ sub _data_extref_remove {
   }
 
   delete $kr_extra_refs{$session}->{$tag};
+  delete $kr_extra_refs{$session}
+    unless scalar keys %{$kr_extra_refs{$session}};
   $self->_data_ses_refcount_dec($session);
-  unless (keys %{$kr_extra_refs{$session}}) {
-    delete $kr_extra_refs{$session};
-  }
 }
 
 ### Clear all the extra references from a session.
@@ -124,7 +123,7 @@ sub _data_extref_clear_session {
   }
 
   if (ASSERT_DATA) {
-    if (exists $kr_extra_refs{$session}) {
+    if (keys %{$kr_extra_refs{$session}}) {
       _trap(
         "<dt> extref clear did not remove session ",
         $self->_data_alias_loggable($session)

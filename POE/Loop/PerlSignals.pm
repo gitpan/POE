@@ -1,4 +1,4 @@
-# $Id: PerlSignals.pm,v 1.3 2003/07/09 18:20:40 rcaputo Exp $
+# $Id: PerlSignals.pm,v 1.4 2003/11/21 05:08:26 rcaputo Exp $
 
 # Plain Perl signal handling is something shared by several event
 # loops.  The invariant code has moved out here so that each loop may
@@ -10,7 +10,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.3 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;

@@ -1,14 +1,14 @@
-# $Id: TCP.pm,v 1.35 2003/09/16 14:50:12 rcaputo Exp $
+# $Id: TCP.pm,v 1.39 2003/11/26 03:52:07 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.35 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.39 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
-use POSIX qw(ETIMEDOUT ECONNRESET);
+use Errno qw(ETIMEDOUT ECONNRESET);
 
 # Explicit use to import the parameter constants;
 use POE::Session;
@@ -143,10 +143,16 @@ sub new {
         _child  => sub { },
 
         reconnect => sub {
-          my $heap = $_[HEAP];
+          my ($kernel, $heap) = @_[KERNEL, HEAP];
 
           $heap->{shutdown} = 0;
           $heap->{connected} = 0;
+
+          # Tentative patch to re-establish the alias upon reconnect.
+          # Necessary because otherwise the alias goes away for good.
+          # Unfortunately, there is a gap where the alias may not be
+          # set, and any events dispatched then will be dropped.
+          $kernel->alias_set( $alias ) if defined $alias;
 
           $heap->{server} = POE::Wheel::SocketFactory->new
             ( RemoteAddress => $address,
@@ -213,7 +219,10 @@ sub new {
 
         got_server_error => sub {
           $error_callback->(@_);
-          $_[KERNEL]->yield("shutdown") if $_[HEAP]->{shutdown_on_error};
+          if ($_[HEAP]->{shutdown_on_error}) {
+            $_[KERNEL]->yield("shutdown");
+            $_[HEAP]->{got_an_error} = 1;
+          }
         },
 
         got_server_input => sub {
@@ -239,9 +248,13 @@ sub new {
 
           if ($heap->{connected}) {
             if (defined $heap->{server}) {
-              delete $heap->{server}
-                unless $heap->{server}->get_driver_out_octets();
-              $disc_callback->(@_);
+              if (
+                $heap->{got_an_error} or
+                not $heap->{server}->get_driver_out_octets()
+              ) {
+                delete $heap->{server};
+                $disc_callback->(@_);
+              }
             }
           }
           else {
@@ -480,7 +493,8 @@ to be established.  If it is omitted, Client::TCP relies on the
 operating system to abort stalled connect() calls.
 
 Upon a connection timeout, Client::TCP will send a ConnectError event.
-Its ARG0 will be 'connect' and ARG1 will be the POSIX ETIMEDOUT value.
+Its ARG0 will be 'connect' and ARG1 will be the POSIX/Errno ETIMEDOUT
+value.
 
 =item Disconnected
 

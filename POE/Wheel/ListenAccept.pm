@@ -1,16 +1,17 @@
-# $Id: ListenAccept.pm,v 1.26 2002/10/20 20:35:51 rcaputo Exp $
+# $Id: ListenAccept.pm,v 1.28 2003/11/26 03:52:07 rcaputo Exp $
 
 package POE::Wheel::ListenAccept;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.26 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.28 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use Symbol;
 
-use POSIX qw(fcntl_h errno_h);
+use POSIX qw(fcntl_h);
+use Errno qw(EWOULDBLOCK);
 use POE qw(Wheel);
 
 sub SELF_HANDLE       () { 0 }

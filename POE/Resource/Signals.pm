@@ -1,4 +1,4 @@
-# $Id: Signals.pm,v 1.8 2003/07/09 18:20:40 rcaputo Exp $
+# $Id: Signals.pm,v 1.10 2004/01/21 05:28:15 rcaputo Exp $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resources::Signals;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.8 $))[1];
+$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -253,9 +253,10 @@ sub _data_sig_clear_handled_flags {
 sub _data_sig_free_terminated_sessions {
   my $self = shift;
 
-  if ( ($kr_signal_type & SIGTYPE_NONMASKABLE) or
-       ( $kr_signal_type & SIGTYPE_TERMINAL and !$kr_signal_total_handled )
-     ) {
+  if (
+    ($kr_signal_type & SIGTYPE_NONMASKABLE) or
+    ($kr_signal_type & SIGTYPE_TERMINAL and !$kr_signal_total_handled)
+  ) {
     foreach my $dead_session (@kr_signaled_sessions) {
       next unless $self->_data_ses_exists($dead_session);
       if (TRACE_SIGNALS) {

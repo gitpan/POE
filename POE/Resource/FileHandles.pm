@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm,v 1.7 2003/09/16 14:53:40 rcaputo Exp $
+# $Id: FileHandles.pm,v 1.9 2003/11/21 05:08:26 rcaputo Exp $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,7 +6,7 @@
 package POE::Resources::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.7 $))[1];
+$VERSION = do {my@r=(q$Revision: 1.9 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -276,6 +276,10 @@ sub _data_handle_add {
   my ($self, $handle, $mode, $session, $event) = @_;
   my $fd = fileno($handle);
 
+  # First time watching the file descriptor.  Do some heavy setup.
+  #
+  # NB - This means we can't optimize away the delete() calls here and
+  # there, because they probably ensure that the structure exists.
   unless (exists $kr_filenos{$fd}) {
 
     $kr_filenos{$fd} =

@@ -1,10 +1,10 @@
-# $Id: UseBytes.pm,v 1.2 2002/08/04 19:14:04 rcaputo Exp $
+# $Id: UseBytes.pm,v 1.3 2003/11/21 05:08:26 rcaputo Exp $
 
 package POE::Macro::UseBytes;
 use POE::Preprocessor;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.2 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Make the "use_bytes" macro evaluate to C<use bytes;> in Perl on or
 # after 5.005_55.  Systems before then don't have the option, so the

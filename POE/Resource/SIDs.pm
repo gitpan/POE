@@ -1,4 +1,4 @@
-# $Id: SIDs.pm,v 1.7 2003/09/16 14:53:40 rcaputo Exp $
+# $Id: SIDs.pm,v 1.9 2004/01/21 05:28:15 rcaputo Exp $
 
 # Session IDs: The data to maintain them, and accessors to get at them
 # sanely from other files.
@@ -6,7 +6,7 @@
 package POE::Resources::SIDs;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.7 $))[1];
+$VERSION = do {my@r=(q$Revision: 1.9 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -71,7 +71,7 @@ sub _data_sid_clear {
   my ($self, $session) = @_;
   my $sid = delete $kr_session_to_id{$session};
   if (ASSERT_DATA) {
-    _trap() unless defined $sid;
+    _trap("SID not defined") unless defined $sid;
   }
   delete $kr_session_ids{$sid};
 }

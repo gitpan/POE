@@ -1,14 +1,15 @@
-# $Id: Array.pm,v 1.3 2003/07/28 05:14:13 rcaputo Exp $
+# $Id: Array.pm,v 1.5 2003/11/26 03:52:07 rcaputo Exp $
 # Copyrights and documentation are at the end.
 
 package POE::Queue::Array;
 
 use strict;
 
-use vars qw(@ISA);
+use vars qw(@ISA $VERSION);
 @ISA = qw(POE::Queue);
+$VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
-use POSIX qw(ESRCH EPERM);
+use Errno qw(ESRCH EPERM);
 
 sub DEBUG () { 0 }
 

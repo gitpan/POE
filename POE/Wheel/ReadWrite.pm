@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm,v 1.64 2003/09/16 14:48:26 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.67 2004/01/25 01:54:58 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.64 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.67 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -608,35 +608,31 @@ sub ID {
 # Pause the wheel's input watcher.
 sub pause_input {
   my $self = shift;
-  if (defined $self->[HANDLE_INPUT]) {
-    $poe_kernel->select_pause_read( $self->[HANDLE_INPUT] );
-  }
+  return unless defined $self->[HANDLE_INPUT];
+  $poe_kernel->select_pause_read( $self->[HANDLE_INPUT] );
 }
 
 # Resume the wheel's input watcher.
 sub resume_input {
   my $self = shift;
-  if (defined $self->[HANDLE_INPUT]) {
-    $poe_kernel->select_resume_read( $self->[HANDLE_INPUT] );
-  }
+  return unless  defined $self->[HANDLE_INPUT];
+  $poe_kernel->select_resume_read( $self->[HANDLE_INPUT] );
 }
 
 # Shutdown the socket for reading.
 sub shutdown_input {
   my $self = shift;
-  if (defined $self->[HANDLE_INPUT]) {
-    eval { local $^W = 0; shutdown($self->[HANDLE_INPUT], 0) };
-    $poe_kernel->select_read($self->[HANDLE_INPUT], undef);
-  }
+  return unless defined $self->[HANDLE_INPUT];
+  eval { local $^W = 0; shutdown($self->[HANDLE_INPUT], 0) };
+  $poe_kernel->select_read($self->[HANDLE_INPUT], undef);
 }
 
 # Shutdown the socket for writing.
 sub shutdown_output {
   my $self = shift;
-  if (defined $self->[HANDLE_OUTPUT]) {
-    eval { local $^W=0; shutdown($self->[HANDLE_OUTPUT], 1) };
-    $poe_kernel->select_write($self->[HANDLE_OUTPUT], undef);
-  }
+  return unless defined $self->[HANDLE_OUTPUT];
+  eval { local $^W=0; shutdown($self->[HANDLE_OUTPUT], 1) };
+  $poe_kernel->select_write($self->[HANDLE_OUTPUT], undef);
 }
 
 ###############################################################################
@@ -730,9 +726,9 @@ immediately.  ReadWrite uses its Filter to translate the records into
 a form suitable for writing.  It uses its Driver to queue and send
 them.
 
-put() accepts a reference to a list of records.  It returns a boolean
-value indicating whether the wheel's high-water mark has been reached.
-It always returns false if a wheel doesn't have a high-water mark set.
+put() accepts a list of records.  It returns a boolean value
+indicating whether the wheel's high-water mark has been reached.  It
+always returns false if a wheel doesn't have a high-water mark set.
 
 This will quickly fill a wheel's output queue if it has a high-water
 mark set.  Otherwise it will loop infinitely, eventually exhausting

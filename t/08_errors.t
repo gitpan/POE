@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.50 2003/07/10 20:17:31 rcaputo Exp $
+# $Id: 08_errors.t,v 1.51 2004/01/05 22:36:46 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -54,7 +54,9 @@ BEGIN {
     # Event + Tk
     @INC{'Event.pm', 'Tk.pm'} = (1,1);
     $Tk::VERSION = 800.021;
+    stderr_pause();
     eval 'use POE::Kernel';
+    stderr_resume();
     print 'not ' unless defined $@ and length $@;
     print "ok 1\n";
     test_cleanup();
@@ -62,14 +64,18 @@ BEGIN {
     # Gtk + Tk
     @INC{'Gtk.pm', 'Tk.pm'} = (1, 1);
     $Tk::VERSION = 800.021;
+    stderr_pause();
     eval 'use POE::Kernel';
+    stderr_resume();
     print 'not ' unless defined $@ and length $@;
     print "ok 2\n";
     test_cleanup();
 
     # Event + Gtk
     @INC{'Event.pm', 'Gtk.pm'} = (1, 1);
+    stderr_pause();
     eval 'use POE::Kernel';
+    stderr_resume();
     print 'not ' unless defined $@ and length $@;
     print "ok 3\n";
     test_cleanup();

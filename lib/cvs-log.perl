@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: cvs-log.perl,v 1.4 2003/03/24 16:46:32 rcaputo Exp $
+# $Id: cvs-log.perl,v 1.5 2003/12/11 18:06:21 rcaputo Exp $
 
 # This program is Copyright 2002 by Rocco Caputo.  All rights are
 # reserved.  This program is free software.  It may be modified, used,
@@ -18,6 +18,7 @@ $Text::Wrap::columns = 74;
 use Time::Local;
 
 my $date_range = "-d'1 year ago<'";
+# $date_range = "-d'2 years ago<'";
 
 my ( %rev, %file, %time, %tag, %tags_by_time, %log, %last_tag_times, );
 

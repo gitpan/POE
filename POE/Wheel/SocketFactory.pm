@@ -1,4 +1,4 @@
-# $Id: SocketFactory.pm,v 1.71 2003/05/03 01:46:16 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.74 2003/11/26 03:52:07 rcaputo Exp $
 
 package POE::Wheel::SocketFactory;
 use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
@@ -6,12 +6,13 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.71 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.74 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use Symbol;
 
-use POSIX qw(fcntl_h errno_h);
+use POSIX qw(fcntl_h);
+use Errno qw(EWOULDBLOCK EADDRNOTAVAIL EINPROGRESS EADDRINUSE);
 use Socket;
 use POE qw(Wheel);
 
@@ -37,18 +38,13 @@ sub MY_SOCKET_SELECTED () { 12 }
 # this, to extend add stuff BEFORE MY_SOCKET_SELECTED or let Fletch
 # know you've broken his module.
 
-# Provide dummy POSIX constants for systems that don't have them.  Use
-# http://msdn.microsoft.com/library/en-us/winsock/winsock/
-#   windows_sockets_error_codes_2.asp for the POSIX error numbers.
+# Provide dummy constants for systems that don't have them.
 BEGIN {
   if ($^O eq 'MSWin32') {
 
     # Constants are evaluated first so they exist when the code uses
     # them.
-    eval( '*EADDRNOTAVAIL = sub { 10049 };' .
-          '*EINPROGRESS   = sub { 10036 };' .
-          '*EWOULDBLOCK   = sub { 10035 };' .
-          '*F_GETFL       = sub {     0 };' .
+    eval( '*F_GETFL       = sub {     0 };' .
           '*F_SETFL       = sub {     0 };' .
 
           # Garrett Goebel's patch to support non-blocking connect()
@@ -946,10 +942,6 @@ sub new {
   # handle.
   if (defined $connect_address) {
     unless (connect($socket_handle, $connect_address)) {
-
-      # XXX EINPROGRESS is not included in ActiveState's POSIX.pm, and
-      # I don't know what AS's Perl uses instead.  What to do here?
-
       if ($! and ($! != EINPROGRESS) and ($! != EWOULDBLOCK)) {
         $poe_kernel->yield( $event_failure,
                             'connect', $!+0, $!, $self->[MY_UNIQUE_ID]
@@ -982,7 +974,13 @@ sub new {
 
     if ($protocol_op eq SVROP_LISTENS) {
       my $listen_queue = $params{ListenQueue} || SOMAXCONN;
-      ($listen_queue > SOMAXCONN) && ($listen_queue = SOMAXCONN);
+      # <rmah> In SocketFactory, you limit the ListenQueue parameter
+      #        to SOMAXCON (or is it SOCONNMAX?)...why?
+      # <rmah> ah, here's czth, he'll have more to say on this issue
+      # <czth> not really.  just that SOMAXCONN can lie, notably on
+      #        Solaris and reportedly on BSDs too
+      # 
+      # ($listen_queue > SOMAXCONN) && ($listen_queue = SOMAXCONN);
       unless (listen($socket_handle, $listen_queue)) {
         $poe_kernel->yield( $event_failure,
                             'listen', $!+0, $!, $self->[MY_UNIQUE_ID]

@@ -1,4 +1,4 @@
-# $Id: Gtk.pm,v 1.36 2003/07/15 14:58:21 rcaputo Exp $
+# $Id: Gtk.pm,v 1.44 2004/01/21 17:27:00 rcaputo Exp $
 
 # Gtk-Perl event loop bridge for POE::Kernel.
 
@@ -11,26 +11,16 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.36 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.44 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
 
 use strict;
 
-# Delcare which event loop bridge is being used, but first ensure that
-# no other bridge has been loaded.
-
-BEGIN {
-  die( "POE can't use Gtk and " . &POE_LOOP . "\n" )
-    if defined &POE_LOOP;
-};
-
-# Declare the loop we're using.
-sub POE_LOOP () { LOOP_GTK }
-
 my $_watcher_timer;
 my @fileno_watcher;
+my $gtk_init_check;
 
 #------------------------------------------------------------------------------
 # Loop construction and destruction.
@@ -40,7 +30,22 @@ sub loop_initialize {
 
   # Must Gnome->init() yourselves, as it takes parameters.
   unless (exists $INC{'Gnome.pm'}) {
-    Gtk->init();
+    # Gtk can only be initialized once. 
+    # So if we've initalized it already, skip the whole deal.
+    unless($gtk_init_check) {
+      $gtk_init_check++;
+
+      my $res = Gtk->init_check();
+
+      # Now check whether the init was ok.
+      # undefined == icky; TRUE (whatever that means in gtk land) means Ok.
+      if (defined $res) {
+        Gtk->init();
+
+      } else {
+        POE::Kernel::_die "Gtk initialization failed. Chances are it couldn't connect to a display. Of course, Gtk doesn't put its error message anywhere I can find so we can't be more specific here.";
+      }
+    }
   }
 }
 
@@ -66,19 +71,18 @@ sub loop_attach_uidestroy {
   # Don't bother posting the signal if there are no sessions left.  I
   # think this is a bit of a kludge: the situation where a window
   # lasts longer than POE::Kernel should never occur.
-  $window->signal_connect
-    ( delete_event =>
-      sub {
-        if ($self->_data_ses_count()) {
-          $self->_dispatch_event
-            ( $self, $self,
-              EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
-              __FILE__, __LINE__, time(), -__LINE__
-            );
-        }
-        return 0;
+  $window->signal_connect(
+    delete_event => sub {
+      if ($self->_data_ses_count()) {
+        $self->_dispatch_event
+          ( $self, $self,
+            EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
+            __FILE__, __LINE__, time(), -__LINE__
+          );
       }
-    );
+      return 0;
+    }
+  );
 }
 
 #------------------------------------------------------------------------------
@@ -206,8 +210,19 @@ sub loop_resume_filehandle {
 ### Callbacks.
 
 # Event callback to dispatch pending events.
+
+my $last_time = time();
+
 sub _loop_event_callback {
   my $self = $poe_kernel;
+
+  if (TRACE_STATISTICS) {
+    # TODO - I'm pretty sure the startup time will count as an unfair
+    # amout of idleness.
+    #
+    # TODO - Introducing many new time() syscalls.  Bleah.
+    $self->_data_stat_add('idle_seconds', time() - $last_time);
+  }
 
   $self->_data_ev_dispatch_due();
   $self->_test_if_kernel_is_idle();
@@ -219,6 +234,9 @@ sub _loop_event_callback {
   if ($self->get_event_count()) {
     $_watcher_timer = Gtk->idle_add(\&_loop_resume_timer);
   }
+
+  # And back to Gtk, so we're in idle mode.
+  $last_time = time() if TRACE_STATISTICS;
 
   # Return false to stop.
   return 0;
@@ -278,21 +296,11 @@ sub loop_do_timeslice {
 }
 
 sub loop_run {
-  if (exists $INC{'Gnome.pm'}) {
-    Gnome->main();
-  }
-  else {
-    Gtk->main;
-  }
+  Gtk->main;
 }
 
 sub loop_halt {
-  if (exists $INC{'Gnome.pm'}) {
-    Gnome->main_quit();
-  }
-  else {
-    Gtk->main_quit();
-  }
+  Gtk->main_quit();
 }
 
 1;

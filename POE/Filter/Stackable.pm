@@ -11,7 +11,7 @@ package POE::Filter::Stackable;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.4 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 

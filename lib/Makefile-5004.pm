@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.15 2003/06/03 17:39:49 rcaputo Exp $
+# $Id: Makefile-5004.pm,v 1.16 2004/01/22 06:02:04 sungo Exp $
 
 use ExtUtils::MakeMaker;
 
@@ -47,6 +47,7 @@ WriteMakefile
                         POSIX              => 0,
                         Socket             => 0,
                         Filter::Util::Call => 1.04,
+                        Test::More         => 0,
                       },
 
     # Remove 'lib', which should have been named 'privlib'.  The 'lib'

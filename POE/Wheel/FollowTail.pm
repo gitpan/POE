@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm,v 1.47 2003/08/10 19:48:18 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.48 2003/11/21 05:08:26 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.47 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.48 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use Symbol;

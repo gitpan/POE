@@ -1,4 +1,4 @@
-# $Id: SysRW.pm,v 1.24 2003/09/16 14:50:12 rcaputo Exp $
+# $Id: SysRW.pm,v 1.26 2003/11/26 03:52:07 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
@@ -10,9 +10,9 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.24 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.26 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
-use POSIX qw(EAGAIN EWOULDBLOCK);
+use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
 
 sub OUTPUT_QUEUE        () { 0 }
@@ -20,10 +20,6 @@ sub CURRENT_OCTETS_DONE () { 1 }
 sub CURRENT_OCTETS_LEFT () { 2 }
 sub BLOCK_SIZE          () { 3 }
 sub TOTAL_OCTETS_LEFT   () { 4 }
-
-BEGIN {
-  eval '*EWOULDBLOCK = sub { 10035 };'  if $^O eq 'MSWin32';
-}
 
 #------------------------------------------------------------------------------
 

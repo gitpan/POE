@@ -1,4 +1,4 @@
-# $Id: Select.pm,v 1.50 2003/09/16 14:58:14 rcaputo Exp $
+# $Id: Select.pm,v 1.56 2004/01/21 17:27:01 rcaputo Exp $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,22 +11,13 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.50 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.56 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
 
 use strict;
-
-# Delcare which event loop bridge is being used, but first ensure that
-# no other bridge has been loaded.
-
-BEGIN {
-  die( "POE can't use its own loop and " . &POE_LOOP . "\n" )
-    if defined &POE_LOOP;
-};
-
-sub POE_LOOP () { LOOP_SELECT }
+use Errno qw(EINPROGRESS EWOULDBLOCK EINTR);
 
 # Linux has a bug on "polled" select() calls.  If select() is called
 # with a zero-second timeout, and a signal manages to interrupt it
@@ -158,15 +149,23 @@ sub loop_do_timeslice {
   # Check for a hung kernel.
   $self->_test_if_kernel_is_idle();
 
+  # Determine which files are being watched.  This is a heavy
+  # operation; significant time will pass during it, so we do it
+  # before deciding on the timeout.
+  my @filenos = ();
+  while (my ($fd, $mask) = each(%loop_filenos)) {
+    push(@filenos, $fd) if $mask;
+  }
+
   # Set the select timeout based on current queue conditions.  If
   # there are FIFO events, then the timeout is zero to poll select and
   # move on.  Otherwise set the select timeout until the next pending
   # event, if there are any.  If nothing is waiting, set the timeout
   # for some constant number of seconds.
 
-  my $now = time();
   my $timeout = $self->get_next_event_time();
 
+  my $now = time();
   if (defined $timeout) {
     $timeout -= $now;
     $timeout = MINIMUM_SELECT_TIMEOUT if $timeout < MINIMUM_SELECT_TIMEOUT;
@@ -175,6 +174,8 @@ sub loop_do_timeslice {
     $timeout = 3600;
   }
 
+  # Tracing is relatively expensive, but it's not for live systems.
+  # We can get away with it being after the timeout calculation.
   if (TRACE_EVENTS) {
     POE::Kernel::_warn(
       '<ev> Kernel::run() iterating.  ' .
@@ -183,12 +184,6 @@ sub loop_do_timeslice {
         $now - $start_time, $timeout, ($now - $start_time) + $timeout
       )
     );
-  }
-
-  # Determine which files are being watched.
-  my @filenos = ();
-  while (my ($fd, $mask) = each(%loop_filenos)) {
-    push(@filenos, $fd) if $mask;
   }
 
   if (TRACE_FILES) {
@@ -317,6 +312,15 @@ sub loop_do_timeslice {
     }
   }
 
+  if (TRACE_STATISTICS) {
+    # TODO - I think $now is too far ahead of select() and this call
+    # is too far afterwards.  Unless "idle" seconds means also the
+    # time POE::Kernel spends scheduling things.  Sent a note to Nick
+    # Williams asking for clarification on the definitions of various
+    # statistics.
+    $self->_data_stat_add('idle_seconds', time() - $now);
+  }
+
   # Dispatch whatever events are due.
   $self->_data_ev_dispatch_due();
 }
@@ -340,7 +344,7 @@ __END__
 
 =head1 NAME
 
-POE::Loop::Event - a bridge that supports select(2) from POE
+POE::Loop::Select - a bridge that supports select(2) from POE
 
 =head1 SYNOPSIS
 

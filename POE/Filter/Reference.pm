@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.27 2002/10/26 11:59:37 rcaputo Exp $
+# $Id: Reference.pm,v 1.28 2003/11/21 05:08:25 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -9,7 +9,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.27 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.28 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 

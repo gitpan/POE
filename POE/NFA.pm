@@ -1,11 +1,11 @@
-# $Id: NFA.pm,v 1.23 2003/07/09 18:20:40 rcaputo Exp $
+# $Id: NFA.pm,v 1.28 2004/01/05 22:37:36 rcaputo Exp $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.23 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.28 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 
@@ -44,8 +44,18 @@ sub STACK_EVENT         () { 1 }
 sub define_trace {
   no strict 'refs';
   foreach my $name (@_) {
-    unless (defined *{"TRACE_$name"}{CODE}) {
+    next if defined *{"TRACE_$name"}{CODE};
+    if (defined *{"POE::Kernel::TRACE_$name"}{CODE}) {
+      eval(
+        "sub TRACE_$name () { " .
+        *{"POE::Kernel::TRACE_$name"}{CODE}->() .
+        "}"
+      );
+      die if $@;
+    }
+    else {
       eval "sub TRACE_$name () { TRACE_DEFAULT }";
+      die if $@;
     }
   }
 }
@@ -228,7 +238,7 @@ sub _invoke_state {
 
   # Stop request has come through the queue.  Shut us down.
   if ($event eq NFA_EN_STOP) {
-    $POE::Kernel::poe_kernel->_data_ses_free( $self );
+    $POE::Kernel::poe_kernel->_data_ses_stop( $self );
     return;
   }
 
@@ -599,6 +609,20 @@ sub POE::NFA::Postback::DESTROY {
   $POE::Kernel::poe_kernel->refcount_decrement( $parent_id, 'postback' );
 }
 
+# Tune postbacks depending on variations in toolkit behavior.
+
+BEGIN {
+  # Tk blesses its callbacks internally, so we need to wrap our
+  # blessed callbacks in unblessed ones.  Otherwise our postback's
+  # DESTROY method probably won't be called.
+  if (exists $INC{'Tk.pm'}) {
+    eval 'sub USING_TK () { 1 }';
+  }
+  else {
+    eval 'sub USING_TK () { 0 }';
+  }
+};
+
 # Create a postback closure, maintaining referential integrity in the
 # process.  The next step is to give it to something that expects to
 # be handed a callback.
@@ -607,16 +631,36 @@ sub postback {
   my ($self, $event, @etc) = @_;
   my $id = $POE::Kernel::poe_kernel->ID_session_to_id(shift);
 
-  my $postback = bless
-    sub {
-      $POE::Kernel::poe_kernel->post( $id, $event, [ @etc ], [ @_ ] );
-      0;
-    }, 'POE::NFA::Postback';
+  my $postback = bless sub {
+    $POE::Kernel::poe_kernel->post( $id, $event, [ @etc ], [ @_ ] );
+    return 0;
+  }, 'POE::NFA::Postback';
 
   $postback_parent_id{$postback} = $id;
   $POE::Kernel::poe_kernel->refcount_increment( $id, 'postback' );
 
-  $postback;
+  # Tk blesses its callbacks, so we must present one that isn't
+  # blessed.  Otherwise Tk's blessing would divert our DESTROY call to
+  # its own, and that's not right.
+
+  return sub { $postback->(@_) } if USING_TK;
+  return $postback;
+}
+
+# Create a synchronous callback closure.  The return value will be
+# passed to whatever is handed the callback.
+#
+# TODO - Should callbacks hold reference counts like postbacks do?
+
+sub callback {
+  my ($self, $event, @etc) = @_;
+  my $id = $POE::Kernel::poe_kernel->ID_session_to_id($self);
+
+  my $callback = sub {
+    return $POE::Kernel::poe_kernel->call( $id, $event, [ @etc ], [ @_ ] );
+  };
+
+  $callback;
 }
 
 #==============================================================================
@@ -780,6 +824,10 @@ C<options>.  Others will be added as necessary.
 See POE::Session.
 
 =item postback
+
+See POE::Session.
+
+=item callback
 
 See POE::Session.
 

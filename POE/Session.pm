@@ -1,14 +1,14 @@
-# $Id: Session.pm,v 1.87 2003/07/09 18:20:40 rcaputo Exp $
+# $Id: Session.pm,v 1.97 2004/01/05 22:37:36 rcaputo Exp $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.87 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.97 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
-use POSIX qw(ENOSYS);
+use Errno qw(ENOSYS);
 
 sub SE_NAMESPACE    () { 0 }
 sub SE_OPTIONS      () { 1 }
@@ -39,8 +39,19 @@ sub EN_SIGNAL       () { '_signal' }
 sub define_assert {
   no strict 'refs';
   foreach my $name (@_) {
-    unless (defined *{"ASSERT_$name"}{CODE}) {
+    next if defined *{"ASSERT_$name"}{CODE};
+    no warnings;
+    if (defined *{"POE::Kernel::ASSERT_$name"}{CODE}) {
+      eval(
+        "sub ASSERT_$name () { " .
+        *{"POE::Kernel::ASSERT_$name"}{CODE}->() .
+        "}"
+      );
+      die if $@;
+    }
+    else {
       eval "sub ASSERT_$name () { ASSERT_DEFAULT }";
+      die if $@;
     }
   }
 }
@@ -49,16 +60,21 @@ sub define_assert {
 sub define_trace {
   no strict 'refs';
   foreach my $name (@_) {
-    unless (defined *{"TRACE_$name"}{CODE}) {
+    next if defined *{"TRACE_$name"}{CODE};
+    no warnings;
+    if (defined *{"POE::Kernel::TRACE_$name"}{CODE}) {
+      eval(
+        "sub TRACE_$name () { " .
+        *{"POE::Kernel::TRACE_$name"}{CODE}->() .
+        "}"
+      );
+      die if $@;
+    }
+    else {
       eval "sub TRACE_$name () { TRACE_DEFAULT }";
+      die if $@;
     }
   }
-}
-
-# Define some debugging flags for subsystems, unless someone already
-# has defined them.
-BEGIN {
-  defined &DEB_DESTROY or eval 'sub DEB_DESTROY () { 0 }';
 }
 
 BEGIN {
@@ -528,22 +544,23 @@ sub DESTROY {
   my $self = shift;
 
   # Session's data structures are destroyed through Perl's usual
-  # garbage collection.  DEB_DESTROY here just shows what's in the
+  # garbage collection.  TRACE_DESTROY here just shows what's in the
   # session before the destruction finishes.
 
-  DEB_DESTROY and do {
-    print "----- Session $self Leak Check -----\n";
-    print "-- Namespace (HEAP):\n";
-    foreach (sort keys (%{$self->[SE_NAMESPACE]})) {
-      print "   $_ = ", $self->[SE_NAMESPACE]->{$_}, "\n";
-    }
-    print "-- Options:\n";
+  TRACE_DESTROY and do {
+    require Data::Dumper;
+    POE::Kernel::_warn(
+      "----- Session $self Leak Check -----\n",
+      "-- Namespace (HEAP):\n",
+      Data::Dumper::Dumper($self->[SE_NAMESPACE]),
+      "-- Options:\n",
+    );
     foreach (sort keys (%{$self->[SE_OPTIONS]})) {
-      print "   $_ = ", $self->[SE_OPTIONS]->{$_}, "\n";
+      POE::Kernel::_warn("   $_ = ", $self->[SE_OPTIONS]->{$_}, "\n");
     }
-    print "-- States:\n";
+    POE::Kernel::_warn("-- States:\n");
     foreach (sort keys (%{$self->[SE_STATES]})) {
-      print "   $_ = ", $self->[SE_STATES]->{$_}, "\n";
+      POE::Kernel::_warn("   $_ = ", $self->[SE_STATES]->{$_}, "\n");
     }
   };
 }
@@ -821,16 +838,17 @@ sub POE::Session::Postback::DESTROY {
   $POE::Kernel::poe_kernel->refcount_decrement( $parent_id, 'postback' );
 }
 
-# This next bit of code tunes the postback return value depending on
-# what each toolkit expects callbacks to return.  Tk wants 0.  Gtk
-# seems to want 0 or 1 in different places, but the tests want 0.
+# Tune postbacks depending on variations in toolkit behavior.
 
 BEGIN {
-  if (exists $INC{'Gtk.pm'}) {
-    eval 'sub POSTBACK_RETVAL () { 0 }';
+  # Tk blesses its callbacks internally, so we need to wrap our
+  # blessed callbacks in unblessed ones.  Otherwise our postback's
+  # DESTROY method probably won't be called.
+  if (exists $INC{'Tk.pm'}) {
+    eval 'sub USING_TK () { 1 }';
   }
   else {
-    eval 'sub POSTBACK_RETVAL () { 0 }';
+    eval 'sub USING_TK () { 0 }';
   }
 };
 
@@ -842,16 +860,36 @@ sub postback {
   my ($self, $event, @etc) = @_;
   my $id = $POE::Kernel::poe_kernel->ID_session_to_id($self);
 
-  my $postback = bless
-    sub {
-      $POE::Kernel::poe_kernel->post( $id, $event, [ @etc ], [ @_ ] );
-      return POSTBACK_RETVAL;
-    }, 'POE::Session::Postback';
+  my $postback = bless sub {
+    $POE::Kernel::poe_kernel->post( $id, $event, [ @etc ], [ @_ ] );
+    return 0;
+  }, 'POE::Session::Postback';
 
   $postback_parent_id{$postback} = $id;
   $POE::Kernel::poe_kernel->refcount_increment( $id, 'postback' );
 
-  $postback;
+  # Tk blesses its callbacks, so we must present one that isn't
+  # blessed.  Otherwise Tk's blessing would divert our DESTROY call to
+  # its own, and that's not right.
+
+  return sub { $postback->(@_) } if USING_TK;
+  return $postback;
+}
+
+# Create a synchronous callback closure.  The return value will be
+# passed to whatever is handed the callback.
+#
+# TODO - Should callbacks hold reference counts like postbacks do?
+
+sub callback {
+  my ($self, $event, @etc) = @_;
+  my $id = $POE::Kernel::poe_kernel->ID_session_to_id($self);
+
+  my $callback = sub {
+    return $POE::Kernel::poe_kernel->call( $id, $event, [ @etc ], [ @_ ] );
+  };
+
+  $callback;
 }
 
 ###############################################################################
@@ -933,7 +971,11 @@ Other methods:
   # Create a postback, then invoke it and pass back additional
   # information.
   $postback_coderef = $session->postback( $state_name, @state_args );
-  &{ $postback_coderef }( @additional_args );
+  $postback_coderef->( @additional_args );
+
+  # Or do the same thing synchronously
+  $callback_coderef = $session->callback( $state_name, @state_args );
+  $retval = $callback_coderef->( @additional_args );
 
 =head1 DESCRIPTION
 
@@ -985,6 +1027,11 @@ new() constructor because each kind of parameter is explicitly named.
 This makes it easier for maintainers to understand the constructor
 call, and it lets the constructor unambiguously recognize and validate
 parameters.
+
+C<create()> returns a reference to the newly created session but B<it
+is recommended not to save this>.  POE::Kernel manages sessions and
+will ensure timely destruction of them as long as extra references to
+them aren't hanging around.
 
 =over 2
 
@@ -1128,6 +1175,11 @@ C<new()> is Session's older constructor.  Its design was clever at the
 time, but it didn't expand well.  It's still useful for quick one-line
 hacks, but consider using C<create()> for more complex sessions.
 
+C<new()> returns a reference to the newly created session but B<it is
+recommended not to save this>.  POE::Kernel manages sessions and will
+ensure timely destruction of them as long as extra references to them
+aren't hanging around.
+
 Inline states, object states, package states, and _start arguments are
 all inferred by their contexts.  This context sensitivity makes it
 harder for maintainers to understand what's going on, and it allows
@@ -1260,7 +1312,7 @@ postback that will respond to the request's sender.
 
 In the following code snippets, Servlet is a session that acts like a
 tiny daemon.  It receives requests from "client" sessions, performs
-som long-running task, and eventually posts responses back.  Client
+some long-running task, and eventually posts responses back.  Client
 sends requests to Servlet and eventually receives its responses.
 
   # Aliases are a common way for daemon sessions to advertise
@@ -1333,6 +1385,19 @@ sends requests to Servlet and eventually receives its responses.
     print "Session ", $session->ID, " requested: @$request\n";
     print "Session ", $session->ID, " received : @$response\n";
   }
+
+=item callback EVENT_NAME, PARAMETER_LIST
+
+callback() creates anonymous coderefs just like postback(), but
+instead of using $poe_kernel->post() it uses $poe_kernel->call() so
+that the event occurs synchronously, i.e. without any delay.  This is
+helpful when the data you're dealing with can change immediately after
+the callback is called.  By the time a postback() event is dispatched,
+the underlying data is long gone.
+
+callback() may also be used when your callback needs to return a
+value.  For instance, GUIs often expect a true value from a callback
+to indicate an event was handled, and a false value otherwise.
 
 =item get_heap
 

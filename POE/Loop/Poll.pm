@@ -1,4 +1,4 @@
-# $Id: Poll.pm,v 1.23 2003/09/16 14:58:48 rcaputo Exp $
+# $Id: Poll.pm,v 1.30 2004/01/21 17:27:01 rcaputo Exp $
 
 # IO::Poll event loop bridge for POE::Kernel.  The theory is that this
 # will be faster for large scale applications.  This file is
@@ -8,7 +8,7 @@
 package POE::Loop::Poll;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.23 $ ))[1];
+$VERSION = do {my@r=(q$Revision: 1.30 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Include common signal handling.
 use POE::Loop::PerlSignals;
@@ -18,21 +18,32 @@ package POE::Kernel;
 
 use strict;
 
-# Delcare which event loop bridge is being used, but first ensure that
-# no other bridge has been loaded.
+# Be sure we're using a contemporary version of IO::Poll.
+use IO::Poll 0.05;
 
+# Hand off to POE::Loop::Select if we're running under ActivePerl.
 BEGIN {
-  die "POE can't use IO::Poll and " . &POE_LOOP . "\n"
-    if defined &POE_LOOP;
-  die "IO::Poll is version $IO::Poll::VERSION (POE needs 0.05 or newer)\n"
-    if $IO::Poll::VERSION < 0.05;
-};
+  if ($^O eq "MSWin32") {
+    warn "IO::Poll is defective on $^O.  Falling back to IO::Select.\n";
+    require POE::Loop::Select;
+    POE::Loop::Select->import();
+    die "not really dying";
+  }
+}
 
-sub POE_LOOP () { LOOP_POLL }
+use Errno qw(EINPROGRESS EWOULDBLOCK EINTR);
 
-use IO::Poll qw( POLLRDNORM POLLWRNORM POLLRDBAND
-                 POLLIN POLLOUT POLLERR POLLHUP
-               );
+use IO::Poll qw(
+  POLLRDNORM POLLWRNORM POLLRDBAND POLLIN POLLOUT POLLERR POLLHUP
+);
+
+# Define POLLRDBAND if we don't have one.
+BEGIN {
+  eval "sub IO::Poll::POLLRDBAND () { 128 }"
+    unless defined &IO::Poll::POLLRDBAND;
+  eval "sub POLLRDBAND () { 128 }" unless defined &POLLRDBAND;
+  die if $@;
+}
 
 sub MINIMUM_POLL_TIMEOUT () { 0 }
 
@@ -232,8 +243,8 @@ sub loop_do_timeslice {
       push @types, "tty"               if -t;
       my @modes;
       my $flags = $poll_fd_masks{$_};
-      push @modes, 'r' if $flags & (POLLIN | POLLHUP | POLLERR);
-      push @modes, 'w' if $flags & (POLLOUT | POLLHUP | POLLERR);
+      push @modes, 'r' if $flags & (POLLIN     | POLLHUP | POLLERR);
+      push @modes, 'w' if $flags & (POLLOUT    | POLLHUP | POLLERR);
       push @modes, 'x' if $flags & (POLLRDBAND | POLLHUP | POLLERR);
       POE::Kernel::_warn(
         "<fh> file descriptor $_ = modes(@modes) types(@types)\n"
@@ -330,6 +341,10 @@ sub loop_do_timeslice {
         select(undef, undef, undef, $timeout);
       }
     }
+  }
+
+  if (TRACE_STATISTICS) {
+    $self->_data_stat_add('idle_seconds', time() - $now);
   }
 
   # Dispatch whatever events are due.
