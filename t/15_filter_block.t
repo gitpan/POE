@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 15_filter_block.t,v 1.8 2004/01/21 23:01:08 rcaputo Exp $
+# $Id: 15_filter_block.t,v 1.10 2004/01/31 06:58:30 rcaputo Exp $
 
 # Exercises Filter::Block without the rest of POE.  Suddenly things
 # are looking a lot easier.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 
 use TestSetup;
 

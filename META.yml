@@ -1,58 +1,176 @@
 --- #YAML:1.0
 name: POE
-version: 0.28
+version: 0.2802
 author:
-  - ~
+  - Rocco Caputo <rcaputo@cpan.org>
 abstract: |-
   portable multitasking and networking framework for Perl
 license: perl
 requires:
-  Carp: 0
-  Exporter: 0
   Filter::Util::Call: 1.04
-  IO: 0
-  POSIX: 0
-  Socket: 0
-recommends: {}
+  Test::More: 0
+recommends:
+  Time::HiRes: 0
 build_requires: {}
 conflicts: {}
 provides:
-  DB:
-    file: lib/Devel/Trace.pm
-    version: 1.8
-  ExtUtils::AutoInstall:
-    file: lib/ExtUtils/AutoInstall.pm
-    version: 0.52
-  MY:
-    file: lib/Makefile-5004.pm
-  MyOtherFreezer:
-    file: lib/MyOtherFreezer.pm
-    version: 1.3
-  Null:
-    file: lib/Devel/Null.pm
-    version: 1.2
-  Test::Harness:
-    file: lib/Test/Harness.pm
-    version: 2.26
-  Test::Harness::Assert:
-    file: lib/Test/Harness/Assert.pm
-    version: 0.01
-  Test::Harness::Iterator:
-    file: lib/Test/Harness/Iterator.pm
-    version: 0.01
-  Test::Harness::Iterator::ARRAY:
-    file: lib/Test/Harness/Iterator.pm
-    version: 0.01
-  Test::Harness::Iterator::FH:
-    file: lib/Test/Harness/Iterator.pm
-    version: 0.01
-  Test::Harness::Straps:
-    file: lib/Test/Harness/Straps.pm
-    version: 0.14
-  TestSetup:
-    file: lib/TestSetup.pm
-    version: 1.9
-  Trace:
-    file: lib/Devel/Trace.pm
-    version: 1.8
+  POE:
+    file: lib/POE.pm
+    version: 0.2802
+  POE::API::ResLoader:
+    file: lib/POE/API/ResLoader.pm
+    version: 1.0003
+  POE::Component:
+    file: lib/POE/Component.pm
+    version: 1.0006
+  POE::Component::Client::TCP:
+    file: lib/POE/Component/Client/TCP.pm
+    version: 1.0039
+  POE::Component::Server::TCP:
+    file: lib/POE/Component/Server/TCP.pm
+    version: 1.0044
+  POE::Driver:
+    file: lib/POE/Driver.pm
+    version: 1.0015
+  POE::Driver::SysRW:
+    file: lib/POE/Driver/SysRW.pm
+    version: 1.0026
+  POE::Filter:
+    file: lib/POE/Filter.pm
+    version: 1.0013
+  POE::Filter::Block:
+    file: lib/POE/Filter/Block.pm
+    version: 1.0014
+  POE::Filter::Grep:
+    file: lib/POE/Filter/Grep.pm
+    version: 1.0005
+  POE::Filter::HTTPD:
+    file: lib/POE/Filter/HTTPD.pm
+    version: 1.0035
+  POE::Filter::Line:
+    file: lib/POE/Filter/Line.pm
+    version: 1.0024
+  POE::Filter::Map:
+    file: lib/POE/Filter/Map.pm
+    version: 1.0005
+  POE::Filter::RecordBlock:
+    file: lib/POE/Filter/RecordBlock.pm
+    version: 1.0004
+  POE::Filter::Reference:
+    file: lib/POE/Filter/Reference.pm
+    version: 1.0028
+  POE::Filter::Stackable:
+    file: lib/POE/Filter/Stackable.pm
+    version: 1.0005
+  POE::Filter::Stream:
+    file: lib/POE/Filter/Stream.pm
+    version: 1.0012
+  POE::Kernel:
+    file: lib/POE/Resource/Signals.pm
+    version: 1.0010
+  POE::Loop:
+    file: lib/POE/Loop.pm
+    version: 1.0003
+  POE::Loop::Event:
+    file: lib/POE/Loop/Event.pm
+    version: 1.0037
+  POE::Loop::Gtk:
+    file: lib/POE/Loop/Gtk.pm
+    version: 1.0044
+  POE::Loop::PerlSignals:
+    file: lib/POE/Loop/PerlSignals.pm
+    version: 1.0004
+  POE::Loop::Poll:
+    file: lib/POE/Loop/Poll.pm
+    version: 1.0030
+  POE::Loop::Select:
+    file: lib/POE/Loop/Select.pm
+    version: 1.0056
+  POE::Loop::Tk:
+    file: lib/POE/Loop/TkActiveState.pm
+    version: 1.0007
+  POE::Loop::TkCommon:
+    file: lib/POE/Loop/TkCommon.pm
+    version: 1.0006
+  POE::Macro::UseBytes:
+    file: lib/POE/Macro/UseBytes.pm
+    version: 1.0003
+  POE::NFA:
+    file: lib/POE/NFA.pm
+    version: 1.0028
+  POE::Pipe:
+    file: lib/POE/Pipe.pm
+    version: 1.0012
+  POE::Pipe::OneWay:
+    file: lib/POE/Pipe/OneWay.pm
+    version: 1.0013
+  POE::Pipe::TwoWay:
+    file: lib/POE/Pipe/TwoWay.pm
+    version: 1.0016
+  POE::Preprocessor:
+    file: lib/POE/Preprocessor.pm
+    version: 1.0031
+  POE::Queue:
+    file: lib/POE/Queue.pm
+    version: 1.0003
+  POE::Queue::Array:
+    file: lib/POE/Queue/Array.pm
+    version: 1.0005
+  POE::Resource:
+    file: lib/POE/Resource.pm
+    version: 1.0003
+  POE::Resources:
+    file: lib/POE/Resources.pm
+    version: 1.0006
+  POE::Resources::Aliases:
+    file: lib/POE/Resource/Aliases.pm
+    version: 1.0010
+  POE::Resources::Events:
+    file: lib/POE/Resource/Events.pm
+    version: 1.0010
+  POE::Resources::Extrefs:
+    file: lib/POE/Resource/Extrefs.pm
+    version: 1.0009
+  POE::Resources::FileHandles:
+    file: lib/POE/Resource/FileHandles.pm
+    version: 1.0009
+  POE::Resources::SIDs:
+    file: lib/POE/Resource/SIDs.pm
+    version: 1.0009
+  POE::Resources::Sessions:
+    file: lib/POE/Resource/Sessions.pm
+    version: 1.0014
+  POE::Resources::Signals:
+    file: lib/POE/Resource/Signals.pm
+    version: 1.0010
+  POE::Resources::Statistics:
+    file: lib/POE/Resource/Statistics.pm
+    version: 1.0001
+  POE::Session:
+    file: lib/POE/Session.pm
+    version: 1.0097
+  POE::Wheel:
+    file: lib/POE/Wheel.pm
+    version: 1.0018
+  POE::Wheel::Curses:
+    file: lib/POE/Wheel/Curses.pm
+    version: 1.0011
+  POE::Wheel::FollowTail:
+    file: lib/POE/Wheel/FollowTail.pm
+    version: 1.0049
+  POE::Wheel::ListenAccept:
+    file: lib/POE/Wheel/ListenAccept.pm
+    version: 1.0028
+  POE::Wheel::ReadLine:
+    file: lib/POE/Wheel/ReadLine.pm
+    version: 1.0031
+  POE::Wheel::ReadWrite:
+    file: lib/POE/Wheel/ReadWrite.pm
+    version: 1.0067
+  POE::Wheel::Run:
+    file: lib/POE/Wheel/Run.pm
+    version: 1.0058
+  POE::Wheel::SocketFactory:
+    file: lib/POE/Wheel/SocketFactory.pm
+    version: 1.0074
 generated_by: Module::Build version 0.22

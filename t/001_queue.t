@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 001_queue.t,v 1.5 2003/07/28 05:14:14 rcaputo Exp $
+# $Id: 001_queue.t,v 1.7 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests basic queue operations.
 
 use strict;
 
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

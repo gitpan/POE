@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 09_wheels_unix.t,v 1.16 2003/07/09 18:20:41 rcaputo Exp $
+# $Id: 09_wheels_unix.t,v 1.18 2004/01/31 06:58:30 rcaputo Exp $
 
 # Exercises the wheels commonly used with UNIX domain sockets.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

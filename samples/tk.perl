@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: tk.perl,v 1.8 2002/05/11 12:52:44 rcaputo Exp $
+# $Id: tk.perl,v 1.9 2004/01/31 06:58:30 rcaputo Exp $
 
 # A simple Tk application, using POE.  Please see notes after __END__
 # for design issues.
 
 use strict;
-use lib '..';
+use lib '../lib';
 use lib '/usr/mysrc/Tk800.021/blib';
 use lib '/usr/mysrc/Tk800.021/blib/lib';
 use lib '/usr/mysrc/Tk800.021/blib/arch';

@@ -1,11 +1,11 @@
-# $Id: Run.pm,v 1.57 2004/01/21 06:48:25 rcaputo Exp $
+# $Id: Run.pm,v 1.58 2004/01/28 23:19:13 rcaputo Exp $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.57 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.58 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -189,7 +189,7 @@ sub new {
       if defined $params{StdioFilter};
     croak "Replace deprecated Filter with StdioFilter and StderrFilter"
       if defined $stderr_event and not defined $stderr_filter;
-    carp "Filter is deprecated.  Please use StdioFilter and/or StderrFilter";
+    carp "Filter is deprecated.  Please try StdioFilter and/or StderrFilter";
   }
   else {
     $stdio_filter = delete $params{StdioFilter};

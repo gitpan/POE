@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 11_signals_poe.t,v 1.26 2003/07/09 18:20:41 rcaputo Exp $
+# $Id: 11_signals_poe.t,v 1.28 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

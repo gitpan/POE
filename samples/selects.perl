@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: selects.perl,v 1.12 2000/11/03 21:59:04 rcaputo Exp $
+# $Id: selects.perl,v 1.13 2004/01/31 06:58:30 rcaputo Exp $
 
 # This is an early, basic test of POE's filehandle selecting
 # mechanism.  It was written before POE::Wheel classes were conceived.
@@ -21,7 +21,7 @@
 # *session*.perl tests.  They are commented in more detail.
 
 use strict;
-use lib '..';
+use lib '../lib';
 
 use POE;
 use IO::Socket;

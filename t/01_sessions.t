@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.26 2003/11/28 17:12:08 rcaputo Exp $
+# $Id: 01_sessions.t,v 1.28 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests basic compilation and events.
 
 use strict;
 
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: names.perl,v 1.8 2001/02/12 15:25:17 rcaputo Exp $
+# $Id: names.perl,v 1.9 2004/01/31 06:58:29 rcaputo Exp $
 
 # Aliases were originally called Names.
 
@@ -14,7 +14,7 @@
 # timer loops.
 
 use strict;
-use lib '..';
+use lib '../lib';
 use POE;
 
 #==============================================================================

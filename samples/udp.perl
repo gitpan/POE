@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: udp.perl,v 1.4 2000/11/03 21:59:06 rcaputo Exp $
+# $Id: udp.perl,v 1.5 2004/01/31 06:58:30 rcaputo Exp $
 
 # Sample program to exercize my knowledge of UDP so it'll grow up to
 # be big and strong.
 
 use strict;
-use lib '..';
+use lib '../lib';
 use POE;
 use IO::Socket;
 

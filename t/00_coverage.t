@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 00_coverage.t,v 1.19 2003/07/09 18:20:40 rcaputo Exp $
+# $Id: 00_coverage.t,v 1.21 2004/01/31 06:58:30 rcaputo Exp $
 
 # This test merely loads as many modules as possible so that the
 # coverage tester will see them.  It's performs a similar function as
 # the FreeBSD LINT kernel configuration.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 
 use TestSetup;
 

@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: wheels2.perl,v 1.5 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: wheels2.perl,v 1.6 2004/01/31 06:58:30 rcaputo Exp $
 
 # A simple socket client that uses a two-handle wheel to pipe between
 # a socket and the console.  It's hardcoded to talk with wheels.perl's
 # rot13 server on localhost port 32000.
 
 use strict;
-use lib '..';
+use lib '../lib';
 use POSIX;
 
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW Filter::Stream);

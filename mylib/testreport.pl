@@ -6,7 +6,7 @@ testreport.pl - generate a test report in xml
 
 =head1 VERSION
 
-$Revision: 1.11 $
+$Revision: 1.12 $
 
 =head1 USAGE
 
@@ -21,13 +21,13 @@ This program was written by Matt Cashner.
 =cut
 
 package My::Strap;
-use lib qw(../lib ../ ./lib ./);
+use lib qw(../mylib ../ ./mylib ./);
 use Test::Harness;
 use base qw(Test::Harness::Straps);
 use Sys::Hostname;
 use vars qw($VERSION);
 
-$VERSION = (qw($Revision: 1.11 $))[1];
+$VERSION = (qw($Revision: 1.12 $))[1];
 
 local $| = 1;
 

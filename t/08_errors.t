@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.51 2004/01/05 22:36:46 rcaputo Exp $
+# $Id: 08_errors.t,v 1.53 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 0 }

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: fakelogin.perl,v 1.8 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: fakelogin.perl,v 1.9 2004/01/31 06:58:29 rcaputo Exp $
 
 # This is a fake login prompt I wrote after noticing that someone's
 # IRC 'bot was probing telnet whenever I joined a particular channel.
@@ -7,7 +7,7 @@
 # a good exercise for wheel event renaming.
 
 use strict;
-use lib '..';
+use lib '../lib';
 use IO::Socket;
 
 use POE qw( Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW

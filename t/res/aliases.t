@@ -1,9 +1,9 @@
 #!/usr/bin/perl -w
-# $Id: aliases.t,v 1.7 2004/01/16 03:46:03 rcaputo Exp $
+# $Id: aliases.t,v 1.9 2004/01/31 06:58:31 rcaputo Exp $
 
 use strict;
 
-use lib qw(./lib ../lib . ..);
+use lib qw(./mylib ../mylib ./lib ../lib ../../lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 22_wheel_run.t,v 1.33 2003/07/09 18:20:41 rcaputo Exp $
+# $Id: 22_wheel_run.t,v 1.35 2004/01/31 06:58:30 rcaputo Exp $
 
 # Test the portable pipe classes and Wheel::Run, which uses them.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use Socket;
 
 use TestSetup;

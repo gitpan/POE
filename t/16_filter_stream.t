@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 16_filter_stream.t,v 1.5 2003/07/09 18:20:41 rcaputo Exp $
+# $Id: 16_filter_stream.t,v 1.7 2004/01/31 06:58:30 rcaputo Exp $
 
 # Exercises Filter::Stream without the rest of POE.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 
 use POE::Filter::Stream;
 

@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.45 2003/12/13 05:37:29 rcaputo Exp $
+# $Id: 06_tk.t,v 1.47 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Tk postback events using Tk's event
 # loop.
 
 use strict;
 
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 
 use Symbol;
 use TestSetup;

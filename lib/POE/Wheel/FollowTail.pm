@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm,v 1.48 2003/11/21 05:08:26 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.49 2004/01/28 23:19:11 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.48 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.49 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp;
 use Symbol;
@@ -116,7 +116,7 @@ sub new {
   if (exists $params{SeekBack}) {
     $seek = $params{SeekBack} * -1;
     if (exists $params{Seek}) {
-      croak "can't use Seek and SeekBack at the same time";
+      croak "can't have Seek and SeekBack at the same time";
     }
   }
   elsif (exists $params{Seek}) {
@@ -206,7 +206,7 @@ sub new {
   else {
     carp "FollowTail does not support SeekBack on a special file"
       if defined $params{SeekBack};
-    carp "FollowTail does not use PollInterval for special files"
+    carp "FollowTail does not need PollInterval for special files"
       if defined $params{PollInterval};
 
     # Start the select loop.

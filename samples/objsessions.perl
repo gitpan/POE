@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: objsessions.perl,v 1.10 2000/11/03 21:59:02 rcaputo Exp $
+# $Id: objsessions.perl,v 1.11 2004/01/31 06:58:30 rcaputo Exp $
 
 # This is another simple functionality test.  It tests sessions that
 # are composed of objects (also called "object sessions").  It is
 # simpler than sessions.perl in many ways.
 
 use strict;
-use lib '..';
+use lib '../lib';
 use POE;
 
 #==============================================================================

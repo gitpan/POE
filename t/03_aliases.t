@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 03_aliases.t,v 1.14 2003/07/09 18:20:40 rcaputo Exp $
+# $Id: 03_aliases.t,v 1.16 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests basic session aliases.
 
 use strict;
 
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

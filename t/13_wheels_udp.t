@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 13_wheels_udp.t,v 1.6 2003/07/09 18:20:41 rcaputo Exp $
+# $Id: 13_wheels_udp.t,v 1.8 2004/01/31 06:58:30 rcaputo Exp $
 
 # Exercises the wheels commonly used with UDP sockets.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

@@ -1,11 +1,12 @@
 #!/usr/bin/perl -w -I..
-# $Id: packagesessions.perl,v 1.7 2000/11/03 21:59:03 rcaputo Exp $
+# $Id: packagesessions.perl,v 1.8 2004/01/31 06:58:30 rcaputo Exp $
 
 # This is a simple test of "package sessions".  These are similar to
 # object sessions, but they work with packages instead of objects.  It
 # is also a simpler test than sessions.perl.
 
 use strict;
+use lib '../lib';
 use POE;
 
 #==============================================================================

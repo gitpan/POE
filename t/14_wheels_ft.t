@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 14_wheels_ft.t,v 1.14 2003/07/13 16:39:40 rcaputo Exp $
+# $Id: 14_wheels_ft.t,v 1.16 2004/01/31 06:58:30 rcaputo Exp $
 
 # Exercises Wheel::FollowTail, Wheel::ReadWrite, and Filter::Block.
 # -><- Needs tests for Seek and SeekBack.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use Socket;
 
 use TestSetup;

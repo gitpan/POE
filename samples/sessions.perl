@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: sessions.perl,v 1.19 2000/11/03 21:59:04 rcaputo Exp $
+# $Id: sessions.perl,v 1.20 2004/01/31 06:58:30 rcaputo Exp $
 
 # This is the first test program written for POE.  It originally was
 # written to test POE's ability to dispatch events to inline sessions
@@ -9,7 +9,7 @@
 # need to know. :)
 
 use strict;
-use lib '..';
+use lib '../lib';
 
 # use POE always includes POE::Kernel and POE::Session, since they are
 # the fundamental POE classes and universally used.  POE::Kernel

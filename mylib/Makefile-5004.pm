@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.16 2004/01/22 06:02:04 sungo Exp $
+# $Id: Makefile-5004.pm,v 1.20 2004/02/02 17:24:51 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
 
@@ -7,36 +7,36 @@ use ExtUtils::MakeMaker;
 
 sub MY::test {
   package MY;
-  "\ntest ::\n\t\$(FULLPERL) ./lib/deptest.perl\n" . shift->SUPER::test(@_);
+  "\ntest ::\n\t\$(FULLPERL) ./mylib/deptest.perl\n" . shift->SUPER::test(@_);
 }
 
 sub MY::postamble {
     return <<EOF;
 reportupload: poe_report.xml
-	perl lib/reportupload.pl
+	perl mylib/reportupload.pl
 
 uploadreport: poe_report.xml
-	perl lib/reportupload.pl
+	perl mylib/reportupload.pl
 
 testreport: poe_report.xml
 
 poe_report.xml: Makefile
-	perl lib/testreport.pl
+	perl mylib/testreport.pl
 EOF
-
 }
 
-# Touch CHANGES so it exists.
-open(CHANGES, ">>CHANGES") and close CHANGES;
+# Touch generated files so they exist.
+open(TOUCH, ">>CHANGES") and close TOUCH;
+open(TOUCH, ">>META.yml") and close TOUCH;
 
 WriteMakefile
   ( NAME           => 'POE',
-    VERSION_FROM   => 'POE.pm',
+    VERSION_FROM   => 'lib/POE.pm',
 
     dist           =>
     { COMPRESS => 'gzip -9f',
       SUFFIX   => 'gz',
-      PREOP    => ( './lib/cvs-log.perl | ' .
+      PREOP    => ( './mylib/cvs-log.perl | ' .
                     'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
                   ),
     },
@@ -49,16 +49,7 @@ WriteMakefile
                         Filter::Util::Call => 1.04,
                         Test::More         => 0,
                       },
-
-    # Remove 'lib', which should have been named 'privlib'.  The 'lib'
-    # directory in this distribution is for private stuff needed to
-    # build and test POE.  Those things should not be installed!  At
-    # some point SourceForge will open up shell access to my CVS tree
-    # there, and I will be able to rename the directories within the
-    # repository without losing revision histories.  When that
-    # happens, I'll rename the 'lib' driectory to 'privlib'.
-
-    PMLIBDIRS      => [ 'POE' ],
+    PL_FILES    => { },
     clean => {
         FILES => 'poe_report.xml test-output.err coverage.report',
     }

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: cpan-test.perl,v 1.2 2002/10/25 06:52:29 rcaputo Exp $
+# $Id: cpan-test.perl,v 1.3 2004/01/31 06:58:29 rcaputo Exp $
 
 # Fetch and test all the /^POE::/ distributions on CPAN.
 
@@ -57,6 +57,10 @@ foreach my $mod (sort keys %$search) {
   my ($pkg, $ver) = ($package =~ /^(.*?)-([0-9\.\_]+)\.tar\.gz$/);
 
   # Skip things indigenous to POE.
+  unless (defined $pkg) {
+    warn "Skipping $package (can't parse package name)...\n";
+    next;
+  }
   next if $pkg eq "POE";
 
   $package{$package} = $obj;

@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 02_alarms.t,v 1.15 2003/07/10 20:17:31 rcaputo Exp $
+# $Id: 02_alarms.t,v 1.17 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests alarms.
 
 use strict;
 
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup qw(ok not_ok ok_if ok_unless results test_setup);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

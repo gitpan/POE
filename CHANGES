@@ -1,3 +1,103 @@
+===========================
+2004-02-02 17:32:12 v0_2802
+===========================
+
+  2004-02-02 17:32:12 by rcaputo; lib/POE.pm 1.169
+
+    Bump the version to 0.2802. This will be a CPAN-released update for
+    the ill-fated 0.28. I figure, why burn a hundredth version for a
+    fixup, especially since we're not entirely sure it's gold? 
+
+  2004-02-02 17:24:51 by rcaputo
+  mylib/Makefile-5004.pm 1.20; mylib/Makefile-5005.pm 1.38
+
+    The generated META.yml must be touched early in Makefile.PL, or the
+    MANIFEST checker will have a conniption. A cow. A canary. All manner
+    of things which are not a Makefile will spring forth from MakeMaker's
+    loins without META.yml existing. 
+
+  2004-02-02 17:03:20 by rcaputo
+  Build.PL 1.5; mylib/Makefile-5004.pm 1.19; mylib/Makefile-5005.pm 1.37
+
+    Make Build.PL and Makefile.PL play nicely together. The distribution
+    build process still goes through Makefile.PL until I can figure out
+    how to tweak the dist targets in Module::Build. 
+
+  2004-01-31 07:07:33 by rcaputo; Build.PL 1.4
+
+    Work around "Too early to specify a build action 'Build'. Do 'Build
+    Build' instead." per
+    http://www.mail-archive.com/module-authors@perl.org/msg00162.html 
+
+  2004-01-31 06:58:31 by rcaputo; Build.PL 1.3; MANIFEST 1.97;
+  mylib/Makefile-5004.pm 1.18; mylib/Makefile-5005.pm 1.36;
+  mylib/cpan-test.perl 1.3; samples/create.perl 1.7;
+  samples/fakelogin.perl 1.9; samples/forkbomb.perl 1.14;
+  samples/names.perl 1.9; samples/objmaps.perl 1.5;
+  samples/objsessions.perl 1.11; samples/packagesessions.perl 1.8;
+  samples/queue.perl 1.2; samples/selects.perl 1.13;
+  samples/sessions.perl 1.20; samples/signals.perl 1.14;
+  samples/tcp_watermarks.perl 1.3; samples/thrash.perl 1.13;
+  samples/tk.perl 1.9; samples/udp.perl 1.5; samples/watermarks.perl 1.5;
+  samples/wheels.perl 1.9; samples/wheels2.perl 1.6; t/001_queue.t 1.7;
+  t/00_coverage.t 1.21; t/01_sessions.t 1.28; t/02_alarms.t 1.17;
+  t/03_aliases.t 1.16; t/04_selects.t 1.21; t/05_macros.t 1.10;
+  t/06_tk.t 1.47; t/07_event.t 1.20; t/08_errors.t 1.53;
+  t/09_wheels_unix.t 1.18; t/10_wheels_tcp.t 1.17;
+  t/11_signals_poe.t 1.28; t/12_signals_ev.t 1.21; t/13_wheels_udp.t 1.8;
+  t/14_wheels_ft.t 1.16; t/15_filter_block.t 1.10;
+  t/16_filter_stream.t 1.7; t/17_filter_ref.t 1.10;
+  t/18_filter_line.t 1.11; t/19_filterchange.t 1.15; t/20_accept.t 1.9;
+  t/21_gtk.t 1.22; t/22_wheel_run.t 1.35; t/23_nfa.t 1.10;
+  t/24_filter_stack.t 1.7; t/25_detach.t 1.8; t/26_comp_tcp.t 1.7;
+  t/27_poll.t 1.10; t/28_windows.t 1.9; t/29_sockfact6.t 1.13;
+  t/30_filter_httpd.t 1.7; t/regress/neyuki-detach.t 1.2;
+  t/res/aliases.t 1.9; t/res/events.t 1.6; t/res/extrefs.t 1.10;
+  t/res/filehandles.t 1.8; t/res/sessions.t 1.6; t/res/sids.t 1.5;
+  t/res/signals.t 1.5
+
+    Clean up paths to point to the new lib/ directory. 
+
+  2004-01-31 06:26:55 by rcaputo; mylib/ExtUtils/AutoInstall.pm 1.5
+
+    Update to version 0.56. 
+
+  2004-01-28 23:24:43 by rcaputo; MANIFEST 1.96; Makefile.PL 1.27;
+  NEEDS 1.9; mylib/Makefile-5004.pm 1.17; mylib/Makefile-5005.pm 1.35;
+  mylib/coverage.perl 1.9; mylib/reportupload.pl 1.3;
+  mylib/testreport.pl 1.12; samples/socketfactory.perl 1.18;
+  t/001_queue.t 1.6; t/00_coverage.t 1.20; t/01_sessions.t 1.27;
+  t/02_alarms.t 1.16; t/03_aliases.t 1.15; t/04_selects.t 1.20;
+  t/05_macros.t 1.9; t/06_tk.t 1.46; t/07_event.t 1.19;
+  t/08_errors.t 1.52; t/09_wheels_unix.t 1.17; t/10_wheels_tcp.t 1.16;
+  t/11_signals_poe.t 1.27; t/12_signals_ev.t 1.20; t/13_wheels_udp.t 1.7;
+  t/14_wheels_ft.t 1.15; t/15_filter_block.t 1.9;
+  t/16_filter_stream.t 1.6; t/17_filter_ref.t 1.9;
+  t/18_filter_line.t 1.10; t/19_filterchange.t 1.14; t/20_accept.t 1.8;
+  t/21_gtk.t 1.21; t/22_wheel_run.t 1.34; t/23_nfa.t 1.9;
+  t/24_filter_stack.t 1.6; t/25_detach.t 1.7; t/26_comp_tcp.t 1.6;
+  t/27_poll.t 1.9; t/28_windows.t 1.8; t/29_sockfact6.t 1.12;
+  t/res/aliases.t 1.8; t/res/events.t 1.5; t/res/extrefs.t 1.9;
+  t/res/filehandles.t 1.7; t/res/sessions.t 1.5; t/res/sids.t 1.4;
+  t/res/signals.t 1.4
+
+    Hopefully this patch fixes all the paths to point to mylib instead of
+    lib. Developers and just plain folk who have CVS trees will need to
+    remove their lib directories and "cvs update -dP ." to reflect the
+    new mylib directory. There will be more files moved around shortly. 
+
+  2004-01-28 23:19:13 by rcaputo
+  lib/POE/Wheel/FollowTail.pm 1.49; lib/POE/Wheel/Run.pm 1.58
+
+    The 5.004-and-earlier dependency checker picks up spurious uses of
+    the phrase "use Foo" and treats them like module inclusions. We've
+    subtly tweaked the language in some warnings so they avoid the magic
+    phrase. 
+
+  2004-01-28 22:46:23 by rcaputo; lib/POE.pm 1.168
+
+    Bump version to 0.2801 for cvs development between CPAN releases. 
+
 =========================
 2004-01-27 20:15:21 v0_28
 =========================
@@ -7,7 +107,7 @@
     Add more development artifacts. 
 
   2004-01-27 20:09:27 by rcaputo
-  META.yml 1.3; lib/Build.PL 1.2; lib/Makefile-5005.pm 1.34
+  Build.PL 1.2; mylib/Makefile-5005.pm 1.34
 
     The last commit DID modify META.yml. The new MakeMaker generates a
     Makefile clause that creates META.yml during "make dist". That
@@ -19,12 +119,12 @@
     In the future, META.yml should come out of cvs, and "make dist"
     should generate a proper one. 
 
-  2004-01-27 19:18:16 by rcaputo; META.yml 1.2; POE.pm 1.167
+  2004-01-27 19:18:16 by rcaputo; lib/POE.pm 1.167
 
     Bump POE.pm up to 0.28. META.yml doesn't change, but cvs still
     includes it here. Silly cvs. 
 
-  2004-01-26 00:20:06 by sungo; POE/Filter/HTTPD.pm 1.35
+  2004-01-26 00:20:06 by sungo; lib/POE/Filter/HTTPD.pm 1.35
 
     add docs to warn about possible brokenness with libwww 
 
@@ -32,11 +132,11 @@
 
     add tests for large multipart form data posts 
 
-  2004-01-25 06:19:26 by sungo; POE/Filter/HTTPD.pm 1.34
+  2004-01-25 06:19:26 by sungo; lib/POE/Filter/HTTPD.pm 1.34
 
     remove spurious warn 
 
-  2004-01-25 06:14:34 by sungo; POE/Filter/HTTPD.pm 1.33
+  2004-01-25 06:14:34 by sungo; lib/POE/Filter/HTTPD.pm 1.33
 
     add a better error condition in the case of a POST request in a 0.9
     transaction. 
@@ -54,7 +154,7 @@
 
     remove skip block around no longer skipped tests. remove a warning 
 
-  2004-01-25 01:54:58 by rcaputo; POE/Wheel/ReadWrite.pm 1.67
+  2004-01-25 01:54:58 by rcaputo; lib/POE/Wheel/ReadWrite.pm 1.67
 
     Apocalypse found a bug in the documentation for put(). This is such a
     major thing, I'm shocked nobody reported it sooner. 
@@ -78,25 +178,25 @@
     keep NEEDS parser from looking into the bundled AUtoInstall.pm for
     strange non-needed needs 
 
-  2004-01-22 06:02:11 by sungo; lib/Makefile-5004.pm 1.16;
-  lib/Makefile-5005.pm 1.33; t/30_filter_httpd.t 1.1
+  2004-01-22 06:02:11 by sungo; mylib/Makefile-5004.pm 1.16;
+  mylib/Makefile-5005.pm 1.33; t/30_filter_httpd.t 1.1
 
     (!!) Add core prerequisite of Test::More. Add the beginnings of tests
     of Filter::HTTPD 
 
-  2004-01-22 04:21:07 by sungo; POE/Filter/HTTPD.pm 1.32
+  2004-01-22 04:21:07 by sungo; lib/POE/Filter/HTTPD.pm 1.32
 
     add error messages to every build_error call 
 
   2004-01-21 23:01:08 by rcaputo
-  POE/Filter/Block.pm 1.14; t/15_filter_block.t 1.8
+  lib/POE/Filter/Block.pm 1.14; t/15_filter_block.t 1.8
 
     Optimize the semantics of Filter::Block's custom length codecs---no
     more data copying, at least. Document the encoder/decoder
     subroutines. 
 
   2004-01-21 19:53:01 by rcaputo
-  POE/Filter/Block.pm 1.13; t/15_filter_block.t 1.7
+  lib/POE/Filter/Block.pm 1.13; t/15_filter_block.t 1.7
 
     Implement Alexander Zangerl's suggestion that Filter::Block have
     pluggable prepended length codecs. He's writing a C program to
@@ -104,11 +204,11 @@
     terminator (NUL, chr(0)) in the records. This closes rt.cpan.org
     ticket 3812. 
 
-  2004-01-21 17:27:01 by rcaputo; MANIFEST 1.93; POE/Kernel.pm 1.277;
-  POE/Loop/Event.pm 1.37; POE/Loop/Gtk.pm 1.44; POE/Loop/Poll.pm 1.30;
-  POE/Loop/Select.pm 1.56; POE/Loop/TkCommon.pm 1.6;
-  POE/Resource/Events.pm 1.10; POE/Resource/Statistics.pm 1.1;
-  POE/Resources.pm 1.6
+  2004-01-21 17:27:01 by rcaputo; MANIFEST 1.93; lib/POE/Kernel.pm 1.277;
+  lib/POE/Loop/Event.pm 1.37; lib/POE/Loop/Gtk.pm 1.44;
+  lib/POE/Loop/Poll.pm 1.30; lib/POE/Loop/Select.pm 1.56;
+  lib/POE/Loop/TkCommon.pm 1.6; lib/POE/Resource/Events.pm 1.10;
+  lib/POE/Resource/Statistics.pm 1.1; lib/POE/Resources.pm 1.6
 
     Renamed POE::Resource::Performance to POE::Resource::Statistics. The
     new form follows the POE::Resource::{plural thingy here} naming
@@ -116,50 +216,51 @@
     have nothing to do with performance. TRACE_PERFORMANCE has also been
     renamed TRACE_STATISTICS. 
 
-  2004-01-21 06:48:25 by rcaputo; POE/Wheel/Run.pm 1.57
+  2004-01-21 06:48:25 by rcaputo; lib/POE/Wheel/Run.pm 1.57
 
     Apply Gerald Richter's fix to his earlier patch. This corrects
     Winsize behavior when STDIN isn't a TTY. 
 
-  2004-01-21 06:27:46 by sungo; POE/Filter/HTTPD.pm 1.31
+  2004-01-21 06:27:46 by sungo; lib/POE/Filter/HTTPD.pm 1.31
 
     style nit pick. replace some random hard \t indents with the majority
     2 space indents 
 
   2004-01-21 05:28:15 by rcaputo
-  POE/Resource/SIDs.pm 1.9; POE/Resource/Signals.pm 1.10
+  lib/POE/Resource/SIDs.pm 1.9; lib/POE/Resource/Signals.pm 1.10
 
     Minor style changes as a result of adding (then removing) a first
     stab at mark-and-sweep garbage collection for sessions. Turns out
     it's not needed just yet. 
 
-  2004-01-19 22:11:52 by rcaputo; POE.pm 1.166
+  2004-01-19 22:11:52 by rcaputo; lib/POE.pm 1.166
 
     I accidentally rewrote the documentation for this module. 
 
-  2004-01-19 21:41:40 by rcaputo; POE/Wheel/ReadLine.pm 1.31
+  2004-01-19 21:41:40 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.31
 
     Hardcode some keystroke character sequences for a few common
     terminals, including the various DEC VT sequences. This should fix
     the input editing and history for most people. 
 
   2004-01-16 16:58:37 by rcaputo
-  POE/Resource/Events.pm 1.9; t/res/filehandles.t 1.6
+  lib/POE/Resource/Events.pm 1.9; t/res/filehandles.t 1.6
 
     Commit Nick Williams' patches to add documentation and fix some of
     the numbers. I also moved the "blocked" checking into
     POE/Resource/Events so we can also calculate the average blocked
     time. 
 
-  2004-01-16 16:44:27 by rcaputo; POE/Kernel.pm 1.276
+  2004-01-16 16:44:27 by rcaputo; lib/POE/Kernel.pm 1.276
 
     Document run_one_timeslice(). 
 
-  2004-01-16 03:46:03 by rcaputo; MANIFEST 1.92; POE/Kernel.pm 1.275;
-  POE/Loop/Event.pm 1.36; POE/Loop/Gtk.pm 1.43; POE/Loop/Poll.pm 1.29;
-  POE/Loop/Select.pm 1.55; POE/Loop/TkCommon.pm 1.5;
-  POE/Resources.pm 1.5; t/res/aliases.t 1.7; t/res/events.t 1.4;
-  t/res/extrefs.t 1.8; t/res/filehandles.t 1.5
+  2004-01-16 03:46:03 by rcaputo; MANIFEST 1.92; lib/POE/Kernel.pm 1.275;
+  lib/POE/Loop/Event.pm 1.36; lib/POE/Loop/Gtk.pm 1.43;
+  lib/POE/Loop/Poll.pm 1.29; lib/POE/Loop/Select.pm 1.55;
+  lib/POE/Loop/TkCommon.pm 1.5; lib/POE/Resources.pm 1.5;
+  t/res/aliases.t 1.7; t/res/events.t 1.4; t/res/extrefs.t 1.8;
+  t/res/filehandles.t 1.5
 
     Apply Nick Williams' POE::Resource::Performance class and the
     TRACE_PERFORMANCE hooks to enable runtime wallclock statistics. This
@@ -171,26 +272,27 @@
     overhead and may skew results against POE. Your mileage may vary.
     Small parts may present a choking hazard. Use only as directed. 
 
-  2004-01-15 22:34:04 by rcaputo; POE/Loop/Poll.pm 1.28
+  2004-01-15 22:34:04 by rcaputo; lib/POE/Loop/Poll.pm 1.28
 
     Second attempt to define POLLRDBAND if it wasn't already. 
 
   2004-01-15 22:18:44 by rcaputo
-  POE/Component/Server/TCP.pm 1.44; POE/Kernel.pm 1.274
+  lib/POE/Component/Server/TCP.pm 1.44; lib/POE/Kernel.pm 1.274
 
     Meaningless style tweaks. 
 
-  2004-01-15 22:17:46 by rcaputo; POE/Loop/Poll.pm 1.27
+  2004-01-15 22:17:46 by rcaputo; lib/POE/Loop/Poll.pm 1.27
 
     Define POLLRDBAND if it's not available. This occurs on MacOSX quite
     frequently. 
 
-  2004-01-09 23:11:17 by rcaputo; POE/Kernel.pm 1.273
+  2004-01-09 23:11:17 by rcaputo; lib/POE/Kernel.pm 1.273
 
     Apply Graham Barr's patch to REALLY disable SIGCHLD polling when
     running as an Apache handler. 
 
-  2004-01-05 22:37:36 by rcaputo; POE/NFA.pm 1.28; POE/Session.pm 1.97
+  2004-01-05 22:37:36 by rcaputo
+  lib/POE/NFA.pm 1.28; lib/POE/Session.pm 1.97
 
     Wrap postbacks in unblessed, anonymous subs under Tk. Tk blesses its
     callbacks, which conflicts with our blessed postbacks. This works
@@ -201,12 +303,12 @@
     Quiet some spurious warnings generated by testing the errors that
     occur when loading mulitple event loops. 
 
-  2004-01-04 06:14:06 by rcaputo; POE/Wheel/ReadLine.pm 1.30
+  2004-01-04 06:14:06 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.30
 
     Matt Cashner pointed out that ^D on an empty line should throw an
     exception. This commit adds the "eot" exception to do just that. 
 
-  2003-12-20 19:40:02 by rcaputo; POE/Kernel.pm 1.272
+  2003-12-20 19:40:02 by rcaputo; lib/POE/Kernel.pm 1.272
 
     While discussing libevent, I realized that a POE::XS::Loop::Libevent
     would not have a trigger module. There would be no IO::Poll-like
@@ -214,94 +316,96 @@
     the loop autoloader to honor explicitly loaded event loops and not
     try to load the default select loop. 
 
-  2003-12-18 15:37:00 by rcaputo; POE/Session.pm 1.96
+  2003-12-18 15:37:00 by rcaputo; lib/POE/Session.pm 1.96
 
     Applied Alex Avriette's documentation patch. This mentions the return
     values from new() and create(). 
 
-  2003-12-18 04:29:05 by rcaputo; POE/Wheel/Run.pm 1.56
+  2003-12-18 04:29:05 by rcaputo; lib/POE/Wheel/Run.pm 1.56
 
     Applied Gerald Richter's patch to allow setting the child process'
     window size if it's run in a pty. 
 
-  2003-12-16 04:58:46 by rcaputo; POE/Kernel.pm 1.271
+  2003-12-16 04:58:46 by rcaputo; lib/POE/Kernel.pm 1.271
 
     Improve error detection in the POE::XS::Loop loader. Add autoloading
     for POE::XS::Loop::Select. 
 
-  2003-12-16 04:56:49 by rcaputo; POE/Loop/Select.pm 1.54
+  2003-12-16 04:56:49 by rcaputo; lib/POE/Loop/Select.pm 1.54
 
     Reorder the timeout calculation to reduce latency in select(). 
 
-  2003-12-16 04:55:42 by rcaputo; POE/Resources.pm 1.4
+  2003-12-16 04:55:42 by rcaputo; lib/POE/Resources.pm 1.4
 
     Support auto-loading POE::XS::Resource::Foo if it's available. Fall
     back to POE::Resource::Foo if the XS version isn't available or
     cannot load. 
 
-  2003-12-13 05:37:29 by rcaputo
-  POE/Kernel.pm 1.270; POE/Resource/Sessions.pm 1.14; t/06_tk.t 1.45
+  2003-12-13 05:37:29 by rcaputo; lib/POE/Kernel.pm 1.270;
+  lib/POE/Resource/Sessions.pm 1.14; t/06_tk.t 1.45
 
     Event loops. Look for POE::XS::Loop::$something before
     POE::Loop::$something. It should be possible to include arbitrary
     event loops now (Gtk2, for example). Likewise, now people can start
     writing XS versions of event loops. 
 
-  2003-12-12 04:05:06 by rcaputo; POE/Kernel.pm 1.269;
-  POE/Loop/Event.pm 1.35; POE/Loop/Gtk.pm 1.42; POE/Loop/Poll.pm 1.26;
-  POE/Loop/Select.pm 1.53; POE/Loop/Tk.pm 1.43;
-  POE/Loop/TkActiveState.pm 1.7; POE/Loop/TkCommon.pm 1.4
+  2003-12-12 04:05:06 by rcaputo; lib/POE/Kernel.pm 1.269;
+  lib/POE/Loop/Event.pm 1.35; lib/POE/Loop/Gtk.pm 1.42;
+  lib/POE/Loop/Poll.pm 1.26; lib/POE/Loop/Select.pm 1.53;
+  lib/POE/Loop/Tk.pm 1.43; lib/POE/Loop/TkActiveState.pm 1.7;
+  lib/POE/Loop/TkCommon.pm 1.4
 
     Remove the hardcoding for POE::Loop classes. Now POE::Kernel will
     walk %INC and compare each module against the files in ./Loop (where
     "." is wherever POE::Kernel is, according to __FILE__). 
 
-  2003-12-11 18:06:21 by rcaputo; lib/cvs-log.perl 1.5
+  2003-12-11 18:06:21 by rcaputo; mylib/cvs-log.perl 1.5
 
     Add a (commented out) option to go back farther in time. What's
     really needed here is some sort of command-line flag. 
 
-  2003-12-04 23:15:19 by rcaputo; POE/Session.pm 1.95
+  2003-12-04 23:15:19 by rcaputo; lib/POE/Session.pm 1.95
 
     Applied a POD typo correction from Alex. 
 
   2003-11-28 17:12:08 by rcaputo
-  POE/Kernel.pm 1.268; t/01_sessions.t 1.26
+  lib/POE/Kernel.pm 1.268; t/01_sessions.t 1.26
 
     Applied Scott Beck's patch to add a hard POE::Kernel stop. 
 
-  2003-11-26 03:52:07 by rcaputo; POE/Component/Client/TCP.pm 1.39;
-  POE/Component/Server/TCP.pm 1.43; POE/Driver/SysRW.pm 1.26;
-  POE/Kernel.pm 1.267; POE/Loop/Poll.pm 1.25; POE/Loop/Select.pm 1.52;
-  POE/Pipe.pm 1.12; POE/Queue/Array.pm 1.5; POE/Session.pm 1.94;
-  POE/Wheel/ListenAccept.pm 1.28; POE/Wheel/SocketFactory.pm 1.74
+  2003-11-26 03:52:07 by rcaputo; lib/POE/Component/Client/TCP.pm 1.39;
+  lib/POE/Component/Server/TCP.pm 1.43; lib/POE/Driver/SysRW.pm 1.26;
+  lib/POE/Kernel.pm 1.267; lib/POE/Loop/Poll.pm 1.25;
+  lib/POE/Loop/Select.pm 1.52; lib/POE/Pipe.pm 1.12;
+  lib/POE/Queue/Array.pm 1.5; lib/POE/Session.pm 1.94;
+  lib/POE/Wheel/ListenAccept.pm 1.28; lib/POE/Wheel/SocketFactory.pm 1.74
 
     Replace POSIX errno constants with ones from Errno. The Errno module
     has better errno support than POSIX in "special" environments like
     ActivePerl. This commit addresses rt.cpan.org ticket #4476. 
 
-  2003-11-22 17:45:10 by sungo; POE/Loop/Gtk.pm 1.41
+  2003-11-22 17:45:10 by sungo; lib/POE/Loop/Gtk.pm 1.41
 
     change init_check to simply not initialize gtk a second+ time. not
     sure why init() is passing the second time but init_check() doesnt
     but whatever. 
 
   2003-11-22 16:13:07 by rcaputo
-  POE/NFA.pm 1.27; POE/Resource/Sessions.pm 1.13
+  lib/POE/NFA.pm 1.27; lib/POE/Resource/Sessions.pm 1.13
 
     Move the parent GC tests out of _data_ses_free and into
     _data_ses_stop. Currently the former is only called by the latter
     (and by POE::NFA, which seems to be erroneous anyway since no _parent
     and _child events happen there). 
 
-  2003-11-22 15:32:06 by rcaputo; POE/Loop/Gtk.pm 1.40
+  2003-11-22 15:32:06 by rcaputo; lib/POE/Loop/Gtk.pm 1.40
 
     Allow POE::Kernel->run() to be called multiple times in Gtk programs.
     Previously, Gtk->check_init() would return failure when called a
     second time, causing a couple of the tests to fail. This commit fixes
     rt.cpan.org ticket number 4459. 
 
-  2003-11-22 05:05:10 by rcaputo; POE/Resource/Extrefs.pm 1.9
+  2003-11-22 05:05:10 by rcaputo; lib/POE/Resource/Extrefs.pm 1.9
 
     Deferring deletion of %kr_extra_refs items caused inconsistencies in
     the results from _data_extref_count(). I noticed it when
@@ -315,35 +419,38 @@
 
     remove spurious warn i stupidly left in 
 
-  2003-11-22 04:54:31 by sungo; POE/Loop/Gtk.pm 1.39; t/21_gtk.t 1.19
+  2003-11-22 04:54:31 by sungo; lib/POE/Loop/Gtk.pm 1.39; t/21_gtk.t 1.19
 
     add gtk initialization error checking. fix gtk test suite to skip the
     whole suite if gtk initialization fails. 
 
-  2003-11-21 05:08:26 by rcaputo; POE.pm 1.165; POE/API/ResLoader.pm 1.3;
-  POE/Component.pm 1.6; POE/Component/Client/TCP.pm 1.38;
-  POE/Component/Server/TCP.pm 1.42; POE/Driver.pm 1.15;
-  POE/Driver/SysRW.pm 1.25; POE/Filter.pm 1.13; POE/Filter/Block.pm 1.12;
-  POE/Filter/Grep.pm 1.5; POE/Filter/HTTPD.pm 1.30;
-  POE/Filter/Line.pm 1.24; POE/Filter/Map.pm 1.5;
-  POE/Filter/RecordBlock.pm 1.4; POE/Filter/Reference.pm 1.28;
-  POE/Filter/Stackable.pm 1.5; POE/Filter/Stream.pm 1.12;
-  POE/Loop.pm 1.3; POE/Loop/Event.pm 1.34; POE/Loop/Gtk.pm 1.38;
-  POE/Loop/PerlSignals.pm 1.4; POE/Loop/Poll.pm 1.24;
-  POE/Loop/Select.pm 1.51; POE/Loop/Tk.pm 1.42;
-  POE/Loop/TkActiveState.pm 1.6; POE/Loop/TkCommon.pm 1.3;
-  POE/Macro/UseBytes.pm 1.3; POE/NFA.pm 1.26; POE/Pipe.pm 1.11;
-  POE/Pipe/OneWay.pm 1.13; POE/Pipe/TwoWay.pm 1.16;
-  POE/Preprocessor.pm 1.31; POE/Queue.pm 1.3; POE/Queue/Array.pm 1.4;
-  POE/Resource.pm 1.3; POE/Resource/Aliases.pm 1.10;
-  POE/Resource/Events.pm 1.8; POE/Resource/Extrefs.pm 1.8;
-  POE/Resource/FileHandles.pm 1.9; POE/Resource/SIDs.pm 1.8;
-  POE/Resource/Sessions.pm 1.12; POE/Resource/Signals.pm 1.9;
-  POE/Resources.pm 1.3; POE/Session.pm 1.93; POE/Wheel.pm 1.18;
-  POE/Wheel/Curses.pm 1.11; POE/Wheel/FollowTail.pm 1.48;
-  POE/Wheel/ListenAccept.pm 1.27; POE/Wheel/ReadLine.pm 1.29;
-  POE/Wheel/ReadWrite.pm 1.66; POE/Wheel/Run.pm 1.55;
-  POE/Wheel/SocketFactory.pm 1.73
+  2003-11-21 05:08:26 by rcaputo; lib/POE.pm 1.165;
+  lib/POE/API/ResLoader.pm 1.3; lib/POE/Component.pm 1.6;
+  lib/POE/Component/Client/TCP.pm 1.38;
+  lib/POE/Component/Server/TCP.pm 1.42; lib/POE/Driver.pm 1.15;
+  lib/POE/Driver/SysRW.pm 1.25; lib/POE/Filter.pm 1.13;
+  lib/POE/Filter/Block.pm 1.12; lib/POE/Filter/Grep.pm 1.5;
+  lib/POE/Filter/HTTPD.pm 1.30; lib/POE/Filter/Line.pm 1.24;
+  lib/POE/Filter/Map.pm 1.5; lib/POE/Filter/RecordBlock.pm 1.4;
+  lib/POE/Filter/Reference.pm 1.28; lib/POE/Filter/Stackable.pm 1.5;
+  lib/POE/Filter/Stream.pm 1.12; lib/POE/Loop.pm 1.3;
+  lib/POE/Loop/Event.pm 1.34; lib/POE/Loop/Gtk.pm 1.38;
+  lib/POE/Loop/PerlSignals.pm 1.4; lib/POE/Loop/Poll.pm 1.24;
+  lib/POE/Loop/Select.pm 1.51; lib/POE/Loop/Tk.pm 1.42;
+  lib/POE/Loop/TkActiveState.pm 1.6; lib/POE/Loop/TkCommon.pm 1.3;
+  lib/POE/Macro/UseBytes.pm 1.3; lib/POE/NFA.pm 1.26;
+  lib/POE/Pipe.pm 1.11; lib/POE/Pipe/OneWay.pm 1.13;
+  lib/POE/Pipe/TwoWay.pm 1.16; lib/POE/Preprocessor.pm 1.31;
+  lib/POE/Queue.pm 1.3; lib/POE/Queue/Array.pm 1.4;
+  lib/POE/Resource.pm 1.3; lib/POE/Resource/Aliases.pm 1.10;
+  lib/POE/Resource/Events.pm 1.8; lib/POE/Resource/Extrefs.pm 1.8;
+  lib/POE/Resource/FileHandles.pm 1.9; lib/POE/Resource/SIDs.pm 1.8;
+  lib/POE/Resource/Sessions.pm 1.12; lib/POE/Resource/Signals.pm 1.9;
+  lib/POE/Resources.pm 1.3; lib/POE/Session.pm 1.93;
+  lib/POE/Wheel.pm 1.18; lib/POE/Wheel/Curses.pm 1.11;
+  lib/POE/Wheel/FollowTail.pm 1.48; lib/POE/Wheel/ListenAccept.pm 1.27;
+  lib/POE/Wheel/ReadLine.pm 1.29; lib/POE/Wheel/ReadWrite.pm 1.66;
+  lib/POE/Wheel/Run.pm 1.55; lib/POE/Wheel/SocketFactory.pm 1.73
 
     Ok. So I'm braindead from staring into SOAP modules all day. I
     figured I'd do this one no-brainer just to say I accomplished
@@ -351,12 +458,12 @@
     Crystals. Let's see who notices. Bonus: No more retrograde releases,
     at least not after one last CPAN cataclysm. 
 
-  2003-11-21 05:01:27 by rcaputo; POE/Kernel.pm 1.266
+  2003-11-21 05:01:27 by rcaputo; lib/POE/Kernel.pm 1.266
 
     Exploratory commit of the new $VERSION code. 
 
   2003-11-20 19:21:57 by rcaputo
-  POE/Kernel.pm 1.265; POE/Resource/Sessions.pm 1.11
+  lib/POE/Kernel.pm 1.265; lib/POE/Resource/Sessions.pm 1.11
 
     Reimplement _stop, mostly by moving the side effects out of
     _dispatch_event and into _data_ses_stop. This further shrinks
@@ -364,7 +471,7 @@
     the recursion and side effects that made it so difficult to work
     with. 
 
-  2003-11-20 17:13:41 by rcaputo; POE/Kernel.pm 1.264
+  2003-11-20 17:13:41 by rcaputo; lib/POE/Kernel.pm 1.264
 
     Nick Williams at Morgan Stanley reported that the new "Please mail
     the following information to...." message shows up even when _trap()
@@ -372,15 +479,15 @@
     ticket, number 4436. 
 
   2003-11-19 21:28:54 by rcaputo
-  POE/Wheel/ReadWrite.pm 1.65; POE/Wheel/Run.pm 1.54
+  lib/POE/Wheel/ReadWrite.pm 1.65; lib/POE/Wheel/Run.pm 1.54
 
     Add shutdown_stdin() to POE::Wheel::Run. Refactor some code in
     POE::Wheel::ReadWrite. I have no idea why teh other files are being
     pulled into this commit; they have no changes listed in "cvs diff". 
 
-  2003-11-13 18:28:47 by rcaputo; POE/Resource/Aliases.pm 1.9;
-  POE/Resource/Events.pm 1.7; POE/Resource/Extrefs.pm 1.7;
-  POE/Resource/FileHandles.pm 1.8; t/res/extrefs.t 1.7
+  2003-11-13 18:28:47 by rcaputo; lib/POE/Resource/Aliases.pm 1.9;
+  lib/POE/Resource/Events.pm 1.7; lib/POE/Resource/Extrefs.pm 1.7;
+  lib/POE/Resource/FileHandles.pm 1.8; t/res/extrefs.t 1.7
 
     Move some delete() calls to the finalize stage of resource cleanup.
     Many of the session-keyed structures can linger until the session is
@@ -388,25 +495,25 @@
     minor performance boost. Hopefully no leaks are created here. 
 
   2003-11-13 17:08:00 by rcaputo
-  MANIFEST 1.91; POE/Kernel.pm 1.263; t/regress/neyuki-detach.t 1.1
+  MANIFEST 1.91; lib/POE/Kernel.pm 1.263; t/regress/neyuki-detach.t 1.1
 
     Neyuki discovered that detach_myself() was not working from _start,
     nor was it working at all. This commit fixes the latter problem, but
     detach_myself() from _start is not completely fixed. Turned the test
     case into a regression test, and started t/regress for these things. 
 
-  2003-11-13 03:11:49 by rcaputo; POE/Resource/Sessions.pm 1.10
+  2003-11-13 03:11:49 by rcaputo; lib/POE/Resource/Sessions.pm 1.10
 
     Add explanations to some of the _trap() calls, and comment on why we
     don't do garbage collection at what might otherwise be considered a
     good place for it. 
 
   2003-11-10 23:20:55 by rcaputo
-  POE/NFA.pm 1.25; POE/Session.pm 1.92; t/01_sessions.t 1.25
+  lib/POE/NFA.pm 1.25; lib/POE/Session.pm 1.92; t/01_sessions.t 1.25
 
     Applied Dan McCormicks's callback() patch. 
 
-  2003-11-06 20:37:16 by rcaputo; POE/Component/Server/TCP.pm 1.41
+  2003-11-06 20:37:16 by rcaputo; lib/POE/Component/Server/TCP.pm 1.41
 
     Applied a patch from Eric (l2kashe) that lets you specify different
     input and output filters for client sessions at the outset. To be
@@ -418,22 +525,22 @@
     probably be to abstract most of Server::TCP into a base class and
     derive Server::TCP and Server::UNIX from it. 
 
-  2003-11-06 20:34:07 by rcaputo; POE/Component/Client/TCP.pm 1.37
+  2003-11-06 20:34:07 by rcaputo; lib/POE/Component/Client/TCP.pm 1.37
 
     Re-establish aliases on reconnect. Nick Williams discovered that
     disconnect would clear aliases but reconnect wouldn't restore them. 
 
   2003-11-04 04:48:33 by rcaputo
-  POE/Kernel.pm 1.262; POE/Session.pm 1.91
+  lib/POE/Kernel.pm 1.262; lib/POE/Session.pm 1.91
 
     Document TRACE_DESTROY, and modify it to use POE::Kernel::_warn() so
     it can be redirected somewhere other than STDERR. 
 
-  2003-11-04 04:43:20 by rcaputo; POE/Session.pm 1.90
+  2003-11-04 04:43:20 by rcaputo; lib/POE/Session.pm 1.90
 
     Make TRACE_DESTROY more useful. 
 
-  2003-11-04 02:18:42 by rcaputo; POE/Wheel/SocketFactory.pm 1.72
+  2003-11-04 02:18:42 by rcaputo; lib/POE/Wheel/SocketFactory.pm 1.72
 
     "rmah" and "czth" reported that Solaris and some BSD variants define
     a SOMAXCONN that is much smaller than what they can really handle.
@@ -443,14 +550,14 @@
     systems. So it's commented out for now; we'll see who notices. 
 
   2003-11-02 05:10:29 by rcaputo
-  POE.pm 1.164; POE/NFA.pm 1.24; POE/Session.pm 1.89
+  lib/POE.pm 1.164; lib/POE/NFA.pm 1.24; lib/POE/Session.pm 1.89
 
     Propagate the POE::Kernel TRACE and ASSERT constants into any other
     package that is interested in them. This passes environment variables
     down into other packages. 
 
   2003-11-02 04:51:48 by rcaputo
-  POE/Kernel.pm 1.261; POE/Session.pm 1.88
+  lib/POE/Kernel.pm 1.261; lib/POE/Session.pm 1.88
 
     Generalize POE's environment variable handling so you can specify
     arbitrary POE_foo. These override the constants previously defined.
@@ -460,8 +567,8 @@
     undetermined). Thanks to Nick Williams pointed out that
     POE_ASSERT_STATES wasn't supported. 
 
-  2003-10-29 23:50:58 by rcaputo
-  POE/Component/Client/TCP.pm 1.36; POE/Component/Server/TCP.pm 1.40
+  2003-10-29 23:50:58 by rcaputo; lib/POE/Component/Client/TCP.pm 1.36;
+  lib/POE/Component/Server/TCP.pm 1.40
 
     Various Disconnect callbacks weren't actually called when a remote
     end disconnected while the local end had output for it. This was a
@@ -474,27 +581,27 @@
     The other two files have whitespace changes. Darn CVS for wanting to
     commit them, but what can y'do? 
 
-  2003-10-29 21:36:06 by rcaputo; POE.pm 1.163
+  2003-10-29 21:36:06 by rcaputo; lib/POE.pm 1.163
 
     Increase version to 0.2701, to indicate we're in between-release CVS
     mode. 
 
-  2003-10-20 05:13:52 by rcaputo; POE/Wheel/Run.pm 1.53
+  2003-10-20 05:13:52 by rcaputo; lib/POE/Wheel/Run.pm 1.53
 
     Add another no-END/no-DESTROY method for terminating a child process. 
 
-  2003-10-20 05:13:21 by rcaputo; POE/Resource/Events.pm 1.6
+  2003-10-20 05:13:21 by rcaputo; lib/POE/Resource/Events.pm 1.6
 
     Note a logic error in the cleanup code. The error isn't damaging, but
     it does incur more overhead than necessary during session
     destruction. 
 
-  2003-10-16 15:54:06 by rcaputo; POE/Wheel/Run.pm 1.52
+  2003-10-16 15:54:06 by rcaputo; lib/POE/Wheel/Run.pm 1.52
 
     Bline pointed out that kill(0) sent SIGTERM. Added a defined() to
     support kill(0), and documented the default. 
 
-  2003-10-08 15:27:00 by rcaputo; POE/Loop/Gtk.pm 1.37
+  2003-10-08 15:27:00 by rcaputo; lib/POE/Loop/Gtk.pm 1.37
 
     There are no Gnome equivalents for Gtk->main() and Gtk->main_quit(),
     so remove them. 
@@ -503,28 +610,28 @@
 2003-09-27 05:37:28 v0_27
 =========================
 
-  2003-09-27 05:37:28 by rcaputo; POE.pm 1.162; README 1.105
+  2003-09-27 05:37:28 by rcaputo; README 1.105; lib/POE.pm 1.162
 
     Prepare for 0.27 release. 
 
-  2003-09-16 19:49:43 by rcaputo; POE/Wheel/ReadLine.pm 1.28
+  2003-09-16 19:49:43 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.28
 
     Supply a B38400 symbol if the local version of POSIX.pm won't. 
 
-  2003-09-16 14:58:48 by rcaputo; POE/Loop/Poll.pm 1.23
+  2003-09-16 14:58:48 by rcaputo; lib/POE/Loop/Poll.pm 1.23
 
     Replace _confess with _trap to increase some error severities. 
 
   2003-09-16 14:58:14 by rcaputo
-  POE/Loop/Select.pm 1.50; POE/Loop/TkActiveState.pm 1.5
+  lib/POE/Loop/Select.pm 1.50; lib/POE/Loop/TkActiveState.pm 1.5
 
     Replace _confess calls with _trap calls to increase the severity of
     some errors. 
 
-  2003-09-16 14:53:40 by rcaputo; POE/Kernel.pm 1.260;
-  POE/Resource/Aliases.pm 1.8; POE/Resource/Events.pm 1.5;
-  POE/Resource/Extrefs.pm 1.6; POE/Resource/FileHandles.pm 1.7;
-  POE/Resource/SIDs.pm 1.7; POE/Resource/Sessions.pm 1.9
+  2003-09-16 14:53:40 by rcaputo; lib/POE/Kernel.pm 1.260;
+  lib/POE/Resource/Aliases.pm 1.8; lib/POE/Resource/Events.pm 1.5;
+  lib/POE/Resource/Extrefs.pm 1.6; lib/POE/Resource/FileHandles.pm 1.7;
+  lib/POE/Resource/SIDs.pm 1.7; lib/POE/Resource/Sessions.pm 1.9
 
     Add POE::Kernel::_trap for errors internal to POE's core. This is a
     "kernel trap" level of error reporting. Replace many of the _confess
@@ -532,33 +639,33 @@
     the internal consistency checks in ASSERT_DATA blocks so they are
     only executed during testing. 
 
-  2003-09-16 14:51:18 by rcaputo; POE/Resources.pm 1.2
+  2003-09-16 14:51:18 by rcaputo; lib/POE/Resources.pm 1.2
 
     Rethrow any errors caught in POE::Resource modules. 
 
-  2003-09-16 14:50:12 by rcaputo; POE/Component/Client/TCP.pm 1.35;
-  POE/Component/Server/TCP.pm 1.39; POE/Driver/SysRW.pm 1.24
+  2003-09-16 14:50:12 by rcaputo; lib/POE/Component/Client/TCP.pm 1.35;
+  lib/POE/Component/Server/TCP.pm 1.39; lib/POE/Driver/SysRW.pm 1.24
 
     Increase default block sizes to 65536. This improves performance in
     high-throughput applications at the expense of some memory. 
 
-  2003-09-16 14:48:26 by rcaputo; POE/Wheel/ReadWrite.pm 1.64
+  2003-09-16 14:48:26 by rcaputo; lib/POE/Wheel/ReadWrite.pm 1.64
 
     Properly set the high watermark state when put() exceeds it. Also
     avoid redundant calls to select_write(). 
 
-  2003-09-15 20:26:52 by rcaputo; POE/Filter/HTTPD.pm 1.29
+  2003-09-15 20:26:52 by rcaputo; lib/POE/Filter/HTTPD.pm 1.29
 
     Include the tilde (~) as part of the legal character class for HTTP
     header names, per RFC 2616. Thanks to Fabrice Dulaunoy for
     discovering this and especially for suggesting how to fix it. 
 
-  2003-09-15 04:51:37 by rcaputo; POE/Kernel.pm 1.259
+  2003-09-15 04:51:37 by rcaputo; lib/POE/Kernel.pm 1.259
 
     Add a stub for Gtk2 support. Need a way that eliminates POE::Kernel
     hacking for each event loop we want to support. 
 
-  2003-09-10 23:30:40 by rcaputo; POE/Wheel/Run.pm 1.51
+  2003-09-10 23:30:40 by rcaputo; lib/POE/Wheel/Run.pm 1.51
 
     Andrew Chen pointed out that the -9 signal doesn't work. Corrected it
     to 9 in the docs. 
@@ -567,50 +674,49 @@
 
     James March's "UNIX Clients" recipe uses POE::Wheel::Readline. 
 
-  2003-08-31 02:43:10 by sungo
-  MANIFEST 1.90; META.yml 1.1; lib/Build.PL 1.1
+  2003-08-31 02:43:10 by sungo; Build.PL 1.1; MANIFEST 1.90
 
     add META.yml to make activestate automated ppd building happy again.
     add Build.PL i used to make the meta file 
 
-  2003-08-31 02:07:50 by rcaputo; lib/Makefile-5005.pm 1.32
+  2003-08-31 02:07:50 by rcaputo; mylib/Makefile-5005.pm 1.32
 
     Avoid ExtUtil::AutoInstall prompts if STDIN isn't a terminal. Bypass
     the prompts by assuming --default behavior. 
 
-  2003-08-27 01:52:24 by rcaputo; POE/Wheel/Run.pm 1.50
+  2003-08-27 01:52:24 by rcaputo; lib/POE/Wheel/Run.pm 1.50
 
     Dorian suggested moving the setgid code before the setuid code, so
     that changing from root -> not-root won't disallow changing the group
     ID. It made sense, thus this patch. 
 
-  2003-08-27 01:50:48 by rcaputo; POE/Wheel/ReadLine.pm 1.27
+  2003-08-27 01:50:48 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.27
 
     Reformatted a line to be less than 80 columns. 
 
-  2003-08-10 19:48:18 by rcaputo; POE/Wheel/FollowTail.pm 1.47
+  2003-08-10 19:48:18 by rcaputo; lib/POE/Wheel/FollowTail.pm 1.47
 
     Move the size-saving code so that it always moves the current size to
     the last one. This should detect file shrinkage better. 
 
-  2003-08-10 19:14:45 by rcaputo; POE/Wheel/FollowTail.pm 1.46
+  2003-08-10 19:14:45 by rcaputo; lib/POE/Wheel/FollowTail.pm 1.46
 
     Perform a proper fix for the file size shrinkage. Rather than reopen
     the file unconditionally, seek back to the start of it. 
 
-  2003-08-10 18:59:55 by rcaputo; POE/Wheel/FollowTail.pm 1.45
+  2003-08-10 18:59:55 by rcaputo; lib/POE/Wheel/FollowTail.pm 1.45
 
     Azhrarn discovered that Linux only reports file shrinkage (nothing
     else) when a file is reset by `cat > file` and pressing ^D. This
     patch treats only file shrinkage as reset. 
 
-  2003-08-07 20:20:44 by rcaputo; POE/Loop/Select.pm 1.49
+  2003-08-07 20:20:44 by rcaputo; lib/POE/Loop/Select.pm 1.49
 
     Minor syntax cleanups as a result of trying (and failing) to
     determine the magnitude of arbitrary system clock shifts. 
 
-  2003-07-29 00:25:28 by rcaputo
-  POE/Component/Client/TCP.pm 1.34; POE/Component/Server/TCP.pm 1.38
+  2003-07-29 00:25:28 by rcaputo; lib/POE/Component/Client/TCP.pm 1.34;
+  lib/POE/Component/Server/TCP.pm 1.38
 
     Silence the "connection reset by peer" errors, which indicate that a
     client has unceremoniously disconnected. To reiterate: These errors
@@ -618,39 +724,39 @@
     still receive notification of the errors and can handle them any way
     they see fit. 
 
-  2003-07-28 05:14:14 by rcaputo; POE/Kernel.pm 1.258; POE/Queue.pm 1.2;
-  POE/Queue/Array.pm 1.3; t/001_queue.t 1.5
+  2003-07-28 05:14:14 by rcaputo; lib/POE/Kernel.pm 1.258;
+  lib/POE/Queue.pm 1.2; lib/POE/Queue/Array.pm 1.3; t/001_queue.t 1.5
 
     After many requests, I have finally added delay_adjust(). This resets
     a specific timer (as set with delay_set) to be a new number of
     seconds into the future. This is good for watchdogs and timeouts. 
 
-  2003-07-27 18:29:54 by rcaputo
-  POE/Component/Client/TCP.pm 1.33; POE/Component/Server/TCP.pm 1.37
+  2003-07-27 18:29:54 by rcaputo; lib/POE/Component/Client/TCP.pm 1.33;
+  lib/POE/Component/Server/TCP.pm 1.37
 
     Carl suggested that the TCP client and server not report "error 0"
     (normall disconnection) by default. He's the last in a long line of
     people to do so. "When three people tell you you're sick, lie down."
     The error message is removed in this patch. 
 
-  2003-07-18 22:47:44 by rcaputo; POE/Wheel/Run.pm 1.49
+  2003-07-18 22:47:44 by rcaputo; lib/POE/Wheel/Run.pm 1.49
 
     jdeluise suggested that we document how to scrub a child process'
     shell environment before executing external programs. This patch adds
     that information. 
 
-  2003-07-17 19:25:51 by rcaputo; POE/Wheel/Run.pm 1.48
+  2003-07-17 19:25:51 by rcaputo; lib/POE/Wheel/Run.pm 1.48
 
     Apply Leif Gustafson's patch to pass conduit types on to
     POE::Pipe::TwoWay. 
 
   2003-07-17 18:25:03 by rcaputo
-  POE/Pipe/OneWay.pm 1.12; POE/Pipe/TwoWay.pm 1.15
+  lib/POE/Pipe/OneWay.pm 1.12; lib/POE/Pipe/TwoWay.pm 1.15
 
     Fixed a subtle bug in the new pipe selection code. 
 
-  2003-07-16 17:00:25 by rcaputo
-  POE/Pipe.pm 1.10; POE/Pipe/OneWay.pm 1.11; POE/Pipe/TwoWay.pm 1.14
+  2003-07-16 17:00:25 by rcaputo; lib/POE/Pipe.pm 1.10;
+  lib/POE/Pipe/OneWay.pm 1.11; lib/POE/Pipe/TwoWay.pm 1.14
 
     Leif Gustafson discovered a nasty little bug in POE::Pipe::TwoWay
     that was triggered by the recent changes to POE::Wheel::Run... but
@@ -658,18 +764,18 @@
     Leif. This patch should help that a lot, and it finally cleans up the
     really messy RUNNING_IN_HELL stuff in the pipe classes. 
 
-  2003-07-16 06:34:46 by rcaputo; POE.pm 1.161
+  2003-07-16 06:34:46 by rcaputo; lib/POE.pm 1.161
 
     Applied Rich Morin's documentation edits. 
 
   2003-07-15 14:58:21 by rcaputo
-  POE/Kernel.pm 1.257; POE/Loop/Gtk.pm 1.36
+  lib/POE/Kernel.pm 1.257; lib/POE/Loop/Gtk.pm 1.36
 
     Merge in Bruno Boettcher's Gnome.pm as part of Gtk.pm since they're
     very closely related and with a few exceptions identical. 
 
   2003-07-14 14:41:03 by rcaputo
-  POE/Pipe/TwoWay.pm 1.13; POE/Wheel/Run.pm 1.47
+  lib/POE/Pipe/TwoWay.pm 1.13; lib/POE/Wheel/Run.pm 1.47
 
     jdeluise discovered a longstanding bug in cygwin's socketpair and/or
     exec implemenation. This caused POE::Wheel::Run tests to fail on that
@@ -677,7 +783,7 @@
     instead. 
 
   2003-07-13 16:39:40 by rcaputo
-  POE/Wheel/FollowTail.pm 1.44; t/14_wheels_ft.t 1.14
+  lib/POE/Wheel/FollowTail.pm 1.44; t/14_wheels_ft.t 1.14
 
     Applied a modified version of jrieks' Seek patch. This lets you seek
     forwards from the start of a file. Negative Seek does the same as
@@ -685,12 +791,12 @@
     tested, though: TODO add seek/seekback tests to t/14_wheels_ft.t 
 
   2003-07-13 04:24:33 by rcaputo
-  POE/Loop/Poll.pm 1.22; POE/Loop/Select.pm 1.48
+  lib/POE/Loop/Poll.pm 1.22; lib/POE/Loop/Select.pm 1.48
 
     Remove the dependency on $^T and the assumption that it will never
     change. This is only an issue during tracing. 
 
-  2003-07-11 15:39:47 by rcaputo; POE/Loop/Gtk.pm 1.35
+  2003-07-11 15:39:47 by rcaputo; lib/POE/Loop/Gtk.pm 1.35
 
     Bruno Boettcher discovered the Gtk event loop didn't work with the
     Gnome abstraction. A quick change fixed that. 
@@ -701,11 +807,11 @@
     The tests had some timing issues that only show up on the 486. This
     commit makes the tests less timing-sensitive. 
 
-  2003-07-10 04:55:11 by rcaputo; POE/Kernel.pm 1.256
+  2003-07-10 04:55:11 by rcaputo; lib/POE/Kernel.pm 1.256
 
     Correct localized STDERR for Perl 5.8.0. 
 
-  2003-07-10 04:14:58 by rcaputo; POE/Kernel.pm 1.255
+  2003-07-10 04:14:58 by rcaputo; lib/POE/Kernel.pm 1.255
 
     Nick discovered that sessions sometimes aren't garbage collected when
     using call() to invoke their states, and he provided a tidy test case
@@ -715,35 +821,36 @@
     tested if they are the same (because they've been posted to some time
     up the chain). 
 
-  2003-07-09 18:20:41 by rcaputo; POE/Kernel.pm 1.254;
-  POE/Loop/Event.pm 1.33; POE/Loop/Gtk.pm 1.34;
-  POE/Loop/PerlSignals.pm 1.3; POE/Loop/Poll.pm 1.21;
-  POE/Loop/Select.pm 1.47; POE/Loop/TkActiveState.pm 1.4;
-  POE/Loop/TkCommon.pm 1.2; POE/NFA.pm 1.23; POE/Resource/Aliases.pm 1.7;
-  POE/Resource/Events.pm 1.4; POE/Resource/Extrefs.pm 1.5;
-  POE/Resource/FileHandles.pm 1.6; POE/Resource/SIDs.pm 1.6;
-  POE/Resource/Sessions.pm 1.8; POE/Resource/Signals.pm 1.8;
-  POE/Session.pm 1.87; t/001_queue.t 1.4; t/00_coverage.t 1.19;
-  t/01_sessions.t 1.24; t/02_alarms.t 1.14; t/03_aliases.t 1.14;
-  t/04_selects.t 1.19; t/05_macros.t 1.8; t/06_tk.t 1.44;
-  t/07_event.t 1.18; t/08_errors.t 1.49; t/09_wheels_unix.t 1.16;
-  t/10_wheels_tcp.t 1.15; t/11_signals_poe.t 1.26;
-  t/12_signals_ev.t 1.19; t/13_wheels_udp.t 1.6; t/14_wheels_ft.t 1.13;
-  t/15_filter_block.t 1.6; t/16_filter_stream.t 1.5;
-  t/17_filter_ref.t 1.8; t/18_filter_line.t 1.9;
-  t/19_filterchange.t 1.13; t/20_accept.t 1.7; t/21_gtk.t 1.18;
-  t/22_wheel_run.t 1.33; t/23_nfa.t 1.8; t/24_filter_stack.t 1.5;
-  t/25_detach.t 1.6; t/26_comp_tcp.t 1.5; t/27_poll.t 1.8;
-  t/28_windows.t 1.7; t/29_sockfact6.t 1.11; t/res/aliases.t 1.6;
-  t/res/events.t 1.3; t/res/extrefs.t 1.6; t/res/filehandles.t 1.3;
-  t/res/sessions.t 1.4; t/res/sids.t 1.3; t/res/signals.t 1.3
+  2003-07-09 18:20:41 by rcaputo; lib/POE/Kernel.pm 1.254;
+  lib/POE/Loop/Event.pm 1.33; lib/POE/Loop/Gtk.pm 1.34;
+  lib/POE/Loop/PerlSignals.pm 1.3; lib/POE/Loop/Poll.pm 1.21;
+  lib/POE/Loop/Select.pm 1.47; lib/POE/Loop/TkActiveState.pm 1.4;
+  lib/POE/Loop/TkCommon.pm 1.2; lib/POE/NFA.pm 1.23;
+  lib/POE/Resource/Aliases.pm 1.7; lib/POE/Resource/Events.pm 1.4;
+  lib/POE/Resource/Extrefs.pm 1.5; lib/POE/Resource/FileHandles.pm 1.6;
+  lib/POE/Resource/SIDs.pm 1.6; lib/POE/Resource/Sessions.pm 1.8;
+  lib/POE/Resource/Signals.pm 1.8; lib/POE/Session.pm 1.87;
+  t/001_queue.t 1.4; t/00_coverage.t 1.19; t/01_sessions.t 1.24;
+  t/02_alarms.t 1.14; t/03_aliases.t 1.14; t/04_selects.t 1.19;
+  t/05_macros.t 1.8; t/06_tk.t 1.44; t/07_event.t 1.18;
+  t/08_errors.t 1.49; t/09_wheels_unix.t 1.16; t/10_wheels_tcp.t 1.15;
+  t/11_signals_poe.t 1.26; t/12_signals_ev.t 1.19; t/13_wheels_udp.t 1.6;
+  t/14_wheels_ft.t 1.13; t/15_filter_block.t 1.6;
+  t/16_filter_stream.t 1.5; t/17_filter_ref.t 1.8;
+  t/18_filter_line.t 1.9; t/19_filterchange.t 1.13; t/20_accept.t 1.7;
+  t/21_gtk.t 1.18; t/22_wheel_run.t 1.33; t/23_nfa.t 1.8;
+  t/24_filter_stack.t 1.5; t/25_detach.t 1.6; t/26_comp_tcp.t 1.5;
+  t/27_poll.t 1.8; t/28_windows.t 1.7; t/29_sockfact6.t 1.11;
+  t/res/aliases.t 1.6; t/res/events.t 1.3; t/res/extrefs.t 1.6;
+  t/res/filehandles.t 1.3; t/res/sessions.t 1.4; t/res/sids.t 1.3;
+  t/res/signals.t 1.3
 
     Allow internal traces to be shunted to a file without using STDERR.
     This lets applications' (and tests') errors shine through while
     logging POE's internal traces somewhere else. To be sure, the default
     behavior of dumping everything to STDERR still exists. 
 
-  2003-07-09 04:25:09 by rcaputo; POE/Wheel/ReadWrite.pm 1.63
+  2003-07-09 04:25:09 by rcaputo; lib/POE/Wheel/ReadWrite.pm 1.63
 
     Avi Finkel noticed a lack of a POE::Wheel::Write, or a write-only
     wheel. He's writing files over NFS, so a non-blocking solution helps
@@ -765,7 +872,7 @@
     starting with 0.27. 
 
   2003-07-06 18:46:07 by rcaputo
-  POE/Kernel.pm 1.253; POE/Resource/Extrefs.pm 1.4
+  lib/POE/Kernel.pm 1.253; lib/POE/Resource/Extrefs.pm 1.4
 
     Bruno Boettcher discovered an obscure, yet hideously fatal bug in
     POE's cross-checking code. The code in ASSERT_REFCNT that
@@ -773,62 +880,62 @@
     does not count references properly, causing a test failure. The test
     itself was broken and is fixed now. 
 
-  2003-07-05 21:04:56 by rcaputo; POE/Resource/Events.pm 1.3;
-  POE/Resource/Sessions.pm 1.7; POE/Session.pm 1.86
+  2003-07-05 21:04:56 by rcaputo; lib/POE/Resource/Events.pm 1.3;
+  lib/POE/Resource/Sessions.pm 1.7; lib/POE/Session.pm 1.86
 
     Clean up some code structure. Nothing gets fixed. 
 
-  2003-07-05 21:03:56 by rcaputo; POE/Kernel.pm 1.252
+  2003-07-05 21:03:56 by rcaputo; lib/POE/Kernel.pm 1.252
 
     Fixed a documentation typo. 
 
-  2003-07-03 16:34:57 by rcaputo; POE/Filter/Line.pm 1.23
+  2003-07-03 16:34:57 by rcaputo; lib/POE/Filter/Line.pm 1.23
 
     Clear up some error messages while documenting them. 
 
-  2003-07-03 16:26:50 by rcaputo; POE/Kernel.pm 1.251
+  2003-07-03 16:26:50 by rcaputo; lib/POE/Kernel.pm 1.251
 
     Bruno Boettcher was banging his head on an ASSERT_USAGE message that
     wasn't very helpful. It turns out to have been a bad parameter line
     in _explain_usage(), which is fixed by this patch. 
 
-  2003-06-26 15:33:10 by rcaputo; POE/Loop/Gtk.pm 1.33
+  2003-06-26 15:33:10 by rcaputo; lib/POE/Loop/Gtk.pm 1.33
 
     "kaffee" reported warnings in loop_attach_uidestroy(). He suggested
     returning 0 instead of undef from the UIDESTROY callback, which this
     patch does. 
 
-  2003-06-22 05:37:34 by rcaputo; POE/Loop/TkActiveState.pm 1.3
+  2003-06-22 05:37:34 by rcaputo; lib/POE/Loop/TkActiveState.pm 1.3
 
     Remove a bare debugging warn. 
 
-  2003-06-19 20:06:00 by rcaputo; lib/ExtUtils/AutoInstall.pm 1.4
+  2003-06-19 20:06:00 by rcaputo; mylib/ExtUtils/AutoInstall.pm 1.4
 
     Assimilate the latest (0.52) version of ExtUtils::AutoInstall. This
     should fix the "instaldeps" part of POE's installer. 
 
-  2003-06-09 19:18:27 by rcaputo
-  POE/Kernel.pm 1.250; POE/Loop/TkActiveState.pm 1.2; t/08_errors.t 1.48
+  2003-06-09 19:18:27 by rcaputo; lib/POE/Kernel.pm 1.250;
+  lib/POE/Loop/TkActiveState.pm 1.2; t/08_errors.t 1.48
 
     Debugged the initial ActiveState Tk support on a real live Windows
     machine. This commit fixes lots of little things and gets the tests
     working on Windows and UNIX. 
 
   2003-06-09 17:31:05 by rcaputo
-  POE/Loop/TkActiveState.pm 1.1; POE/Loop/TkCommon.pm 1.1
+  lib/POE/Loop/TkActiveState.pm 1.1; lib/POE/Loop/TkCommon.pm 1.1
 
     Of course we can't really begin to support ActivePerl+Tk without the
     files themselves. So. 
 
   2003-06-09 17:28:22 by rcaputo; MANIFEST 1.89;
-  POE/Loop/PerlSignals.pm 1.2; POE/Loop/Select.pm 1.46;
-  POE/Loop/Tk.pm 1.41; t/06_tk.t 1.42; t/08_errors.t 1.47
+  lib/POE/Loop/PerlSignals.pm 1.2; lib/POE/Loop/Select.pm 1.46;
+  lib/POE/Loop/Tk.pm 1.41; t/06_tk.t 1.42; t/08_errors.t 1.47
 
     Support Tk under ActivePerl by polling for socket activity every 1/10
     second. This is ugly. It's inefficient. And it's the only known way
     to make things work at this time. Bleah. 
 
-  2003-06-09 16:02:41 by rcaputo; POE.pm 1.160
+  2003-06-09 16:02:41 by rcaputo; lib/POE.pm 1.160
 
     Aw, heck. I forgot to update this to a development version. 
 
@@ -836,17 +943,17 @@
 
     Forgot to add the new file in my previous commit. 
 
-  2003-06-09 15:36:27 by rcaputo; POE/Kernel.pm 1.249;
-  POE/Loop/Gtk.pm 1.32; POE/Loop/PerlSignals.pm 1.1;
-  POE/Loop/Poll.pm 1.20; POE/Loop/Select.pm 1.45; POE/Loop/Tk.pm 1.40;
-  t/08_errors.t 1.46
+  2003-06-09 15:36:27 by rcaputo; lib/POE/Kernel.pm 1.249;
+  lib/POE/Loop/Gtk.pm 1.32; lib/POE/Loop/PerlSignals.pm 1.1;
+  lib/POE/Loop/Poll.pm 1.20; lib/POE/Loop/Select.pm 1.45;
+  lib/POE/Loop/Tk.pm 1.40; t/08_errors.t 1.46
 
     Moved the plain-Perl signal handling code into
     POE::Loop::PerlSignals. This code was common to the Gtk, Poll,
     Select, and Tk event loops. 
 
-  2003-06-05 18:09:40 by rcaputo
-  POE/Component/Client/TCP.pm 1.32; POE/Component/Server/TCP.pm 1.36
+  2003-06-05 18:09:40 by rcaputo; lib/POE/Component/Client/TCP.pm 1.32;
+  lib/POE/Component/Server/TCP.pm 1.36
 
     Matt Harrington pointed out that Client:: and Server::TCP did not
     auto-use the filter classes they're given. I noticed that this aspect
@@ -854,38 +961,38 @@
     you must "use" the classes yourself. 
 
   2003-06-03 21:40:25 by sungo
-  POE/Resource/Sessions.pm 1.6; POE/Resource/Signals.pm 1.7
+  lib/POE/Resource/Sessions.pm 1.6; lib/POE/Resource/Signals.pm 1.7
 
     move two initializeii to preload. we need to formalize names here.
     did this to avoid redefine warnings 
 
-  2003-06-03 18:55:06 by sungo; POE/Resource/FileHandles.pm 1.5
+  2003-06-03 18:55:06 by sungo; lib/POE/Resource/FileHandles.pm 1.5
 
     add the kr_filenos hash back into the kernel in the documented stop.
     violate the naming convention a little bit to avoid trampling the
     preexisting initialization routine 
 
   2003-06-03 18:04:42 by sungo
-  POE/Kernel.pm 1.248; POE/Resource/SIDs.pm 1.5
+  lib/POE/Kernel.pm 1.248; lib/POE/Resource/SIDs.pm 1.5
 
     add a ref to sid_seq into the kernel in the documented spot 
 
   2003-06-03 17:39:49 by rcaputo
-  lib/Makefile-5004.pm 1.15; lib/Makefile-5005.pm 1.31
+  mylib/Makefile-5004.pm 1.15; mylib/Makefile-5005.pm 1.31
 
     Add some of our test results files to the ones that get unlinked on
     "make clean". Thanks to sungo for pointing this out. 
 
-  2003-06-03 17:37:52 by sungo; POE/Kernel.pm 1.247
+  2003-06-03 17:37:52 by sungo; lib/POE/Kernel.pm 1.247
 
     KR_QUEUE was a ref to ref. now is just a ref :) 
 
-  2003-06-03 17:34:46 by rcaputo; POE/Resource/Aliases.pm 1.6;
-  POE/Resource/SIDs.pm 1.4; POE/Resource/Signals.pm 1.6
+  2003-06-03 17:34:46 by rcaputo; lib/POE/Resource/Aliases.pm 1.6;
+  lib/POE/Resource/SIDs.pm 1.4; lib/POE/Resource/Signals.pm 1.6
 
     Update initializers to reflect the current naming conventions. 
 
-  2003-06-03 17:34:34 by sungo; POE/Kernel.pm 1.246
+  2003-06-03 17:34:34 by sungo; lib/POE/Kernel.pm 1.246
 
     update the location of things in some comments. 
 
@@ -893,31 +1000,31 @@
 
     Add new junk files, sort, and generally tidy up. 
 
-  2003-06-03 15:55:24 by sungo; POE/Resource/SIDs.pm 1.3
+  2003-06-03 15:55:24 by sungo; lib/POE/Resource/SIDs.pm 1.3
 
     put session_ids hash back into the kernel in the documented spot 
 
-  2003-06-03 15:28:52 by sungo; POE/Resource/Aliases.pm 1.5
+  2003-06-03 15:28:52 by sungo; lib/POE/Resource/Aliases.pm 1.5
 
     load the aliases hash into the kernel in the documented spot 
 
-  2003-06-03 15:24:08 by sungo; POE/Resource/Signals.pm 1.5
+  2003-06-03 15:24:08 by sungo; lib/POE/Resource/Signals.pm 1.5
 
     load signals hash back into the kernel 
 
-  2003-06-03 04:55:28 by rcaputo; lib/coverage.perl 1.8
+  2003-06-03 04:55:28 by rcaputo; mylib/coverage.perl 1.8
 
     Ignore several things that falsely show up as uninstrumented code.
     The true value that all modules must end with. C<use> statements.
     Constant sub definitions. $VERSION definitions. 
 
-  2003-06-03 04:53:47 by rcaputo; lib/Devel/Trace.pm 1.8
+  2003-06-03 04:53:47 by rcaputo; mylib/Devel/Trace.pm 1.8
 
     Remove the code that blockes signals while tracking runtime
     statistics. The signal masking was causing signal tests to hang, and
     removing it didn't break anything. 
 
-  2003-06-03 04:42:01 by rcaputo; POE/NFA.pm 1.22
+  2003-06-03 04:42:01 by rcaputo; lib/POE/NFA.pm 1.22
 
     Some TRACE_FOO output was sent to STDOUT. Replace print() with warn()
     to send it to STDERR instead. 
@@ -945,20 +1052,20 @@
 
     Add t/res/filehandles.t (200-ish new tests! gods, that was tedious). 
 
-  2003-06-03 02:37:27 by rcaputo; POE/Resource/FileHandles.pm 1.4
+  2003-06-03 02:37:27 by rcaputo; lib/POE/Resource/FileHandles.pm 1.4
 
     Add accessors so that tests can verify the subsystem's internal
     state. Perhaps instead of this, we should write a function that
     cross-checks everything inside and returns a good/bad value. That way
     we won't need to break encapsulation for testing. 
 
-  2003-06-02 20:21:01 by rcaputo; POE/Resource/FileHandles.pm 1.3
+  2003-06-02 20:21:01 by rcaputo; lib/POE/Resource/FileHandles.pm 1.3
 
     Added the finalized-ok flag and return value for testing. Corrected a
     bug (misunderstood data structure) in _data_handle_finalize(), and
     documented the proper structure in comments. 
 
-  2003-06-02 18:52:49 by sungo; POE/Kernel.pm 1.245
+  2003-06-02 18:52:49 by sungo; lib/POE/Kernel.pm 1.245
 
     add some comments about where resources are and maybe should be
     loaded from 
@@ -971,19 +1078,19 @@
 
     Removed some junk comments. 
 
-  2003-06-02 08:43:08 by rcaputo; POE/Resource/Signals.pm 1.4
+  2003-06-02 08:43:08 by rcaputo; lib/POE/Resource/Signals.pm 1.4
 
     Add some internals accessors so the tests can get at necessary
     values. Had to rename an existing function because a new one seemed
     to fit the name better. 
 
-  2003-06-02 08:41:28 by rcaputo; POE/Kernel.pm 1.244
+  2003-06-02 08:41:28 by rcaputo; lib/POE/Kernel.pm 1.244
 
     Migrate a function call to the outside of a loop. That might cut down
     the number of function calls in hot loops, and as such seems like a
     good optimization technique. 
 
-  2003-06-02 06:51:10 by rcaputo; POE/Resource/Signals.pm 1.3
+  2003-06-02 06:51:10 by rcaputo; lib/POE/Resource/Signals.pm 1.3
 
     Added the finalized-ok return value to _data_sig_finalize().
     Corrected a bug in _data_sig_watchers() that was found while writing
@@ -994,12 +1101,12 @@
 
     Add the tests for POE::Resource::Sessions. 
 
-  2003-06-02 03:02:44 by rcaputo; POE/Resource/Sessions.pm 1.5
+  2003-06-02 03:02:44 by rcaputo; lib/POE/Resource/Sessions.pm 1.5
 
     Add the finalized-ok return value to _data_ses_finalize, so we can
     test that the final state of the subsystem is consistent. 
 
-  2003-06-01 22:38:31 by rcaputo; POE/Resource/Sessions.pm 1.4
+  2003-06-01 22:38:31 by rcaputo; lib/POE/Resource/Sessions.pm 1.4
 
     Rename the initialize function _data_ses_initialize to follow the
     current naming convention. 
@@ -1008,12 +1115,12 @@
 
     Added the detailed tests for POE::Resource::Events. 
 
-  2003-06-01 02:56:22 by rcaputo; POE/Resource/Events.pm 1.2
+  2003-06-01 02:56:22 by rcaputo; lib/POE/Resource/Events.pm 1.2
 
     Added the finalized-ok return value to _data_ev_finalize. Added some
     comments with general observations during test writing. 
 
-  2003-05-31 21:07:11 by sungo; POE/API/ResLoader.pm 1.2
+  2003-05-31 21:07:11 by sungo; lib/POE/API/ResLoader.pm 1.2
 
     add documentation and $VERSION to POE::API::ResLoader. also remove
     unnececessary use of Kernel in same module 
@@ -1030,9 +1137,9 @@
 
     add lots more needed things to manifest.skip 
 
-  2003-05-31 20:34:34 by sungo; POE/API/ResLoader.pm 1.1;
-  POE/Kernel.pm 1.243; POE/Resource/FileHandles.pm 1.2;
-  POE/Resource/Sessions.pm 1.3; POE/Resources.pm 1.1
+  2003-05-31 20:34:34 by sungo; lib/POE/API/ResLoader.pm 1.1;
+  lib/POE/Kernel.pm 1.243; lib/POE/Resource/FileHandles.pm 1.2;
+  lib/POE/Resource/Sessions.pm 1.3; lib/POE/Resources.pm 1.1
 
     add POE::Resources as a place holder until some Kernel internals get
     cleaned up ala resource loading. add POE::API::ResLoader which allows
@@ -1043,12 +1150,12 @@
     original and documented spot 
 
   2003-05-31 18:32:18 by rcaputo
-  POE/Resource/SIDs.pm 1.2; t/res/sids.t 1.1
+  lib/POE/Resource/SIDs.pm 1.2; t/res/sids.t 1.1
 
     Add tests for session ID management. 
 
-  2003-05-31 18:18:05 by rcaputo; POE/Resource.pm 1.2;
-  POE/Resource/Aliases.pm 1.4; POE/Resource/Extrefs.pm 1.3;
+  2003-05-31 18:18:05 by rcaputo; lib/POE/Resource.pm 1.2;
+  lib/POE/Resource/Aliases.pm 1.4; lib/POE/Resource/Extrefs.pm 1.3;
   t/res/aliases.t 1.4; t/res/extrefs.t 1.3
 
     Remove the previous testing-only accessors from Aliases.pm. Instead,
@@ -1057,7 +1164,7 @@
     Document this design decision in POE::Resource. 
 
   2003-05-31 18:11:21 by rcaputo
-  POE/Resource/Aliases.pm 1.3; t/res/aliases.t 1.3
+  lib/POE/Resource/Aliases.pm 1.3; t/res/aliases.t 1.3
 
     Add accessors to POE::Resource::Aliases so we can test the module's
     final state. Use the new accessors to test the module's final state
@@ -1074,49 +1181,50 @@
     Aliases also affect sessions' master reference counts. Add tests to
     make sure those counts are correct. 
 
-  2003-05-31 17:40:18 by rcaputo; POE/Resource/Sessions.pm 1.2
+  2003-05-31 17:40:18 by rcaputo; lib/POE/Resource/Sessions.pm 1.2
 
     Added an accessor to get at a session's reference count without
     altering it. This lets us test it against known values in the other
     resource tests. 
 
-  2003-05-31 12:18:01 by rcaputo; MANIFEST 1.82; POE/Resource.pm 1.1;
+  2003-05-31 12:18:01 by rcaputo; MANIFEST 1.82; lib/POE/Resource.pm 1.1;
   t/res/aliases.t 1.1; t/res/extrefs.t 1.1
 
     Add Resource.pm to document what we know so far about POE::Resource
     classes. Add new, detailed tests for some of the resources. 
 
   2003-05-31 11:52:04 by rcaputo
-  POE/Resource/Aliases.pm 1.2; POE/Resource/Extrefs.pm 1.2
+  lib/POE/Resource/Aliases.pm 1.2; lib/POE/Resource/Extrefs.pm 1.2
 
     Comment observations made while writing new tests. 
 
   2003-05-31 11:48:42 by rcaputo
-  lib/Makefile-5004.pm 1.14; lib/Makefile-5005.pm 1.30
+  mylib/Makefile-5004.pm 1.14; mylib/Makefile-5005.pm 1.30
 
     Expand the tests to include one-level subdirectories. 
 
   2003-05-30 19:35:56 by sungo
-  lib/Makefile-5004.pm 1.13; lib/Makefile-5005.pm 1.29
+  mylib/Makefile-5004.pm 1.13; mylib/Makefile-5005.pm 1.29
 
     remove poe_report.xml in make clean/realclean 
 
   2003-05-20 22:20:19 by rcaputo
-  MANIFEST.SKIP 1.3; POE/NFA.pm 1.21; POE/Session.pm 1.85
+  MANIFEST.SKIP 1.3; lib/POE/NFA.pm 1.21; lib/POE/Session.pm 1.85
 
     Clear up some of the terminology in the session warnings/errors. 
 
-  2003-05-20 19:13:07 by rcaputo; MANIFEST.SKIP 1.2; POE/Kernel.pm 1.242;
-  POE/NFA.pm 1.20; POE/Resource/Signals.pm 1.2; POE/Session.pm 1.84
+  2003-05-20 19:13:07 by rcaputo; MANIFEST.SKIP 1.2;
+  lib/POE/Kernel.pm 1.242; lib/POE/NFA.pm 1.20;
+  lib/POE/Resource/Signals.pm 1.2; lib/POE/Session.pm 1.84
 
     Upgrade the mandatory signal deprecation warnings to errors.
     Originally scheduled for January 2003. 
 
-  2003-05-13 03:42:19 by rcaputo; MANIFEST 1.81; POE/Kernel.pm 1.241;
-  POE/Resource/Aliases.pm 1.1; POE/Resource/Events.pm 1.1;
-  POE/Resource/Extrefs.pm 1.1; POE/Resource/FileHandles.pm 1.1;
-  POE/Resource/SIDs.pm 1.1; POE/Resource/Sessions.pm 1.1;
-  POE/Resource/Signals.pm 1.1
+  2003-05-13 03:42:19 by rcaputo; MANIFEST 1.81; lib/POE/Kernel.pm 1.241;
+  lib/POE/Resource/Aliases.pm 1.1; lib/POE/Resource/Events.pm 1.1;
+  lib/POE/Resource/Extrefs.pm 1.1; lib/POE/Resource/FileHandles.pm 1.1;
+  lib/POE/Resource/SIDs.pm 1.1; lib/POE/Resource/Sessions.pm 1.1;
+  lib/POE/Resource/Signals.pm 1.1
 
     Split out the "resource" functions from POE::Kernel. The major data
     structures within POE::Kernel have been broken into subsystems and
@@ -1134,7 +1242,7 @@
 2003-05-10 17:20:21 v0_26
 =========================
 
-  2003-05-10 17:20:21 by rcaputo; POE.pm 1.159; README 1.104
+  2003-05-10 17:20:21 by rcaputo; README 1.104; lib/POE.pm 1.159
 
     Increase the version number to 0.26 for release. Revise the README
     for clarity, conciseness, etc. 
@@ -1144,17 +1252,17 @@
     Add a warning to explain the most likely cause of this module
     hanging. Thanks to Somni for reminding me of the problem. 
 
-  2003-05-04 04:35:59 by rcaputo; POE.pm 1.158
+  2003-05-04 04:35:59 by rcaputo; lib/POE.pm 1.158
 
     Increase version from 0.2502 (first release candidate for 0.26) to
     0.2503 (live CVS for any last minute bug fixes before 0.26). 
 
-  2003-05-04 04:33:37 by rcaputo; POE.pm 1.157
+  2003-05-04 04:33:37 by rcaputo; lib/POE.pm 1.157
 
     Increasing the version from 0.2501 (CVS after 0.25) to 0.2502 (first
     release candidate for 0.26). 
 
-  2003-05-03 01:46:16 by rcaputo; POE/Wheel/SocketFactory.pm 1.71
+  2003-05-03 01:46:16 by rcaputo; lib/POE/Wheel/SocketFactory.pm 1.71
 
     A previous patch to shutdown client sockets before they had closed
     used $self in closures which themselves were stored in $self,
@@ -1162,21 +1270,21 @@
     actually working. This patch goes through some gyrations to break
     those circular references. 
 
-  2003-05-02 12:55:23 by rcaputo; lib/Makefile-5005.pm 1.28
+  2003-05-02 12:55:23 by rcaputo; mylib/Makefile-5005.pm 1.28
 
     Require ExtUtils::AutoInstall version 0.50. 
 
-  2003-05-02 12:48:14 by rcaputo; lib/Makefile-5005.pm 1.27
+  2003-05-02 12:48:14 by rcaputo; mylib/Makefile-5005.pm 1.27
 
     Add ExtUtils::AutoInstall's postamble() so the automatic installation
     things work. 
 
-  2003-05-02 12:36:20 by rcaputo; POE/Wheel/ReadWrite.pm 1.62
+  2003-05-02 12:36:20 by rcaputo; lib/POE/Wheel/ReadWrite.pm 1.62
 
     Added the ability to shutdown() input/output on a ReadWrite wheel
     attached to a socket. Thanks to Peter Chen for suggesting it. 
 
-  2003-04-29 22:18:31 by rcaputo; POE/Kernel.pm 1.240
+  2003-04-29 22:18:31 by rcaputo; lib/POE/Kernel.pm 1.240
 
     Applied Nick Williams' patch to avoid internal inconsistency problems
     with signals use:
@@ -1190,26 +1298,26 @@
     error in _data_ses_collect_garbage. 
 
   2003-04-29 15:52:59 by rcaputo
-  POE/Kernel.pm 1.239; POE/NFA.pm 1.19; t/23_nfa.t 1.6
+  lib/POE/Kernel.pm 1.239; lib/POE/NFA.pm 1.19; t/23_nfa.t 1.6
 
     Fix POE::NFA's stop() method. Previously it was using POE::Kernel's
     session_free() method, which was recently renamed. 
 
-  2003-04-21 14:54:36 by rcaputo; POE/Kernel.pm 1.238
+  2003-04-21 14:54:36 by rcaputo; lib/POE/Kernel.pm 1.238
 
     Work around the persistent double-GC problem by avoiding a second GC
     on a defunct session. 
 
-  2003-04-08 01:01:44 by rcaputo; POE/Kernel.pm 1.237
+  2003-04-08 01:01:44 by rcaputo; lib/POE/Kernel.pm 1.237
 
     Applied Brandon Beamer's POD patch for $poe_main_window when using Tk
     with POE. 
 
-  2003-04-07 06:19:28 by rcaputo; lib/ExtUtils/AutoInstall.pm 1.3
+  2003-04-07 06:19:28 by rcaputo; mylib/ExtUtils/AutoInstall.pm 1.3
 
     Update to version 0.50. 
 
-  2003-04-07 04:22:02 by rcaputo; POE/Wheel/SocketFactory.pm 1.70
+  2003-04-07 04:22:02 by rcaputo; lib/POE/Wheel/SocketFactory.pm 1.70
 
     Fixed a leak discovered by dynweb. In client mode, SocketFactory
     would did release its grip on the socket until destroyed. He found
@@ -1220,18 +1328,18 @@
 
     Commit Alan Hastings' more proper patch for Cygwin support. 
 
-  2003-04-03 04:01:56 by rcaputo; POE/Wheel/Run.pm 1.46
+  2003-04-03 04:01:56 by rcaputo; lib/POE/Wheel/Run.pm 1.46
 
     Apply Alan Hastings' Cygwin support patch. 
 
-  2003-04-03 04:00:47 by rcaputo; POE/Wheel/SocketFactory.pm 1.69
+  2003-04-03 04:00:47 by rcaputo; lib/POE/Wheel/SocketFactory.pm 1.69
 
     Patch the documentation for the Reuse parameter. Also support another
     reasonable alternative. It might be best, however, to trust the user
     to supply a proper Perl boolean value. 
 
   2003-03-24 16:48:58 by rcaputo
-  POE/Wheel/Run.pm 1.45; t/22_wheel_run.t 1.31
+  lib/POE/Wheel/Run.pm 1.45; t/22_wheel_run.t 1.31
 
     Applied and documented Dmitri Tikhonov's patch for the ProgramArgs
     feature. This lets master programs specify parameters for
@@ -1239,7 +1347,7 @@
     memory leaks created by them. The tests were extended to exercise the
     new feature. 
 
-  2003-03-24 16:46:32 by rcaputo; lib/cvs-log.perl 1.4
+  2003-03-24 16:46:32 by rcaputo; mylib/cvs-log.perl 1.4
 
     It seems impossible to avoid duplicate tags (identical timestamp) for
     the initial import of a source tree into CVS. The usual convention is
@@ -1252,33 +1360,33 @@
     Windows NT. Increased the timeout to five seconds so that the test
     doesn't trigger false failures on slow machines. 
 
-  2003-03-05 17:22:23 by rcaputo; POE/Kernel.pm 1.236
+  2003-03-05 17:22:23 by rcaputo; lib/POE/Kernel.pm 1.236
 
     Hachi's double-free fix leaves the code in this file, but it's
     commented out. I'm commenting it so archaeologists will know what he
     was thinking. 
 
-  2003-03-05 17:20:13 by rcaputo; POE/Component/Client/TCP.pm 1.31
+  2003-03-05 17:20:13 by rcaputo; lib/POE/Component/Client/TCP.pm 1.31
 
     Clear the Client::TCP component's alias on shutdown. Otherwise, if
     something else in the program is active, the Client will disconnect
     but its internal session won't _stop. "Buzz Darkyear" on MagNet #poe
     reported this one. 
 
-  2003-03-03 16:27:01 by sungo; POE/Kernel.pm 1.235
+  2003-03-03 16:27:01 by sungo; lib/POE/Kernel.pm 1.235
 
     add the ability to disable Time::HiRes usage via a constant. document
     this interface 
 
-  2003-03-03 15:51:46 by sungo; POE/Loop/Select.pm 1.44
+  2003-03-03 15:51:46 by sungo; lib/POE/Loop/Select.pm 1.44
 
     oops. still need to set a minumum select timeout 
 
-  2003-03-03 15:47:18 by sungo; POE/Loop/Select.pm 1.43
+  2003-03-03 15:47:18 by sungo; lib/POE/Loop/Select.pm 1.43
 
     comment out the linux select timeout workaround and comment why 
 
-  2003-03-02 07:20:40 by hachi; POE/Kernel.pm 1.234
+  2003-03-02 07:20:40 by hachi; lib/POE/Kernel.pm 1.234
 
     Bug squashing attempt, sessions that used postbacks may in the past
     get garbage collected twice, there was an internal consistency check
@@ -1303,7 +1411,7 @@
     POE/Perl users? <sky> not in 0.23+ <dngnand> I'll remove the warning
     from Makefile.PL, then. 
 
-  2003-02-27 00:10:35 by cwest; POE/Wheel/FollowTail.pm 1.43
+  2003-02-27 00:10:35 by cwest; lib/POE/Wheel/FollowTail.pm 1.43
 
     From the mailing list:
 
@@ -1350,7 +1458,7 @@
     This was a short sided change. The old behaviour is correct and has
     been restored. 
 
-  2003-02-22 03:00:35 by sungo; lib/events_per_second.pl 1.1
+  2003-02-22 03:00:35 by sungo; mylib/events_per_second.pl 1.1
 
     first stab at a benchmark of various event loops. run with --help
     option for usage 
@@ -1361,7 +1469,7 @@
     SocketFactory. This patch works around Cygwin's strange behavior in a
     most unsatisfying way. 
 
-  2003-02-07 19:34:20 by rcaputo; POE.pm 1.156
+  2003-02-07 19:34:20 by rcaputo; lib/POE.pm 1.156
 
     Bump the version to the next "CVS" number. 
 
@@ -1369,12 +1477,12 @@
 2003-02-07 17:48:47 v0_25
 =========================
 
-  2003-02-07 17:48:47 by rcaputo; POE.pm 1.155; README 1.103
+  2003-02-07 17:48:47 by rcaputo; README 1.103; lib/POE.pm 1.155
 
     Finalize things for the imminent 0.25 release. 
 
-  2003-02-07 05:03:43 by hachi
-  POE/Component/Client/TCP.pm 1.30; POE/Component/Server/TCP.pm 1.35
+  2003-02-07 05:03:43 by hachi; lib/POE/Component/Client/TCP.pm 1.30;
+  lib/POE/Component/Server/TCP.pm 1.35
 
     Documentation cleanup in PoCo::Client::TCP and PoCo::Server::TCP
 
@@ -1397,12 +1505,12 @@
     build. Meanwhile, you may follow the status of the bug at
     http://bugs.activestate.com/show_bug.cgi?id=22619 
 
-  2003-02-06 03:25:52 by rcaputo; POE/Loop/Tk.pm 1.39
+  2003-02-06 03:25:52 by rcaputo; lib/POE/Loop/Tk.pm 1.39
 
     Collateral refactoring while trying to work around ActivePerl's
     problem with Tk, and Tk's problem with my preferred workaround. 
 
-  2003-02-05 16:22:11 by rcaputo; POE/Kernel.pm 1.233
+  2003-02-05 16:22:11 by rcaputo; lib/POE/Kernel.pm 1.233
 
     Nancy Grady pointed out that Randal Schwartz's listing at
     http://www.stonehenge.com/merlyn/LinuxMag/col41.listing.txt was not
@@ -1410,54 +1518,11 @@
     collection test in POE::Kernel, introduced during the Great
     Refactoring of 2002. This fix adds back the GC test that was removed. 
 
-  2003-02-04 03:32:01 by rcaputo; POE/Pipe.pm 1.9
+  2003-02-04 03:32:01 by rcaputo; lib/POE/Pipe.pm 1.9
 
     Bad Rocco! Always verify copied/pasted/tweaked code has actually been
     tweaked, or you'll keep doing things like what was fixed here.
     Luckily it hadn't caused any trouble to speak of. 
-
-  2003-02-01 19:13:27 by cwest
-  POE/Component/Client/TCP.pm 1.29; POE/Component/Server/TCP.pm 1.34
-
-    The code to validate SessionParams was broken. Even when
-    SessionParams was defined correctly, it was overwritten with an empty
-    array reference. This has been fixed. 
-
-  2003-02-01 04:52:07 by cwest; t/001_queue.t 1.2; t/00_coverage.t 1.17;
-  t/01_sessions.t 1.22; t/02_alarms.t 1.12; t/03_aliases.t 1.12;
-  t/04_selects.t 1.16; t/05_macros.t 1.6; t/06_tk.t 1.39;
-  t/07_event.t 1.16; t/08_errors.t 1.42; t/09_wheels_unix.t 1.14;
-  t/10_wheels_tcp.t 1.13; t/11_signals_poe.t 1.24;
-  t/12_signals_ev.t 1.17; t/13_wheels_udp.t 1.4; t/14_wheels_ft.t 1.11;
-  t/15_filter_block.t 1.4; t/16_filter_stream.t 1.3;
-  t/17_filter_ref.t 1.6; t/18_filter_line.t 1.7;
-  t/19_filterchange.t 1.11; t/20_accept.t 1.5; t/21_gtk.t 1.16;
-  t/22_wheel_run.t 1.30; t/23_nfa.t 1.5; t/24_filter_stack.t 1.3;
-  t/25_detach.t 1.4; t/26_comp_tcp.t 1.3; t/27_poll.t 1.6;
-  t/28_windows.t 1.4; t/29_sockfact6.t 1.7
-
-    Resolving Ticket #1597 on rt.cpan.org
-
-    All tests now look in ./lib, ../lib, .., and . for libraries so as to
-    not go testing already installed libraries. 
-
-  2003-02-01 04:17:41 by cwest; POE/Component/Client/TCP.pm 1.28
-
-    Added new() parameters SessionType and SessionParams. SessionType
-    allows you to override the default POE session handler, POE::Session,
-    with your choice of drop in replacement such as
-    POE::Session::MultiDispatch. SessionParams allows you to pass extra
-    arguments to the SessionType's constructor. Most useful are things in
-    the options hash. 
-
-  2003-02-01 04:04:39 by cwest; POE/Component/Server/TCP.pm 1.33
-
-    Added create() parameters SessionType and SessionParams. SessionType
-    allows you to override the default POE session handler, POE::Session,
-    with your choice of drop in replacement such as
-    POE::Session::MultiDispatch. SessionParams allows you to pass extra
-    arguments to the SessionType's constructor. Most useful are things in
-    the options hash. 
 
 =============================
 Beginning of Recorded History

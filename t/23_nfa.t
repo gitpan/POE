@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 23_nfa.t,v 1.8 2003/07/09 18:20:41 rcaputo Exp $
+# $Id: 23_nfa.t,v 1.10 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests NFA sessions.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 &test_setup(20);
 

@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: create.perl,v 1.6 2000/11/03 21:59:01 rcaputo Exp $
+# $Id: create.perl,v 1.7 2004/01/31 06:58:29 rcaputo Exp $
 
 # This is a version of sessions.perl that uses the &Session::create
 # constructor.
 
 use strict;
-use lib '..';
+use lib '../lib';
 
 # use POE always includes POE::Kernel and POE::Session, since they are
 # the fundamental POE classes and universally used.  POE::Kernel

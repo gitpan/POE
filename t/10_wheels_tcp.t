@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 10_wheels_tcp.t,v 1.15 2003/07/09 18:20:41 rcaputo Exp $
+# $Id: 10_wheels_tcp.t,v 1.17 2004/01/31 06:58:30 rcaputo Exp $
 
 # Exercises the wheels commonly used with TCP sockets.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

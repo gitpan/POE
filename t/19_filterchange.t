@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 19_filterchange.t,v 1.13 2003/07/09 18:20:41 rcaputo Exp $
+# $Id: 19_filterchange.t,v 1.15 2004/01/31 06:58:30 rcaputo Exp $
 
 # Exercises filter changing.  A lot of this code comes from Philip
 # Gwyn's filterchange.perl sample.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 
 use TestSetup qw(ok not_ok results test_setup ok_if many_not_ok);
 use MyOtherFreezer;

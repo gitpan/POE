@@ -1,11 +1,13 @@
 #!/usr/bin/perl
-# $Id: 30_filter_httpd.t,v 1.6 2004/01/25 06:39:53 sungo Exp $
+# $Id: 30_filter_httpd.t,v 1.7 2004/01/31 06:58:30 rcaputo Exp $
 
 # Test Filter::HTTPD by itself
 # See other (forthcoming) for more complex interactions
 
 use warnings;
 use strict;
+
+use lib qw(./mylib ../mylib ../lib ./lib);
 
 use Data::Dumper;
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheels.perl,v 1.8 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: wheels.perl,v 1.9 2004/01/31 06:58:30 rcaputo Exp $
 
 # If wheels make you squeamish, see selects.perl.  It is about the
 # same program, but it doesn't use wheels.
@@ -17,7 +17,7 @@
 # this program still relies on IO::Socket.
 
 use strict;
-use lib '..';
+use lib '../lib';
 
 use POE qw(Wheel::ListenAccept Wheel::ReadWrite Driver::SysRW Filter::Line);
 use IO::Socket;

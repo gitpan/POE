@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: watermarks.perl,v 1.4 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: watermarks.perl,v 1.5 2004/01/31 06:58:30 rcaputo Exp $
 
 # This program tests the high and low watermarks.  It merges the
 # wheels from wheels.perl and the chargen service from selects.perl to
 # create a wheel-based chargen service.
 
 use strict;
-use lib '..';
+use lib '../lib';
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW Filter::Line);
 
 my $chargen_port = 32019;

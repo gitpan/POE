@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 21_gtk.t,v 1.20 2003/11/22 04:55:27 sungo Exp $
+# $Id: 21_gtk.t,v 1.22 2004/01/31 06:58:30 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Gtk postback events using Gk's event
 # loop.
 
 use strict;
-use lib qw(./lib ../lib .. .);
+use lib qw(./mylib ../mylib ../lib ./lib);
 
 use Symbol;
 

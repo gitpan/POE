@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: coverage.perl,v 1.8 2003/06/03 04:55:28 rcaputo Exp $
+# $Id: coverage.perl,v 1.9 2004/01/28 23:24:00 rcaputo Exp $
 
 # Runs t/*.t with the custom Devel::Trace to check for source
 # coverage.
 
 use strict;
-use lib qw( . .. ../lib );
+use lib qw( . .. ../mylib );
 
 sub DEBUG  () { 0 } # skip running tests to better debug this one
 sub UNLINK () { 1 } # unlink coverage files when done (disable for testing)
@@ -70,7 +70,7 @@ foreach my $test_file (@test_files) {
   # System returns 0 on success.
   my $result =
     system( '/usr/bin/perl',
-            '-Ilib', '-I../lib', '-I.', '-I..', '-d:Trace', $test_file
+            '-Imylib', '-I../mylib', '-I.', '-I..', '-d:Trace', $test_file
           );
   warn "error running $test_file: ($result) $!" if $result;
 }

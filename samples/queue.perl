@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: queue.perl,v 1.1 2000/12/03 13:27:12 rcaputo Exp $
+# $Id: queue.perl,v 1.2 2004/01/31 06:58:30 rcaputo Exp $
 
 # This is a simple job queue.
 
 use strict;
-use lib '..';
+use lib '../lib';
 
 # sub POE::Kernel::TRACE_DEFAULT () { 1 }
 # sub POE::Kernel::TRACE_GARBAGE () { 1 }

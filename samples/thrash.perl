@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: thrash.perl,v 1.12 2001/10/24 19:10:17 rcaputo Exp $
+# $Id: thrash.perl,v 1.13 2004/01/31 06:58:30 rcaputo Exp $
 
 # This program creates a server session and an infinitude of clients
 # that connect to it, all in the same process.  It's mainly used to
@@ -12,7 +12,7 @@
 #   In the "client" copy, comment out th ecall to &server_create();
 
 use strict;
-use lib '..';
+use lib '../lib';
 use Socket;
 
 #sub POE::Kernel::ASSERT_DEFAULT () { 1 }

@@ -1,9 +1,9 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.34 2004/01/27 20:09:27 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.38 2004/02/02 17:24:51 rcaputo Exp $
 
 use strict;
 
-use lib qw(./lib);
+use lib qw(./mylib);
 use ExtUtils::MakeMaker;
 
 # Switch to default behavior if STDIN isn't a tty.
@@ -33,7 +33,7 @@ if ($@) {
         "==================================================================\n",
         "\n",
       );
-  eval "require './lib/ExtUtils/AutoInstall.pm'";
+  eval "require './mylib/ExtUtils/AutoInstall.pm'";
   die if $@;
 }
 
@@ -120,22 +120,23 @@ ExtUtils::AutoInstall->import
     ],
 );
 
-# Touch CHANGES so it exists.
-open(CHANGES, ">>CHANGES") and close CHANGES;
+# Touch generated files so they exist.
+open(TOUCH, ">>CHANGES") and close TOUCH;
+open(TOUCH, ">>META.yml") and close TOUCH;
 
 sub MY::postamble {
   return ExtUtils::AutoInstall::postamble() .
     <<EOF;
 reportupload: poe_report.xml
-	$^X lib/reportupload.pl
+	$^X mylib/reportupload.pl
 
 uploadreport: poe_report.xml
-	$^X lib/reportupload.pl
+	$^X mylib/reportupload.pl
 
 testreport: poe_report.xml
 
 poe_report.xml: Makefile
-	$^X lib/testreport.pl
+	$^X mylib/testreport.pl
 
 ppmdist: pm_to_blib
 	\$(TAR) --exclude '*/man[13]*' -cvf \\
@@ -144,7 +145,6 @@ ppmdist: pm_to_blib
 
 ppddist: ppmdist
 EOF
-
 }
 
 WriteMakefile(
@@ -158,34 +158,32 @@ WriteMakefile(
       )
   ),
 
-  VERSION_FROM   => 'POE.pm',
+  VERSION_FROM   => 'lib/POE.pm',
   dist           => {
     COMPRESS => 'gzip -9f',
     SUFFIX   => 'gz',
     PREOP    => (
-      './lib/cvs-log.perl | ' .
-      'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
+      './mylib/cvs-log.perl | ' .
+      '/usr/bin/tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES; ' .
+      "$^X Build.PL; " .
+      './Build distmeta; ' .
+      '/bin/cp -f ./META.yml ./$(DISTNAME)-$(VERSION)/META.yml'
     ),
   },
 
   test           => { TESTS => 't/*/*.t t/*.t' },
 
-  PMLIBDIRS      => [ 'POE' ],
   clean          => {
       FILES => 'poe_report.xml test-output.err coverage.report',
   },
 
   # More for META.yml than anything.
+  PL_FILES       => { },
+  NO_META        => 1,
   PREREQ_PM      => {
     'Test::More'         => 0,
     'Filter::Util::Call' => 1.04,
   },
-
-  # But we're not generating META.yml here.  Rather, we're using
-  # lib/Build.PL for that.  In the future, we should use one or the
-  # other, because it sucks needing to remember to run lib/Build.PL
-  # before every release.
-  NO_META        => 1,
 );
 
 1;
