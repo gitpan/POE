@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 00_coverage.t,v 1.15 2002/08/20 19:37:32 rcaputo Exp $
+# $Id: 00_coverage.t,v 1.16 2002/10/25 15:04:38 rcaputo Exp $
 
 # This test merely loads as many modules as possible so that the
 # coverage tester will see them.  It's performs a similar function as
@@ -31,6 +31,9 @@ sub load_optional_module {
   }
   elsif ($reason =~ /^[^\/]*does not[^\/]*?support[^\/]*/) {
     $reason =~ s/\s*\/.+$//g;
+  }
+  elsif ($reason =~ /Unable to get Terminal Size/i) {
+    $reason =~ s/\. at.*//;
   }
 
   print( "ok $test_number",

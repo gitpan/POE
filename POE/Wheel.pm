@@ -1,11 +1,11 @@
-# $Id: Wheel.pm,v 1.16 2002/01/10 20:39:44 rcaputo Exp $
+# $Id: Wheel.pm,v 1.17 2002/11/05 21:03:32 rcaputo Exp $
 
 package POE::Wheel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.16 $ ))[1];
+$VERSION = (qw($Revision: 1.17 $ ))[1];
 
 use Carp qw(croak);
 
@@ -115,7 +115,7 @@ flushed to its filehandle.
 
 =head1 STATIC FUNCTIONS
 
-These functions keep global information about all weels.  They should
+These functions keep global information about all wheels.  They should
 be called as normal functions:
 
   &POE::Wheel::function( ... );
@@ -124,8 +124,8 @@ be called as normal functions:
 
 =item allocate_wheel_id
 
-allocate_wheel_id() allocates a uniquely identifier for a wheel.
-Wheels pass these identifiers back to sessions in their events so that
+allocate_wheel_id() allocates a unique identifier for a wheel.  Wheels
+pass these identifiers back to sessions in their events so that
 sessions with several wheels can match events back to other
 information.
 

@@ -1,12 +1,10 @@
-# $Id: ReadLine.pm,v 1.21 2002/09/04 01:18:47 rcaputo Exp $
+# $Id: ReadLine.pm,v 1.26 2002/11/19 19:23:00 rcaputo Exp $
 
 package POE::Wheel::ReadLine;
-use POE::Preprocessor;
 
 use strict;
-
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.21 $ ))[1];
+$VERSION = (qw($Revision: 1.26 $ ))[1];
 
 use Carp;
 use Symbol qw(gensym);
@@ -60,7 +58,6 @@ sub SELF_UNIQUE_ID      () { 17 }
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 
 #------------------------------------------------------------------------------
-# Helper functions.
 
 # Build a hash of input characters and their "normalized" display
 # versions.  ISO Latin-1 characters (8th bit set "ASCII") are
@@ -84,95 +81,9 @@ for (my $ord = 0; $ord < 256; $ord++) {
       ) - 1;
 }
 
-# Wipe the current input line.  Implemented as a macro to avoid
-# circular closure problems with $self.
-
-macro wipe_input_line {
-  # Clear the current prompt and input, and home the cursor.
-  print $stdout $termcap->Tgoto( 'LE', 1,
-                         ( $$self_cursor_display + length($$self_prompt)
-                         )
-                       );
-  if ($tc_has_ke) {
-    print $stdout $termcap->Tputs( 'kE', 1 );
-  }
-  else {
-    my $wipe_length = length($$self_prompt) + display_width($$self_input);
-    print( $stdout
-           (' ' x $wipe_length), $termcap->Tgoto( 'LE', 1, $wipe_length)
-         );
-  }
-}
-
-# Helper to flush any buffered output.  A macro to avoid circular
-# closure problems with $self.
-
-macro flush_output_buffer {
-  # Flush anything buffered.
-  if (@$self_put_buffer) {
-    print $stdout @$self_put_buffer;
-
-    # Do not change the interior listref, or the event handlers will
-    # become confused.
-    @$self_put_buffer = ( );
-  }
-}
-
-# Set up the prompt and input line like nothing happened.  A macro to
-# avoid circular closure problems with $self.
-
-macro repaint_input_line {
-  print( $stdout $$self_prompt, normalize($$self_input) );
-  if ($$self_cursor_input != length($$self_input)) {
-    $termcap->Tgoto( 'LE', 1,
-                     ( display_width($$self_input) - $$self_cursor_display ),
-                     $stdout
-                   );
-  }
-}
-
-# Return a normalized version of a string.  This includes destroying
-# 8th-bit-set characters, turning them into strange multi-byte
-# sequences.  Apologies to everyone; please let me know of a portable
-# way to deal with this.
-sub normalize {
-  local $_ = shift;
-  s/([^ -~])/$normalized_character{$1}/g;
-  return $_;
-}
-
-# Calculate the display width of a string.  The display width is
-# sometimes wider than the actual string because some characters are
-# represented on the terminal as multiple characters.
-
-sub display_width {
-  local $_ = shift;
-  my $width = length;
-  $width += $normalized_extra_width[ord] foreach (m/([\x00-\x1F\x7F-\xFF])/g);
-  return $width;
-}
-
-# Some keystrokes generate multi-byte sequences.  Record the prefixes
-# for multi-byte sequences so the keystroke builder knows it's in the
-# middle of something.
-sub meta {
-  foreach (@_) {
-    my $meta = $_;
-    while (length($meta) > 1) {
-      chop $meta;
-      $meta_prefix{$meta} = 1;
-    }
-  }
-}
-
-# Preprocess a keystroke.  This gets it from the termcap, handles
-# meta-prefixes, and returns its normalized version.
-sub preprocess_keystroke {
-  my $termcap_tag = shift;
-  my $keystroke = $termcap->Tputs( $termcap_tag, 1 );
-  meta( $keystroke );
-  normalize( $keystroke );
-}
+#------------------------------------------------------------------------------
+# Gather information about the user's terminal.  This just keeps
+# getting uglier.
 
 # Get the terminal speed for Term::Cap.
 my $ospeed = B38400;
@@ -188,7 +99,29 @@ $termcap = Term::Cap->Tgetent( { TERM => $term, OSPEED => $ospeed } );
 die "could not find termcap entry for ``$term'': $!" unless defined $termcap;
 
 # Require certain capabilites.
-$termcap->Trequire( qw( LE RI cl ku kd kl kr ) );
+$termcap->Trequire( qw( cl ku kd kl kr ) );
+
+# Cursor movement.
+my $tc_left = "LE";
+eval { $termcap->Trequire($tc_left) };
+if ($@) {
+  $tc_left = "le";
+  eval { $termcap->Trequire($tc_left) };
+  die "POE::Wheel::ReadLine requires a termcap that supports LE or le" if $@;
+}
+
+sub curs_left {
+  my $amount = shift;
+
+  if ($tc_left eq "LE") {
+    $termcap->Tgoto($tc_left, 1, $amount, $stdout);
+    return;
+  }
+
+  for (1..$amount) {
+    $termcap->Tgoto($tc_left, 1, 1, $stdout);
+  }
+}
 
 # Some things are optional.
 eval { $termcap->Trequire( 'kE' ) };
@@ -235,6 +168,105 @@ else    { $tck_backspace = preprocess_keystroke( 'kb' ); }
 
 # Esc is the generic meta prefix.
 $meta_prefix{chr(27)} = 1;
+
+#------------------------------------------------------------------------------
+# Helper functions.
+
+# Wipe the current input line.
+sub wipe_input_line {
+  my %args   = @_;
+  my $stdout = $args{stdout};
+
+  # Clear the current prompt and input, and home the cursor.
+  curs_left( $ { $args{self_cursor_display} } +
+             length( $ { $args{self_prompt} })
+           );
+
+  if ( $args{tc_has_ke} ) {
+    print $stdout $args{termcap}->Tputs( 'kE', 1 );
+  }
+  else {
+    $args{wipe_length} =
+      length( $ { $args{self_prompt} } ) +
+        display_width( $ { $args{self_input} } );
+    print $stdout ( ' ' x $args{wipe_length} );
+    curs_left($args{wipe_length});
+  }
+}
+
+# Helper to flush any buffered output.  
+sub flush_output_buffer {
+    my %args   = @_;
+    my $stdout = $args{stdout};
+
+    # Flush anything buffered.
+    if ( @{ $args{self_put_buffer} } ) {
+        print $stdout @{ $args{self_put_buffer} };
+
+        # Do not change the interior listref, or the event handlers will
+        # become confused.
+        @{ $args{self_put_buffer} } = ();
+    }
+}
+
+# Set up the prompt and input line like nothing happened.  
+sub repaint_input_line {
+    my %args   = @_;
+    my $stdout = $args{stdout};
+    print( $stdout $ { $args{self_prompt} },
+        normalize( $ { $args{self_input} } )
+    );
+    if ( $ { $args{self_cursor_input} } !=
+         length( $ { $args{self_input} } )
+       ) {
+      curs_left( display_width( $ { $args{self_input} } ) -
+                 $ { $args{self_cursor_display} }
+               );
+    }
+}
+
+# Return a normalized version of a string.  This includes destroying
+# 8th-bit-set characters, turning them into strange multi-byte
+# sequences.  Apologies to everyone; please let me know of a portable
+# way to deal with this.
+sub normalize {
+  local $_ = shift;
+  s/([^ -~])/$normalized_character{$1}/g;
+  return $_;
+}
+
+# Calculate the display width of a string.  The display width is
+# sometimes wider than the actual string because some characters are
+# represented on the terminal as multiple characters.
+
+sub display_width {
+  local $_ = shift;
+  my $width = length;
+  $width += $normalized_extra_width[ord] foreach (m/([\x00-\x1F\x7F-\xFF])/g);
+  return $width;
+}
+
+# Some keystrokes generate multi-byte sequences.  Record the prefixes
+# for multi-byte sequences so the keystroke builder knows it's in the
+# middle of something.
+sub meta {
+  foreach (@_) {
+    my $meta = $_;
+    while (length($meta) > 1) {
+      chop $meta;
+      $meta_prefix{$meta} = 1;
+    }
+  }
+}
+
+# Preprocess a keystroke.  This gets it from the termcap, handles
+# meta-prefixes, and returns its normalized version.
+sub preprocess_keystroke {
+  my $termcap_tag = shift;
+  my $keystroke = $termcap->Tputs( $termcap_tag, 1 );
+  meta( $keystroke );
+  normalize( $keystroke );
+}
 
 #------------------------------------------------------------------------------
 # The methods themselves.
@@ -351,9 +383,26 @@ sub _define_idle_state {
         my ($k, $s) = @_[KERNEL, SESSION];
 
         if (@$self_put_buffer) {
-          {% wipe_input_line %}
-          {% flush_output_buffer %}
-          {% repaint_input_line %}
+          wipe_input_line(
+            self_cursor_display => $self_cursor_display,
+            self_input          => $self_input,
+            self_prompt         => $self_prompt,
+            stdout              => $stdout,
+            tc_has_ke           => $tc_has_ke,
+            termcap             => $termcap,
+          );
+          flush_output_buffer(
+            self_put_buffer => $self_put_buffer,
+            stdout          => $stdout,
+          );
+          repaint_input_line(
+            self_cursor_display => $self_cursor_display,
+            self_cursor_input   => $self_cursor_input,
+            self_input          => $self_input,
+            self_prompt         => $self_prompt,
+            stdout              => $stdout,
+            termcap             => $termcap,
+          );
         }
 
         # No more timer.
@@ -435,7 +484,7 @@ sub _define_read_state {
               # Beginning of line.
               if ( $key eq '^A' or $key eq $tck_home ) {
                 if ($$cursor_input) {
-                  $termcap->Tgoto( 'LE', 1, $$cursor_display, $stdout );
+                  curs_left($$cursor_display);
                   $$cursor_display = $$cursor_input = 0;
                 }
                 else {
@@ -449,7 +498,7 @@ sub _define_read_state {
                 if ($$cursor_input) {
                   $$cursor_input--;
                   my $left = display_width(substr($$input, $$cursor_input, 1));
-                  $termcap->Tgoto( 'LE', 1, $left, $stdout );
+                  curs_left($left);
                   $$cursor_display -= $left;
                 }
                 else {
@@ -471,7 +520,11 @@ sub _define_read_state {
                                   );
                 $$reading = 0;
                 $$hist_index = @$hist_list;
-                {% flush_output_buffer %}
+
+                flush_output_buffer(
+                    self_put_buffer => $self_put_buffer,
+                    stdout          => $stdout,
+                );
                 next;
               }
 
@@ -486,7 +539,7 @@ sub _define_read_state {
                       (' ' x $kill_width)
                     );
                   print $stdout $normal;
-                  $termcap->Tgoto( 'LE', 1, length($normal), $stdout );
+                  curs_left(length($normal));
                 }
                 else {
                   print $stdout $tc_bell;
@@ -497,8 +550,9 @@ sub _define_read_state {
               # End of line.
               if ( $key eq '^E' or $key eq $tck_end ) {
                 if ($$cursor_input < length($$input)) {
-                  my $right = display_width(substr($$input, $$cursor_input));
-                  $termcap->Tgoto( 'RI', 1, $right, $stdout );
+                  my $right_string = substr($$input, $$cursor_input);
+                  print normalize($right_string);
+                  my $right = display_width($right_string);
                   $$cursor_display += $right;
                   $$cursor_input = length($$input);
                 }
@@ -535,7 +589,11 @@ sub _define_read_state {
                                   );
                 $$reading = 0;
                 $$hist_index = @$hist_list;
-                {% flush_output_buffer %}
+
+                flush_output_buffer(
+                    self_put_buffer => $self_put_buffer,
+                    stdout          => $stdout,
+                );
                 return;
               }
 
@@ -547,13 +605,13 @@ sub _define_read_state {
                   my $kill_width =
                     display_width(substr($$input, $$cursor_input, 1));
                   substr($$input, $$cursor_input, 1) = '';
-                  $termcap->Tgoto( 'LE', 1, $left, $stdout );
+                  curs_left($left);
                   my $normal =
                     ( normalize(substr($$input, $$cursor_input)) .
                       (' ' x $kill_width)
                     );
                   print $stdout $normal;
-                  $termcap->Tgoto( 'LE', 1, length($normal), $stdout );
+                  curs_left(length($normal));
                   $$cursor_display -= $kill_width;
                 }
                 else {
@@ -573,7 +631,11 @@ sub _define_read_state {
                 $poe_kernel->yield( $$event_input, $$input, $unique_id );
                 $$reading = 0;
                 $$hist_index = @$hist_list;
-                {% flush_output_buffer %}
+
+                flush_output_buffer(
+                    self_put_buffer => $self_put_buffer,
+                    stdout          => $stdout,
+                );
                 next;
               }
 
@@ -584,9 +646,9 @@ sub _define_read_state {
                     display_width(substr($$input, $$cursor_input));
                   substr( $$input, $$cursor_input ) = '';
                   print( $stdout
-                         (" " x $kill_width),
-                         $termcap->Tgoto( 'LE', 1, $kill_width )
+                         (" " x $kill_width)
                        );
+                  curs_left($kill_width);
                 }
                 else {
                   print $stdout $tc_bell;
@@ -599,7 +661,7 @@ sub _define_read_state {
                 my $left = display_width(substr($$input, $$cursor_input));
                 $termcap->Tputs( 'cl', 1, $stdout );
                 print $stdout $$prompt, normalize($$input);
-                $termcap->Tgoto( 'LE', 1, $left, $stdout ) if $left;
+                curs_left($left) if $left;
                 next;
               }
 
@@ -614,7 +676,11 @@ sub _define_read_state {
                 $poe_kernel->yield( $$event_input, $$input, $unique_id );
                 $$reading = 0;
                 $$hist_index = @$hist_list;
-                {% flush_output_buffer %}
+
+                flush_output_buffer(
+                    self_put_buffer => $self_put_buffer,
+                    stdout          => $stdout,
+                );
                 next;
               }
 
@@ -628,9 +694,9 @@ sub _define_read_state {
                     reverse substr($$input, $$cursor_input - 1, 2);
                   substr($$input, $$cursor_input - 1, 2) = $transposition;
 
-                  $termcap->Tgoto( 'LE', 1, $width_left, $stdout );
+                  curs_left($width_left);
                   print $stdout normalize($transposition);
-                  $termcap->Tgoto( 'LE', 1, $width_left, $stdout );
+                  curs_left($width_left);
                 }
                 else {
                   print $stdout $tc_bell;
@@ -644,7 +710,7 @@ sub _define_read_state {
 
                   # Back up to the beginning of the line.
                   if ($$cursor_input) {
-                    print $stdout $termcap->Tgoto( 'LE', 1, $$cursor_display );
+                    curs_left($$cursor_display);
                     $$cursor_display = $$cursor_input = 0;
                   }
 
@@ -655,7 +721,7 @@ sub _define_read_state {
                   else {
                     my $display_width = display_width($$input);
                     print $stdout ' ' x $display_width;
-                    $termcap->Tgoto( 'LE', 1, $display_width, $stdout );
+                    curs_left($display_width);
                   }
 
                   # Clear the input buffer.
@@ -677,7 +743,7 @@ sub _define_read_state {
 
                   # Back up the screen cursor; show the line's tail.
                   my $delete_width = display_width($1);
-                  $termcap->Tgoto( 'LE', 1, $delete_width, $stdout );
+                  curs_left($delete_width);
                   print $stdout normalize(substr( $$input, $$cursor_input ));
 
                   # Clear to the end of the line.
@@ -686,14 +752,14 @@ sub _define_read_state {
                   }
                   else {
                     print $stdout ' ' x $delete_width;
-                    $termcap->Tgoto( 'LE', 1, $delete_width, $stdout );
+                    curs_left($delete_width);
                   }
 
                   # Back up the screen cursor to match the edit one.
                   if (length($$input) != $$cursor_input) {
                     my $display_width =
                       display_width( substr($$input, $$cursor_input) );
-                    $termcap->Tgoto( 'LE', 1, $display_width, $stdout );
+                    curs_left($display_width);
                   }
                 }
                 else {
@@ -714,7 +780,7 @@ sub _define_read_state {
 
                   # Move cursor to start of input.
                   if ($$cursor_input) {
-                    $termcap->Tgoto( 'LE', 1, $$cursor_display, $stdout );
+                    curs_left($$cursor_display);
                   }
 
                   # Clear to end of line.
@@ -725,7 +791,7 @@ sub _define_read_state {
                     else {
                       my $display_width = display_width($$input);
                       print $stdout ' ' x $display_width;
-                      $termcap->Tgoto( 'LE', 1, $display_width, $stdout );
+                      curs_left($display_width);
                     }
                   }
 
@@ -751,7 +817,7 @@ sub _define_read_state {
 
                   # Move cursor to start of input.
                   if ($$cursor_input) {
-                    $termcap->Tgoto( 'LE', 1, $$cursor_display, $stdout );
+                    curs_left($$cursor_display);
                   }
 
                   # Clear to end of line.
@@ -762,7 +828,7 @@ sub _define_read_state {
                     else {
                       my $display_width = display_width($$input);
                       print $stdout ' ' x $display_width;
-                      $termcap->Tgoto( 'LE', 1, $display_width, $stdout );
+                      curs_left($display_width);
                     }
                   }
 
@@ -800,7 +866,7 @@ sub _define_read_state {
 
                   # Move cursor to start of input.
                   if ($$cursor_input) {
-                    $termcap->Tgoto( 'LE', 1, $$cursor_display, $stdout );
+                    curs_left($$cursor_display);
                   }
 
                   # Clear to end of line.
@@ -811,7 +877,7 @@ sub _define_read_state {
                     else {
                       my $display_width = display_width($$input);
                       print $stdout ' ' x $display_width;
-                      $termcap->Tgoto( 'LE', 1, $display_width, $stdout );
+                      curs_left($display_width);
                     }
                   }
 
@@ -842,7 +908,7 @@ sub _define_read_state {
 
                   # Move cursor to start of input.
                   if ($$cursor_input) {
-                    $termcap->Tgoto( 'LE', 1, $$cursor_display, $stdout );
+                    curs_left($$cursor_display);
                   }
 
                   # Clear to end of line.
@@ -853,7 +919,7 @@ sub _define_read_state {
                     else {
                       my $display_width = display_width($$input);
                       print $stdout ' ' x $display_width;
-                      $termcap->Tgoto( 'LE', 1, $display_width, $stdout );
+                      curs_left($display_width);
                     }
                   }
 
@@ -940,7 +1006,7 @@ sub _define_read_state {
                 if (substr($$input, $$cursor_input) =~ /^(\s*\S+)/) {
                   $$cursor_input += length($1);
                   my $right = display_width($1);
-                  $termcap->Tgoto( 'RI', 1, $right, $stdout );
+                  print normalize($1);
                   $$cursor_display += $right;
                 }
                 else {
@@ -968,7 +1034,7 @@ sub _define_read_state {
                     $normal_remaining_length += $killed_width;
                   }
 
-                  $termcap->Tgoto( 'LE', 1, $normal_remaining_length, $stdout )
+                  curs_left($normal_remaining_length)
                     if $normal_remaining_length;
                 }
                 else {
@@ -982,7 +1048,7 @@ sub _define_read_state {
                 if (substr($$input, 0, $$cursor_input) =~ /(\S+\s*)$/) {
                   $$cursor_input -= length($1);
                   my $kill_width = display_width($1);
-                  $termcap->Tgoto( 'LE', 1, $kill_width, $stdout );
+                  curs_left($kill_width);
                   $$cursor_display -= $kill_width;
                 }
                 else {
@@ -1041,10 +1107,7 @@ sub _define_read_state {
                 $$input = $previous . $right . $space . $left . $rest;
 
                 if ($$cursor_display - display_width($previous)) {
-                  $termcap->Tgoto( 'LE', 1,
-                                   $$cursor_display - display_width($previous),
-                                   $stdout
-                                 );
+                  curs_left($$cursor_display - display_width($previous));
                 }
                 print $stdout normalize($right . $space . $left);
                 $$cursor_input = length($previous. $left . $space . $right);
@@ -1071,7 +1134,7 @@ sub _define_read_state {
                      "term_columns($trk_cols)\x0D\x0A",
                      $$prompt, normalize($$input)
                    );
-              $termcap->Tgoto( 'LE', 1, $left, $stdout ) if $left;
+              curs_left($left) if $left;
               next;
             }
 
@@ -1095,7 +1158,7 @@ sub _define_read_state {
                 print $stdout $key, $normal;
                 $$cursor_input += length($raw_key);
                 $$cursor_display += length($key);
-                $termcap->Tgoto( 'LE', 1, length($normal), $stdout );
+                curs_left(length($normal));
               }
               else {
                 # Overstrike.
@@ -1117,7 +1180,7 @@ sub _define_read_state {
                     $rest .= ' ' x ($replaced_width - length($key));
                   }
                   print $stdout $rest;
-                  $termcap->Tgoto( 'LE', 1, length($rest), $stdout );
+                  curs_left(length($rest));
                 }
               }
             }
@@ -1190,16 +1253,35 @@ sub put {
     my $self_prompt         = \$self->[SELF_PROMPT];
     my $self_input          = \$self->[SELF_INPUT];
     my $self_cursor_input   = \$self->[SELF_CURSOR_INPUT];
+    wipe_input_line(
+        self_cursor_display => $self_cursor_display,
+        self_input          => $self_input,
+        self_prompt         => $self_prompt,
+        stdout              => $stdout,
+        tc_has_ke           => $tc_has_ke,
+        termcap             => $termcap,
+    );
 
-    {% wipe_input_line %}
-    {% flush_output_buffer %}
+
+    flush_output_buffer(
+        self_put_buffer => $self_put_buffer,
+        stdout          => $stdout,
+    );
 
     # Print the new stuff.
     print $stdout @lines;
 
     # Only repaint the input if we're reading a line.
     if ($self->[SELF_READING_LINE]) {
-      {% repaint_input_line %}
+        repaint_input_line(
+              self_cursor_display => $self_cursor_display,
+              self_cursor_input   => $self_cursor_input,
+              self_input          => $self_input,
+              self_prompt         => $self_prompt,
+              stdout              => $stdout,
+              termcap             => $termcap,
+        );
+
     }
 
     return;
@@ -1364,7 +1446,7 @@ Clear the screen and repaint the prompt and current input line.
 
 =item Enter / Return
 
-C-m is the newline keystroke on Unix-y systems.  It ends text entry,
+C-m is the newline keystroke on DOSsy systems.  It ends text entry,
 firing an InputEvent with C<ARG0> containing the entered text (without
 the terminating newline).  C<ARG1> is undefined because there is no
 exception.
@@ -1645,10 +1727,6 @@ A: You probably are using print or printf to write screen output.
    ReadLine doesn't track STDOUT itself, so it doesn't know when to
    refresh the prompt after you do this.  Use ReadLine's put() method
    to write lines to the console.
-
-=head1 BUGS
-
-I am not sure how well this supports unicode.
 
 =head1 AUTHORS & COPYRIGHTS
 

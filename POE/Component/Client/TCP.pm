@@ -1,13 +1,14 @@
-# $Id: TCP.pm,v 1.21 2002/09/12 02:46:24 rcaputo Exp $
+# $Id: TCP.pm,v 1.26 2002/11/27 20:55:30 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.21 $ ))[1];
+$VERSION = (qw($Revision: 1.26 $ ))[1];
 
 use Carp qw(carp croak);
+use POSIX qw(ETIMEDOUT);
 
 # Explicit use to import the parameter constants;
 use POE::Session;
@@ -45,9 +46,14 @@ sub new {
   my $domain       = delete $param{Domain};
   my $bind_address = delete $param{BindAddress};
   my $bind_port    = delete $param{BindPort};
+  my $ctimeout     = delete $param{ConnectTimeout};
+  my $args         = delete $param{Args};
+
+  $args = [] unless defined $args;
+  croak "Args must be an array reference" unless ref($args) eq "ARRAY";
 
   foreach ( qw( Connected ConnectError Disconnected ServerInput
-                ServerError ServerFlushed
+                ServerError ServerFlushed Started
               )
           ) {
     croak "$_ must be a coderef"
@@ -60,6 +66,7 @@ sub new {
   my $input_callback      = delete $param{ServerInput};
   my $error_callback      = delete $param{ServerError};
   my $flush_callback      = delete $param{ServerFlushed};
+  my $start_callback      = delete $param{Started};
   my $filter              = delete $param{Filter};
 
   # Extra states.
@@ -104,6 +111,7 @@ sub new {
   $disc_callback  = sub {} unless defined $disc_callback;
   $conn_callback  = sub {} unless defined $conn_callback;
   $flush_callback = sub {} unless defined $flush_callback;
+  $start_callback = sub {} unless defined $start_callback;
 
   # Spawn the session that makes the connection and then interacts
   # with what was connected to.
@@ -115,12 +123,12 @@ sub new {
           $heap->{shutdown_on_error} = 1;
           $kernel->alias_set( $alias ) if defined $alias;
           $kernel->yield( 'reconnect' );
+          $start_callback->(@_);
         },
 
         # To quiet ASSERT_STATES.
         _stop   => sub { },
         _child  => sub { },
-        _signal => sub { 0 },
 
         reconnect => sub {
           my $heap = $_[HEAP];
@@ -137,6 +145,11 @@ sub new {
               SuccessEvent  => 'got_connect_success',
               FailureEvent  => 'got_connect_error',
             );
+          $_[KERNEL]->alarm_remove( delete $heap->{ctimeout_id} )
+            if exists $heap->{ctimeout_id};
+          $heap->{ctimeout_id} = $_[KERNEL]->alarm_set
+            ( got_connect_timeout => time + $ctimeout
+            ) if defined $ctimeout;
         },
 
         connect => sub {
@@ -148,6 +161,9 @@ sub new {
 
         got_connect_success => sub {
           my ($kernel, $heap, $socket) = @_[KERNEL, HEAP, ARG0];
+
+          $kernel->alarm_remove( delete $heap->{ctimeout_id} )
+            if exists $heap->{ctimeout_id};
 
           # Ok to overwrite like this as of 0.13.
           $_[HEAP]->{server} = POE::Wheel::ReadWrite->new
@@ -165,7 +181,20 @@ sub new {
 
         got_connect_error => sub {
           my $heap = $_[HEAP];
+          $_[KERNEL]->alarm_remove( delete $heap->{ctimeout_id} )
+            if exists $heap->{ctimeout_id};
           $heap->{connected} = 0;
+          $conn_error_callback->(@_);
+          delete $heap->{server};
+        },
+
+        got_connect_timeout => sub {
+          my $heap = $_[HEAP];
+          $heap->{connected} = 0;
+          $_[KERNEL]->alarm_remove( delete $heap->{ctimeout_id} )
+            if exists $heap->{ctimeout_id};
+          $! = ETIMEDOUT;
+          @_[ARG0,ARG1,ARG2] = ('connect', $!+0, $!);
           $conn_error_callback->(@_);
           delete $heap->{server};
         },
@@ -191,6 +220,9 @@ sub new {
           my $heap = $_[HEAP];
           $heap->{shutdown} = 1;
 
+          $_[KERNEL]->alarm_remove( delete $heap->{ctimeout_id} )
+            if exists $heap->{ctimeout_id};
+
           if ($heap->{connected}) {
             if (defined $heap->{server}) {
               delete $heap->{server}
@@ -206,6 +238,9 @@ sub new {
         # User supplied states.
         %$inline_states,
       },
+
+      # User arguments.
+      args => $args,
 
       # User supplied states.
       package_states => $package_states,
@@ -256,28 +291,34 @@ POE::Component::Client::TCP - a simplified TCP client
   # Complete usage.
 
   POE::Component::Client::TCP->new
-    ( RemoteAddress => "127.0.0.1",
-      RemotePort    => "chargen",
-      BindAddress   => "127.0.0.1",
-      BindPort      => 8192,
-      Domain        => AF_INET,     # Optional.
+    ( RemoteAddress  => "127.0.0.1",
+      RemotePort     => "chargen",
+      BindAddress    => "127.0.0.1",
+      BindPort       => 8192,
+      Domain         => AF_INET,  # Optional.
+      ConnectTimeout => 5,        # Seconds; optional.
+      Args           => [ "arg0", "arg1" ],  # Optional.
 
-      Connected     => \&handle_connect,
-      ConnectError  => \&handle_connect_error,
-      Disconnected  => \&handle_disconnect,
+      Connected      => \&handle_connect,
+      ConnectError   => \&handle_connect_error,
+      Disconnected   => \&handle_disconnect,
 
-      ServerInput   => \&handle_server_input,
-      ServerError   => \&handle_server_error,
-      ServerFlushed => \&handle_server_flush,
+      ServerInput    => \&handle_server_input,
+      ServerError    => \&handle_server_error,
+      ServerFlushed  => \&handle_server_flush,
 
-      Filter        => "POE::Filter::Something",
+      Filter         => "POE::Filter::Something",
 
-      InlineStates  => { ... },
-      PackageStates => [ ... ],
-      ObjectStates  => [ ... ],
+      InlineStates   => { ... },
+      PackageStates  => [ ... ],
+      ObjectStates   => [ ... ],
     );
 
   # Sample callbacks.
+
+  sub handle_start {
+    my @args = @_[ARG0..$#_];
+  }
 
   sub handle_connect {
     my ($socket, $peer_address, $peer_port) = @_[ARG0, ARG1, ARG2];
@@ -340,6 +381,12 @@ TCP client component from other sessions.  The most common use of
 Alias is to allow a client component to receive "shutdown" and
 "reconnect" events from a user interface session.
 
+=item Args LISTREF
+
+Args passes the contents of a LISTREF to the Started callback via
+@_[ARG0..$#_].  It allows you to pass extra information to the session
+created to handle the client connection.
+
 =item BindAddress
 
 =item BindPort
@@ -381,6 +428,15 @@ ARG0 contains a socket handle.  It's not necessary to save this under
 most circumstances.  ARG1 and ARG2 contain the peer address and port
 as returned from getpeername().
 
+=item ConnectTimeout
+
+ConnectTimeout is the maximum time in seconds to wait for a connection
+to be established.  If it is omitted, Client::TCP relies on the
+operating system to abort stalled connect() calls.
+
+Upon a connection timeout, Client::TCP will send a ConnectError event.
+Its ARG0 will be 'connect' and ARG1 will be the POSIX ETIMEDOUT value.
+
 =item Disconnected
 
 Disconnected is an optional callback to notify a program that an
@@ -416,7 +472,10 @@ server.  It may either be a scalar or a list reference.  If it is a
 scalar, it will contain a POE::Filter class name.  If it is a list
 reference, the first item in the list will be a POE::Filter class
 name, and the remaining items will be constructor parameters for the
-filter.
+filter.  For example, this changes the line separator to a vertical
+pipe:
+
+  Filter => [ "POE::Filter::Line", InputLiteral => "|" ],
 
 Filter is optional.  The component will supply a "POE::Filter::Line"
 instance none is specified.
@@ -479,6 +538,15 @@ parameter.
 
 The ServerInput function will stop being called when $heap->{shutdown}
 is true.
+
+=item Started
+
+Started is an optional callback.  It is called after Client::TCP is
+initialized but before a connection has been established.
+
+The Args parameter can be used to pass initialization values to the
+Started callback, eliminating the need for closures to get values into
+the component.
 
 =back
 

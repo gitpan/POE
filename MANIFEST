@@ -1,6 +1,7 @@
-# $Id: MANIFEST,v 1.75 2002/09/03 04:40:04 rcaputo Exp $
+# $Id: MANIFEST,v 1.80 2002/12/08 16:54:23 rcaputo Exp $
 CHANGES
 MANIFEST
+MANIFEST.SKIP
 Makefile.PL
 NEEDS
 POE.pm
@@ -20,17 +21,20 @@ POE/Filter/Reference.pm
 POE/Filter/Stackable.pm
 POE/Filter/Stream.pm
 POE/Kernel.pm
-POE/Kernel/Event.pm
-POE/Kernel/Gtk.pm
-POE/Kernel/Poll.pm
-POE/Kernel/Select.pm
-POE/Kernel/Tk.pm
+POE/Loop.pm
+POE/Loop/Event.pm
+POE/Loop/Gtk.pm
+POE/Loop/Poll.pm
+POE/Loop/Select.pm
+POE/Loop/Tk.pm
 POE/Macro/UseBytes.pm
 POE/NFA.pm
 POE/Pipe.pm
 POE/Pipe/OneWay.pm
 POE/Pipe/TwoWay.pm
 POE/Preprocessor.pm
+POE/Queue.pm
+POE/Queue/Array.pm
 POE/Session.pm
 POE/Wheel.pm
 POE/Wheel/Curses.pm
@@ -87,6 +91,7 @@ samples/udp.perl
 samples/watermarks.perl
 samples/wheels.perl
 samples/wheels2.perl
+t/001_queue.t
 t/00_coverage.t
 t/01_sessions.t
 t/02_alarms.t

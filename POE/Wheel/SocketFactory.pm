@@ -1,4 +1,4 @@
-# $Id: SocketFactory.pm,v 1.60 2002/08/29 14:48:29 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.66 2002/12/09 18:14:46 rcaputo Exp $
 
 package POE::Wheel::SocketFactory;
 use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
@@ -6,7 +6,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.60 $ ))[1];
+$VERSION = (qw($Revision: 1.66 $ ))[1];
 
 use Carp;
 use Symbol;
@@ -29,8 +29,8 @@ sub MY_MINE_SUCCESS    () {  7 }
 sub MY_MINE_FAILURE    () {  8 }
 sub MY_SOCKET_PROTOCOL () {  9 }
 sub MY_SOCKET_TYPE     () { 10 }
-sub MY_SOCKET_SELECTED () { 11 }
-sub MY_STATE_ERROR     () { 12 }
+sub MY_STATE_ERROR     () { 11 }
+sub MY_SOCKET_SELECTED () { 12 }
 
 # Fletch has subclassed SSLSocketFactory from SocketFactory.  He's
 # added new members after MY_SOCKET_SELECTED.  Be sure, if you extend
@@ -38,20 +38,65 @@ sub MY_STATE_ERROR     () { 12 }
 # know you've broken his module.
 
 # Provide dummy POSIX constants for systems that don't have them.  Use
-# http://support.microsoft.com/support/kb/articles/Q150/5/37.asp for
-# the POSIX error numbers.
+# http://msdn.microsoft.com/library/en-us/winsock/winsock/
+#   windows_sockets_error_codes_2.asp for the POSIX error numbers.
 BEGIN {
   if ($^O eq 'MSWin32') {
-    eval '*EADDRNOTAVAIL = sub { 10049 };';
-    eval '*EINPROGRESS   = sub { 10036 };';
-    eval '*EWOULDBLOCK   = sub { 10035 };';
-    eval '*F_GETFL       = sub {     0 };';
-    eval '*F_SETFL       = sub {     0 };';
+
+    # Constants are evaluated first so they exist when the code uses
+    # them.
+    eval( '*EADDRNOTAVAIL = sub { 10049 };' .
+          '*EINPROGRESS   = sub { 10036 };' .
+          '*EWOULDBLOCK   = sub { 10035 };' .
+          '*F_GETFL       = sub {     0 };' .
+          '*F_SETFL       = sub {     0 };' .
+
+          # Garrett Goebel's patch to support non-blocking connect()
+          # or MSWin32 follows.  His notes on the matter:
+          #
+          # As my patch appears to turn on the overlapped attributes
+          # for all successive sockets... it might not be the optimal
+          # solution. But it works for me ;)
+          #
+          # A better Win32 approach would probably be to:
+          # o  create a dummy socket
+          # o  cache the value of SO_OPENTYPE
+          # o  set the overlapped io attribute
+          # o  close dummy socket
+          #
+          # o  create our sock
+          #
+          # o  create a dummy socket
+          # o  restore previous value of SO_OPENTYPE
+          # o  close dummy socket
+          #
+          # This way we'd only be turning on the overlap attribute for
+          # the socket we created... and not all subsequent sockets.
+
+          '*SO_OPENTYPE = sub () { 0x7008 };' .
+          '*SO_SYNCHRONOUS_ALERT    = sub () { 0x10 };' .
+          '*SO_SYNCHRONOUS_NONALERT = sub () { 0x20 };'
+        );
+    die if $@;
+
+    # Turn on socket overlapped IO attribute per MSKB: Q181611.  This
+    # concludes Garrett's patch.
+
+    eval( 'socket(POE, AF_INET, SOCK_STREAM, getprotobyname("tcp"))' .
+          'or die "socket failed: $!";' .
+          'my $opt = unpack("I", getsockopt(POE, SOL_SOCKET, SO_OPENTYPE));' .
+          '$opt &= ~(SO_SYNCHRONOUS_ALERT|SO_SYNCHRONOUS_NONALERT);' .
+          'setsockopt(POE, SOL_SOCKET, SO_OPENTYPE, $opt);' .
+          'close POE;'
+
+          # End of Garrett's patch.
+        );
+    die if $@;
   }
 
   unless (exists $INC{"Socket6.pm"}) {
-    eval "*Socket6::AF_INET6 = sub { ~0 }";
-    eval "*Socket6::PF_INET6 = sub { ~0 }";
+    eval "*Socket6::AF_INET6 = sub () { ~0 }";
+    eval "*Socket6::PF_INET6 = sub () { ~0 }";
   }
 }
 
@@ -276,38 +321,40 @@ sub _define_connect_state {
 
   # Cygwin expects an error state registered to expedite.  This code
   # is nearly identical the stuff above.
-  $poe_kernel->state
-    ( $self->[MY_STATE_ERROR] = ( ref($self) .
-                                  "($unique_id) -> connect error"
-                                ),
-      sub {
-        # This prevents SEGV in older versions of Perl.
-        0 && CRIMSON_SCOPE_HACK('<');
+  if ($^O eq "cygwin") {
+    $poe_kernel->state
+      ( $self->[MY_STATE_ERROR] = ( ref($self) .
+                                    "($unique_id) -> connect error"
+                                  ),
+        sub {
+          # This prevents SEGV in older versions of Perl.
+          0 && CRIMSON_SCOPE_HACK('<');
 
-        # Grab some values and stop watching the socket.
-        my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-        undef $$socket_selected;
-        $k->select($handle);
+          # Grab some values and stop watching the socket.
+          my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+          undef $$socket_selected;
+          $k->select($handle);
 
-        # Throw a failure if the connection failed.
-        $! = unpack('i', getsockopt($handle, SOL_SOCKET, SO_ERROR));
-        if ($!) {
-          (defined $$failure_event) and
-            $k->call( $me, $$failure_event,
-                      'connect', ($!+0), $!, $unique_id
-                    );
-          return;
+          # Throw a failure if the connection failed.
+          $! = unpack('i', getsockopt($handle, SOL_SOCKET, SO_ERROR));
+          if ($!) {
+            (defined $$failure_event) and
+              $k->call( $me, $$failure_event,
+                        'connect', ($!+0), $!, $unique_id
+                      );
+            return;
+          }
         }
-      }
-    );
+      );
+    $poe_kernel->select_expedite( $self->[MY_SOCKET_HANDLE],
+                                  $self->[MY_STATE_ERROR]
+                                );
+  }
 
   $self->[MY_SOCKET_SELECTED] = 'yes';
   $poe_kernel->select_write( $self->[MY_SOCKET_HANDLE],
                              $self->[MY_STATE_CONNECT]
                            );
-  $poe_kernel->select_expedite( $self->[MY_SOCKET_HANDLE],
-                                $self->[MY_STATE_ERROR]
-                              );
 }
 
 #------------------------------------------------------------------------------
@@ -321,9 +368,7 @@ sub event {
 
     # STATE-EVENT
     if ($name =~ /^(.*?)State$/) {
-      my $pkg = ref($self);
-      carp "$name is deprecated.  Use $1Event";
-      $name = $1 . 'Event';
+      croak "$name is deprecated.  Use $1Event";
     }
 
     if ($name eq 'SuccessEvent') {
@@ -365,9 +410,11 @@ sub event {
     $poe_kernel->select_write( $self->[MY_SOCKET_HANDLE],
                                $self->[MY_STATE_CONNECT]
                              );
-    $poe_kernel->select_expedite( $self->[MY_SOCKET_HANDLE],
-                                  $self->[MY_STATE_ERROR]
-                                );
+    if ($^O eq "cygwin") {
+      $poe_kernel->select_expedite( $self->[MY_SOCKET_HANDLE],
+                                    $self->[MY_STATE_ERROR]
+                                  );
+    }
   }
   else {
     die "POE developer error - no state defined";
@@ -396,31 +443,18 @@ sub new {
 
   my %params = @_;
 
-  # The calling conventio experienced a hard deprecation.
+  # The calling convention experienced a hard deprecation.
   croak "wheels no longer require a kernel reference as their first parameter"
     if (@_ && (ref($_[0]) eq 'POE::Kernel'));
 
   # STATE-EVENT
   if (exists $params{SuccessState}) {
-    carp "SuccessState is deprecated.  Use SuccessEvent";
-
-    if (exists $params{SuccessEvent}) {
-      delete $params{SuccessState};
-    }
-    else {
-      $params{SuccessEvent} = delete $params{SuccessState};
-    }
+    croak "SuccessState is deprecated.  Use SuccessEvent";
   }
 
   # STATE-EVENT
   if (exists $params{FailureState}) {
-    carp "FailureState is deprecated.  Use FailureEvent";
-    if (exists $params{FailureEvent}) {
-      delete $params{FailureState};
-    }
-    else {
-      $params{FailureEvent} = delete $params{FailureState};
-    }
+    croak "FailureState is deprecated.  Use FailureEvent";
   }
 
   # Ensure some of the basic things are present.
@@ -444,8 +478,8 @@ sub new {
         undef,                            # MY_MINE_FAILURE
         undef,                            # MY_SOCKET_PROTOCOL
         undef,                            # MY_SOCKET_TYPE
-        undef,                            # MY_SOCKET_SELECTED
         undef,                            # MY_STATE_ERROR
+        undef,                            # MY_SOCKET_SELECTED
       ],
       $type
     );
@@ -946,6 +980,27 @@ sub new {
   die "Mail this error to the author of POE: Internal consistency error";
 }
 
+# Pause and resume accept.
+sub pause_accept {
+  my $self = shift;
+  if ( defined $self->[MY_SOCKET_HANDLE] and
+       defined $self->[MY_STATE_ACCEPT] and
+       defined $self->[MY_SOCKET_SELECTED]
+     ) {
+    $poe_kernel->select_pause_read($self->[MY_SOCKET_HANDLE]);
+  }
+}
+
+sub resume_accept {
+  my $self = shift;
+  if ( defined $self->[MY_SOCKET_HANDLE] and
+       defined $self->[MY_STATE_ACCEPT] and
+       defined $self->[MY_SOCKET_SELECTED]
+     ) {
+    $poe_kernel->select_resume_read($self->[MY_SOCKET_HANDLE]);
+  }
+}
+
 #------------------------------------------------------------------------------
 
 sub DESTROY {
@@ -1044,6 +1099,9 @@ POE::Wheel::SocketFactory - non-blocking socket creation and management
   $wheel->event( ... );
 
   $wheel->ID();
+
+  $wheel->pause_accept();
+  $wheel->resume_accept();
 
 =head1 DESCRIPTION
 
@@ -1190,9 +1248,26 @@ INADDR_ANY or BindPort => 0.
 
 =item ID
 
-The ID method returns a FollowTail wheel's unique ID.  This ID will be
-included in every event the wheel generates, and it can be used to
+The ID method returns a SocketFactory wheel's unique ID.  This ID will
+be included in every event the wheel generates, and it can be used to
 match events with the wheels which generated them.
+
+=item pause_accept
+
+=item resume_accept
+
+Listening SocketFactory instances will accept connections for as long
+as they exist.  This may not be desirable in pre-forking servers where
+the main process must not handle connections.
+
+pause_accept() temporarily stops a SocketFactory from accepting new
+connections.  It continues to listen, however.  resume_accept() ends a
+temporary pause, allowing a SocketFactory to accept new connections.
+
+In a pre-forking server, the main process would pause_accept()
+immediately after the SocketFactory was created.  As forked child
+processes start, they call resume_accept() to begin accepting
+connections.
 
 =back
 

@@ -1,4 +1,4 @@
-# $Id: SysRW.pm,v 1.22 2002/07/31 20:05:20 rcaputo Exp $
+# $Id: SysRW.pm,v 1.23 2002/12/05 20:37:20 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
@@ -10,9 +10,9 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.22 $ ))[1];
+$VERSION = (qw($Revision: 1.23 $ ))[1];
 
-use POSIX qw(EAGAIN);
+use POSIX qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
 
 sub OUTPUT_QUEUE        () { 0 }
@@ -20,6 +20,10 @@ sub CURRENT_OCTETS_DONE () { 1 }
 sub CURRENT_OCTETS_LEFT () { 2 }
 sub BLOCK_SIZE          () { 3 }
 sub TOTAL_OCTETS_LEFT   () { 4 }
+
+BEGIN {
+  eval '*EWOULDBLOCK = sub { 10035 };'  if $^O eq 'MSWin32';
+}
 
 #------------------------------------------------------------------------------
 
@@ -106,7 +110,7 @@ sub get {
   }
 
   # Nonfatal sysread() error.  Return an empty list.
-  return [ ] if $! == EAGAIN;
+  return [ ] if $! == EAGAIN or $! == EWOULDBLOCK;
 
   # fatal sysread error
   undef;
@@ -128,7 +132,7 @@ sub flush {
                               );
 
     unless ($wrote_count) {
-      $! = 0 if ($! == EAGAIN);
+      $! = 0 if $! == EAGAIN or $! == EWOULDBLOCK;
       last;
     }
 

@@ -11,7 +11,7 @@ package POE::Filter::Stackable;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.3 $ ))[1];
+$VERSION = (qw($Revision: 1.4 $ ))[1];
 
 use Carp qw(croak);
 
@@ -186,6 +186,8 @@ Stackable filter, in order from near to far.
 =item *
 
 See POE::Filter.
+
+=back
 
 =head1 SEE ALSO
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.37 2002/08/20 19:37:32 rcaputo Exp $
+# $Id: 06_tk.t,v 1.38 2002/09/13 07:58:04 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Tk postback events using Tk's event
 # loop.
@@ -243,7 +243,7 @@ sub io_stop {
         print "not ";
       }
       else {
-        $reason = " # skipped: $^O does not support Tk $Tk::VERSION.";
+        $reason = " # skipped: Tk $Tk::VERSION fileevent is broken on $^O.";
       }
     }
     else {

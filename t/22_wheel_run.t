@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 22_wheel_run.t,v 1.25 2002/07/15 23:20:11 rcaputo Exp $
+# $Id: 22_wheel_run.t,v 1.28 2002/10/20 20:55:22 rcaputo Exp $
 
 # Test the portable pipe classes and Wheel::Run, which uses them.
 
@@ -226,7 +226,6 @@ my $coderef_flush_count = 0;
         print(STDERR qq(err: $_)) if s/^err //;
       }
     }
-    exit 0;
   };
 
   POE::Session->create
@@ -296,6 +295,9 @@ if (POE::Wheel::Run::PTY_AVAILABLE) {
       { _start => sub {
           my ($kernel, $heap) = @_[KERNEL, HEAP];
 
+          # Handle SIGCHLD.
+          $kernel->sig(CHLD => "sigchild");
+
           # Run a child process.
           $heap->{wheel} = POE::Wheel::Run->new
             ( Program      => $program,
@@ -320,21 +322,19 @@ if (POE::Wheel::Run::PTY_AVAILABLE) {
         error => sub { },
 
         # Catch SIGCHLD.  Stop the wheel if the exited child is ours.
-        _signal => sub {
+        sigchild => sub {
           my $signame = $_[ARG0];
 
           DEBUG and
             warn "session ", $_[SESSION]->ID, " caught signal $signame\n";
 
-          if ($signame eq 'CHLD') {
-            my ($heap, $child_pid) = @_[HEAP, ARG1];
+          my ($heap, $child_pid) = @_[HEAP, ARG1];
 
-            DEBUG and warn "\tthe child process ID is $child_pid\n";
+          DEBUG and warn "\tthe child process ID is $child_pid\n";
 
-            if ($child_pid == $heap->{wheel}->PID()) {
-              DEBUG and warn "\tthe child process is ours\n";
-              delete $heap->{wheel};
-            }
+          if ($child_pid == $heap->{wheel}->PID()) {
+            DEBUG and warn "\tthe child process is ours\n";
+            delete $heap->{wheel};
           }
           return 0;
         },

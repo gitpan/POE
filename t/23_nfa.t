@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 23_nfa.t,v 1.3 2002/05/15 17:34:22 rcaputo Exp $
+# $Id: 23_nfa.t,v 1.4 2002/10/20 20:55:22 rcaputo Exp $
 
 # Tests NFA sessions.
 
@@ -91,7 +91,6 @@ POE::Session->create
        $_[KERNEL]->yield( 'push' ) if $_[HEAP]->{push_count} < 10;
      },
      # Dummy handlers to avoid ASSERT_STATES warnings.
-     _signal => sub { 0 },
      _stop   => sub { 0 },
    }
   );
@@ -196,7 +195,6 @@ POE::Session->create
         $_[KERNEL]->yield( 'next_test' ) if @test;
       },
       # Dummy handlers to avoid ASSERT_STATES warnings.
-      _signal => sub { 0 },
       _stop   => sub { 0 },
     },
   );

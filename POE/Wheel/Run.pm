@@ -1,14 +1,16 @@
-# $Id: Run.pm,v 1.38 2002/09/11 22:11:05 rcaputo Exp $
+# $Id: Run.pm,v 1.42 2002/11/08 16:20:11 rcaputo Exp $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.38 $ ))[1];
+$VERSION = (qw($Revision: 1.42 $ ))[1];
 
-use Carp;
-use POSIX;  # termios stuff
+use Carp qw(carp croak);
+use POSIX qw( sysconf _SC_OPEN_MAX ECHO ICANON IEXTEN ISIG BRKINT ICRNL
+              INPCK ISTRIP IXON CSIZE PARENB OPOST TCSANOW
+            );
 
 use POE qw( Wheel Pipe::TwoWay Pipe::OneWay Driver::SysRW Filter::Line );
 
@@ -285,6 +287,11 @@ sub new {
       }
     }
 
+    # Reset all signals in the child process.  POE's own handlers are
+    # silly to keep around in the child process since POE won't be
+    # using them.
+    @SIG{keys %SIG} = ("DEFAULT") x (keys %SIG);
+
     # -><- How to pass events to the parent process?  Maybe over a
     # expedited (OOB) filehandle.
 
@@ -420,8 +427,8 @@ sub new {
   close $sem_pipe_write;
 
   $self->_define_stdin_flusher();
-  $self->_define_stdout_reader() if defined $stdout_event;
-  $self->_define_stderr_reader() if defined $stderr_event;
+  $self->_define_stdout_reader() if defined $stdout_read;
+  $self->_define_stderr_reader() if defined $stderr_read;
 
   return $self;
 }
@@ -435,13 +442,13 @@ sub _define_stdin_flusher {
 
   # Read-only members.  If any of these change, then the write state
   # is invalidated and needs to be redefined.
-  my $unique_id     = $self->[UNIQUE_ID];
-  my $driver        = $self->[DRIVER_STDIN];
-  my $error_event   = \$self->[ERROR_EVENT];
-  my $close_event   = \$self->[CLOSE_EVENT];
-  my $stdin_filter  = $self->[FILTER_STDIN];
-  my $stdin_event   = \$self->[EVENT_STDIN];
-  my $is_active     = \$self->[IS_ACTIVE];
+  my $unique_id    = $self->[UNIQUE_ID];
+  my $driver       = $self->[DRIVER_STDIN];
+  my $error_event  = \$self->[ERROR_EVENT];
+  my $close_event  = \$self->[CLOSE_EVENT];
+  my $stdin_filter = $self->[FILTER_STDIN];
+  my $stdin_event  = \$self->[EVENT_STDIN];
+  my $is_active    = \$self->[IS_ACTIVE];
 
   # Read/write members.  These are done by reference, to avoid pushing
   # $self into the anonymous sub.  Extra copies of $self are bad and
@@ -496,7 +503,7 @@ sub _define_stdout_reader {
   my $self = shift;
 
   # Register the select-read handler for STDOUT.
-  if (defined $self->[EVENT_STDOUT]) {
+  if (defined $self->[HANDLE_STDOUT]) {
 
     # If any of these change, then the read state is invalidated and
     # needs to be redefined.
@@ -554,7 +561,7 @@ sub _define_stderr_reader {
   my $self = shift;
 
   # Register the select-read handler for STDERR.
-  if (defined $self->[EVENT_STDERR]) {
+  if (defined $self->[HANDLE_STDERR]) {
     # If any of these change, then the read state is invalidated and
     # needs to be redefined.
     my $unique_id     = $self->[UNIQUE_ID];
@@ -872,8 +879,12 @@ does not, however, signal that the client process has stopped
 accepting input.
 
 C<ErrorEvent> contains the name of an event to emit if something
-fails.  It is optional.  If omitted, the wheel will not notify its
-session if any errors occur.
+fails.  It is optional and if omitted, the wheel will not notify its
+session if any errors occur.  The event receives 5 parameters as
+follows: ARG0 = the return value of syscall(), ARG1 = errno() - the
+numeric value of the error generated, ARG2 = error() - a descriptive
+for the given error, ARG3 = the wheel id, and ARG4 = the handle on
+which the error ocurred (stdout, stderr, etc.)
 
 Wheel::Run requires at least one of the following three events:
 

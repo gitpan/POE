@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm,v 1.59 2002/05/10 01:39:04 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.61 2002/11/20 17:57:41 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.59 $ ))[1];
+$VERSION = (qw($Revision: 1.61 $ ))[1];
 
 use Carp;
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -83,57 +83,27 @@ sub new {
 
   # STATE-EVENT
   if (exists $params{HighState}) {
-    carp "HighState is deprecated.  Use HighEvent";
-    if (exists $params{HighEvent}) {
-      delete $params{HighState};
-    }
-    else {
-      $params{HighEvent} = delete $params{HighState};
-    }
+    croak "HighState is deprecated.  Use HighEvent";
   }
 
   # STATE-EVENT
   if (exists $params{LowState}) {
-    carp "LowState is deprecated.  Use LowEvent.";
-    if (exists $params{LowEvent}) {
-      delete $params{LowState};
-    }
-    else {
-      $params{LowEvent} = delete $params{LowState};
-    }
+    croak "LowState is deprecated.  Use LowEvent.";
   }
 
   # STATE-EVENT
   if (exists $params{InputState}) {
-    carp "InputState is deprecated.  Use InputEvent";
-    if (exists $params{InputEvent}) {
-      delete $params{InputState};
-    }
-    else {
-      $params{InputEvent} = delete $params{InputState};
-    }
+    croak "InputState is deprecated.  Use InputEvent";
   }
 
   # STATE-EVENT
   if (exists $params{ErrorState}) {
-    carp "ErrorState is deprecated.  Use ErrorEvent";
-    if (exists $params{ErrorEvent}) {
-      delete $params{ErrorState};
-    }
-    else {
-      $params{ErrorEvent} = delete $params{ErrorState};
-    }
+    croak "ErrorState is deprecated.  Use ErrorEvent";
   }
 
   # STATE-EVENT
   if (exists $params{FlushedState}) {
-    carp "FlushedState is deprecated.  Use FlushedEvent";
-    if (exists $params{FlushedEvent}) {
-      delete $params{FlushedState};
-    }
-    else {
-      $params{FlushedEvent} = delete $params{FlushedState};
-    }
+    croak "FlushedState is deprecated.  Use FlushedEvent";
   }
 
   { my $mark_errors = 0;
@@ -391,8 +361,7 @@ sub event {
 
     # STATE-EVENT
     if ($name =~ /^(.*?)State$/) {
-      carp "$name is deprecated.  Use $1Event";
-      $name = $1 . 'Event';
+      croak "$name is deprecated.  Use $1Event";
     }
 
     if ($name eq 'InputEvent') {
@@ -780,7 +749,7 @@ low-water marks.
 
 =item ID
 
-The ID method returns a FollowTail wheel's unique ID.  This ID will be
+The ID method returns a ReadWrite wheel's unique ID.  This ID will be
 included in every event the wheel generates, and it can be used to
 match events with the wheels which generated them.
 

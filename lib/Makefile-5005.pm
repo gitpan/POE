@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.25 2002/09/10 19:55:32 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.26 2002/12/05 20:24:38 rcaputo Exp $
 
 use strict;
 
@@ -118,6 +118,13 @@ testreport: poe_report.xml
 
 poe_report.xml: Makefile
 	$^X lib/testreport.pl
+
+ppmdist: pm_to_blib
+	\$(TAR) --exclude '*/man[13]*' -cvf \\
+		\$(DISTVNAME)-win32ppd.tar blib
+	\$(COMPRESS) \$(DISTVNAME)-win32ppd.tar
+
+ppddist: ppmdist
 EOF
 
 }

@@ -5,7 +5,7 @@ package POE::Filter::Map;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.3 $ ))[1];
+$VERSION = (qw($Revision: 1.4 $ ))[1];
 
 use Carp qw(croak);
 
@@ -139,6 +139,8 @@ to use.
 =item *
 
 See POE::Filter.
+
+=back
 
 =head1 SEE ALSO
 

@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.27 2002/09/03 04:39:23 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.28 2002/09/17 07:09:30 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,11 +17,12 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.27 $ ))[1];
+$VERSION = (qw($Revision: 1.28 $ ))[1];
 
 use Carp qw(croak);
 use HTTP::Status;
 use HTTP::Request;
+use HTTP::Response;
 use HTTP::Date qw(time2str);
 use URI;
 

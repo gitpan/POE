@@ -1,4 +1,4 @@
-# $Id: Pipe.pm,v 1.5 2002/06/22 06:15:33 rcaputo Exp $
+# $Id: Pipe.pm,v 1.6 2002/09/15 16:49:21 rcaputo Exp $
 
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
@@ -9,7 +9,7 @@ package POE::Pipe;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.5 $ ))[1];
+$VERSION = (qw($Revision: 1.6 $ ))[1];
 
 use Symbol qw(gensym);
 use IO::Socket;
@@ -142,7 +142,10 @@ sub make_socket {
                        undef,
                        5
                      );
-    die "select: $!" unless $hits;
+    unless ($hits) {
+      next if ($! and ($! == EINPROGRESS) or ($! == EWOULDBLOCK));
+      die "select: $!" unless $hits;
+    }
 
     # Accept happened.
     if (vec($out_read, fileno($acceptor), 1)) {

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: cvs-log.perl,v 1.2 2002/09/05 17:08:01 rcaputo Exp $
+# $Id: cvs-log.perl,v 1.3 2002/10/07 20:40:24 rcaputo Exp $
 
 # This program is Copyright 2002 by Rocco Caputo.  All rights are
 # reserved.  This program is free software.  It may be modified, used,
@@ -215,7 +215,7 @@ while (my ($tag, $time) = each %last_tag_times) {
 
 sub format_time {
   my $time = shift;
-  my ($sc, $mn, $hr, $mm, $dd, $yy) = gmtime($time);
+  my ($sc, $mn, $hr, $dd, $mm, $yy) = gmtime($time);
   sprintf("%04d-%02d-%02d %02d:%02d:%02d",
           $yy+1900, $mm+1, $dd, $hr, $mn, $sc,
          );

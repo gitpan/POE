@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.28 2002/09/12 02:46:25 rcaputo Exp $
+# $Id: TCP.pm,v 1.30 2002/11/01 14:59:16 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.28 $ ))[1];
+$VERSION = (qw($Revision: 1.30 $ ))[1];
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa);
@@ -156,7 +156,6 @@ sub new {
 
               # To quiet ASSERT_STATES.
               _child  => sub { },
-              _signal => sub { 0 },
 
               tcp_server_got_input => sub {
                 return if $_[HEAP]->{shutdown};
@@ -239,10 +238,8 @@ sub new {
         },
 
         # Dummy states to prevent warnings.
-        _signal => sub { return 0 },
         _stop   => sub { return 0 },
         _child  => sub { },
-        _signal => sub { 0 },
       },
     );
 
@@ -449,7 +446,10 @@ each client.  It may either be a scalar or a list reference.  If it is
 a scalar, it will contain a POE::Filter class name.  If it is a list
 reference, the first item in the list will be a POE::Filter class
 name, and the remaining items will be constructor parameters for the
-filter.
+filter.  For example, this changes the line separator to a vertical
+bar:
+
+  ClientFilter => [ "POE::Filter::Line", InputLiteral => "|" ],
 
 ClientFilter is optional.  The component will supply a
 "POE::Filter::Line" instance none is specified.

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 11_signals_poe.t,v 1.22 2002/08/26 22:25:28 rcaputo Exp $
+# $Id: 11_signals_poe.t,v 1.23 2002/10/20 20:55:21 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -179,7 +179,6 @@ sub spawn_server {
       do_thing => sub {
         $_[KERNEL]->post($_[SENDER], thing_done => $_[ARG0]);
       },
-      _signal => sub { 0 },
       _child  => sub { 0 },
       _stop   => sub { 0 },
     );
@@ -191,7 +190,6 @@ POE::Session->new
       $_[KERNEL]->post(server => do_thing => 1);
     },
     thing_done => sub { 0 },
-    _signal => sub { 0 },
     _child  => sub { 0 },
     _stop   => sub { 0 },
   );

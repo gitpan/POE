@@ -1,4 +1,4 @@
-# $Id: POE.pm,v 1.147 2002/09/12 16:34:52 rcaputo Exp $
+# $Id: POE.pm,v 1.153 2002/12/09 16:21:42 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,7 +7,7 @@ use strict;
 use Carp;
 
 use vars qw($VERSION);
-$VERSION = '0.23';
+$VERSION = '0.24';
 
 sub import {
   my $self = shift;
@@ -377,6 +377,8 @@ writing TCP clients.
 The Server::TCP component provides the most common core features for
 writing TCP servers.  A simple echo server is about 20 lines.
 
+=back
+
 =head1 Support Modules
 
 Finally, there are some files which POE uses but aren't required
@@ -401,6 +403,8 @@ can make up for it over time.
 POE::Component, POE::Driver and POE::Filter exist to document their
 classes of objects.  POE::Wheel contains some base functions for
 tracking unique wheel IDs.
+
+=back
 
 =head1 SAMPLE PROGRAMS
 
@@ -492,7 +496,7 @@ B<Important Filter::Reference note:> If you're using Filter::Reference
 to pass data to another machine, make sure every machine has the same
 versions of the same libraries.  Subtle differences, even in different
 versions of modules like Storable, can cause mysterious errors when
-data is reconstituted at the receiving end.  Whe all else fails,
+data is reconstituted at the receiving end.  When all else fails,
 upgrade to the latest versions.
 
 Filter::HTTPD uses a small world of modules including HTTP::Status;
