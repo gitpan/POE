@@ -1,4 +1,4 @@
-# $Id: Kernel.pm,v 1.22 1998/11/26 17:56:17 troc Exp $
+# $Id: Kernel.pm,v 1.26 1998/12/04 03:34:17 troc Exp $
 # Documentation exists after __END__
 
 package POE::Kernel;
@@ -35,17 +35,34 @@ BEGIN {
 # names: { $name => $session }
 #------------------------------------------------------------------------------
 
+# keep track of the currently running kernel.  this will most likely fail
+# in a multithreaded situation where multiple kernels are active.  this
+# may be a reason to drop multi-Kernel support.
+
+my $active_kernel = undef;
+
 # a list of signals that will terminate all sessions (and stop the kernel)
 my @_terminal_signals = qw(QUIT INT KILL TERM HUP ZOMBIE);
 
 # global signal handler
 sub _signal_handler {
   if (defined $_[0]) {
-    foreach my $kernel (@POE::Kernel::instances) {
-      $kernel->_enqueue_state($kernel, $kernel, '_signal',
-                              time(), [ $_[0] ]
-                             );
+                                        # dispatch SIGPIPE directly to session
+    if (($_[0] eq 'PIPE') && (defined $active_kernel)) {
+      $active_kernel->_enqueue_state
+        ( $active_kernel->{'active session'}, $active_kernel,
+          '_signal', time(), [ $_[0] ]
+        );
     }
+                                        # propagate other signals
+    else {
+      foreach my $kernel (@POE::Kernel::instances) {
+        $kernel->_enqueue_state($kernel, $kernel, '_signal',
+                                time(), [ $_[0] ]
+                               );
+      }
+    }
+                                        # reset the signal handler, in case...
     $SIG{$_[0]} = \&_signal_handler;
   }
   else {
@@ -71,7 +88,14 @@ sub new {
   $self->{'sel_e'} = new IO::Select() || die $!;
 
   foreach my $signal (keys(%SIG)) {
-    next if ($signal =~ /^(NUM\d+|__WARN__|__DIE__)$/);
+                                        # skip fake and nonexistent signals
+    next if ($signal =~ /^(NUM\d+
+                          |__[A-Z0-9]+__
+                          |ALL|CATCHALL|DEFER|HOLD|IGNORE|MAX|PAUSE
+                          |RTMIN|RTMAX|SETS
+                          |
+                          )$/x
+            );
     $SIG{$signal} = \&_signal_handler;
     $self->{'signals'}->{$signal} = { };
     push @{$self->{'blocked signals'}}, $signal;
@@ -125,6 +149,11 @@ sub _dispatch_state {
       push(@{$self->{'sessions'}->{$source_session}->[1]}, $session);
     }
   }
+                                        # internal event for GC'in sessions
+  elsif ($state eq '_garbage_collect') {
+    $self->_collect_garbage($session);
+    return 0;
+  }
                                         # if stopping, tell other sessions
   elsif ($state eq '_stop') {
                                         # tell children they have new parents
@@ -153,6 +182,7 @@ sub _dispatch_state {
     }
   }
                                         # dispatch this object's state
+  $active_kernel = $self;
   my $hold_active_session = $self->{'active session'};
   $self->{'active session'} = $session;
   my $handled = $session->_invoke_state($self, $source_session,
@@ -161,6 +191,7 @@ sub _dispatch_state {
                                         # stringify to remove possible blessing
   defined($handled) ? ($handled = "$handled") : ($handled = '');
   $self->{'active session'} = $hold_active_session;
+  undef $active_kernel;
 
 # print "\x1b[1;32m$session $state returns($handled)\x1b[0m\n";
 
@@ -373,7 +404,9 @@ sub session_alloc {
 #  $self->_enqueue_state($session, $active_session, '_start', time(), []);
 
   $self->_dispatch_state($session, $active_session, '_start', []);
-  $self->_collect_garbage($session);
+  $self->_enqueue_state($session, $active_session,
+                        '_garbage_collect', time(), []
+                       );
   $self->{'active session'} = $active_session;
 }
 

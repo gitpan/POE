@@ -1,5 +1,5 @@
 #!perl -w -I..
-# $Id: sessions.perl,v 1.9 1998/11/26 17:43:57 troc Exp $
+# $Id: sessions.perl,v 1.10 1998/11/30 15:19:41 troc Exp $
 
 use strict;
 
@@ -19,14 +19,13 @@ new POE::Session
             foreach my $session_name (
               qw(one two three four five six seven eight nine ten)
             ) {
-              new POE::Session
+              my $session = new POE::Session
                 ( $kernel,
                   '_start' => sub
                   {
                     my ($k, $me, $from) = @_;
                     $me->{'name'} = $session_name;
                     $k->sig('INT', 'sigint');
-                    $k->post($me, 'increment', $session_name, 0);
                     print "Session $session_name started.\n";
                   },
                   '_stop' => sub
@@ -72,6 +71,8 @@ new POE::Session
                     return $counter * 3;
                   },
                 );
+                                        # tests delayed garbage-collection
+              $k->post($session, 'increment', $session_name, 0);
             }
           },
           '_stop' => sub

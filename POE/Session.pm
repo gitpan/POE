@@ -1,10 +1,16 @@
-# $Id: Session.pm,v 1.13 1998/11/24 15:39:24 troc Exp $
+# $Id: Session.pm,v 1.13 1998/11/24 15:39:24 troc Exp troc $
 # Documentation exists after __END__
 
 package POE::Session;
 
 use strict;
 use Carp;
+
+#------------------------------------------------------------------------------
+
+sub post {
+  print "*** post(", join(', ', @_), ")\n";
+}
 
 #------------------------------------------------------------------------------
 
