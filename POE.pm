@@ -1,11 +1,11 @@
-# $Id: POE.pm,v 1.31 1999/06/18 17:58:43 rcaputo Exp $
+# $Id: POE.pm,v 1.37 1999/11/20 05:43:50 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
 
 use vars qw($VERSION);
 
-$VERSION = 0.07;
+$VERSION = 0.08;
 
 use strict;
 use Carp;
@@ -271,6 +271,19 @@ packagesessions.perl
 
 This program is essentially the same as sessions.perl, but it uses
 package functions as states instead of inline code references.
+
+=item *
+
+piong.perl
+
+This is a quick and dirty multiple-host icmp ping program.  It
+requires two common vt100 escape codes ("\e[2J" to clear the screen
+and "\e[0;0H\" to home the cursor).  It needs to be run by root, since
+it expects to open a raw socket.
+
+I thank Russell Mosemann <mose@ccsn.edu> for the Net::Ping module,
+which I "borrowed" heavily from.  Net::Ping is the route of choice if
+you don't need parallel ping capability.
 
 =item *
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: thrash.perl,v 1.6 1999/06/16 23:37:31 rcaputo Exp $
+# $Id: thrash.perl,v 1.7 1999/08/13 14:00:44 rcaputo Exp $
 
 # This program creates a server session and an infinitude of clients
 # that connect to it, all in the same process.  It's mainly used to
@@ -94,6 +94,8 @@ sub client_connected {
       InputState => 'receive',                # generating this event on input
       ErrorState => 'error',                  # generating this event on error
     );
+
+  shutdown($socket, 1);
 }
 
 #------------------------------------------------------------------------------

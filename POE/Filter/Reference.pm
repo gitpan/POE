@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.11 1999/06/18 17:35:46 rcaputo Exp $
+# $Id: Reference.pm,v 1.13 1999/11/20 05:43:51 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -11,8 +11,7 @@ use Carp;
 #------------------------------------------------------------------------------
 # Try to require one of the default freeze/thaw packages.
 
-sub _default_freezer
-{
+sub _default_freezer {
   local $SIG{'__DIE__'} = 'DEFAULT';
   my $ret;
 
@@ -26,8 +25,7 @@ sub _default_freezer
 
 #------------------------------------------------------------------------------
 
-sub new 
-{
+sub new {
   my($type, $freezer) = @_;
   $freezer||=_default_freezer();
                                         # not a reference... maybe a package?
@@ -39,8 +37,8 @@ sub new
     }
 
   # Now get the methodes we want
-  my $freeze=$freezer->can('freeze') || $freezer->can('nfreeze');
-  carp "$freezer doesn't have a freeze method" unless $freeze;
+  my $freeze=$freezer->can('nfreeze') || $freezer->can('freeze');
+  carp "$freezer doesn't have a freeze or nfreeze method" unless $freeze;
   my $thaw=$freezer->can('thaw');
   carp "$freezer doesn't have a thaw method" unless $thaw;
 
@@ -52,9 +50,10 @@ sub new
     $tf=sub {$freeze->($freezer, @_)};
     $tt=sub {$thaw->($freezer, @_)};
   }
-  my $self = bless { 'framing buffer' => '',
-                     'expecting' => 0,
-                     'thaw'=>$tt, 'freeze'=>$tf,
+  my $self = bless { buffer    => '',
+                     expecting => undef,
+                     thaw      => $tt,
+                     freeze    => $tf,
                    }, $type;
   $self;
 }
@@ -65,20 +64,19 @@ sub get {
   my ($self, $stream) = @_;
   my @return;
 
-  $self->{'framing buffer'} .= join('', @$stream);
+  $self->{buffer} .= join('', @$stream);
 
-  # This doesn't allow 0-byte messages.  That's not a problem for
-  # passing frozen references, but it may cause trouble for filters
-  # derived from this code.  Modify according to taste.
-
-  while ($self->{'expecting'} ||
-         ( ($self->{'framing buffer'} =~ s/^(\d+)\0//s) &&
-           ($self->{'expecting'} = $1)
-         )
+  while ( defined($self->{expecting}) ||
+          ( ($self->{buffer} =~ s/^(\d+)\0//s) &&
+            ($self->{expecting} = $1)
+          )
   ) {
-    last unless ($self->{'framing buffer'} =~ s/^(.{$self->{'expecting'}})//s);
-    push @return, $self->{thaw}->($1);
-    $self->{'expecting'} = 0;
+    last if (length $self->{buffer} < $self->{expecting});
+    push( @return,
+          $self->{thaw}->(substr( $self->{buffer}, 0, $self->{expecting}))
+        );
+    substr($self->{buffer}, 0, $self->{expecting}) = '';
+    undef $self->{expecting};
   }
 
   return \@return;
@@ -100,8 +98,7 @@ sub put {
 #------------------------------------------------------------------------------
 # We are about to be destroyed!  Hand all we have left over to our Wheel
 
-sub get_pending
-{
+sub get_pending {
   my($self)=@_;
   return unless $self->{'framing buffer'};
   my $ret=[$self->{'framing buffer'}];
@@ -148,17 +145,18 @@ The new() method creates and initializes the reference filter.  It
 accepts an optional parameter to specify a serializer.  The serializer
 may be a package or an object.
 
-A package serializer must have thaw() and either freeze() or nfreeze()
-functions.  The nfreeze() function is recommended, because using
-network byte order everywhere prevents problems when crossing endian
-borders.  These functions match Storable and FreezeThaw's call
-signatures.
+A package serializer must have a thaw() function, and it must have
+either a freeze() or nfreeze() function.  If it has both freeze() and
+nfreeze(), then Filter::Reference will use nfreeze() for portability.
+These functions match Storable and FreezeThaw's call signatures.
 
-An object serializer must have thaw() and either freeze() or nfreeze()
-methods.  The thaw() method accepts $self and a scalar; it should
-return a reference to the reconstituted data.  The freeze() and
-nfreeze() methods receive $self and a reference; they should return a
-scalar with the reference's serialized representation.
+An object serializer must have a thaw() method.  It also must have
+either a freeze() or nfreeze() method.  If it has both freeze() and
+nfreeze(), then Filter::Reference will use nfreeze() for portability.
+The thaw() method accepts $self and a scalar; it should return a
+reference to the reconstituted data.  The freeze() and nfreeze()
+methods receive $self and a reference; they should return a scalar
+with the reference's serialized representation.
 
 For example:
 
@@ -170,6 +168,7 @@ For example:
 
   # Use an object.
   my $filter = new POE::Filter::Reference($object);
+
 
 The new() method will try to require any packages it needs.
 

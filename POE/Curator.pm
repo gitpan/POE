@@ -1,4 +1,4 @@
-# $Id: Curator.pm,v 1.2 1999/05/29 18:30:05 rcaputo Exp $
+# $Id: Curator.pm,v 1.3 1999/06/21 15:09:08 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
 # This program is free software; you can redistribute it and/or modify
@@ -13,6 +13,9 @@ use POSIX qw(errno_h);
 use Carp;
 
 use POE::Object;
+#use POE::Attribute::Scalar;
+use POE::Attribute::Hash;
+use POE::Attribute::Array;
 
 #==============================================================================
 # Private helpers.
@@ -125,6 +128,18 @@ sub attribute_fetch {
     $self->attribute_execute( $heap, $actor, $id, $attribute . DIDFETCH,
                               [ $old_value, $att_value ]
                             );
+
+  if (ref($att_value) eq 'HASH') {
+    my %return_att;
+    tie %return_att, 'POE::Attribute::Hash', $repository, $attribute, $id, $att_owner;
+    return (0, \%return_att);
+  }
+
+  if (ref($att_value) eq 'ARRAY') {
+    my @return_att;
+    tie @return_att, 'POE::Attribute::Array', $repository, $attribute, $id, $att_owner;
+    return (0, \@return_att);
+  }
 
   return (0, $att_value);
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile.PL,v 1.8 1999/05/14 11:33:18 rcaputo Exp $
+# $Id: Makefile.PL,v 1.9 1999/11/26 16:46:16 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
 
@@ -16,15 +16,9 @@ WriteMakefile
                     },
     PREREQ_PM    => { Carp           => 0,
                       Exporter       => 0,
-                      HTTP::Request  => 0,
-                      HTTP::Response => 0,
-                      HTTP::Status   => 0,
                       IO             => 0,
                       POSIX          => 0,
                       Socket         => 0,
-                      Storable       => 0,
-                      Time::HiRes    => 0,
-                      URI::URL       => 0,
                     },
   );
 

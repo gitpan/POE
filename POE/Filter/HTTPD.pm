@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.5 1999/06/18 17:35:46 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.6 1999/07/02 13:58:36 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -123,7 +123,7 @@ sub get {
 
 sub put {
   my ($self, $responses) = @_;
-  my @raw = map { 'HTTP ' . $_->as_string(); } @$responses;
+  my @raw = map { $HTTP_1_0 . ' ' . $_->as_string(); } @$responses;
   \@raw;
 }
 

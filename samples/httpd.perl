@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: httpd.perl,v 1.6 1999/05/14 06:06:13 rcaputo Exp $
+# $Id: httpd.perl,v 1.7 1999/07/02 14:40:42 rcaputo Exp $
 
 # This program tests POE::Filter::HTTPD by setting up a small server.
 # By default, it will bind to port 80 of all addresses on the local
@@ -196,7 +196,7 @@ sub accept {
 
   $peer_addr = inet_ntoa($peer_addr);
   print "Server received connection from $peer_addr : $peer_port\n";
-  
+
   new ServerSession($accepted_handle, $peer_addr, $peer_port);
 }
 

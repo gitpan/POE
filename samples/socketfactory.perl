@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: socketfactory.perl,v 1.8 1999/05/14 06:06:15 rcaputo Exp $
+# $Id: socketfactory.perl,v 1.9 1999/07/27 22:26:47 rcaputo Exp $
 
 # This program tests POE::Wheel::SocketFactory.  Basically, it is
 # thrash.perl, but for AF_UNIX, AF_INET tcp, and AF_INET udp sockets.
@@ -399,7 +399,6 @@ sub _start {
                                         # start a socket factory
   $heap->{'wheel'} = new POE::Wheel::SocketFactory
     ( SocketDomain  => AF_UNIX,           # in the Unix address family
-      BindAddress   => $heap->{'socket'}, # bind to this address
       RemoteAddress => $unix_server,      # connected to that Unix address
       SuccessState  => 'got_connection',  # sending this message when connected
       FailureState  => 'got_error'        # sending this message upon failure

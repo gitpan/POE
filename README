@@ -1,10 +1,11 @@
-$Id: README,v 1.12 1999/06/15 15:12:58 rcaputo Exp $
+$Id: README,v 1.13 1999/11/20 05:43:51 rcaputo Exp $
 
 TABLE OF CONTENTS
 =================
 
 Table of Contents; About POE; Compatibility (Non-Requirements and
-Requirements); Availability; Support Resources; Installing and Testing
+Requirements); Availability; Support Resources; Installing and
+Testing; The Future
 
 
 ABOUT POE
@@ -150,6 +151,15 @@ effect.
 Once everything looks good, POE can be installed by typing:
 
   make install
+
+
+THE FUTURE
+==========
+
+A next-generation POE (code-named "POE2") is in the works.  It is a
+complete rewrite, supporting some of the more difficult feature
+requests.  An "RFC" level pre-alpha release is available from the POE
+home page.
 
 
 -- Rocco Caputo / troc@netrus.net / Thank you for reading.

@@ -1,4 +1,4 @@
-# $Id: Wheel.pm,v 1.6 1999/06/18 17:35:46 rcaputo Exp $
+# $Id: Wheel.pm,v 1.7 1999/07/27 22:26:46 rcaputo Exp $
 
 package POE::Wheel;
 
@@ -63,6 +63,12 @@ POE::Wheel::DESTROY()
 The DESTROY() method removes the wheel's states from its parent
 session and cleans up the wheel's other resources.  It's called
 implicitly when the parent session lets go of the wheel's reference.
+
+B<Important note:> When passing a filehandle between wheels, you must
+ensure that the old wheel is destroyed before creating the new one.
+This is necessary because destruction of the old wheel will remove all
+the selects for the filehandle.  That will undo any selects set by a
+new wheel, preventing the new wheel from seeing any file activity.
 
 =item *
 

@@ -1,10 +1,92 @@
-$Id: Changes,v 1.32 1999/06/18 17:58:42 rcaputo Exp $
+$Id: Changes,v 1.48 1999/11/26 16:46:15 rcaputo Exp $
 
 Revision history for Perl extension POE.
 ========================================
 
 Changes marked with "(!!!)" may break backward compatibility.
-Versions with "_xx" subversions are internal test releases.
+Versions with "_xx" subversions are internal test releases.  Most
+subversions are available from <http://www.newts.org/~troc/poe.html>.
+
+
+0.08 1999.11.26
+---------------
+
+John Labovitz <watchguard.com!johnl> submitted a patch to change
+Driver::SysRW's read block size.  He also pointed out that
+Filter::Reference prefers to use freeze() instead of the more portable
+nfreeze().  I applied a modified version of his block size patch, and
+I changed Filter::Reference to prefer nfreeze().
+
+There have been no complaints with the 0.07_xx subversions, and they
+contain useful changes, so the version is bumped to 0.08.
+
+Mentioned the "POE2" project in the README file.
+
+Added an undocumented command line switch to samples/poing.perl that
+specifies the maximum number of hours to run.
+
+Changed the small/large queue limit for POE::Kernel::_enqueue_state
+from 32 to 8.
+
+Removed the hard requirement for optional modules: Storable;
+Time::HiRes; HTTP::Request; HTTP::Response; HTTP::Status; URI::URL.
+These aren't mandatory for basic POE things.
+
+
+0.0704 1999.11.14
+-----------------
+
+Include some modules that were mistakenly left out of 0.0703.
+
+
+0.0703 1999.08.20
+-----------------
+
+Removed closure optimizations from the Wheel classes.  The later
+addition of $wheel->event() subtly broke them.
+
+Added poing.perl, a multi-host ICMP ping program, to the samples
+directory.  My ISP was down, so I hacked this together, "borrowing" a
+lot of code from Net::Ping.  As such, it's neither friendly to
+configure nor commented.
+
+Sessions' "default" option didn't confess, contrary to the
+documentation.
+
+
+0.0702 1999.07.30
+-----------------
+
+Made BindAddress optional for UNIX client sockets.  It's still
+required for server sockets.  Updated the documentation for the
+change, fixed some typos, and included PF_INET and PF_UNIX.
+
+Changed POE::Kernel::_enqueue_state from a linear search to a binary
+search, but only if there are 32+ events in the queue.  Smaller queues
+are still searched linearly, on assumption that it's quicker because
+there's less overhead.
+
+
+0.0701 1999.07.01
+-----------------
+
+Fixed a race or TCP/IP stack problem in SocketFactory.  SocketFactory
+was firing a "connect error 0" if the server side sent data
+immediately.  The problem was tested on four systems: Linux (broke);
+Solaris (broke); FreeBSD (worked); OS/2 (worked).  Go figure.  It
+should work on all four now.
+
+Modified POE::Filter::HTTPD to respond with the protocol version
+(hardcoded to 1.0).  The wget utility had a problem with 'HTTP ...',
+and I assume it won't be the only thing to.
+
+Replaced a regular expression in POE::Filter::Reference with a
+substr() call.  The regexp was used to frame input streams, and large
+structures (over 32KB) were not being framed correctly.  This was
+fixed in a previous version, but the fix was reverted for some reason.
+The new &get method code also supports 0-byte blocks, which is
+pointless for a Reference filter, but lets you use Reference as a
+"reference" for other variable-length block filters. :)
 
 
 0.07 1999.06.18 (!!!)

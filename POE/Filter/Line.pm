@@ -1,4 +1,4 @@
-# $Id: Line.pm,v 1.8 1999/06/18 17:35:46 rcaputo Exp $
+# $Id: Line.pm,v 1.9 1999/11/14 22:02:43 rcaputo Exp $
 
 package POE::Filter::Line;
 
@@ -19,9 +19,7 @@ sub get {
   my ($self, $stream) = @_;
   $$self .= join('', @$stream);
   my @result;
-  while (
-         $$self =~ s/^([^\x0D\x0A]*)(\x0D\x0A?|\x0A\x0D?)//
-  ) {
+  while ($$self =~ s/^([^\x0D\x0A]*)(\x0D\x0A?|\x0A\x0D?)//) {
     push(@result, $1);
   }
   \@result;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: create.perl,v 1.2 1999/05/14 06:06:12 rcaputo Exp $
+# $Id: create.perl,v 1.3 1999/08/14 00:16:33 rcaputo Exp $
 
 # This is a version of sessions.perl that uses the &Session::create
 # constructor.
@@ -122,7 +122,7 @@ sub main_start {
                                         # stupid scope trick, part 3 of 3 parts
     $session_name = $name;
     my $session = create POE::Session
-      ( inline_states => 
+      ( inline_states =>
         { _start      => \&child_start,
           _stop       => \&child_stop,
           increment   => \&child_increment,
