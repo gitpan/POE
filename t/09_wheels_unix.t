@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 09_wheels_unix.t,v 1.13 2002/07/15 23:20:10 rcaputo Exp $
+# $Id: 09_wheels_unix.t,v 1.14 2003/02/01 04:52:07 cwest Exp $
 
 # Exercises the wheels commonly used with UNIX domain sockets.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 use Socket;
 

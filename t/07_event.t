@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 07_event.t,v 1.15 2002/08/20 19:37:32 rcaputo Exp $
+# $Id: 07_event.t,v 1.16 2003/02/01 04:52:07 cwest Exp $
 
 # Tests FIFO, alarm, select and postback events using Event's event
 # loop.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use Symbol;
 
 use TestSetup;

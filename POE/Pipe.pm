@@ -1,4 +1,4 @@
-# $Id: Pipe.pm,v 1.6 2002/09/15 16:49:21 rcaputo Exp $
+# $Id: Pipe.pm,v 1.9 2003/02/04 03:32:01 rcaputo Exp $
 
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
@@ -9,7 +9,7 @@ package POE::Pipe;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.6 $ ))[1];
+$VERSION = (qw($Revision: 1.9 $ ))[1];
 
 use Symbol qw(gensym);
 use IO::Socket;
@@ -37,23 +37,36 @@ BEGIN {
 sub _stop_blocking {
   my $socket_handle = shift;
 
-  # Do it the Win32 way.  XXX This is incomplete.
-  if ($^O eq 'MSWin32') {
-    my $set_it = "1";
+  # RCC 2002-12-19: Replace the complex blocking checks and methods
+  # with IO::Handle's blocking(0) method.  This is theoretically more
+  # portable and less maintenance than rolling our own.  If things
+  # work out, we'll replace this function entirely.
 
-    # 126 is FIONBIO (some docs say 0x7F << 16)
-    ioctl( $socket_handle,
-           0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
-           $set_it
-         )
-      or die "ioctl fails: $!";
+  # RCC 2003-01-20: Perl 5.005_03 doesn't like blocking(), so we'll
+  # only call it in perl 5.8.0 and beyond.
+
+  if ($] >= 5.008) {
+    $socket_handle->blocking(0);
   }
-
-  # Do it the way everyone else does.
   else {
-    my $flags = fcntl($socket_handle, F_GETFL, 0) or die "getfl fails: $!";
-    $flags = fcntl($socket_handle, F_SETFL, $flags | O_NONBLOCK)
-      or die "setfl fails: $!";
+    # Do it the Win32 way.  XXX This is incomplete.
+    if ($^O eq 'MSWin32') {
+      my $set_it = "1";
+
+      # 126 is FIONBIO (some docs say 0x7F << 16)
+      ioctl( $socket_handle,
+             0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
+             $set_it
+           )
+        or die "ioctl fails: $!";
+    }
+
+    # Do it the way everyone else does.
+    else {
+      my $flags = fcntl($socket_handle, F_GETFL, 0) or die "getfl fails: $!";
+      $flags = fcntl($socket_handle, F_SETFL, $flags | O_NONBLOCK)
+        or die "setfl fails: $!";
+    }
   }
 }
 
@@ -63,23 +76,36 @@ sub _stop_blocking {
 sub _start_blocking {
   my $socket_handle = shift;
 
-  # Do it the Win32 way.  XXX This is incomplete.
-  if ($^O eq 'MSWin32') {
-    my $unset_it = "0";
+  # RCC 2002-12-19: Replace the complex blocking checks and methods
+  # with IO::Handle's blocking(1) method.  This is theoretically more
+  # portable and less maintenance than rolling our own.  If things
+  # work out, we'll replace this function entirely.
 
-    # 126 is FIONBIO (some docs say 0x7F << 16)
-    ioctl( $socket_handle,
-           0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
-           $unset_it
-         )
-      or die "ioctl fails: $!";
+  # RCC 2003-01-20: Perl 5.005_03 doesn't like blocking(), so we'll
+  # only call it in perl 5.8.0 and beyond.
+
+  if ($] >= 5.008) {
+    $socket_handle->blocking(1);
   }
-
-  # Do it the way everyone else does.
   else {
-    my $flags = fcntl($socket_handle, F_GETFL, 0) or die "getfl fails: $!";
-    $flags = fcntl($socket_handle, F_SETFL, $flags & ~O_NONBLOCK)
-      or die "setfl fails: $!";
+    # Do it the Win32 way.  XXX This is incomplete.
+    if ($^O eq 'MSWin32') {
+      my $unset_it = "0";
+
+      # 126 is FIONBIO (some docs say 0x7F << 16)
+      ioctl( $socket_handle,
+             0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
+             $unset_it
+           )
+        or die "ioctl fails: $!";
+    }
+
+    # Do it the way everyone else does.
+    else {
+      my $flags = fcntl($socket_handle, F_GETFL, 0) or die "getfl fails: $!";
+      $flags = fcntl($socket_handle, F_SETFL, $flags & ~O_NONBLOCK)
+        or die "setfl fails: $!";
+    }
   }
 }
 
@@ -165,7 +191,7 @@ sub make_socket {
       $! = unpack('i', getsockopt($connector, SOL_SOCKET, SO_ERROR));
       die "connect: $!" if $!;
 
-      vec($in_read, fileno($acceptor), 1) = 0;
+      vec($in_write, fileno($connector), 1) = 0;
       $done |= 0x01;
     }
   }

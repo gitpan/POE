@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.38 2002/09/13 07:58:04 rcaputo Exp $
+# $Id: 06_tk.t,v 1.40 2003/02/06 03:30:38 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Tk postback events using Tk's event
 # loop.
 
 use strict;
 
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 
 use Symbol;
 use TestSetup;
@@ -32,6 +32,11 @@ BEGIN {
   # Tk support relies on an interface change that occurred in 800.021.
   &test_setup(0, "Tk 800.021 or newer is needed for these tests")
     if $Tk::VERSION < 800.021;
+
+  # ActivePerl 5.8.0 + Tk = T3H NOT SUPPR0TED BY P03!
+  if ($^O eq "MSWin32" and $] == 5.008) {
+    &test_setup(0, "See http://bugs.activestate.com/show_bug.cgi?id=22619");
+  }
 
   # Tk and Perl before 5.005_03 don't mix.
   &test_setup( 0, "Tk requires Perl 5.005_03 or newer." ) if $] < 5.005_03;

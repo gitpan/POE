@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 10_wheels_tcp.t,v 1.12 2001/11/09 15:16:43 rcaputo Exp $
+# $Id: 10_wheels_tcp.t,v 1.13 2003/02/01 04:52:07 cwest Exp $
 
 # Exercises the wheels commonly used with TCP sockets.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 use Socket;
 

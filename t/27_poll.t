@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 27_poll.t,v 1.5 2002/07/15 23:20:11 rcaputo Exp $
+# $Id: 27_poll.t,v 1.6 2003/02/01 04:52:07 cwest Exp $
 
 # Rerun t/04_selects.t but with IO::Poll instead.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 
 #sub POE::Kernel::TRACE_SELECT () { 1 }

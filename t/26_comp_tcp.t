@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 26_comp_tcp.t,v 1.2 2002/07/31 18:43:01 rcaputo Exp $
+# $Id: 26_comp_tcp.t,v 1.3 2003/02/01 04:52:07 cwest Exp $
 
 # Exercise Server::TCP and later, when it's available, Client::TCP.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 
 test_setup(18);

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 03_aliases.t,v 1.11 2002/10/20 20:55:21 rcaputo Exp $
+# $Id: 03_aliases.t,v 1.12 2003/02/01 04:52:06 cwest Exp $
 
 # Tests basic session aliases.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 &test_setup(21);
 

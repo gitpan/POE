@@ -1,16 +1,15 @@
-# $Id: FollowTail.pm,v 1.39 2002/10/20 20:35:51 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.42 2003/01/21 22:22:35 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.39 $ ))[1];
+$VERSION = (qw($Revision: 1.42 $ ))[1];
 
 use Carp;
 use Symbol;
 use POSIX qw(SEEK_SET SEEK_CUR SEEK_END);
-use Fcntl qw(:mode);
 use POE qw(Wheel Driver::SysRW Filter::Line);
 use IO::Handle;
 
@@ -227,7 +226,7 @@ sub _define_select_states {
               $k->call($ses, $$event_error, 'read', ($!+0), $!, $unique_id);
             $k->select($handle);
           }
-          $handle->clearerr();
+          eval { IO::Handle::clearerr($handle) }; # could be a globref
         }
       }
     );
@@ -344,7 +343,7 @@ sub _define_timer_states {
             $k->select($handle);
           }
           $k->delay($state_read, $poll_interval);
-          $handle->clearerr();
+          IO::Handle::clearerr($handle);
         }
       }
     );

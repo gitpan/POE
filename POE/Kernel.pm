@@ -1,16 +1,17 @@
-# $Id: Kernel.pm,v 1.222 2002/11/19 18:02:09 rcaputo Exp $
+# $Id: Kernel.pm,v 1.233 2003/02/05 16:22:11 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.222 $ ))[1];
+$VERSION = (qw($Revision: 1.233 $ ))[1];
 
 use POE::Queue::Array;
 use POSIX qw(errno_h fcntl_h sys_wait_h);
 use Carp qw(carp croak confess cluck);
 use Sys::Hostname qw(hostname);
+use IO::Handle;
 
 # People expect these to be lexical.
 
@@ -37,7 +38,7 @@ BEGIN {
   # POE runs better with Time::HiRes, but it also runs without it.
   eval {
     require Time::HiRes;
-    Time::HiRes->import qw(time sleep);
+    Time::HiRes->import(qw(time sleep));
   };
 
   # http://support.microsoft.com/support/kb/articles/Q150/5/37.asp
@@ -278,7 +279,7 @@ BEGIN {
 # Accessors: Tagged extra reference counts accessors.
 ###############################################################################
 
-{ # In its own scope for debugging.  This makes the data members private.
+{ # This section becomes POE::Resource::Extref
 
 ### The count of all extra references used in the system.
 
@@ -404,7 +405,7 @@ sub _data_extref_count_ses {
 # Accessors: Session IDs.
 ###############################################################################
 
-{ # In its own scope for debugging.  This makes the data members private.
+{ # This section becomes POE::Resource::Sid
 
 ### Map session IDs to sessions.  Map sessions to session IDs.
 ### Maintain a sequence number for determining the next session ID.
@@ -473,7 +474,7 @@ sub _data_sid_resolve {
 # Accessors: Signals.
 ###############################################################################
 
-{ # In its own scope for debugging.  This makes the data members private.
+{ # This section becomes POE::Resource::Signal
 
 ### Map watched signal names to the sessions that are watching them
 ### and the events that must be delivered when they occur.
@@ -521,6 +522,53 @@ my %_signal_types =
     ZOMBIE    => SIGTYPE_NONMASKABLE,
     UIDESTROY => SIGTYPE_NONMASKABLE,
   );
+
+# Build a list of useful, real signals.  Nonexistent signals, and ones
+# which are globally unhandled, usually cause segmentation faults if
+# perl was poorly configured.  Some signals aren't available in some
+# environments.
+
+my @_safe_signals;
+
+sub _data_sig_initialize {
+  my $self = shift;
+
+  # In case we're called multiple times.
+  unless (@_safe_signals) {
+    foreach my $signal (keys %SIG) {
+
+      # Nonexistent signals, and ones which are globally unhandled.
+      next if ($signal =~ /^( NUM\d+
+                              |__[A-Z0-9]+__
+                              |ALL|CATCHALL|DEFER|HOLD|IGNORE|MAX|PAUSE
+                              |RTMIN|RTMAX|SETS
+                              |SEGV
+                              |
+                            )$/x
+              );
+
+      # Windows doesn't have a SIGBUS, but the debugger causes SIGBUS
+      # to be entered into %SIG.  It's fatal to register its handler.
+      next if $signal eq 'BUS' and RUNNING_IN_HELL;
+
+      # Apache uses SIGCHLD and/or SIGCLD itself, so we can't.
+      next if $signal =~ /^CH?LD$/ and exists $INC{'Apache.pm'};
+
+      push @_safe_signals, $signal;
+    }
+  }
+
+  # Regsiter handlers for all safe signals.
+  foreach (@_safe_signals) {
+    $self->loop_watch_signal($_);
+  }
+}
+
+### Return signals that are safe to manipulate.
+
+sub _data_sig_get_safe_signals {
+  return @_safe_signals;
+}
 
 ### End-run leak checking.
 
@@ -654,6 +702,10 @@ sub _data_sig_free_terminated_sessions {
       $self->_data_ses_collect_garbage($touched_session);
     }
   }
+
+  # Erase @kr_signaled_sessions, or they will leak until the next
+  # signal.
+  undef @kr_signaled_sessions;
 }
 
 ### A signal has touched a session.  Record this fact for later
@@ -686,7 +738,7 @@ sub _data_sig_touched_session {
 # Accessors: Aliases.
 ###############################################################################
 
-{ # In its own scope for debugging.  This makes the data members private.
+{ # This section becomes POE::Resource::Alias
 
 ### The table of session aliases, and the sessions they refer to.
 
@@ -788,7 +840,7 @@ sub _data_alias_loggable {
 # Accessors: File descriptor tables.
 ###############################################################################
 
-{ # In its own scope for debugging.  This makes the data members private.
+{ # This section becomes POE::Resource::Handle
 
 ### Fileno structure.  This tracks the sessions that are watchin a
 ### file, by its file number.  It used to track by file handle, but
@@ -1041,24 +1093,38 @@ sub _data_handle_add {
     # Turn off blocking unless it's tied or a plain file.
     unless (tied *$handle or -f $handle) {
 
-      # Make the handle stop blocking, the Windows way.
-      if (RUNNING_IN_HELL) {
-        my $set_it = "1";
+      # RCC 2002-12-19: ActiveState Perl 5.8.0 disliked the Win32 code
+      # to make a socket non-blocking, so we're trying IO::Handle's
+      # blocking(0) method.  Bonus: It does "the right thing" just
+      # about everywhere, so I don't need to add checks for AS Perl
+      # 5.8.0, AS Perl 5.6.1, and Everybody else.
 
-        # 126 is FIONBIO (some docs say 0x7F << 16)
-        ioctl( $handle,
-               0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
-               $set_it
-             ) or confess "Can't set the handle non-blocking: $!";
+      # RCC 2003-01-20: Perl 5.005_03 doesn't like blocking(), so
+      # we'll only call it in Perl 5.8.0 and beyond.
+
+      if ($] >= 5.008) {
+        $handle->blocking(0);
       }
-
-      # Make the handle stop blocking, the POSIX way.
       else {
-        my $flags = fcntl($handle, F_GETFL, 0)
-          or confess "fcntl($handle, F_GETFL, etc.) fails: $!\n";
-        until (fcntl($handle, F_SETFL, $flags | O_NONBLOCK)) {
-          confess "fcntl($handle, FSETFL, etc) fails: $!"
-            unless $! == EAGAIN or $! == EWOULDBLOCK;
+        # Make the handle stop blocking, the POSIX way.
+        unless (RUNNING_IN_HELL) {
+          my $flags = fcntl($handle, F_GETFL, 0)
+            or confess "fcntl($handle, F_GETFL, etc.) fails: $!\n";
+          until (fcntl($handle, F_SETFL, $flags | O_NONBLOCK)) {
+            confess "fcntl($handle, FSETFL, etc) fails: $!"
+              unless $! == EAGAIN or $! == EWOULDBLOCK;
+          }
+        }
+        else {
+          # Do it the Win32 way.
+          my $set_it = "1";
+
+          # 126 is FIONBIO (some docs say 0x7F << 16)
+          ioctl( $handle,
+                 0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
+                 $set_it
+               )
+            or confess "ioctl($handle, FIONBIO, $set_it) fails: $!\n";
         }
       }
     }
@@ -1189,9 +1255,8 @@ sub _data_handle_remove {
 
       foreach ($kr_queue->remove_items($my_select)) {
         my ($time, $id, $event) = @$_;
-        $self->_data_ev_refcount_dec( $event->[EV_SESSION],
-                                      $event->[EV_SOURCE]
-                                    );
+        $self->_data_ev_refcount_dec( @$event[EV_SESSION, EV_SOURCE] );
+
         TRACE_EVENTS and
           warn "<ev> removing select event $id ``$event->[EV_NAME]''";
 
@@ -1379,7 +1444,7 @@ sub _data_handle_clear_session {
 # Accessors: Events.
 ###############################################################################
 
-{ # In its own scope for debugging.  This makes the data members private.
+{ # This section becomes POE::Resource::Event
 
 my %event_count;
 #  ( $session => $count,
@@ -1463,11 +1528,8 @@ sub _data_ev_clear_session {
       ($post_count{$session} || 0)
     );
 
-  my @removed = $kr_queue->remove_items($my_event, $total_event_count);
-  foreach (@removed) {
-    $self->_data_ev_refcount_dec( $_->[ITEM_PAYLOAD]->[EV_SOURCE],
-                                  $_->[ITEM_PAYLOAD]->[EV_SESSION]
-                                );
+  foreach ($kr_queue->remove_items($my_event, $total_event_count)) {
+    $self->_data_ev_refcount_dec(@{$_->[ITEM_PAYLOAD]}[EV_SOURCE, EV_SESSION]);
   }
 }
 
@@ -1486,9 +1548,7 @@ sub _data_ev_clear_alarm_by_name {
   };
 
   foreach ($kr_queue->remove_items($my_alarm)) {
-    $self->_data_ev_refcount_dec( $_->[ITEM_PAYLOAD]->[EV_SOURCE],
-                                  $_->[ITEM_PAYLOAD]->[EV_SESSION]
-                                );
+    $self->_data_ev_refcount_dec(@{$_->[ITEM_PAYLOAD]}[EV_SOURCE, EV_SESSION]);
   }
 }
 
@@ -1506,7 +1566,7 @@ sub _data_ev_clear_alarm_by_id {
   my ($time, $id, $event) = $kr_queue->remove_item($alarm_id, $my_alarm);
   return unless defined $time;
 
-  $self->_data_ev_refcount_dec($event->[EV_SOURCE], $event->[EV_SESSION]);
+  $self->_data_ev_refcount_dec( @$event[EV_SOURCE, EV_SESSION] );
   return ($time, $event);
 }
 
@@ -1523,10 +1583,8 @@ sub _data_ev_clear_alarm_by_session {
 
   my @removed;
   foreach ($kr_queue->remove_items($my_alarm)) {
-    $self->_data_ev_refcount_dec( $_->[ITEM_PAYLOAD]->[EV_SOURCE],
-                                  $_->[ITEM_PAYLOAD]->[EV_SESSION]
-                                );
-    my ($time, $id, $event) = @$_;
+    my ($time, $event) = @$_[ITEM_PRIORITY, ITEM_PAYLOAD];
+    $self->_data_ev_refcount_dec( @$event[EV_SOURCE, EV_SESSION] );
     push @removed, [ $event->[EV_NAME], $time, @{$event->[EV_ARGS]} ];
   }
 
@@ -1599,7 +1657,7 @@ sub _data_ev_dispatch_due {
 # Accessors: Sessions.
 ###############################################################################
 
-{ # In its own scope for debugging.  This makes the data members private.
+{ # This section becomes POE::Resource::Session
 
 ### Session structure.
 
@@ -2215,7 +2273,7 @@ sub new {
 
     # Start the Kernel's session.
     $self->_initialize_kernel_session();
-    $self->_initialize_kernel_signals();
+    $self->_data_sig_initialize();
   }
 
   # Return the global instance.
@@ -2440,19 +2498,23 @@ sub _dispatch_event {
   $self->_data_sig_clear_handled_flags();
 
   # Dispatch the event, at long last.
-  my $return =
-    $session->_invoke_state($source_session, $event, $etc, $file, $line);
+  my $return;
+  if (wantarray) {
+    $return =
+      [ $session->_invoke_state($source_session, $event, $etc, $file, $line) ];
+  }
+  else {
+    $return =
+      $session->_invoke_state($source_session, $event, $etc, $file, $line);
+  }
 
   # Stringify the handler's return value if it belongs in the POE
   # namespace.  $return's scope exists beyond the post-dispatch
   # processing, which includes POE's garbage collection.  The scope
   # bleed was known to break determinism in surprising ways.
 
-  if (defined $return) {
-    $return = "$return" if substr(ref($return), 0, 5) eq 'POE::';
-  }
-  else {
-    $return = '';
+  if (defined $return and substr(ref($return), 0, 5) eq 'POE::') {
+    $return = "$return";
   }
 
   # Pop the active session, now that it's not active anymore.
@@ -2464,11 +2526,12 @@ sub _dispatch_event {
   }
 
   # Post-dispatch processing.  This is a user event (but not a call),
-  # so garbage collect it.  Also garbage collect the sender.
+  # so garbage collect it.  Also garbage collect the sender, if needed.
 
   if ($type & ET_USER) {
     $self->_data_ses_collect_garbage($session);
-    #$self->_data_ses_collect_garbage($source_session);
+    $self->_data_ses_collect_garbage($source_session)
+      unless $session == $source_session;
   }
 
   # A new session has started.  Tell its parent.  Incidental _start
@@ -2515,7 +2578,8 @@ sub _dispatch_event {
   $kr_active_event = $hold_active_event;
 
   # Return what the handler did.  This is used for call().
-  $return;
+  return @$return if wantarray;
+  return $return;
 }
 
 #------------------------------------------------------------------------------
@@ -2533,46 +2597,14 @@ sub _initialize_kernel_session {
   $self->_data_ses_allocate($self, $self->[KR_ID], undef);
 }
 
-# Regsiter all known signal handlers, except the troublesome ones.
-# "Troublesome" signals are the ones which aren't really signals, are
-# uncatchable, are improperly implemented on a given platform, or are
-# already being handled by the runtime environment.
-
-sub _initialize_kernel_signals {
-  my $self = shift;
-
-  foreach my $signal (keys(%SIG)) {
-
-    # Nonexistent signals, and ones which are globally unhandled.
-    next if ($signal =~ /^( NUM\d+
-                            |__[A-Z0-9]+__
-                            |ALL|CATCHALL|DEFER|HOLD|IGNORE|MAX|PAUSE
-                            |RTMIN|RTMAX|SETS
-                            |SEGV
-                            |
-                          )$/x
-            );
-
-    # Windows doesn't have a SIGBUS, but the debugger causes SIGBUS to
-    # be entered into %SIG.  It's fatal to register its handler.
-    next if $signal eq 'BUS' and RUNNING_IN_HELL;
-
-    # Apache uses SIGCHLD and/or SIGCLD itself, so we can't.
-    next if $signal =~ /^CH?LD$/ and exists $INC{'Apache.pm'};
-
-    # The signal is good.  Register a handler for it with the loop.
-    $self->loop_watch_signal($signal);
-  }
-}
-
 # Do post-run cleanup.
 
 sub finalize_kernel {
   my $self = shift;
 
   # Disable signal watching since there's now no place for them to go.
-  foreach my $signal (keys %SIG) {
-    $self->loop_ignore_signal($signal);
+  foreach ($self->_data_sig_get_safe_signals()) {
+    $self->loop_ignore_signal($_);
   }
 
   # The main loop is done, no matter which event library ran it.
@@ -2768,7 +2800,7 @@ sub session_alloc {
   if ($kr_run_warning & KR_RUN_DONE) {
     $kr_run_warning &= ~KR_RUN_DONE;
     $self->_initialize_kernel_session();
-    $self->_initialize_kernel_signals();
+    $self->_data_sig_initialize();
   }
 
   confess "<ss> ", $self->_data_alias_loggable($session), " already exists\a"
@@ -2985,13 +3017,27 @@ sub call {
   # deterministic programs, but the difficulty can be ameliorated if
   # programmers set some base rules and stick to them.
 
-  my $return_value =
-    $self->_dispatch_event
-      ( $session, $kr_active_session,
-        $event_name, ET_CALL, \@etc,
-        (caller)[1,2], time(), -__LINE__
-      );
+  my $return_value;
+  if (wantarray) {
+    $return_value =
+      [ $self->_dispatch_event
+        ( $session, $kr_active_session,
+          $event_name, ET_CALL, \@etc,
+          (caller)[1,2], time(), -__LINE__
+        )
+      ];
+  }
+  else {
+    $return_value =
+      $self->_dispatch_event
+        ( $session, $kr_active_session,
+          $event_name, ET_CALL, \@etc,
+          (caller)[1,2], time(), -__LINE__
+        );
+  }
+
   $! = 0;
+  return @$return_value if wantarray;
   return $return_value;
 }
 

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 13_wheels_udp.t,v 1.3 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 13_wheels_udp.t,v 1.4 2003/02/01 04:52:07 cwest Exp $
 
 # Exercises the wheels commonly used with UDP sockets.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 use Socket;
 

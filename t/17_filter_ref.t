@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 17_filter_ref.t,v 1.5 2002/07/15 23:20:11 rcaputo Exp $
+# $Id: 17_filter_ref.t,v 1.6 2003/02/01 04:52:07 cwest Exp $
 
 # Exercises Filter::Reference without the rest of POE.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 
 sub POE::Kernel::TRACE_DEFAULT () { 1 } # not needed though
 use POE::Filter::Reference;

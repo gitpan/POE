@@ -1,15 +1,15 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.40 2002/10/02 06:58:20 rcaputo Exp $
+# $Id: 08_errors.t,v 1.42 2003/02/01 04:52:07 cwest Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 
 BEGIN {
-  &test_setup(53);
+  &test_setup(49);
 };
 
 use POSIX qw(:errno_h);
@@ -382,25 +382,9 @@ if ($^O ne 'MSWin32' and $^O ne 'MacOS') {
   eval 'POE::Wheel::Run->new( Program => 1 )';
   print 'not ' unless defined $@ and length $@;
   print "ok 49\n";
-
-  eval '$pwrun->set_filter()';
-  print 'not ' unless defined $@ and length $@;
-  print "ok 50\n";
-
-  eval '$pwrun->set_stderr_filter()';
-  print 'not ' unless defined $@ and length $@;
-  print "ok 51\n";
-
-  eval '$pwrun->set_stdin_filter()';
-  print 'not ' unless defined $@ and length $@;
-  print "ok 52\n";
-
-  eval '$pwrun->set_stdout_filter()';
-  print 'not ' unless defined $@ and length $@;
-  print "ok 53\n";
 }
 else {
-  for (48..53) {
+  for (48..49) {
     print "ok $_ # skipped: $^O does not support POE::Wheel::Run.\n";
   }
 }

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 20_accept.t,v 1.4 2001/07/18 18:44:32 rcaputo Exp $
+# $Id: 20_accept.t,v 1.5 2003/02/01 04:52:07 cwest Exp $
 
 # Exercises the ListenAccept wheel.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use IO::Socket;
 
 use TestSetup qw(ok not_ok ok_if results test_setup many_not_ok);

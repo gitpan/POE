@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 02_alarms.t,v 1.11 2002/09/24 06:22:55 rcaputo Exp $
+# $Id: 02_alarms.t,v 1.12 2003/02/01 04:52:06 cwest Exp $
 
 # Tests alarms.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup qw(ok not_ok ok_if ok_unless results test_setup);
 
 &test_setup(30);

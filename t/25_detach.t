@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 25_detach.t,v 1.3 2002/04/12 21:06:27 rcaputo Exp $
+# $Id: 25_detach.t,v 1.4 2003/02/01 04:52:07 cwest Exp $
 
 # Tests session detaching.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 &test_setup(9);
 

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 001_queue.t,v 1.1 2002/09/24 06:32:41 rcaputo Exp $
+# $Id: 001_queue.t,v 1.2 2003/02/01 04:52:06 cwest Exp $
 
 # Tests basic queue operations.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 &test_setup(1061);
 

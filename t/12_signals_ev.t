@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 12_signals_ev.t,v 1.16 2002/07/15 23:20:11 rcaputo Exp $
+# $Id: 12_signals_ev.t,v 1.17 2003/02/01 04:52:07 cwest Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 
 # Skip these tests if Event or fork() isn't here.

@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 29_sockfact6.t,v 1.6 2002/09/12 15:07:00 rcaputo Exp $
+# $Id: 29_sockfact6.t,v 1.7 2003/02/01 04:52:07 cwest Exp $
 
 # Exercises Client and Server TCP components, which exercise
 # SocketFactory in AF_INET6 mode.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 use Socket;
 

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 04_selects.t,v 1.15 2002/08/20 19:37:32 rcaputo Exp $
+# $Id: 04_selects.t,v 1.17 2003/02/06 20:07:15 rcaputo Exp $
 
 # Tests basic select operations.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 
 &test_setup(16);
@@ -233,7 +233,10 @@ POE::Session->create
   ( inline_states =>
     { _start => sub {
 
-        my ($r, $w) = POE::Pipe::OneWay->new("inet");
+        my $conduit;
+        $conduit = "inet" if $^O eq "MSWin32";
+
+        my ($r, $w) = POE::Pipe::OneWay->new($conduit);
 
         my $kernel = $_[KERNEL];
         $kernel->select_read($r, "input");

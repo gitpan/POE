@@ -1,14 +1,15 @@
-# $Id: TCP.pm,v 1.30 2002/11/01 14:59:16 rcaputo Exp $
+# $Id: TCP.pm,v 1.35 2003/02/07 05:03:43 hachi Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.30 $ ))[1];
+$VERSION = (qw($Revision: 1.35 $ ))[1];
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa);
+use POSIX qw(ECONNABORTED);
 
 # Explicit use to import the parameter constants.
 use POE::Session;
@@ -72,12 +73,24 @@ sub new {
   my $client_error        = delete $param{ClientError};
   my $client_filter       = delete $param{ClientFilter};
   my $client_flushed      = delete $param{ClientFlushed};
+  my $args                = delete $param{Args};
+  my $session_type        = delete $param{SessionType};
+  my $session_params      = delete $param{SessionParams};
 
   # Defaults.
 
   $address = INADDR_ANY unless defined $address;
 
   $error_callback = \&_default_server_error unless defined $error_callback;
+
+  $session_type = 'POE::Session' unless defined $session_type;
+  if (defined($session_params) && ref($session_params)) {
+    if (ref($session_params) ne 'ARRAY') {
+      croak "SessionParams must be an array reference";
+    }   
+  } else {
+    $session_params = [ ];
+  }
 
   if (defined $client_input) {
     unless (defined $client_filter) {
@@ -93,6 +106,7 @@ sub new {
     $client_connected    = sub {} unless defined $client_connected;
     $client_disconnected = sub {} unless defined $client_disconnected;
     $client_flushed      = sub {} unless defined $client_flushed;
+    $args = [] unless defined $args;
 
     # Extra states.
 
@@ -119,13 +133,17 @@ sub new {
     croak "ObjectsStates must be a list or array reference"
       unless ref($object_states) eq 'ARRAY';
 
+    croak "Args must be an array reference"
+      unless ref($args) eq 'ARRAY';
+
     # Revise the acceptor callback so it spawns a session.
 
     unless (defined $accept_callback) {
       $accept_callback = sub {
         my ($socket, $remote_addr, $remote_port) = @_[ARG0, ARG1, ARG2];
-        POE::Session->create
-          ( inline_states =>
+        $session_type->create
+          ( @$session_params,
+            inline_states =>
             { _start => sub {
                 my ( $kernel, $session, $heap ) = @_[KERNEL, SESSION, HEAP];
 
@@ -151,19 +169,25 @@ sub new {
                     FlushedEvent => 'tcp_server_got_flush',
                   );
 
-                $client_connected->(@_);
+                $kernel->yield( tcp_server_client_connected => @_[ARG0 .. $#_] );
               },
 
               # To quiet ASSERT_STATES.
               _child  => sub { },
+
+              tcp_server_client_connected => $client_connected,
 
               tcp_server_got_input => sub {
                 return if $_[HEAP]->{shutdown};
                 $client_input->(@_);
               },
               tcp_server_got_error => sub {
-                $client_error->(@_);
-                $_[KERNEL]->yield("shutdown") if $_[HEAP]->{shutdown_on_error};
+                unless ($_[ARG0] eq 'accept' and $_[ARG1] == ECONNABORTED) {
+                  $client_error->(@_);
+                  if ($_[HEAP]->{shutdown_on_error}) {
+                    $_[KERNEL]->yield("shutdown");
+                  }
+                }
               },
               tcp_server_got_flush => sub {
                 my $heap = $_[HEAP];
@@ -192,6 +216,8 @@ sub new {
             # More user supplied states.
             package_states => $package_states,
             object_states  => $object_states,
+
+            args => $args,
           );
       };
     }
@@ -205,25 +231,25 @@ sub new {
   # Create the session, at long last.  This is done inline so that
   # closures can customize it.
 
-  POE::Session->create
-    ( inline_states =>
+  $session_type->create
+    ( @$session_params,
+      inline_states =>
       { _start =>
-        sub {
-          if (defined $alias) {
-            $_[HEAP]->{alias} = $alias;
-            $_[KERNEL]->alias_set( $alias );
-          }
+          sub {
+            if (defined $alias) {
+              $_[HEAP]->{alias} = $alias;
+              $_[KERNEL]->alias_set( $alias );
+            }
 
-          $_[HEAP]->{listener} = POE::Wheel::SocketFactory->new
-            ( BindPort     => $port,
-              BindAddress  => $address,
-              SocketDomain => $domain,
-              Reuse        => 'yes',
-              SuccessEvent => 'tcp_server_got_connection',
-              FailureEvent => 'tcp_server_got_error',
-            );
-        },
-
+            $_[HEAP]->{listener} = POE::Wheel::SocketFactory->new
+              ( BindPort     => $port,
+                BindAddress  => $address,
+                SocketDomain => $domain,
+                Reuse        => 'yes',
+                SuccessEvent => 'tcp_server_got_connection',
+                FailureEvent => 'tcp_server_got_error',
+              );
+          },
         # Catch an error.
         tcp_server_got_error => $error_callback,
 
@@ -241,6 +267,8 @@ sub new {
         _stop   => sub { return 0 },
         _child  => sub { },
       },
+
+      args => $args,
     );
 
   # Return undef so nobody can use the POE::Session reference.  This
@@ -287,6 +315,7 @@ POE::Component::Server::TCP - a simplified TCP server
     ( Port     => $bind_port,
       Address  => $bind_address,    # Optional.
       Domain   => AF_INET,          # Optional.
+      Alias    => $session_alias,   # Optional.
       Acceptor => \&accept_handler,
       Error    => \&error_handler,  # Optional.
     );
@@ -295,10 +324,15 @@ POE::Component::Server::TCP - a simplified TCP server
 
   POE::Component::Server::TCP->new
     ( Port     => $bind_port,
-      Address  => $bind_address,    # Optional.
-      Domain   => AF_INET,          # Optional.
-      Acceptor => \&accept_handler, # Optional.
-      Error    => \&error_handler,  # Optional.
+      Address  => $bind_address,      # Optional.
+      Domain   => AF_INET,            # Optional.
+      Alias    => $session_alias,     # Optional.
+      Acceptor => \&accept_handler,   # Optional.
+      Error    => \&error_handler,    # Optional.
+      Args     => [ "arg0", "arg1" ], # Optional.
+
+      SessionType   => "POE::Session::Abc",           # Optional.
+      SessionParams => [ options => { debug => 1 } ], # Optional.
 
       ClientInput        => \&handle_client_input,      # Required.
       ClientConnected    => \&handle_client_connect,    # Optional.
@@ -415,6 +449,28 @@ Later on, the 'chargen' service can be shut down with:
 
   $kernel->post( chargen => 'shutdown' );
 
+=item SessionType
+
+SessionType specifies what type of sessions will be created within
+the TCP server.  It must be a scalar value.
+
+  SessionType => "POE::Session::MultiDispatch"
+
+SessionType is optional.  The component will supply a "POE::Session"
+type if none is specified.
+
+=item SessionParams
+
+Initialize parameters to be passed to the SessionType when it is created.
+This must be an array reference.
+
+  SessionParams => [ options => { debug => 1, trace => 1 } ],
+
+It is important to realize that some of the arguments to SessionHandler
+may get clobbered when defining them for your SessionHandler.  It is
+advised that you stick to defining arguments in the "options" hash such
+as trace and debug. See L<POE::Session> for an example list of options.
+
 =item ClientConnected
 
 ClientConnected is a coderef that will be called for each new client
@@ -452,7 +508,7 @@ bar:
   ClientFilter => [ "POE::Filter::Line", InputLiteral => "|" ],
 
 ClientFilter is optional.  The component will supply a
-"POE::Filter::Line" instance none is specified.
+"POE::Filter::Line" instance if none is specified.
 
 =item ClientInput
 
@@ -513,6 +569,12 @@ handle.  For more information, see POE::Session's create() method.
 PackageStates holds a list reference of Perl package names and the
 events they handle.  For more information, see POE::Session's create()
 method.
+
+=item Args LISTREF
+
+Args passes the contents of a LISTREF to the ClientConnected callback via
+@_[ARG0..$#_].  It allows you to pass extra information to the session
+created to handle the client connection.
 
 =item Port
 

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 14_wheels_ft.t,v 1.10 2002/09/28 00:20:57 rcaputo Exp $
+# $Id: 14_wheels_ft.t,v 1.11 2003/02/01 04:52:07 cwest Exp $
 
 # Exercises Wheel::FollowTail, Wheel::ReadWrite, and Filter::Block.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use Socket;
 
 use TestSetup;

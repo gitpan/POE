@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.21 2002/07/15 23:20:10 rcaputo Exp $
+# $Id: 01_sessions.t,v 1.22 2003/02/01 04:52:06 cwest Exp $
 
 # Tests basic compilation and events.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 &test_setup(29);
 

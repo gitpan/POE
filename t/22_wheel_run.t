@@ -1,12 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 22_wheel_run.t,v 1.28 2002/10/20 20:55:22 rcaputo Exp $
+# $Id: 22_wheel_run.t,v 1.30 2003/02/01 04:52:07 cwest Exp $
 
 # Test the portable pipe classes and Wheel::Run, which uses them.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use Socket;
-use Config;
 
 use TestSetup;
 
@@ -140,7 +139,7 @@ use POE qw(Wheel::Run Filter::Line Pipe::TwoWay Pipe::OneWay);
 my $tty_flush_count = 0;
 
 my $program =
-  ( $Config{perlpath} . ' -we \'' .
+  ( "$^X -we '" .
     '$/ = q(!); select STDERR; $| = 1; select STDOUT; $| = 1; ' .
     'OUTER: while (1) { ' .
     '  while (<STDIN>) { ' .
@@ -151,8 +150,6 @@ my $program =
     '} ' .
     'exit 0;\''
   );
-
-$program =~ tr[\'][\"] if $^O eq "MSWin32";
 
 { POE::Session->create
     ( inline_states =>

@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 05_macros.t,v 1.5 2000/10/10 15:17:26 rcaputo Exp $
+# $Id: 05_macros.t,v 1.6 2003/02/01 04:52:07 cwest Exp $
 
 # Tests basic macro features.
 
 use strict;
-use lib qw(./lib ../lib);
+use lib qw(./lib ../lib .. .);
 use TestSetup;
 &test_setup(20);
 
