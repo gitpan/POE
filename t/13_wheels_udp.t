@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 13_wheels_udp.t,v 1.2 2000/09/01 19:53:55 rcaputo Exp $
+# $Id: 13_wheels_udp.t,v 1.3 2001/05/07 12:23:04 rcaputo Exp $
 
 # Exercises the wheels commonly used with UDP sockets.
 
@@ -31,8 +31,8 @@ sub udp_start {
         BindPort       => 0,
         SocketProtocol => 'udp',
         Reuse          => 'yes',
-        SuccessState   => 'ev_peer_a_socket',
-        FailureState   => 'ev_peer_a_error',
+        SuccessEvent   => 'ev_peer_a_socket',
+        FailureEvent   => 'ev_peer_a_error',
       );
 
   $heap->{peer_a_id} = $heap->{peer_a_setup_wheel}->ID;
@@ -43,8 +43,8 @@ sub udp_start {
         BindPort       => 0,
         SocketProtocol => 'udp',
         Reuse          => 'yes',
-        SuccessState   => 'ev_peer_b_socket',
-        FailureState   => 'ev_peer_b_error',
+        SuccessEvent   => 'ev_peer_b_socket',
+        FailureEvent   => 'ev_peer_b_error',
       );
 
   $heap->{peer_b_id} = $heap->{peer_b_setup_wheel}->ID;

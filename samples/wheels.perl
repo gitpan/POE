@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheels.perl,v 1.7 2000/11/03 21:59:06 rcaputo Exp $
+# $Id: wheels.perl,v 1.8 2001/05/07 12:23:04 rcaputo Exp $
 
 # If wheels make you squeamish, see selects.perl.  It is about the
 # same program, but it doesn't use wheels.
@@ -41,8 +41,8 @@ sub session_start {
     ( Handle => $accepted_handle,        # read/write this handle
       Driver => POE::Driver::SysRW->new, # with sysread and syswrite
       Filter => POE::Filter::Line->new,  # and parse the data as lines
-      InputState => 'line_input',        # emitting this event for each line
-      ErrorState => 'line_error',        # and this event for each error
+      InputEvent => 'line_input',        # emitting this event for each line
+      ErrorEvent => 'line_error',        # and this event for each error
     );
                                         # remember the host/port for later
   $heap->{'host'} = $peer_host;
@@ -113,8 +113,8 @@ sub server_start {
   if ($listener) {
     $heap->{'wheel'} = POE::Wheel::ListenAccept->new
       ( Handle      => $listener,
-        AcceptState => 'accept_success',
-        ErrorState  => 'accept_error'
+        AcceptEvent => 'accept_success',
+        ErrorEvent  => 'accept_error'
       );
 
     print "= rot-13 server listening on port $rot13_port\n";

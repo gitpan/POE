@@ -1,4 +1,4 @@
-# $Id: Run.pm,v 1.14 2001/04/04 03:51:59 rcaputo Exp $
+# $Id: Run.pm,v 1.15 2001/06/03 02:55:08 rcaputo Exp $
 
 package POE::Wheel::Run;
 
@@ -275,6 +275,7 @@ sub new {
     elsif (ref($program) eq 'CODE') {
       $program->();
       eval { POSIX::_exit(0); };
+      eval { kill KILL => $$; };
       exit(0);
     }
     else {

@@ -1,11 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 22_wheel_run.t,v 1.13 2001/04/04 03:57:18 rcaputo Exp $
+# $Id: 22_wheel_run.t,v 1.14 2001/05/07 12:23:04 rcaputo Exp $
 
 # Test the portable pipe classes and Wheel::Run, which uses them.
 
 use strict;
 use lib qw(./lib ../lib);
 use Socket;
+use Config;
 
 use TestSetup;
 &test_setup(24);
@@ -126,7 +127,7 @@ use POE qw( Wheel::Run Filter::Line Pipe::TwoWay Pipe::OneWay );
 my $tty_flush_count = 0;
 
 my $program =
-  ( '/usr/bin/perl -we \'' .
+  ( $Config{perlpath} . ' -we \'' .
     '$/ = q(!); select STDERR; $| = 1; select STDOUT; $| = 1; ' .
     'while (<STDIN>) { ' .
     '  last if /^bye/; ' .

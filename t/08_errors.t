@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_errors.t,v 1.10 2001/04/03 20:21:06 rcaputo Exp $
+# $Id: 08_errors.t,v 1.12 2001/06/07 14:30:36 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -31,14 +31,14 @@ BEGIN {
         SH_REFCOUNT SH_VECCOUNT KR_SESSIONS KR_VECTORS KR_HANDLES
         KR_STATES KR_SIGNALS KR_ALIASES KR_ACTIVE_SESSION KR_PROCESSES
         KR_ALARMS KR_ID KR_SESSION_IDS KR_ID_INDEX KR_WATCHER_TIMER
-        KR_WATCHER_IDLE KR_EXTRA_REFS KR_SIZE HND_HANDLE HND_REFCOUNT
-        HND_VECCOUNT HND_SESSIONS HND_WATCHERS HSS_HANDLE HSS_SESSION
-        HSS_STATE ST_SESSION ST_SOURCE ST_NAME ST_TYPE ST_ARGS ST_TIME
-        ST_OWNER_FILE ST_OWNER_LINE ST_SEQ EN_START EN_STOP EN_SIGNAL
-        EN_GC EN_PARENT EN_CHILD EN_SCPOLL CHILD_GAIN CHILD_LOSE
-        CHILD_CREATE ET_USER ET_CALL ET_START ET_STOP ET_SIGNAL ET_GC
-        ET_PARENT ET_CHILD ET_SCPOLL ET_ALARM ET_SELECT
-        FIFO_DISPATCH_TIME
+        KR_WATCHER_IDLE KR_EXTRA_REFS KR_ALARM_IDS KR_SIZE HND_HANDLE
+        HND_REFCOUNT HND_VECCOUNT HND_SESSIONS HND_WATCHERS HSS_HANDLE
+        HSS_SESSION HSS_STATE ST_SESSION ST_SOURCE ST_NAME ST_TYPE
+        ST_ARGS ST_TIME ST_OWNER_FILE ST_OWNER_LINE ST_SEQ EN_START
+        EN_STOP EN_SIGNAL EN_GC EN_PARENT EN_CHILD EN_SCPOLL
+        CHILD_GAIN CHILD_LOSE CHILD_CREATE ET_USER ET_CALL ET_START
+        ET_STOP ET_SIGNAL ET_GC ET_PARENT ET_CHILD ET_SCPOLL ET_ALARM
+        ET_SELECT FIFO_DISPATCH_TIME LARGE_QUEUE_SIZE
 
         import signal_ui_destroy
       );
@@ -210,8 +210,8 @@ print "ok 19\n";
 
   stderr_pause();
   POE::Wheel::SocketFactory->new
-    ( SuccessState => [ ],
-      FailureState => [ ],
+    ( SuccessEvent => [ ],
+      FailureEvent => [ ],
     );
   stderr_resume();
 
@@ -220,10 +220,10 @@ print "ok 19\n";
 
   stderr_pause();
   POE::Wheel::SocketFactory->new
-    ( SocketDomain => AF_UNIX,
+    ( SocketDomain   => AF_UNIX,
       SocketProtocol => 'tcp',
-      SuccessState => 'okay',
-      FailureState => 'okay',
+      SuccessEvent   => 'okay',
+      FailureEvent   => 'okay',
     );
   stderr_resume();
 

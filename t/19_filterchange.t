@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 19_filterchange.t,v 1.6 2000/12/29 05:28:33 rcaputo Exp $
+# $Id: 19_filterchange.t,v 1.7 2001/05/07 12:23:04 rcaputo Exp $
 
 # Exercises filter changing.  A lot of this code comes from Philip
 # Gwyn's filterchange.perl sample.
@@ -149,9 +149,9 @@ sub slave_start {
       OutputHandle => $slave_write,
       Filter       => POE::Filter::Line->new(),
       Driver       => POE::Driver::SysRW->new(),
-      InputState   => 'got_input',
-      FlushedState => 'got_flush',
-      ErrorState   => 'got_error',
+      InputEvent   => 'got_input',
+      FlushedEvent => 'got_flush',
+      ErrorEvent   => 'got_error',
     );
 
   $heap->{current_mode} = LINE;
@@ -260,9 +260,9 @@ sub master_start {
       OutputHandle => $master_write,
       Filter       => POE::Filter::Line->new(),
       Driver       => POE::Driver::SysRW->new(),
-      InputState   => 'got_input',
-      FlushedState => 'got_flush',
-      ErrorState   => 'got_error',
+      InputEvent   => 'got_input',
+      FlushedEvent => 'got_flush',
+      ErrorEvent   => 'got_error',
     );
 
   $heap->{current_mode}  = LINE;

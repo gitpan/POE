@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: watermarks.perl,v 1.3 2000/11/03 21:59:06 rcaputo Exp $
+# $Id: watermarks.perl,v 1.4 2001/05/07 12:23:04 rcaputo Exp $
 
 # This program tests the high and low watermarks.  It merges the
 # wheels from wheels.perl and the chargen service from selects.perl to
@@ -36,8 +36,8 @@ sub new {
 # connections.
 sub poe_start {
   $_[HEAP]->{listener} = POE::Wheel::SocketFactory->new
-    ( SuccessState => 'accepted',
-      FailureState => 'error',
+    ( SuccessEvent => 'accepted',
+      FailureEvent => 'error',
       BindPort     => $chargen_port,
       Reuse        => 'yes',
     );
@@ -89,13 +89,13 @@ sub poe_start {
       Driver       => POE::Driver::SysRW->new(),
       Filter       => POE::Filter::Line->new(),
 
-      InputState   => 'wheel_got_input',
-      ErrorState   => 'wheel_got_error',
+      InputEvent   => 'wheel_got_input',
+      ErrorEvent   => 'wheel_got_error',
 
       HighMark     => 256,
       LowMark      => 128,
-      HighState    => 'wheel_throttle',
-      LowState     => 'wheel_resume',
+      HighEvent    => 'wheel_throttle',
+      LowEvent     => 'wheel_resume',
     );
 
   $_[HEAP]->{okay_to_send} = 1;

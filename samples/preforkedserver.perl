@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: preforkedserver.perl,v 1.10 2000/11/03 21:59:03 rcaputo Exp $
+# $Id: preforkedserver.perl,v 1.11 2001/05/07 12:23:04 rcaputo Exp $
 
 # This is a proof of concept for pre-forking POE servers.  It
 # maintains pool of five servers (one master; four slave).  At some
@@ -50,9 +50,9 @@ sub _start {
     ( Handle       => $socket,                 # on this socket
       Driver       => POE::Driver::SysRW->new, # using sysread and syswrite
       Filter       => POE::Filter::Line->new,  # parsing I/O as lines
-      InputState   => 'command',               # generating this event on input
-      ErrorState   => 'error',                 # generating this event on error
-      FlushedState => 'flushed'                # generating this event on flush
+      InputEvent   => 'command',               # generating this event on input
+      ErrorEvent   => 'error',                 # generating this event on error
+      FlushedEvent => 'flushed'                # generating this event on flush
     );
 
   DEBUG &&
@@ -142,8 +142,8 @@ sub _start {
                                         # create a socket factory
   $heap->{wheel} = POE::Wheel::SocketFactory->new
     ( BindPort       => 8888,           # bind on this port
-      SuccessState   => 'connection',   # generate this event for connections
-      FailureState   => 'error'         # generate this event for errors
+      SuccessEvent   => 'connection',   # generate this event for connections
+      FailureEvent   => 'error'         # generate this event for errors
     );
                                         # watch for signals
   $kernel->sig('CHLD', 'signal');

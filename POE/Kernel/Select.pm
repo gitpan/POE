@@ -1,4 +1,4 @@
-# $Id: Select.pm,v 1.5 2001/04/03 22:07:09 rcaputo Exp $
+# $Id: Select.pm,v 1.9 2001/06/08 21:58:45 rcaputo Exp $
 
 # Select loop substrate for POE::Kernel.
 
@@ -202,6 +202,16 @@ macro substrate_main_loop {
           );
     }
 
+    # Ensure that the alarm queue remains in time order.
+    if (ASSERT_ALARMS and @kr_alarms) {
+      my $previous_time = $kr_alarms[0]->[ST_TIME];
+      foreach (@kr_alarms) {
+        die "alarm $_->[ST_SEQ] is out of order"
+          if $_->[ST_TIME] < $previous_time;
+        $previous_time = $_->[ST_TIME];
+      }
+    }
+
     if (TRACE_SELECT) {
       warn ",----- SELECT BITS IN -----\n";
       warn "| READ    : ", unpack('b*', $kr_vectors[VEC_RD]), "\n";
@@ -210,109 +220,128 @@ macro substrate_main_loop {
       warn "`--------------------------\n";
     }
 
-    # Avoid looking at filehandles if we don't need to.
+    # Avoid looking at filehandles if we don't need to.  -><- The
+    # added code to make this sleep is non-optimal.  There is a way to
+    # do this in fewer tests.
 
     if ($timeout || keys(%kr_handles)) {
 
-      # Check filehandles, or wait for a period of time to elapse.
-      my $hits = select( my $rout = $kr_vectors[VEC_RD],
-                         my $wout = $kr_vectors[VEC_WR],
-                         my $eout = $kr_vectors[VEC_EX],
-                         ($timeout < 0) ? 0 : $timeout
-                       );
+      # There are filehandles to poll, so do so.
 
-      if (ASSERT_SELECT) {
-        if ($hits < 0) {
-          confess "select error: $!"
-            unless ( ($! == EINPROGRESS) or
-                     ($! == EWOULDBLOCK) or
-                     ($! == EINTR)
-                   );
-        }
-      }
-
-      if (TRACE_SELECT) {
-        if ($hits > 0) {
-          warn "select hits = $hits\n";
-        }
-        elsif ($hits == 0) {
-          warn "select timed out...\n";
-        }
-        warn ",----- SELECT BITS OUT -----\n";
-        warn "| READ    : ", unpack('b*', $rout), "\n";
-        warn "| WRITE   : ", unpack('b*', $wout), "\n";
-        warn "| EXPEDITE: ", unpack('b*', $eout), "\n";
-        warn "`---------------------------\n";
-      }
-
-      # If select has seen filehandle activity, then gather up the
-      # active filehandles and synchronously dispatch events to the
-      # appropriate states.
-
-      if ($hits > 0) {
-
-        # This is where they're gathered.  It's a variant on a neat
-        # hack Silmaril came up with.
-
-        # -><- This does extra work.  Some of $%kr_handles don't have
-        # all their bits set (for example; VEX_EX is rarely used).  It
-        # might be more efficient to split this into three greps, for
-        # just the vectors that need to be checked.
-
-        # -><- It has been noted that map is slower than foreach when
-        # the size of a list is grown.  The list is exploded on the
-        # stack and manipulated with stack ops, which are slower than
-        # just pushing on a list.  Evil probably ensues here.
-
-        my @selects =
-          map { ( ( vec($rout, fileno($_->[HND_HANDLE]), 1)
-                    ? values(%{$_->[HND_SESSIONS]->[VEC_RD]})
-                    : ( )
-                  ),
-                  ( vec($wout, fileno($_->[HND_HANDLE]), 1)
-                    ? values(%{$_->[HND_SESSIONS]->[VEC_WR]})
-                    : ( )
-                  ),
-                  ( vec($eout, fileno($_->[HND_HANDLE]), 1)
-                    ? values(%{$_->[HND_SESSIONS]->[VEC_EX]})
-                    : ( )
-                  )
-                )
-              } values %kr_handles;
-
-        if (TRACE_SELECT) {
-          if (@selects) {
-            warn( "found pending selects: ",
-                  join( ', ',
-                        sort { $a <=> $b }
-                        map { fileno($_->[HND_HANDLE]) }
-                        @selects
-                      ),
-                  "\n"
-                );
-          }
-        }
+      if (keys(%kr_handles)) {
+        # Check filehandles, or wait for a period of time to elapse.
+        my $hits = select( my $rout = $kr_vectors[VEC_RD],
+                           my $wout = $kr_vectors[VEC_WR],
+                           my $eout = $kr_vectors[VEC_EX],
+                           ($timeout < 0) ? 0 : $timeout
+                         );
 
         if (ASSERT_SELECT) {
-          unless (@selects) {
-            die "found no selects, with $hits hits from select???\a\n";
+          if ($hits < 0) {
+            confess "select error: $!"
+              unless ( ($! == EINPROGRESS) or
+                       ($! == EWOULDBLOCK) or
+                       ($! == EINTR)
+                     );
           }
         }
 
-        # Dispatch the gathered selects.  They're dispatched right
-        # away because files will continue to unblock select until
-        # they're taken care of.  The idea is for select handlers to
-        # do whatever is needed to shut up select, and then they post
-        # something indicating what input was got.  Nobody seems to
-        # use them this way, though, not even the author.
+        if (TRACE_SELECT) {
+          if ($hits > 0) {
+            warn "select hits = $hits\n";
+          }
+          elsif ($hits == 0) {
+            warn "select timed out...\n";
+          }
+          warn ",----- SELECT BITS OUT -----\n";
+          warn "| READ    : ", unpack('b*', $rout), "\n";
+          warn "| WRITE   : ", unpack('b*', $wout), "\n";
+          warn "| EXPEDITE: ", unpack('b*', $eout), "\n";
+          warn "`---------------------------\n";
+        }
 
-        foreach my $select (@selects) {
-          $self->_dispatch_state
-            ( $select->[HSS_SESSION], $select->[HSS_SESSION],
-              $select->[HSS_STATE], ET_SELECT,
-              [ $select->[HSS_HANDLE] ],
-              time(), __FILE__, __LINE__, undef
-            );
+        # If select has seen filehandle activity, then gather up the
+        # active filehandles and synchronously dispatch events to the
+        # appropriate states.
+
+        if ($hits > 0) {
+
+          # This is where they're gathered.  It's a variant on a neat
+          # hack Silmaril came up with.
+
+          # -><- This does extra work.  Some of $%kr_handles don't have
+          # all their bits set (for example; VEX_EX is rarely used).  It
+          # might be more efficient to split this into three greps, for
+          # just the vectors that need to be checked.
+
+          # -><- It has been noted that map is slower than foreach when
+          # the size of a list is grown.  The list is exploded on the
+          # stack and manipulated with stack ops, which are slower than
+          # just pushing on a list.  Evil probably ensues here.
+
+          my @selects =
+            map { ( ( vec($rout, fileno($_->[HND_HANDLE]), 1)
+                      ? values(%{$_->[HND_SESSIONS]->[VEC_RD]})
+                      : ( )
+                    ),
+                    ( vec($wout, fileno($_->[HND_HANDLE]), 1)
+                      ? values(%{$_->[HND_SESSIONS]->[VEC_WR]})
+                      : ( )
+                    ),
+                    ( vec($eout, fileno($_->[HND_HANDLE]), 1)
+                      ? values(%{$_->[HND_SESSIONS]->[VEC_EX]})
+                      : ( )
+                    )
+                  )
+                } values %kr_handles;
+
+          if (TRACE_SELECT) {
+            if (@selects) {
+              warn( "found pending selects: ",
+                    join( ', ',
+                          sort { $a <=> $b }
+                          map { fileno($_->[HND_HANDLE]) }
+                          @selects
+                        ),
+                    "\n"
+                  );
+            }
+          }
+
+          if (ASSERT_SELECT) {
+            unless (@selects) {
+              die "found no selects, with $hits hits from select???\a\n";
+            }
+          }
+
+          # Dispatch the gathered selects.  They're dispatched right
+          # away because files will continue to unblock select until
+          # they're taken care of.  The idea is for select handlers to
+          # do whatever is needed to shut up select, and then they post
+          # something indicating what input was got.  Nobody seems to
+          # use them this way, though, not even the author.
+
+          foreach my $select (@selects) {
+            $self->_dispatch_state
+              ( $select->[HSS_SESSION], $select->[HSS_SESSION],
+                $select->[HSS_STATE], ET_SELECT,
+                [ $select->[HSS_HANDLE] ],
+                time(), __FILE__, __LINE__, undef
+              );
+          }
+        }
+      }
+
+      # No filehandles to select on.  Try to sleep instead.  Use
+      # sleep() itself on MSWin32.  Use a dummy four-argument select()
+      # everywhere else.
+
+      else {
+        if ($^O eq 'MSWin32') {
+          sleep($timeout);
+        }
+        else {
+          select(undef, undef, undef, $timeout);
         }
       }
     }
@@ -334,6 +363,7 @@ macro substrate_main_loop {
 
       # Pull an alarm off the queue, and dispatch it.
       $event = shift @kr_alarms;
+      delete $kr_alarm_ids{$event->[ST_SEQ]};
       {% ses_refcount_dec2 $event->[ST_SESSION], SS_ALCOUNT %}
       $self->_dispatch_state(@$event);
     }

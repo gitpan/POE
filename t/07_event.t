@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 07_event.t,v 1.9 2001/03/23 05:00:42 rcaputo Exp $
+# $Id: 07_event.t,v 1.10 2001/05/07 12:23:04 rcaputo Exp $
 
 # Tests FIFO, alarm, select and postback events using Event's event
 # loop.
@@ -48,7 +48,7 @@ sub io_start {
           OutputHandle => $heap->{pipe_write} = $b_write,
           Filter       => POE::Filter::Line->new(),
           Driver       => POE::Driver::SysRW->new(),
-          InputState   => 'ev_pipe_read',
+          InputEvent   => 'ev_pipe_read',
         );
 
     # And a timer loop to test alarms.

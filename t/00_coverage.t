@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 00_coverage.t,v 1.5 2000/11/19 17:05:15 rcaputo Exp $
+# $Id: 00_coverage.t,v 1.6 2001/07/02 04:43:23 rcaputo Exp $
 
 # This test merely loads as many modules as possible so that the
 # coverage tester will see them.  It's performs a similar function as
@@ -12,7 +12,9 @@ use TestSetup;
 
 sub load_optional_module {
   my ($test_number, $module) = @_;
+  stderr_pause();
   eval "package Test::Number_$test_number; use $module";
+  stderr_resume();
   my $reason = $@;
   $reason =~ s/[\x0a\x0d]+/ \/ /g;
   $reason =~ tr[ ][ ]s;

@@ -1,4 +1,4 @@
-# $Id: ReadWrite.pm,v 1.45 2001/02/12 15:25:17 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.48 2001/05/07 12:21:01 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
@@ -15,11 +15,11 @@ sub DRIVER_BOTH                () {  4 }
 sub EVENT_INPUT                () {  5 }
 sub EVENT_ERROR                () {  6 }
 sub EVENT_FLUSHED              () {  7 }
-sub WATERMARK_MARK_HIGH        () {  8 }
-sub WATERMARK_MARK_LOW         () {  9 }
-sub WATERMARK_EVENT_HIGH       () { 10 }
-sub WATERMARK_EVENT_LOW        () { 11 }
-sub WATERMARK_STATE            () { 12 }
+sub WATERMARK_WRITE_MARK_HIGH  () {  8 }
+sub WATERMARK_WRITE_MARK_LOW   () {  9 }
+sub WATERMARK_WRITE_EVENT_HIGH () { 10 }
+sub WATERMARK_WRITE_EVENT_LOW  () { 11 }
+sub WATERMARK_WRITE_STATE      () { 12 }
 sub DRIVER_BUFFERED_OUT_OCTETS () { 13 }
 sub STATE_WRITE                () { 14 }
 sub STATE_READ                 () { 15 }
@@ -74,6 +74,66 @@ sub new {
 
   croak "Driver required" unless defined $params{Driver};
 
+  # STATE-EVENT
+  if (exists $params{HighState}) {
+    if (exists $params{HighEvent}) {
+      carp "HighEvent parameter takes precedence over depreciated HighState";
+      delete $params{HighState};
+    }
+    else {
+      # depreciation warning goes here
+      $params{HighEvent} = delete $params{HighState};
+    }
+  }
+
+  # STATE-EVENT
+  if (exists $params{LowState}) {
+    if (exists $params{LowEvent}) {
+      carp "LowEvent parameter takes precedence over depreciated LowState";
+      delete $params{LowState};
+    }
+    else {
+      # depreciation warning goes here
+      $params{LowEvent} = delete $params{LowState};
+    }
+  }
+
+  # STATE-EVENT
+  if (exists $params{InputState}) {
+    if (exists $params{InputEvent}) {
+      carp "InputEvent takes precedence over depreciated InputState";
+      delete $params{InputState};
+    }
+    else {
+      # depreciation warning goes here
+      $params{InputEvent} = delete $params{InputState};
+    }
+  }
+
+  # STATE-EVENT
+  if (exists $params{ErrorState}) {
+    if (exists $params{ErrorEvent}) {
+      carp "ErrorEvent takes precedence over depreciated ErrorState";
+      delete $params{ErrorState};
+    }
+    else {
+      # depreciation warning goes here
+      $params{ErrorEvent} = delete $params{ErrorState};
+    }
+  }
+
+  # STATE-EVENT
+  if (exists $params{FlushedState}) {
+    if (exists $params{FlushedEvent}) {
+      carp "FlushedEvent takes precedence over depreciated FlushedState";
+      delete $params{FlushedState};
+    }
+    else {
+      # depreciation warning goes here
+      $params{FlushedEvent} = delete $params{FlushedState};
+    }
+  }
+
   { my $mark_errors = 0;
     if (defined($params{HighMark}) xor defined($params{LowMark})) {
       carp "HighMark and LowMark parameters require each-other";
@@ -82,20 +142,20 @@ sub new {
     # Then they both exist, and they must be checked.
     elsif (defined $params{HighMark}) {
       unless (defined($params{HighMark}) and defined($params{LowMark})) {
-        carp "HighMark and LowMark parameters must be defined";
+        carp "HighMark and LowMark parameters must both be defined";
         $mark_errors++;
       }
       unless (($params{HighMark} > 0) and ($params{LowMark} > 0)) {
-        carp "HighMark and LowMark parameters must above 0";
+        carp "HighMark and LowMark parameters must be above 0";
         $mark_errors++;
       }
     }
-    if (defined($params{HighMark}) xor defined($params{HighState})) {
-      carp "HighMark and HighState parameters require each-other";
+    if (defined($params{HighMark}) xor defined($params{HighEvent})) {
+      carp "HighMark and HighEvent parameters require each-other";
       $mark_errors++;
     }
-    if (defined($params{LowMark}) xor defined($params{LowState})) {
-      carp "LowMark and LowState parameters require each-other";
+    if (defined($params{LowMark}) xor defined($params{LowEvent})) {
+      carp "LowMark and LowEvent parameters require each-other";
       $mark_errors++;
     }
     croak "Water mark errors" if $mark_errors;
@@ -107,15 +167,15 @@ sub new {
       $in_filter,                       # FILTER_INPUT
       $out_filter,                      # FILTER_OUTPUT
       delete $params{Driver},           # DRIVER_BOTH
-      delete $params{InputState},       # EVENT_INPUT
-      delete $params{ErrorState},       # EVENT_ERROR
-      delete $params{FlushedState},     # EVENT_FLUSHED
+      delete $params{InputEvent},       # EVENT_INPUT
+      delete $params{ErrorEvent},       # EVENT_ERROR
+      delete $params{FlushedEvent},     # EVENT_FLUSHED
       # Water marks.
-      delete $params{HighMark},         # WATERMARK_MARK_HIGH
-      delete $params{LowMark},          # WATERMARK_MARK_LOW
-      delete $params{HighState},        # WATERMARK_EVENT_HIGH
-      delete $params{LowState},         # WATERMARK_EVENT_LOW
-      0,                                # WATERMARK_STATE
+      delete $params{HighMark},         # WATERMARK_WRITE_MARK_HIGH
+      delete $params{LowMark},          # WATERMARK_WRITE_MARK_LOW
+      delete $params{HighEvent},        # WATERMARK_WRITE_EVENT_HIGH
+      delete $params{LowEvent},         # WATERMARK_WRITE_EVENT_LOW
+      0,                                # WATERMARK_WRITE_STATE
       # Driver statistics.
       0,                                # DRIVER_BUFFERED_OUT_OCTETS
       # Dynamic state names.
@@ -149,16 +209,16 @@ sub _define_write_state {
   my $driver        = $self->[DRIVER_BOTH];
   my $event_error   = \$self->[EVENT_ERROR];
   my $event_flushed = \$self->[EVENT_FLUSHED];
-  my $high_mark     = $self->[WATERMARK_MARK_HIGH];
-  my $low_mark      = $self->[WATERMARK_MARK_LOW];
-  my $event_high    = \$self->[WATERMARK_EVENT_HIGH];
-  my $event_low     = \$self->[WATERMARK_EVENT_LOW];
+  my $high_mark     = $self->[WATERMARK_WRITE_MARK_HIGH];
+  my $low_mark      = $self->[WATERMARK_WRITE_MARK_LOW];
+  my $event_high    = \$self->[WATERMARK_WRITE_EVENT_HIGH];
+  my $event_low     = \$self->[WATERMARK_WRITE_EVENT_LOW];
   my $unique_id     = $self->[UNIQUE_ID];
 
   # Read/write members.  These are done by reference, to avoid pushing
   # $self into the anonymous sub.  Extra copies of $self are bad and
   # can prevent wheels from destructing properly.
-  my $is_in_high_water_state     = \$self->[WATERMARK_STATE];
+  my $is_in_high_water_state     = \$self->[WATERMARK_WRITE_STATE];
   my $driver_buffered_out_octets = \$self->[DRIVER_BUFFERED_OUT_OCTETS];
 
   # Register the select-write handler.
@@ -195,7 +255,7 @@ sub _define_write_state {
           }
 
           # Not in high water state.  Check for high water.  Needs to
-          # also check definedness of $$river_buffered_out_octets.
+          # also check definedness of $$driver_buffered_out_octets.
           # Although we know this ahead of time and could probably
           # optimize it away with a second state definition, it would
           # be best to wait until ReadWrite stabilizes.  That way
@@ -285,34 +345,40 @@ sub event {
   while (@_) {
     my ($name, $event) = splice(@_, 0, 2);
 
-    if ($name eq 'InputState') {
+    # STATE-EVENT
+    if ($name =~ /^(.*?)State$/) {
+      # depreciation warning goes here
+      $name = $1 . 'Event';
+    }
+
+    if ($name eq 'InputEvent') {
       $self->[EVENT_INPUT] = $event;
       $redefine_read = 1;
     }
-    elsif ($name eq 'ErrorState') {
+    elsif ($name eq 'ErrorEvent') {
       $self->[EVENT_ERROR] = $event;
       $redefine_read = $redefine_write = 1;
     }
-    elsif ($name eq 'FlushedState') {
+    elsif ($name eq 'FlushedEvent') {
       $self->[EVENT_FLUSHED] = $event;
       $redefine_write = 1;
     }
-    elsif ($name eq 'HighState') {
-      if (defined $self->[WATERMARK_MARK_HIGH]) {
-        $self->[WATERMARK_EVENT_HIGH] = $event;
+    elsif ($name eq 'HighEvent') {
+      if (defined $self->[WATERMARK_WRITE_MARK_HIGH]) {
+        $self->[WATERMARK_WRITE_EVENT_HIGH] = $event;
         $redefine_write = 1;
       }
       else {
-        carp "Ignoring HighState event (there is no high watermark set)";
+        carp "Ignoring HighEvent (there is no high watermark set)";
       }
     }
-    elsif ($name eq 'LowState') {
-      if (defined $self->[WATERMARK_MARK_LOW]) {
-        $self->[WATERMARK_EVENT_LOW] = $event;
+    elsif ($name eq 'LowEvent') {
+      if (defined $self->[WATERMARK_WRITE_MARK_LOW]) {
+        $self->[WATERMARK_WRITE_EVENT_LOW] = $event;
         $redefine_write = 1;
       }
       else {
-        carp "Ignoring LowState event (there is no high watermark set)";
+        carp "Ignoring LowEvent (there is no high watermark set)";
       }
     }
     else {
@@ -359,8 +425,8 @@ sub put {
   }
 
   # Return true if the high watermark has been reached.
-  ( $self->[WATERMARK_MARK_HIGH] &&
-    $self->[DRIVER_BUFFERED_OUT_OCTETS] >= $self->[WATERMARK_MARK_HIGH]
+  ( $self->[WATERMARK_WRITE_MARK_HIGH] &&
+    $self->[DRIVER_BUFFERED_OUT_OCTETS] >= $self->[WATERMARK_WRITE_MARK_HIGH]
   );
 }
 
@@ -430,10 +496,10 @@ sub get_output_filter {
 
 sub set_high_mark {
   my ($self, $new_high_mark) = @_;
-  if (defined $self->[WATERMARK_MARK_HIGH]) {
+  if (defined $self->[WATERMARK_WRITE_MARK_HIGH]) {
     if (defined $new_high_mark) {
-      if ($new_high_mark > $self->[WATERMARK_MARK_LOW]) {
-        $self->[WATERMARK_MARK_HIGH] = $new_high_mark;
+      if ($new_high_mark > $self->[WATERMARK_WRITE_MARK_LOW]) {
+        $self->[WATERMARK_WRITE_MARK_HIGH] = $new_high_mark;
         $self->_define_write_state();
       }
       else {
@@ -451,11 +517,11 @@ sub set_high_mark {
 
 sub set_low_mark {
   my ($self, $new_low_mark) = @_;
-  if (defined $self->[WATERMARK_MARK_LOW]) {
+  if (defined $self->[WATERMARK_WRITE_MARK_LOW]) {
     if (defined $new_low_mark) {
       if ($new_low_mark > 0) {
-        if ($new_low_mark < $self->[WATERMARK_MARK_HIGH]) {
-          $self->[WATERMARK_MARK_LOW] = $new_low_mark;
+        if ($new_low_mark < $self->[WATERMARK_WRITE_MARK_HIGH]) {
+          $self->[WATERMARK_WRITE_MARK_LOW] = $new_low_mark;
           $self->_define_write_state();
         }
         else {
@@ -522,16 +588,16 @@ POE::Wheel::ReadWrite - buffered non-blocking I/O
     InputFilter  => POE::Filter::Something->new(),     # Read data one way
     OUtputFilter => POE::Filter::SomethingElse->new(), # Write data another
 
-    InputState   => $input_state_name,  # Input received state
-    FlushedState => $flush_state_name,  # Output flushed state
-    ErrorState   => $error_state_name,  # Error occurred state
+    InputEvent   => $input_event_name,  # Input received event
+    FlushedEvent => $flush_event_name,  # Output flushed event
+    ErrorEvent   => $error_event_name,  # Error occurred event
 
     # To enable callbacks for high and low water events (using any one
     # of these options requires the rest):
     HighMark  => $high_mark_octets, # Outgoing high-water mark
-    HighState => $high_mark_state,  # State to call when high-water reached
+    HighEvent => $high_mark_event,  # Event to emit when high-water reached
     LowMark   => $low_mark_octets,  # Outgoing low-water mark
-    LowState  => $low_mark_state,   # State to call when low-water reached
+    LowEvent  => $low_mark_event,   # Event to emit when low-water reached
   );
 
   $wheel->put( $something );
@@ -638,14 +704,14 @@ match events with the wheels which generated them.
 
 =over 2
 
-=item InputState
+=item InputEvent
 
-InputState contains the event that the wheel emits for every complete
-record read.  Every InputState event is accompanied by two parameters.
+InputEvent contains the event that the wheel emits for every complete
+record read.  Every InputEvent is accompanied by two parameters.
 C<ARG0> contains the record which was read.  C<ARG1> contains the
 wheel's unique ID.
 
-A sample InputState event handler:
+A sample InputEvent handler:
 
   sub input_state {
     my ($heap, $input, $wheel_id) = @_[HEAP, ARG0, ARG1];
@@ -653,17 +719,17 @@ A sample InputState event handler:
     $heap->{wheel}->put($input);     # Echo it back.
   }
 
-=item FlushedState
+=item FlushedEvent
 
-FlushedState contains the event that ReadWrite emits whenever its
+FlushedEvent contains the event that ReadWrite emits whenever its
 output queue becomes empty.  This signals that all pending data has
 been written, and it's often used to wait for "goodbye" messages to be
 sent before a session shuts down.
 
-FlushedState comes with a single parameter, C<ARG0>, that indicates
+FlushedEvent comes with a single parameter, C<ARG0>, that indicates
 which wheel flushed its buffer.
 
-A sample FlushedState event handler:
+A sample FlushedEvent handler:
 
   sub flushed_state {
     # Stop a wheel after all outgoing data is flushed.
@@ -672,10 +738,10 @@ A sample FlushedState event handler:
     delete $_[HEAP]->{wheel}->{$_[ARG0]};
   }
 
-=item ErrorState
+=item ErrorEvent
 
-ErrorState contains the event that ReadWrite emits whenever an error
-occurs.  Every ErrorState event comes with four parameters:
+ErrorEvent contains the event that ReadWrite emits whenever an error
+occurs.  Every ErrorEvent comes with four parameters:
 
 C<ARG0> contains the name of the operation that failed.  This usually
 is 'read'.  Note: This is not necessarily a function name.  The wheel
@@ -686,7 +752,7 @@ respectively.
 
 C<ARG3> contains the wheel's unique ID.
 
-A sample ErrorState event handler:
+A sample ErrorEvent handler:
 
   sub error_state {
     my ($operation, $errnum, $errstr, $wheel_id) = @_[ARG0..ARG3];
@@ -694,23 +760,23 @@ A sample ErrorState event handler:
     delete $heap->{wheels}->{$wheel_id}; # shut down that wheel
   }
 
-=item HighState
+=item HighEvent
 
-=item LowState
+=item LowEvent
 
-ReadWrite emits a HighState event when a wheel's pending output queue
-has grown to be at least HighMark octets.  A LowState event is emitted
-when a wheel's pending octet count drops below the value of LowMark.
+ReadWrite emits a HighEvent when a wheel's pending output queue has
+grown to be at least HighMark octets.  A LowEvent is emitted when a
+wheel's pending octet count drops below the value of LowMark.
 
-HighState and LowState flip-flop.  Once a HighState event has been
-fired, it won't be fired again until LowState's event is.  Likewise,
-LowState will not be fired again until HighState is.  ReadWrite always
-starts in a low-water state.
+HighEvent and LowEvent flip-flop.  Once a HighEvent has been emitted,
+it won't be emitted again until a LowEvent is emitted.  Likewise,
+LowEvent will not be emitted again until HighEvent is.  ReadWrite
+always starts in a low-water state.
 
-Streaming sessions are encouraged to used these states for flow
-control.  Sessions can reduce their transmission rates or stop
-transmitting altogether upon receipt of a HighState event.  They can
-resume full-speed transmission once LowState arrives.
+Sessions which stream output are encouraged to use these events for
+flow control.  Sessions can redure their transmission rates or stop
+transmitting altogether upon receipt of a HighEvent, and they can
+resume full-speed transmission once LowEvent arrives.
 
 =back
 

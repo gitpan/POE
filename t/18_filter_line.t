@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 18_filter_line.t,v 1.3 2000/08/06 19:52:40 rcaputo Exp $
+# $Id: 18_filter_line.t,v 1.4 2001/06/07 05:43:43 rcaputo Exp $
 
 # Exercises Filter::Line without the rest of POE.
 
@@ -118,8 +118,7 @@ else {
 # literal.
 
 $base = 26;
-my $compiled_regexp;
-BEGIN { eval { $compiled_regexp = qr/[xy]/; }; };
+my $compiled_regexp = eval "qr/[xy]/" if $] >= 5.005;
 
 if (defined $compiled_regexp) {
   $filter = POE::Filter::Line->new( InputRegexp   => $compiled_regexp,

@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.20 2000/12/26 06:14:12 rcaputo Exp $
+# $Id: Reference.pm,v 1.21 2001/07/15 20:30:14 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -56,8 +56,20 @@ sub new {
   $freezer ||= _default_freezer();
                                         # not a reference... maybe a package?
   unless(ref $freezer) {
-    unless(exists $::{$freezer.'::'}) {
-      eval {require "$freezer.pm"; import $freezer ();};
+    my $symtable=$::{"main::"};
+    my $loaded=1;                       # find out of the package was loaded
+    foreach my $p (split /::/, $freezer) {
+      unless(exists $symtable->{"$p\::"}) {
+        $loaded=0;
+        last;
+      }
+      $symtable=$symtable->{"$p\::"};
+    }
+
+    unless($loaded) {
+      my $q=$freezer;
+      $q=~s(::)(/)g;
+      eval {require "$q.pm"; import $freezer ();};
       croak $@ if $@;
     }
   }

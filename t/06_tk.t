@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.29 2001/03/23 19:05:40 rcaputo Exp $
+# $Id: 06_tk.t,v 1.31 2001/05/07 12:23:04 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Tk postback events using Tk's event
 # loop.
@@ -27,6 +27,11 @@ BEGIN {
       &test_setup(0, "can't test Tk without a DISPLAY (set one today, ok?)");
     }
   }
+  # Tk support relies on an interface change that occurred in 800.021.
+  &test_setup( 0,
+               "need Tk 800.021 or newer installed but only have $Tk::VERSION"
+             )
+    if $Tk::VERSION < 800.021;
 };
 
 &test_setup(9);
@@ -75,7 +80,7 @@ sub io_start {
           OutputHandle => $a_write,
           Filter       => POE::Filter::Line->new(),
           Driver       => POE::Driver::SysRW->new(),
-          InputState   => 'ev_a_read',
+          InputEvent   => 'ev_a_read',
         );
 
     # Second wheel to test a fileevent quirk.
@@ -85,7 +90,7 @@ sub io_start {
           OutputHandle => $b_write,
           Filter       => POE::Filter::Line->new(),
           Driver       => POE::Driver::SysRW->new(),
-          InputState   => 'ev_b_read',
+          InputEvent   => 'ev_b_read',
         );
 
     # And a timer loop to test alarms.

@@ -1,4 +1,4 @@
-$Id: Changes,v 1.207 2001/04/20 19:06:34 rcaputo Exp $
+$Id: CHANGES,v 1.14 2001/07/15 19:23:57 rcaputo Exp $
 
 Revision history for POE
 ========================
@@ -23,76 +23,165 @@ Version numbers have four fields: X.YYZZAA
 | cvs tag -Rc v0_1009 .
 `------------------------------------------------------------------------------
 
-Future ????.??.?? (!!!)
+0.15 2001.07.15
+---------------
+
+Added Philip Gwyn's patch to allow Filter::Reference to use data
+marshallers with :: in their package names.
+
+(!!!) This is a CPAN release.  Everything since 0.14 is also new to
+people tracking POE on the CPAN.  See versions 0.1401 through 0.1404
+for fun things, including some breakage.
+
+Tweaked the TODO file, at least the part that everyone should read, so
+it's friendlier or the mind.  I hope.
+
+
+0.1404 2001.06.02
+-----------------
+
+Kirill found a bug in alarm_adjust(): it would corrupt/disorder the
+alarm queue.  Added ASSERT_ALARMS to POE::Kernel::Select, ensuring
+that the alarm queue stays in order-- or ELSE!
+
+Added tests to t/02_alarms.t, tweaking the disordered alarm queue bug
+in alarm_adjust().
+
+Fixed alarm_adjust().  Optimized a little in _enqueue_alarm() while I
+was there.
+
+Coral spotted me using "either" to refer to three things in the
+POE::Kernel manpage.  Corrected that bit of bad grammar.  If anyone
+else wants to pick over the rest of the documentation for errors,
+they'd better submit patches too.
+
+I had no idea the files in the ./lib directory were being installed.
+They were never meant to be, but MakeMaker was including that
+directory by default.  Fletch pointed me to PMLIBDIRS, which I have
+tweaked to prevent this from happening in the future.
+
+Philip Gwyn found and patched a bug where setting (trace => 0) on a
+session turned tracing on.  I fixed the same bug for (debug => 0), and
+I fixed both options in NFA.pm also.
+
+Philip Gwyn found a documentation bug in POE::Session, claiming that
+STATE wasn't _default in _default handlers.  Fixed.
+
+Matt Cashner pointed out extraneous noise in t/00_coverage.t, which
+was subsequently squelched.
+
+
+0.1403 2001.06.07
+-----------------
+
+Added POE::Kernel method alias_list() to return the alias(es)
+associated with a particular session.
+
+Documented alias_list(), and added tests to t/03_aliases.t
+
+Changed case of Changes in NEEDS.
+
+Added TODO to NEEDS.
+
+Applied Philip Gwyn's patches to remove zero-width negative
+look-behind assertions from lib/deptest.perl.  They were preventing
+the dependency checker from running under 5.004_05.
+
+Applied Philip Gwyn's patch to prevent t/18_filter_line.t from dying
+outright when compiled regexps aren't available.  D'oh!
+
+POE::Wheel::ReadLine also used a zero-width negative look-behind
+assertion for an elegant single regexp that transposes words.  The
+code that replaces it is 36 lines long, but it works with 5.004_05.
+
+
+0.1402 2001.06.03
+-----------------
+
+Have the child process in Wheel::Run attempt to kill itself if
+POSIX::_exit() isn't available.
+
+Document a lot of requests and things in TODO.
+
+Add alarm_set, alarm_adjust, alarm_remove, and alarm_remove_all to
+POE::Kernel.  Add tests for these things in t/02_alarms.t.  Document
+them in POE::Kernel's manpage.
+
+Depreciate POE::Kernel's queue_peek_alarms() method.  The new alarm
+functions let programmers add, remove, and track alarms by ID, so
+looking into the alarm queue is no longer necessary.  The complete
+depreciation schedule is in TODO.
+
+Add POE::Kernel leak detection for alarm IDs.  Discovered a memory
+leak in alarm IDs, and removed it.
+
+Add POE::Kernel leak detection for signals, completing the suite of
+global structure leak detectors.  Discovered and fixed a potential
+memory leak in signals data structures.
+
+
+0.1401 2001.05.28 (!!!)
 -----------------------
 
-POE is due for a round of breakage to make things more consistent.
+(!!!) Tk postbacks must return 0.  Gtk postbacks must return 1.
+Actually, Gtk postbacks might return 0, too.  The test relies on 0,
+anyway, but mandrake says he needs postbacks to return 1.  I'm so
+confused!  Leave Gtk's postback return value 0 for now, but it might
+change later.
 
-  1. In the wheels, rename /.*State/ to /.*Event/.  Wheels don't
-     define states, they emit events.  Calling Wheels' parameters
-     /.*State/ is inconsistent and confusing.
+(!!!) Depreciation schedules and other notices have been moved to a
+TODO file.  Please consult that file or be surprised later.
 
-  2. ARG0..ARG9 in built-in events are silly.  The whole point of
-     using array slices and constant offsets is to avoid positional
-     dependencies.  Using ARG0..ARG9 defeats most of this technique's
-     benefits.  D'oh!
+(!!!) Changes has been renamed to CHANGES to follow suit with MANIFEST
+and README.
 
-     a. Introduce new constants for different built-in events.
-        Document them instead of ARG0..ARG9.  Document that ARG0..ARG9
-        will no longer be guaranteed true for built-in events.  Revise
-        the tests and samples to avoid ARG0..ARG9 for built-in events.
+(!!!) Breakage warning!  XyzState parameters in wheels have been
+renamed to XyzEvent and documented as such.  They are guaranteed to
+work without warnings until ????.??.??.
 
-     b. Generate warnings when ARG0..ARG9 are used for built-in
-        events.  There will be a performance penalty during this phase
-        since ARG0..ARG9 will be computed and not truly constant.
-        Bleah!
+Fix t/06_tk.t to skip if Tk is outdated, rather than fail.
 
-     c. Remove the warnings from ARG0..ARG9.  Users are on their own.
-        Keep the documentation to that effect.
+Fix lib/deptest.perl to recognize Exporter on Solaris.
 
-  3. Split some of the optionally useful bits out into a separate
-     Bundle which is included in Bundle::POE.  Let people install
-     subsets of POE as needed.  This may not happen, but it's listed
-     here for others' consideration.
+Increase dependency checking information on Solaris in case attempts
+to fix the Exporter bug aren't successful.
 
-     a. Set up Bundle::POE, Bundle::POE-Tk, Bundle::POE-Gtk, and
-        Bundle::POE-Event.  Document them, and make Bundle::POE the
-        default.  Bundle::POE-Options to include optional required
-        modules?
+Add XyzEvent support to wheels.  Code to support XyzEvent and XyzState
+is marked with the comment C<# STATE-EVENT>.  Hooks for depreciation
+warnings are also commented.  Changed the documentation to say
+XyvEvent instead of XyzState, so new users will not learn the
+depreciated ways.
 
-     b. Split wheels out of POE itself.  Split samples out, too.  Make
-        them separate distributions included with Bundle::POE.
+Verified that the depreciation from State to Event does not break
+existing tests.
 
-  4. Whatever else I can break.  I may as well break as much as I can
-     in one big lump.  Has anyone been holding off on requests because
-     they'd break stuff?  Now's the time to speak up.
+Ported the existing tests to use XyzEvent instead of XyzState, and
+verified that they still pass.
 
-I've come up with this tentative depreciation schedule in the hopes
-it'll minimize people's grief.
+Added instructions for installing the ActiveState PPM to README.
 
-  1. Release POE as/is with this depreciation schedule.  This is the
-     RFC phase, and interested people should comment on it.  This
-     may be version 0.13.
+Ported the samples from XyzState to XyzEvent, but they still are not
+properly tested.
 
-  2. Release POE with new the new parameters/behaviors/etc. and the
-     depreciated ones side-by-side.  The documentation will be altered
-     to cover new things and briefly tell about the depreciated
-     things.  This may be version 0.14.
+Add POE::Kernel methods detach_myself() and detach_child() to detach
+the current session from its parent, or a child session from the
+current one.  This breaks the existing parent/child relationship,
+allowing parent sessions to be garbage collected if they're no longer
+needed.  It resembles the fork/exec trick in Unix.
 
-  3. Add warnings for depreciated things.  Try not to make them too
-     obnoxious.  This may be version 0.15.
+Added test t/25_detach.t to test detaching sessions.
 
-  4. Remove the depreciated things altogether.  This may be version
-     0.16.
+Fixed a typo in POE::Kernel; the bareword "hostname" should be
+$hostname, what with all the work Kernel does to set it properly.
+Ray Brinzer's (SF: petruchio) keen eye spotted this one.
 
-My plan is to wait at least a month between each CPAN release.
-Bleeding edge interim releases will start off as maintenance on the
-previous version and then become release candidates for the next one.
-If it all goes as planned, this will give people at least 1/4 year to
-update their programs.
+Win32's four-argument select() call fails when there are no
+filehandles.  In this case, call sleep() instead.  Have Time::HiRes
+import its own sleep() if it's available, so that subsecond sleeps
+will work.
 
 
-0.14 2001.04.21
+0.14 2001.04.23
 ---------------
 
 Fix POE::Kernel::Tk.pm so that it doesn't kill CPAN.pm's "r" command.

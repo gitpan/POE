@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: tutorial-chat.perl,v 1.9 2000/11/17 22:33:18 rcaputo Exp $
+# $Id: tutorial-chat.perl,v 1.10 2001/05/07 12:23:04 rcaputo Exp $
 
 =pod //////////////////////////////////////////////////////////////////////////
 
@@ -104,8 +104,8 @@ sub server_start {
   $heap->{listener} = POE::Wheel::SocketFactory->new
     ( BindPort       => 30023,
       Reuse          => 'yes',           # reuse the port right away
-      SuccessState   => 'event_success', # event to send on connection
-      FailureState   => 'event_failure'  # event to send on error
+      SuccessEvent   => 'event_success', # event to send on connection
+      FailureEvent   => 'event_failure'  # event to send on error
     );
 
   print "SERVER: started listening on port 30023\n";
@@ -277,9 +277,9 @@ sub chat_start {
     ( Handle       => $accepted_socket,        # read/write on this handle
       Driver       => POE::Driver::SysRW->new, # using sysread and syswrite
       Filter       => POE::Filter::Line->new,  # filtering I/O as lines
-      InputState   => 'line_input',     # generate line_input on input
-      ErrorState   => 'io_error',       # generate io_error on error
-      FlushedState => 'out_flushed',    # geterate out_flushed on flush
+      InputEvent   => 'line_input',     # generate line_input on input
+      ErrorEvent   => 'io_error',       # generate io_error on error
+      FlushedEvent => 'out_flushed',    # geterate out_flushed on flush
     );
 
   # Now that the session can read from and write to the socket, log

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: deptest.perl,v 1.7 2001/04/03 22:08:40 rcaputo Exp $
+# $Id: deptest.perl,v 1.15 2001/06/07 13:36:32 rcaputo Exp $
 
 use strict;
 use Config qw(%Config);
@@ -7,7 +7,17 @@ use ExtUtils::Manifest qw(maniread);
 use File::Spec;
 use Text::Wrap;
 
-sub TRACE_GATHER  () { 0 }  # noisy; for testing
+# Enable verbose testing if this is running on solaris, because
+# solaris' CPAN tester's machine has trouble finding some modules
+# which do exist.
+BEGIN {
+  if ($^O eq 'solaris') {
+    eval 'sub TRACE_GATHER () { 1 }';
+  }
+  else {
+    eval 'sub TRACE_GATHER () { 0 }';
+  }
+};
 sub TRACE_SECTION () { 1 }  # lets the installer know what's going on
 
 open STDERR_HOLD, '>&STDERR' or die "cannot save STDERR: $!";
@@ -106,12 +116,14 @@ if (open(NEEDS, "<NEEDS")) {
     elsif (/^ \s* (\S+)
               \s+ (wants|needs|prefers)
               \s+ (\S+)
-              \s* ([0-9\_\.]*)
+              \s* ([0-9_\.]*)
               \s* (?:\#.*)?
            $/x
           ) {
+
       my ($user_mask, $dep_type, $usee_mask, $version) = ($1, $2, $3, $4);
       $version = 0 unless defined $version and length $version;
+
       push( @dep_rules,
             [ &mask_to_regexp($user_mask),  # RULE_USER_MASK
               $dependency_type{$dep_type},  # RULE_DEP_TYPE
@@ -165,11 +177,13 @@ sub dep_type {
 # Determine a dependency version.  Make a hash, or use masks properly?
 sub dep_version {
   my $usee = quotemeta(shift);
+  my $dep_version = 0;
   foreach my $dep_rule (@dep_rules) {
-    next unless $dep_rule->[RULE_DEP_MASK] eq $usee;
-    return $dep_rule->[RULE_DEP_VERSION];
+    my $usee_regexp = $dep_rule->[RULE_DEP_MASK];
+    next unless $usee =~ /^$usee_regexp$/;
+    $dep_version = $dep_rule->[RULE_DEP_VERSION];
   }
-  return 0;
+  return $dep_version;
 }
 
 #------------------------------------------------------------------------------
@@ -241,21 +255,27 @@ sub build_dependency_tree {
     eval { $dev_null = File::Spec->devnull };
     $dev_null = '/dev/null' unless defined $dev_null;
 
-    open(STDERR, ">$dev_null") or close STDERR;
-    open(STDOUT, ">$dev_null") or close STDERR;
+    if ($^O ne 'solaris' or $file_key !~ /Exporter/) {
+      open(STDERR, ">$dev_null") or close STDERR;
+      open(STDOUT, ">$dev_null") or close STDERR;
+    }
 
     eval 'package Test::Package_' . $test_package++ . "; use $file_key";
     my $is_ok = !(defined $@ and length $@);
 
     # Resume output.
-    open STDOUT, '>&STDOUT_HOLD'
-      or print STDOUT_HOLD "cannot restore STDOUT: $!";
-    open STDERR, '>&STDERR_HOLD'
-      or print STDERR_HOLD "cannot restore STDERR: $!";
+    if ($^O ne 'solaris' or $file_key !~ /Exporter/) {
+      open STDOUT, '>&STDOUT_HOLD'
+        or print STDOUT_HOLD "cannot restore STDOUT: $!";
+      open STDERR, '>&STDERR_HOLD'
+        or print STDERR_HOLD "cannot restore STDERR: $!";
+    }
 
     if ($is_ok) {
       # Determine the filename from %INC, and try to figure out
       # whether it's ours or something else's.
+
+      &trace_gather( "\t$file_key found." );
 
       my $inc_key = $file_key . '.pm';
       $inc_key = File::Spec->catdir( split /\:\:/, $inc_key );
@@ -275,6 +295,10 @@ sub build_dependency_tree {
           { local $^W = 0;
             $dependency_version += 0;
           }
+
+          my $test_version = dep_version($file_key);
+          &trace_gather( "\t$file_key is version $dependency_version." );
+          &trace_gather( "\t$file_key version needed: $test_version." );
 
           if ($dependency_version < dep_version($file_key)) {
             $file_type |= FS_OUTDATED;
@@ -305,6 +329,8 @@ sub build_dependency_tree {
       }
     }
     else {
+      &trace_gather( "\t$file_key NOT found." );
+
       $dep_node{$file_key} =
         [ FT_UNKNOWN | FO_UNKNOWN | FS_BAD, # NODE_TYPE
           { },                              # NODE_CHILDREN
@@ -340,7 +366,8 @@ sub build_dependency_tree {
     my $code = '';
     while (<FILE>) {
       chomp;
-      s/(?<!\\)\s*\#.*$//; # May Turing have mercy upon me.
+
+      s/(^|[^\\])\s*\#.*$/$1/; # May Turing have mercy upon me.
       next if /^\s*$/;     # Skip blank lines.
       last if /^__END__/;  # Skip DATA division.
 
@@ -357,8 +384,8 @@ sub build_dependency_tree {
     # Gather whatever dependents we can find in this file.  This is
     # far from ideal code.
 
-    while ($code =~ / (?<!\w\s)
-                      \b (use|require) \s+ (\S+)
+    while ($code =~ / (?: ^ | \s* )
+                      (use|require) \s+ (\S+)
                       (?: \s* (?:qw\(|[\'\"]) \s* (.+?) \s* [\)\'\"] )?
                     /gx
           )
@@ -384,7 +411,7 @@ sub build_dependency_tree {
       next if $dependent !~ /[A-Z]/;
 
       # Skip modules with illegal characters.
-      next if $dependent =~ /[^A-Za-z\:\-\_]/;
+      next if $dependent =~ /[^A-Za-z\:\-_]/;
 
       # Explode extra parameters if the reference is to POE itself.
       my @modules = ($dependent);
@@ -512,7 +539,7 @@ sub show_leaves {
     foreach my $child (@children) {
       my $child_version = dep_version($child);
       if (defined $child_version and $child_version > 0) {
-        $child .= " ($child_version)";
+        $child .= " $child_version or newer";
       }
     }
     my $children = join('; ', @children);

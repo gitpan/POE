@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: proxy.perl,v 1.14 2000/11/03 21:59:03 rcaputo Exp $
+# $Id: proxy.perl,v 1.15 2001/05/07 12:23:04 rcaputo Exp $
 
 # This is a proof of concept for proxies, or other programs that
 # employ both client and server sockets in the same sesion.  Previous
@@ -85,15 +85,15 @@ sub session_start {
     ( Handle     => $socket,
       Driver     => POE::Driver::SysRW->new,
       Filter     => POE::Filter::Stream->new,
-      InputState => 'client_input',
-      ErrorState => 'client_error',
+      InputEvent => 'client_input',
+      ErrorEvent => 'client_error',
     );
 
   $heap->{wheel_server} = POE::Wheel::SocketFactory->new
     ( RemoteAddress  => $remote_addr,
       RemotePort     => $remote_port,
-      SuccessState   => 'server_connect',
-      FailureState   => 'server_error',
+      SuccessEvent   => 'server_connect',
+      FailureEvent   => 'server_error',
     );
 }
 
@@ -172,8 +172,8 @@ sub session_server_connect {
     ( Handle     => $socket,
       Driver     => POE::Driver::SysRW->new,
       Filter     => POE::Filter::Stream->new,
-      InputState => 'server_input',
-      ErrorState => 'server_error',
+      InputEvent => 'server_input',
+      ErrorEvent => 'server_error',
     );
 
   $heap->{state} = 'connected';
@@ -249,8 +249,8 @@ sub server_start {
     ( BindAddress    => $local_addr,      # bind to this address
       BindPort       => $local_port,      # and bind to this port
       Reuse          => 'yes',            # reuse immediately
-      SuccessState   => 'accept_success', # generate this event on connection
-      FailureState   => 'accept_failure', # generate this event on error
+      SuccessEvent   => 'accept_success', # generate this event on connection
+      FailureEvent   => 'accept_failure', # generate this event on error
     );
 }
 

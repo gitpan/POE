@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 21_gtk.t,v 1.12 2001/04/03 17:15:09 rcaputo Exp $
+# $Id: 21_gtk.t,v 1.13 2001/05/07 12:23:04 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Gtk postback events using Gk's event
 # loop.
@@ -74,7 +74,7 @@ sub io_start {
           OutputHandle => $heap->{pipe_write} = $b_write,
           Filter       => POE::Filter::Line->new(),
           Driver       => POE::Driver::SysRW->new(),
-          InputState   => 'ev_pipe_read',
+          InputEvent   => 'ev_pipe_read',
         );
 
     # And a timer loop to test alarms.

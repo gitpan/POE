@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheels2.perl,v 1.4 2000/11/03 21:59:06 rcaputo Exp $
+# $Id: wheels2.perl,v 1.5 2001/05/07 12:23:04 rcaputo Exp $
 
 # A simple socket client that uses a two-handle wheel to pipe between
 # a socket and the console.  It's hardcoded to talk with wheels.perl's
@@ -30,8 +30,8 @@ sub session_start {
   $heap->{connector} = POE::Wheel::SocketFactory->new
     ( RemoteAddress => '127.0.0.1',
       RemotePort    => $rot13_port,
-      SuccessState  => 'connect_success',
-      FailureState  => 'connect_failure',
+      SuccessEvent  => 'connect_success',
+      FailureEvent  => 'connect_failure',
     );
 }
 
@@ -51,16 +51,16 @@ sub session_connect_success {
       OutputHandle => \*STDOUT,
       Driver => POE::Driver::SysRW->new,
       Filter => POE::Filter::Stream->new,
-      InputState => 'console_input',
-      ErrorState => 'console_error',
+      InputEvent => 'console_input',
+      ErrorEvent => 'console_error',
     );
 
   $heap->{socket_wheel} = POE::Wheel::ReadWrite->new
     ( Handle => $connected_socket,
       Driver => POE::Driver::SysRW->new,
       Filter => POE::Filter::Stream->new,
-      InputState => 'socket_input',
-      ErrorState => 'socket_error',
+      InputEvent => 'socket_input',
+      ErrorEvent => 'socket_error',
     );
 
   $heap->{console_wheel}->put("Begun terminal session.");

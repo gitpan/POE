@@ -1,5 +1,5 @@
-# $Id: MANIFEST,v 1.59 2001/04/16 02:56:06 rcaputo Exp $
-Changes
+# $Id: MANIFEST,v 1.61 2001/05/28 06:14:33 rcaputo Exp $
+CHANGES
 MANIFEST
 Makefile.PL
 NEEDS
@@ -37,6 +37,7 @@ POE/Wheel/ReadWrite.pm
 POE/Wheel/Run.pm
 POE/Wheel/SocketFactory.pm
 README
+TODO
 lib/Devel/Null.pm
 lib/Devel/Trace.pm
 lib/MyOtherFreezer.pm
@@ -97,3 +98,4 @@ t/21_gtk.t
 t/22_wheel_run.t
 t/23_nfa.t
 t/24_filter_stack.t
+t/25_detach.t

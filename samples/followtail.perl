@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: followtail.perl,v 1.7 2000/11/03 21:59:01 rcaputo Exp $
+# $Id: followtail.perl,v 1.8 2001/05/07 12:23:04 rcaputo Exp $
 
 # This program tests Wheel::FollowTail.  The FollowTail wheel provides
 # a reusable "tail -f" behavior for drivers and filters.
@@ -45,7 +45,7 @@ for my $j (0..9) {
             ( Handle     => $handle,                  # using this handle
               Driver     => POE::Driver::SysRW->new,  # using syswrite
               Filter     => POE::Filter::Line->new,   # write lines
-              ErrorState => 'log_error'               # acknowledge errors
+              ErrorEvent => 'log_error'               # acknowledge errors
             );
 
           $kernel->post($session, 'activity');
@@ -92,8 +92,8 @@ for my $j (0..9) {
             ( 'Handle' => $handle,                  # follow this handle
               'Driver' => POE::Driver::SysRW->new,  # use sysread to read
               'Filter' => POE::Filter::Line->new,   # file contains lines
-              'InputState' => 'got a line',         # input handler
-              'ErrorState' => 'error reading',      # error handler
+              'InputEvent' => 'got a line',         # input handler
+              'ErrorEvent' => 'error reading',      # error handler
               'PollInterval' => 2,
             );
         }

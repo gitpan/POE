@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.12 2001/04/04 03:53:06 rcaputo Exp $
+# $Id: 01_sessions.t,v 1.13 2001/06/07 14:29:46 rcaputo Exp $
 
 # Tests basic compilation and events.
 
@@ -16,7 +16,7 @@ use POE;
 ### Test parameters and results.
 
 my $machine_count  = 10;
-my $event_count    = 10;
+my $event_count    = 5;
 my $sigalrm_caught = 0;
 my $sigpipe_caught = 0;
 my $sender_count   = 0;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: refserver.perl,v 1.13 2000/11/03 21:59:04 rcaputo Exp $
+# $Id: refserver.perl,v 1.14 2001/05/07 12:23:04 rcaputo Exp $
 
 # This program is half of a test suite for POE::Filter::Reference.  It
 # implements a server that accepts frozen data, thaws it, and displays
@@ -97,8 +97,8 @@ sub daemon_start {
     ( Handle     => $handle,                    # on this handle
       Driver     => POE::Driver::SysRW->new,    # using sysread and syswrite
       Filter     => POE::Filter::Reference->new, # parsing as refs
-      InputState => 'client',           # generate this event on input
-      ErrorState => 'error',            # generate this event on error
+      InputEvent => 'client',           # generate this event on input
+      ErrorEvent => 'error',            # generate this event on error
     );
 }
 
@@ -168,8 +168,8 @@ sub server_start {
   $heap->{wheel} = POE::Wheel::SocketFactory->new
     ( BindPort       => 31338,          # on the eleet++ port
       Reuse          => 'yes',          # and allow immediate reuse of the port
-      SuccessState   => 'accept',       # generating this event on connection
-      FailureState   => 'error'         # generating this event on error
+      SuccessEvent   => 'accept',       # generating this event on connection
+      FailureEvent   => 'error'         # generating this event on error
     );
 }
 
