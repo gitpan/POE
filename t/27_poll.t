@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 27_poll.t,v 1.4 2002/06/30 20:24:11 rcaputo Exp $
+# $Id: 27_poll.t,v 1.5 2002/07/15 23:20:11 rcaputo Exp $
 
 # Rerun t/04_selects.t but with IO::Poll instead.
 
@@ -11,9 +11,9 @@ use TestSetup;
 
 BEGIN {
   eval 'use IO::Poll';
-  test_setup(0, "need IO::Poll to test POE's support for that module")
+  test_setup(0, "IO::Poll is needed for these tests")
     if length($@) or not exists $INC{'IO/Poll.pm'};
-  test_setup(0, "need IO::Poll 0.05 (you have version $IO::Poll::VERSION)")
+  test_setup(0, "IO::Poll 0.05 or newer is needed for these tests")
     if $IO::Poll::VERSION < 0.05;
 }
 

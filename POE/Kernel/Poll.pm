@@ -1,4 +1,4 @@
-# $Id: Poll.pm,v 1.4 2002/06/30 20:24:11 rcaputo Exp $
+# $Id: Poll.pm,v 1.5 2002/08/04 18:58:15 rcaputo Exp $
 
 # IO::Poll substrate for POE::Kernel.  The theory is that this will be
 # faster for large scale applications.  This file is contributed by
@@ -8,7 +8,7 @@
 package POE::Kernel::Poll;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.4 $ ))[1];
+$VERSION = (qw($Revision: 1.5 $ ))[1];
 
 # Everything plugs into POE::Kernel;
 package POE::Kernel;
@@ -282,7 +282,7 @@ macro substrate_do_timeslice {
     }
   }
 
-  @filenos = %POE::Kernel::Poll::poll_fd_masks;
+  my @filenos = %POE::Kernel::Poll::poll_fd_masks;
 
   if (TRACE_SELECT) {
     foreach (sort { $a<=>$b} keys %POE::Kernel::Poll::poll_fd_masks) {

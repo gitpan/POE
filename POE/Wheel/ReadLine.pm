@@ -1,4 +1,4 @@
-# $Id: ReadLine.pm,v 1.19 2002/06/01 22:12:07 rcaputo Exp $
+# $Id: ReadLine.pm,v 1.21 2002/09/04 01:18:47 rcaputo Exp $
 
 package POE::Wheel::ReadLine;
 use POE::Preprocessor;
@@ -6,7 +6,7 @@ use POE::Preprocessor;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.19 $ ))[1];
+$VERSION = (qw($Revision: 1.21 $ ))[1];
 
 use Carp;
 use Symbol qw(gensym);
@@ -1247,10 +1247,10 @@ POE::Wheel::ReadLine - prompted terminal input with basic editing keys
   $heap->{wheel} = POE::Wheel::ReadLine->new( InputEvent => got_input );
 
   # Trigger the wheel to read a line of input.
-  $wheel->get( 'Prompt: ' );
+  $heap->{wheel}->get( 'Prompt: ' );
 
   # Add a line to the wheel's input history.
-  $wheel->addhistory( $input );
+  $heap->{wheel}->addhistory( $input );
 
   # Input handler.  If $input is defined, then it contains a line of
   # input.  Otherwise $exception contains a word describing some kind
@@ -1259,16 +1259,16 @@ POE::Wheel::ReadLine - prompted terminal input with basic editing keys
     my ($heap, $input, $exception) = @_[HEAP, ARG0, ARG1];
     if (defined $input) {
       $heap->{wheel}->addhistory($input);
-      print "\tGot: $input\n";
+      $heap->{wheel}->put("\tGot: $input");
       $heap->{wheel}->get('Prompt: '); # get another line
     }
     else {
-      print "\tException: $exception\n";
+      $heap->{wheel}->put("\tException: $exception");
     }
   }
 
   # Clear the terminal.
-  $wheel->clear();
+  $heap->{wheel}->clear();
 
 =head1 DESCRIPTION
 
@@ -1645,6 +1645,10 @@ A: You probably are using print or printf to write screen output.
    ReadLine doesn't track STDOUT itself, so it doesn't know when to
    refresh the prompt after you do this.  Use ReadLine's put() method
    to write lines to the console.
+
+=head1 BUGS
+
+I am not sure how well this supports unicode.
 
 =head1 AUTHORS & COPYRIGHTS
 

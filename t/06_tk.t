@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.35 2002/06/07 04:13:18 rcaputo Exp $
+# $Id: 06_tk.t,v 1.37 2002/08/20 19:37:32 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Tk postback events using Tk's event
 # loop.
@@ -14,36 +14,34 @@ use TestSetup;
 # Skip if Tk isn't here or if environmental requirements don't apply.
 BEGIN {
   eval 'use Tk';
-  &test_setup(0, 'need the Tk module installed to run this test')
+  &test_setup(0, "Tk is needed for these tests")
     if ( length($@) or
          not exists($INC{'Tk.pm'})
        );
 
   # MSWin32 doesn't need DISPLAY set.
-  if ($^O ne 'MSWin32') {
+  if ($^O ne "MSWin32") {
     unless ( exists $ENV{'DISPLAY'} and
              defined $ENV{'DISPLAY'} and
              length $ENV{'DISPLAY'}
            ) {
-      &test_setup(0, "can't test Tk without a DISPLAY (set one today, ok?)");
+      &test_setup(0, "Can't test Tk without a DISPLAY. (Set one today, ok?)");
     }
   }
 
   # Tk support relies on an interface change that occurred in 800.021.
-  &test_setup( 0,
-               "need Tk 800.021 or newer installed but only have $Tk::VERSION"
-             )
+  &test_setup(0, "Tk 800.021 or newer is needed for these tests")
     if $Tk::VERSION < 800.021;
 
   # Tk and Perl before 5.005_03 don't mix.
-  &test_setup( 0, "Tk requires Perl 5.005_03 or newer" ) if $] < 5.005_03;
+  &test_setup( 0, "Tk requires Perl 5.005_03 or newer." ) if $] < 5.005_03;
 };
 
-&test_setup(9);
+&test_setup(11);
 
 warn( "\n",
       "***\n",
-      "*** Please note: This test will pop up a Tk window.\n",
+      "*** Please note: This test will pop up a window or two.\n",
       "***\n",
     );
 
@@ -245,7 +243,7 @@ sub io_stop {
         print "not ";
       }
       else {
-        $reason = " # skipped: Tk $Tk::VERSION is broken under Win32";
+        $reason = " # skipped: $^O does not support Tk $Tk::VERSION.";
       }
     }
     else {
@@ -261,7 +259,7 @@ sub io_stop {
         print "not ";
       }
       else {
-        $reason = " # skipped: Tk $Tk::VERSION is broken under Win32";
+        $reason = " # skipped: $^O does not support Tk $Tk::VERSION.";
       }
     }
     else {
@@ -326,12 +324,32 @@ POE::Session->create
     }
   );
 
-# Main loop.
-
+# First main loop.
 $poe_kernel->run();
-
-# Congratulate ourselves on a job completed, regardless of how well it
-# was done.
 print "ok 9\n";
 
+# Try re-running the main loop.
+POE::Session->create
+  ( inline_states =>
+    { _start => sub {
+        $_[HEAP]->{count} = 0;
+        $_[KERNEL]->yield("increment");
+      },
+      increment => sub {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+        if ($heap->{count} < 10) {
+          $kernel->yield("increment");
+          $heap->{count}++;
+        }
+      },
+      _stop => sub {
+        print "not " unless $_[HEAP]->{count} == 10;
+        print "ok 10\n";
+      },
+    }
+  );
+
+# Verify that the main loop can run yet again.
+$poe_kernel->run();
+print "ok 11\n";
 exit;

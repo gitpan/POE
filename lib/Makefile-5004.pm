@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.5 2002/06/09 18:32:12 rcaputo Exp $
+# $Id: Makefile-5004.pm,v 1.12 2002/09/10 19:55:31 rcaputo Exp $
 
 use ExtUtils::MakeMaker;
 
@@ -8,6 +8,22 @@ use ExtUtils::MakeMaker;
 sub MY::test {
   package MY;
   "\ntest ::\n\t\$(FULLPERL) ./lib/deptest.perl\n" . shift->SUPER::test(@_);
+}
+
+sub MY::postamble {
+    return <<EOF;
+reportupload: poe_report.xml
+	perl lib/reportupload.pl
+
+uploadreport: poe_report.xml
+	perl lib/reportupload.pl
+
+testreport: poe_report.xml
+
+poe_report.xml: Makefile
+	perl lib/testreport.pl
+EOF
+
 }
 
 # Touch CHANGES so it exists.
@@ -20,8 +36,8 @@ WriteMakefile
     dist           =>
     { COMPRESS => 'gzip -9f',
       SUFFIX   => 'gz',
-      PREOP    => ( 'cvs2cl.pl -l "-d\'a year ago<\'" ' .
-                    '--utc --stdout > $(DISTNAME)-$(VERSION)/CHANGES'
+      PREOP    => ( './lib/cvs-log.perl | ' .
+                    'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
                   ),
     },
     PREREQ_PM      => { Carp               => 0,

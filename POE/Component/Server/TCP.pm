@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.22 2002/06/18 22:18:37 rcaputo Exp $
+# $Id: TCP.pm,v 1.28 2002/09/12 02:46:25 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.22 $ ))[1];
+$VERSION = (qw($Revision: 1.28 $ ))[1];
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa);
@@ -40,6 +40,7 @@ sub new {
   my $alias   = delete $param{Alias};
   my $address = delete $param{Address};
   my $port    = delete $param{Port};
+  my $domain  = delete $param{Domain};
 
   foreach ( qw( Acceptor Error ClientInput ClientConnected
                 ClientDisconnected ClientError ClientFlushed
@@ -88,7 +89,7 @@ sub new {
       $client_filter      = shift @client_filter_args;
     }
 
-    $client_error  = \&_default_client_error  unless defined $client_error;
+    $client_error  = \&_default_client_error unless defined $client_error;
     $client_connected    = sub {} unless defined $client_connected;
     $client_disconnected = sub {} unless defined $client_disconnected;
     $client_flushed      = sub {} unless defined $client_flushed;
@@ -104,6 +105,11 @@ sub new {
     my $object_states = delete $param{ObjectStates};
     $object_states = [] unless defined $object_states;
 
+    my $shutdown_on_error = 1;
+    if (exists $param{ClientShutdownOnError}) {
+      $shutdown_on_error = delete $param{ClientShutdownOnError};
+    }
+
     croak "InlineStates must be a hash reference"
       unless ref($inline_states) eq 'HASH';
 
@@ -115,82 +121,81 @@ sub new {
 
     # Revise the acceptor callback so it spawns a session.
 
-    $accept_callback = sub {
-      my ($socket, $remote_addr, $remote_port) = @_[ARG0, ARG1, ARG2];
-      POE::Session->create
-        ( inline_states =>
-          { _start => sub {
-              my ( $kernel, $session, $heap ) = @_[KERNEL, SESSION, HEAP];
+    unless (defined $accept_callback) {
+      $accept_callback = sub {
+        my ($socket, $remote_addr, $remote_port) = @_[ARG0, ARG1, ARG2];
+        POE::Session->create
+          ( inline_states =>
+            { _start => sub {
+                my ( $kernel, $session, $heap ) = @_[KERNEL, SESSION, HEAP];
 
-              $heap->{shutdown}    = 0;
-              $heap->{remote_ip}   = inet_ntoa($remote_addr);
-              $heap->{remote_port} = $remote_port;
+                $heap->{shutdown} = 0;
+                $heap->{shutdown_on_error} = $shutdown_on_error;
 
-              $heap->{client} = POE::Wheel::ReadWrite->new
-                ( Handle       => $socket,
-                  Driver       => POE::Driver::SysRW->new( BlockSize => 4096 ),
-                  Filter       => $client_filter->new(@client_filter_args),
-                  InputEvent   => 'tcp_server_got_input',
-                  ErrorEvent   => 'tcp_server_got_error',
-                  FlushedEvent => 'tcp_server_got_flush',
-                );
+                if (length($remote_addr) == 4) {
+                  $heap->{remote_ip} = inet_ntoa($remote_addr);
+                }
+                else {
+                  $heap->{remote_ip} =
+                    Socket6::inet_ntop($domain, $remote_addr);
+                }
 
-              $client_connected->(@_);
-            },
+                $heap->{remote_port} = $remote_port;
 
-            # To quiet ASSERT_STATES.
-            _child  => sub { },
-            _signal => sub { 0 },
+                $heap->{client} = POE::Wheel::ReadWrite->new
+                  ( Handle       => $socket,
+                    Driver       => POE::Driver::SysRW->new(BlockSize => 4096),
+                    Filter       => $client_filter->new(@client_filter_args),
+                    InputEvent   => 'tcp_server_got_input',
+                    ErrorEvent   => 'tcp_server_got_error',
+                    FlushedEvent => 'tcp_server_got_flush',
+                  );
 
-            tcp_server_got_input => sub {
-              my $heap = $_[HEAP];
-              return if $heap->{shutdown};
-              $client_input->(@_);
-            },
-            tcp_server_got_error => sub {
-              my ($heap, $operation, $errnum) = @_[HEAP, ARG0, ARG1];
+                $client_connected->(@_);
+              },
 
-              $heap->{shutdown} = 1;
+              # To quiet ASSERT_STATES.
+              _child  => sub { },
+              _signal => sub { 0 },
 
-              # Read error 0 is disconnect.
-              if ($operation eq 'read' and $errnum == 0) {
-                $client_disconnected->(@_);
-              }
-              else {
+              tcp_server_got_input => sub {
+                return if $_[HEAP]->{shutdown};
+                $client_input->(@_);
+              },
+              tcp_server_got_error => sub {
                 $client_error->(@_);
-              }
+                $_[KERNEL]->yield("shutdown") if $_[HEAP]->{shutdown_on_error};
+              },
+              tcp_server_got_flush => sub {
+                my $heap = $_[HEAP];
+                $client_flushed->(@_);
+                if ($heap->{shutdown}) {
+                  $client_disconnected->(@_);
+                  delete $heap->{client};
+                }
+              },
+              shutdown => sub {
+                my $heap = $_[HEAP];
+                $heap->{shutdown} = 1;
+                if (defined $heap->{client}) {
+                  unless ($heap->{client}->get_driver_out_octets()) {
+                    $client_disconnected->(@_);
+                    delete $heap->{client};
+                  }
+                }
+              },
+              _stop => sub {},
 
-              delete $heap->{client};
-            },
-            tcp_server_got_flush => sub {
-              my $heap = $_[HEAP];
-              $client_flushed->(@_);
-              delete $heap->{client} if $heap->{shutdown};
-            },
-            shutdown => sub {
-              my $heap = $_[HEAP];
-              $heap->{shutdown} = 1;
-              if (defined $heap->{client}) {
-                delete $heap->{client}
-                  unless $heap->{client}->get_driver_out_octets();
-              }
-            },
-            _stop => $client_disconnected,
-
-            tcp_server_got_flushed => sub {
-              my ($kernel, $heap) = @_[KERNEL, HEAP];
-              delete $heap->{client} if $heap->{shutdown};
+              # User supplied states.
+              %$inline_states
             },
 
-            # User supplied states.
-            %$inline_states
-          },
-
-          # More user supplied states.
-          package_states => $package_states,
-          object_states  => $object_states,
-        );
-    };
+            # More user supplied states.
+            package_states => $package_states,
+            object_states  => $object_states,
+          );
+      };
+    }
   };
 
   # Complain about strange things we're given.
@@ -213,6 +218,7 @@ sub new {
           $_[HEAP]->{listener} = POE::Wheel::SocketFactory->new
             ( BindPort     => $port,
               BindAddress  => $address,
+              SocketDomain => $domain,
               Reuse        => 'yes',
               SuccessEvent => 'tcp_server_got_connection',
               FailureEvent => 'tcp_server_got_error',
@@ -259,10 +265,11 @@ sub _default_server_error {
 # server.
 
 sub _default_client_error {
-  warn( 'Client ', $_[SESSION]->ID,
-        " got $_[ARG0] error $_[ARG1] ($_[ARG2])\n"
+  my ($syscall, $errno, $error) = @_[ARG0..ARG2];
+  $error = "Normal disconnection" unless $errno;
+  warn( 'Client session ', $_[SESSION]->ID,
+        " got $syscall error $errno ($error)\n"
       );
-  delete $_[HEAP]->{client};
 }
 
 1;
@@ -282,6 +289,7 @@ POE::Component::Server::TCP - a simplified TCP server
   POE::Component::Server::TCP->new
     ( Port     => $bind_port,
       Address  => $bind_address,    # Optional.
+      Domain   => AF_INET,          # Optional.
       Acceptor => \&accept_handler,
       Error    => \&error_handler,  # Optional.
     );
@@ -291,6 +299,7 @@ POE::Component::Server::TCP - a simplified TCP server
   POE::Component::Server::TCP->new
     ( Port     => $bind_port,
       Address  => $bind_address,    # Optional.
+      Domain   => AF_INET,          # Optional.
       Acceptor => \&accept_handler, # Optional.
       Error    => \&error_handler,  # Optional.
 
@@ -300,6 +309,7 @@ POE::Component::Server::TCP - a simplified TCP server
       ClientError        => \&handle_client_error,      # Optional.
       ClientFlushed      => \&handle_client_flush,      # Optional.
       ClientFilter       => "POE::Filter::Xyz",         # Optional.
+      ClientShutdownOnError => 0,                       # Optional.
 
       # Optionally define other states for the client session.
       InlineStates  => { ... },
@@ -345,11 +355,16 @@ POE::Component::Server::TCP - a simplified TCP server
   $heap->{remote_port} = remote port
   $heap->{remote_addr} = packed remote address and port
   $heap->{shutdown}    = shutdown flag (check to see if shutting down)
+  $heap->{shutdown_on_error} = Automatically disconnect on error.
 
   # Accepted public events.
 
   $kernel->yield( "shutdown" )           # initiate shutdown in a connection
   $kernel->post( server => "shutdown" )  # stop listening for connections
+
+  # Responding to a client.
+
+  $heap->{client}->put(@things_to_send);
 
 =head1 DESCRIPTION
 
@@ -375,20 +390,22 @@ and numeric port, respectively.  ARG3 is the SocketFactory wheel's ID.
 
   Acceptor => \&accept_handler
 
-Acceptor and ClientInput are mutually exclusive.  Enabling one
-prohibits the other.
+Acceptor lets programmers rewrite the guts of Server::TCP entirely.
+It disables the code that provides the /Client.*/ callbacks.
 
 =item Address
 
 Address is the optional interface address the TCP server will bind to.
-It defaults to INADDR_ANY.
+It defaults to INADDR_ANY or INADDR6_ANY when using IPv4 or IPv6,
+respectively.
 
-  Address => '127.0.0.1'
+  Address => '127.0.0.1'   # Localhost IPv4
+  Address => "::1"         # Localhost IPv6
 
 It's passed directly to SocketFactory's BindAddress parameter, so it
 can be in whatever form SocketFactory supports.  At the time of this
-writing, that's a dotted quad, a host name, or a packed Internet
-address.
+writing, that's a dotted quad, an IPv6 address, a host name, or a
+packed Internet address.
 
 =item Alias
 
@@ -410,7 +427,7 @@ parameters, but nothing special is included.
 =item ClientDisconnected
 
 ClientDisconnected is a coderef that will be called for each client
-disconnection.  ClientDisconnected callbacks receive the usual POE
+that disconnects.  ClientDisconnected callbacks receive the usual POE
 parameters, but nothing special is included.
 
 =item ClientError
@@ -440,7 +457,7 @@ ClientFilter is optional.  The component will supply a
 =item ClientInput
 
 ClientInput is a coderef that will be called to handle client input.
-The callback receives its parameters directyl from ReadWrite's
+The callback receives its parameters directly from ReadWrite's
 InputEvent.  ARG0 is the input record, and ARG1 is the wheel's unique
 ID.
 
@@ -448,6 +465,29 @@ ID.
 
 ClientInput and Acceptor are mutually exclusive.  Enabling one
 prohibits the other.
+
+=item ClientShutdownOnError => BOOLEAN
+
+ClientShutdownOnError is a boolean value that determines whether
+client sessions shut down automatically on errors.  The default value
+is 1 (true).  Setting it to 0 or undef (false) turns this off.
+
+If client shutdown-on-error is turned off, it becomes your
+responsibility to deal with client errors properly.  Not handling
+them, or not closing wheels when they should be, will cause the
+component to spit out a constant stream of errors, eventually bogging
+down your application with dead connections that spin out of control.
+
+=item Domain
+
+Specifies the domain within which communication will take place.  It
+selects the protocol family which should be used.  Currently supported
+values are AF_INET, AF_INET6, PF_INET or PF_INET6.  This parameter is
+optional and will default to AF_INET if omitted.
+
+Note: AF_INET6 and PF_INET6 are supplied by the Socket6 module, which
+is available on the CPAN.  You must have Socket6 loaded before
+POE::Component::Server::TCP will create IPv6 sockets.
 
 =item Error
 

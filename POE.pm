@@ -1,4 +1,4 @@
-# $Id: POE.pm,v 1.143 2002/07/04 03:10:05 rcaputo Exp $
+# $Id: POE.pm,v 1.147 2002/09/12 16:34:52 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,7 +7,7 @@ use strict;
 use Carp;
 
 use vars qw($VERSION);
-$VERSION = '0.22';
+$VERSION = '0.23';
 
 sub import {
   my $self = shift;
@@ -122,7 +122,7 @@ designed as the core of a persistent object server and runtime
 environment, but it's evolved into a general purpose multitasking and
 networking framework.
 
-POE's core contains two types of module.  First there's POE::Kernel;
+POE's core contains two types of modules.  First there's POE::Kernel;
 this is the main resource manager and event loop.  Second are the
 sessions or state machines which implement the actual threads.  The
 sessions are POE::Session (not quite a proper state machine) and
@@ -404,16 +404,15 @@ tracking unique wheel IDs.
 
 =head1 SAMPLE PROGRAMS
 
+This distribution contains several example and/or tutorial programs in
+the ./samples directory.  Be advised, however, that they are old and
+may not exhibit the most current coding practices.
+
 The sample programs are scheduled for removal from this distribution
-in version 0.1301.  They will be moved to a separate distribution and
-documented better.
+in version 0.1301.  They are being moved to the web version of the POE
+Cookbook, which is available at <http://poe.perl.org/?POE_Cookbook>.
 
-This distribution contains 28 example and/or tutorial programs in the
-archive's ./samples directory.  Be advised, however, that many of them
-date from the early days of POE's development and may not exhibit the
-best coding practices.
-
-The author's always looking for new example ideas.
+The author is always looking for new example ideas.
 
 =head1 COMPATIBILITY ISSUES
 

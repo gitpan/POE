@@ -1,4 +1,4 @@
-# $Id: Kernel.pm,v 1.186 2002/06/28 02:22:30 rcaputo Exp $
+# $Id: Kernel.pm,v 1.194 2002/08/27 04:12:33 rcaputo Exp $
 
 package POE::Kernel;
 use POE::Preprocessor;
@@ -6,7 +6,7 @@ use POE::Preprocessor;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.186 $ ))[1];
+$VERSION = (qw($Revision: 1.194 $ ))[1];
 
 use POSIX qw(errno_h fcntl_h sys_wait_h);
 use Carp qw(carp croak confess);
@@ -137,7 +137,7 @@ sub VEC_EX () { 2 }
 
 sub KR_SESSIONS       () {  0 } # [ \%kr_sessions,
 sub KR_VECTORS        () {  1 } #   \@kr_vectors,
-sub KR_FILENOS        () {  2 } #   \@kr_filenos,
+sub KR_FILENOS        () {  2 } #   \%kr_filenos,
 sub KR_SIGNALS        () {  3 } #   \%kr_signals,
 sub KR_ALIASES        () {  4 } #   \%kr_aliases,
 sub KR_ACTIVE_SESSION () {  5 } #   \$kr_active_session,
@@ -154,7 +154,10 @@ sub KR_SIZE           () { 13 } #   XXX UNUSED ???
 # This flag indicates that POE::Kernel's run() method was called.
 # It's used to warn about forgetting $poe_kernel->run().
 
-my $kr_run_was_called = 0;
+sub KR_RUN_CALLED  () { 0x01 }  # $kernel->run() called
+sub KR_RUN_SESSION () { 0x02 }  # sessions created
+sub KR_RUN_DONE    () { 0x04 }  # run returned
+my $kr_run_warning = 0;
 
 #------------------------------------------------------------------------------
 # Session structure.
@@ -200,7 +203,7 @@ sub SS_POST_COUNT () { 11 } #    $pending_outbound_event_count,
 # handles can point to the same underlying fileno.  This is more
 # unique.
 
-my @kr_filenos;
+my %kr_filenos;
 
 sub FNO_VEC_RD       () { VEC_RD }  # [ [ (fileno read mode structure)
 # --- BEGIN SUB STRUCT 1 ---        #
@@ -515,10 +518,10 @@ macro collect_garbage (<session>) {
 
 macro validate_handle (<handle>,<vector>) {
   # Don't bother if the kernel isn't tracking the file.
-  return 0 unless defined $kr_filenos[fileno(<handle>)];
+  return 0 unless exists $kr_filenos{fileno(<handle>)};
 
   # Don't bother if the kernel isn't tracking the file mode.
-  return 0 unless $kr_filenos[fileno(<handle>)]->[<vector>]->[FVC_REFCOUNT];
+  return 0 unless $kr_filenos{fileno(<handle>)}->[<vector>]->[FVC_REFCOUNT];
 }
 
 macro remove_alias (<session>,<alias>) {
@@ -544,12 +547,11 @@ macro test_resolve (<name>,<resolved>) {
 }
 
 macro test_for_idle_poe_kernel {
-  my @filenos = grep { defined $_ } @kr_filenos;
   if (TRACE_REFCOUNT) {
     warn( ",----- Kernel Activity -----\n",
           "| Events : ", scalar(@kr_events), "\n",
-          "| Files  : ", scalar(@filenos), "\n",
-          "|   `--> : ", join(', ', sort { $a <=> $b } @filenos), "\n",
+          "| Files  : ", scalar(keys %kr_filenos), "\n",
+          "|   `--> : ", join(', ', sort { $a <=> $b } keys %kr_filenos), "\n",
           "| Extra  : $kr_extra_refs\n",
           "| Procs  : $kr_child_procs\n",
           "`---------------------------\n",
@@ -557,9 +559,9 @@ macro test_for_idle_poe_kernel {
          );
   }
 
-  unless ( @kr_events > 1    or  # > 1 for signal poll loop
-           @filenos          or
-           $kr_extra_refs    or
+  unless ( @kr_events > 1           or  # > 1 for signal poll loop
+           scalar(keys %kr_filenos) or
+           $kr_extra_refs           or
            $kr_child_procs
          ) {
     $poe_kernel->_enqueue_event
@@ -593,7 +595,7 @@ macro dispatch_due_events {
 macro enqueue_ready_selects (<fileno>,<vector>) {
   die "internal inconsistency: undefined fileno" unless defined <fileno>;
 
-  my $kr_fileno = $kr_filenos[<fileno>];
+  my $kr_fileno = $kr_filenos{<fileno>};
   die "internal inconsistency: fileno <fileno> is not known"
     unless defined $kr_fileno;
 
@@ -603,7 +605,7 @@ macro enqueue_ready_selects (<fileno>,<vector>) {
 
   my @selects =
     map( { values %$_ }
-         values %{ $kr_filenos[<fileno>]->[<vector>]-> [FVC_SESSIONS] }
+         values %{ $kr_filenos{<fileno>}->[<vector>]-> [FVC_SESSIONS] }
        );
 
   # Emit them.
@@ -785,7 +787,7 @@ sub new {
     my $self = $poe_kernel = bless
       [ \%kr_sessions,       # KR_SESSIONS
         \@kr_vectors,        # KR_VECTORS
-        \@kr_filenos,        # KR_FILENOS
+        \%kr_filenos,        # KR_FILENOS
         \%kr_signals,        # KR_SIGNALS
         \%kr_aliases,        # KR_ALIASES
         \$kr_active_session, # KR_ACTIVE_SESSION
@@ -812,53 +814,9 @@ sub new {
       ( $hostname . '-' .  unpack 'H*', pack 'N*', time, $$ );
     $kr_session_ids{$self->[KR_ID]} = $self;
 
-    # Some personalities allow us to set up static watchers and
-    # start/stop them as necessary.  This initializes those static
-    # watchers.  This also starts main windows where applicable.
-    {% substrate_init_main_loop %}
-
-    # The kernel is a session, sort of.
-    $kr_active_session = $self;
-    $kr_sessions{$self} =
-      [ $self,                          # SS_SESSION
-        0,                              # SS_REFCOUNT
-        0,                              # SS_EVCOUNT
-        undef,                          # SS_PARENT
-        { },                            # SS_CHILDREN
-        { },                            # SS_HANDLES
-        { },                            # SS_SIGNALS
-        { },                            # SS_ALIASES
-        { },                            # SS_PROCESSES
-        $self->[KR_ID],                 # SS_ID
-        { },                            # SS_EXTRA_REFS
-        0,                              # SS_POST_COUNT
-      ];
-
-    # Register all known signal handlers, except the troublesome ones.
-    foreach my $signal (keys(%SIG)) {
-
-      # Some signals aren't real, and the act of setting handlers for
-      # them can have strange, even fatal side effects.
-      next if ($signal =~ /^( NUM\d+
-                            |__[A-Z0-9]+__
-                            |ALL|CATCHALL|DEFER|HOLD|IGNORE|MAX|PAUSE
-                            |RTMIN|RTMAX|SETS
-                            |SEGV
-                            |
-                            )$/x
-              );
-
-      # Windows doesn't have a SIGBUS, but the debugger causes SIGBUS
-      # to be entered into %SIG.  It's fatal to register its handler.
-      next if $signal eq 'BUS' and RUNNING_IN_HELL;
-
-      # Don't watch CHLD or CLD if we're in Apache.
-      next if $signal =~ /^CH?LD$/ and exists $INC{'Apache.pm'};
-
-      # Pass a signal to the substrate module, which may or may not
-      # watch it depending on its own criteria.
-      {% substrate_watch_signal %}
-    }
+    # Start the Kernel's session.
+    _initialize_kernel_session();
+    _initialize_kernel_signals();
   }
 
   # Return the global instance.
@@ -949,8 +907,8 @@ sub _dispatch_event {
       my ($handle, $vector) = @$etc;
       my $fileno = fileno($handle);
 
-      if (defined $kr_filenos[$fileno]) {
-        my $kr_fileno  = $kr_filenos[$fileno];
+      if (exists $kr_filenos{$fileno}) {
+        my $kr_fileno  = $kr_filenos{$fileno};
         my $kr_fno_vec = $kr_fileno->[$vector];
 
         if (TRACE_SELECT) {
@@ -1037,7 +995,7 @@ sub _dispatch_event {
       my $signal = $etc->[0];
 
       TRACE_SIGNALS and
-        warn( "!!! dispatching ET_SIGNAL ($signal) to session",
+        warn( "!!! dispatching ET_SIGNAL ($signal) to session ",
               $session->ID, "\n"
             );
 
@@ -1087,6 +1045,9 @@ sub _dispatch_event {
             $event, ET_SIGNAL_COMPATIBLE, $etc,
             time(), $file, $line, undef
           );
+
+        TRACE_SIGNALS and
+          warn "(!) propagated to $_ (", $_->ID, ")";
       }
 
       # If this session already received a signal in step 1, then
@@ -1340,6 +1301,7 @@ sub _dispatch_event {
            ( $kr_signal_type & SIGTYPE_TERMINAL and !$kr_signal_total_handled )
          ) {
         foreach my $dead_session (@kr_signaled_sessions) {
+          next unless exists $kr_sessions{$dead_session};
           TRACE_SIGNALS and
             warn( "!!! freeing signaled session ", $dead_session->ID, "\n" );
           $self->session_free($dead_session);
@@ -1373,6 +1335,59 @@ sub _dispatch_event {
 #------------------------------------------------------------------------------
 # POE's main loop!  Now with Tk and Event support!
 
+# Do pre-run startup.
+
+sub _initialize_kernel_session {
+  # Some personalities allow us to set up static watchers and
+  # start/stop them as necessary.  This initializes those static
+  # watchers.  This also starts main windows where applicable.
+  {% substrate_init_main_loop %}
+
+  # The kernel is a session, sort of.
+  $kr_active_session = $poe_kernel;
+  $kr_sessions{$poe_kernel} =
+    [ $poe_kernel,                    # SS_SESSION
+      0,                              # SS_REFCOUNT
+      0,                              # SS_EVCOUNT
+      undef,                          # SS_PARENT
+      { },                            # SS_CHILDREN
+      { },                            # SS_HANDLES
+      { },                            # SS_SIGNALS
+      { },                            # SS_ALIASES
+      { },                            # SS_PROCESSES
+      $poe_kernel->[KR_ID],           # SS_ID
+      { },                            # SS_EXTRA_REFS
+      0,                              # SS_POST_COUNT
+    ];
+}
+
+sub _initialize_kernel_signals {
+  # Register all known signal handlers, except the troublesome ones.
+  foreach my $signal (keys(%SIG)) {
+    # Some signals aren't real, and the act of setting handlers for
+    # them can have strange, even fatal side effects.
+    next if ($signal =~ /^( NUM\d+
+                            |__[A-Z0-9]+__
+                            |ALL|CATCHALL|DEFER|HOLD|IGNORE|MAX|PAUSE
+                            |RTMIN|RTMAX|SETS
+                            |SEGV
+                            |
+                          )$/x
+            );
+
+    # Windows doesn't have a SIGBUS, but the debugger causes SIGBUS to
+    # be entered into %SIG.  It's fatal to register its handler.
+    next if $signal eq 'BUS' and RUNNING_IN_HELL;
+
+    # Don't watch CHLD or CLD if we're in Apache.
+    next if $signal =~ /^CH?LD$/ and exists $INC{'Apache.pm'};
+
+    # Pass a signal to the substrate module, which may or may not
+    # watch it depending on its own criteria.
+    {% substrate_watch_signal %}
+  }
+}
+
 # Do post-run cleanup.
 
 macro finalize_kernel {
@@ -1394,12 +1409,7 @@ macro finalize_kernel {
     {% kernel_leak_array @kr_events     %}
     {% kernel_leak_hash  kr_session_ids %}
     {% kernel_leak_hash  kr_event_ids   %}
-
-    # Because undef values are okay here.  Destructive is okay too
-    # because we're not going to use these afterwards.
-
-    @kr_filenos = grep {defined} @kr_filenos;
-    {% kernel_leak_array @kr_filenos    %}
+    {% kernel_leak_hash  kr_filenos     %}
   }
 
   if (TRACE_PROFILE) {
@@ -1409,6 +1419,12 @@ macro finalize_kernel {
     }
     print STDERR '`', ('-' x 73), "'\n";
   }
+
+  # And at the very end, rebuild the Kernel session JUST IN CASE
+  # someone wants to re-enter run() after it's returned.  It must be
+  # done here because otherwise new sessions won't have a Kernel lying
+  # around to be their parent.
+  _initialize_kernel_session();
 }
 
 sub run_one_timeslice {
@@ -1417,19 +1433,29 @@ sub run_one_timeslice {
   {% substrate_do_timeslice %}
   unless (%kr_sessions) {
     {% finalize_kernel %}
+    $kr_run_warning |= KR_RUN_DONE;
   }
 }
 
 sub run {
-  my $self = shift;
+  # So run() can be called as a class method.
+  my $self = $poe_kernel;
+
+  # If we already returned, then we must reinitialize.  This is so
+  # $poe_kernel->run() will work correctly more than once.
+  if ($kr_run_warning & KR_RUN_DONE) {
+    $kr_run_warning &= ~KR_RUN_DONE;
+    _initialize_kernel_signals();
+  }
 
   # Flag that run() was called.
-  $kr_run_was_called++;
+  $kr_run_warning |= KR_RUN_CALLED;
 
   {% substrate_main_loop %}
 
   # Clean up afterwards.
   {% finalize_kernel %}
+  $kr_run_warning |= KR_RUN_DONE;
 }
 
 #------------------------------------------------------------------------------
@@ -1441,7 +1467,9 @@ sub DESTROY {
   # detection could be included here.
 
   warn "POE::Kernel's run() method was never called.\n"
-    unless $kr_run_was_called;
+    if ( ($kr_run_warning & KR_RUN_SESSION) and not
+         ($kr_run_warning & KR_RUN_CALLED)
+       );
 }
 
 #------------------------------------------------------------------------------
@@ -1539,8 +1567,7 @@ sub _invoke_state {
 
   elsif ($event eq EN_SIGNAL) {
     if ($etc->[0] eq 'IDLE') {
-      my @filenos = grep { defined } @kr_filenos;
-      unless (@kr_events > 1 or @filenos) {
+      unless (@kr_events > 1 or scalar(keys %kr_filenos)) {
         $self->_enqueue_event
           ( $self, $self,
             EN_SIGNAL, ET_SIGNAL, [ 'ZOMBIE' ],
@@ -1568,6 +1595,9 @@ sub session_alloc {
       if (exists $kr_sessions{$session});
   }
 
+  # Register that a session was created.
+  $kr_run_warning |= KR_RUN_SESSION;
+
   $self->_dispatch_event
     ( $session, $kr_active_session,
       EN_START, ET_START, \@args,
@@ -1585,6 +1615,8 @@ sub session_alloc {
 
 sub session_free {
   my ($self, $session) = @_;
+
+  TRACE_GARBAGE and warn "freeing session $session";
 
   if (ASSERT_RELATIONS) {
     die {% ssid %}, " doesn't exist\a"
@@ -2556,13 +2588,13 @@ sub _internal_select {
     # However, the fileno is not known.  This is a new file.  Create
     # the data structure for it, and prepare the handle for use.
 
-    unless (defined $kr_filenos[$fileno]) {
+    unless (exists $kr_filenos{$fileno}) {
 
       if (TRACE_SELECT) {
         warn "!!! adding fileno (", $fileno, ")";
       }
 
-      $kr_filenos[$fileno] =
+      $kr_filenos{$fileno} =
         [ [ 0,          # FVC_REFCOUNT    VEC_RD
             undef,      # FVC_WATCHER
             HS_PAUSED,  # FVC_ST_ACTUAL
@@ -2620,7 +2652,7 @@ sub _internal_select {
     }
 
     # Cache some high-level lookups.
-    my $kr_fileno  = $kr_filenos[$fileno];
+    my $kr_fileno  = $kr_filenos{$fileno};
     my $kr_fno_vec = $kr_fileno->[$select_index];
 
     # The session is already watching this fileno in this mode.
@@ -2700,8 +2732,8 @@ sub _internal_select {
 
     # Make sure the handle is deregistered with the kernel.
 
-    if (defined $kr_filenos[$fileno]) {
-      my $kr_fileno  = $kr_filenos[$fileno];
+    if (exists $kr_filenos{$fileno}) {
+      my $kr_fileno  = $kr_filenos{$fileno};
       my $kr_fno_vec = $kr_fileno->[$select_index];
 
       # Make sure the handle was registered to the requested session.
@@ -2775,13 +2807,13 @@ sub _internal_select {
           if (TRACE_SELECT) {
             warn "!!! deleting fileno (", $fileno, ")";
           }
-          undef $kr_filenos[$fileno];
+          delete $kr_filenos{$fileno};
         }
       }
     }
 
     # SS_HANDLES - Remove the select from the session, assuming there
-    # is a session to remove it from.
+    # is a session to remove it from.  -><- Key it on fileno?
 
     my $kr_session = $kr_sessions{$session};
     if (exists $kr_session->[SS_HANDLES]->{$handle}) {
@@ -2902,7 +2934,7 @@ sub select_pause_write {
   # combination, then we can go ahead and set the actual state now.
   # Otherwise it'll have to wait until the queue empties.
 
-  my $kr_fileno  = $kr_filenos[fileno($handle)];
+  my $kr_fileno  = $kr_filenos{fileno($handle)};
   my $kr_fno_vec = $kr_fileno->[VEC_WR];
   if (TRACE_SELECT) {
     warn( "=== pause test: fileno(" . fileno($handle) . ") vector(VEC_WR) " .
@@ -2939,7 +2971,7 @@ sub select_resume_write {
   # combination, then we can go ahead and set the actual state now.
   # Otherwise it'll have to wait until the queue empties.
 
-  my $kr_fileno = $kr_filenos[fileno($handle)];
+  my $kr_fileno = $kr_filenos{fileno($handle)};
   my $kr_fno_vec = $kr_fileno->[VEC_WR];
   if (TRACE_SELECT) {
     warn( "=== resume test: fileno(" . fileno($handle) . ") vector(VEC_WR) " .
@@ -2976,7 +3008,7 @@ sub select_pause_read {
   # combination, then we can go ahead and set the actual state now.
   # Otherwise it'll have to wait until the queue empties.
 
-  my $kr_fileno = $kr_filenos[fileno($handle)];
+  my $kr_fileno = $kr_filenos{fileno($handle)};
   my $kr_fno_vec = $kr_fileno->[VEC_RD];
   if (TRACE_SELECT) {
     warn( "=== pause test: fileno(" . fileno($handle) . ") vector(VEC_RD) " .
@@ -3013,7 +3045,7 @@ sub select_resume_read {
   # combination, then we can go ahead and set the actual state now.
   # Otherwise it'll have to wait until the queue empties.
 
-  my $kr_fileno = $kr_filenos[fileno($handle)];
+  my $kr_fileno = $kr_filenos{fileno($handle)};
   my $kr_fno_vec = $kr_fileno->[VEC_RD];
   if (TRACE_SELECT) {
     warn( "=== resume test: fileno(" . fileno($handle) . ") vector(VEC_RD) " .
@@ -3111,8 +3143,8 @@ sub alias_list {
   if (defined $search_session) {
     $search_session = {% alias_resolve $search_session %};
     unless (defined $search_session) {
-      TRACE_RETURNS and carp "session does not exist";
-      ASSERT_RETURNS and croak "session does not exist";
+      TRACE_RETURNS and carp "session ($search_session) does not exist";
+      ASSERT_RETURNS and croak "session ($search_session) does not exist";
       $! = ESRCH;
       return;
     }
@@ -3124,7 +3156,8 @@ sub alias_list {
   }
 
   # Return whatever can be found.
-  return keys %{$kr_sessions{$search_session}->[SS_ALIASES]};
+  my @alias_list = keys %{$kr_sessions{$search_session}->[SS_ALIASES]};
+  return wantarray() ? @alias_list : $alias_list[0];
 }
 
 #==============================================================================
@@ -3175,8 +3208,8 @@ sub ID_session_to_id {
     $! = 0;
     return $kr_sessions{$session}->[SS_ID];
   }
-  TRACE_RETURNS and carp "session does not exist";
-  ASSERT_RETURNS and croak "session does not exist";
+  TRACE_RETURNS and carp "session ($session) does not exist";
+  ASSERT_RETURNS and croak "session ($session) does not exist";
   $! = ESRCH;
   return;
 }
@@ -3232,8 +3265,8 @@ sub refcount_increment {
     return $refcount;
   }
 
-  TRACE_RETURNS and carp "session does not exist";
-  ASSERT_RETURNS and croak "session does not exist";
+  TRACE_RETURNS and carp "session ($session) does not exist";
+  ASSERT_RETURNS and croak "session ($session) does not exist";
 
   $! = ESRCH;
   return;
@@ -3289,8 +3322,8 @@ sub refcount_decrement {
     return $refcount;
   }
 
-  TRACE_RETURNS and carp "session does not exist";
-  ASSERT_RETURNS and croak "session does not exist";
+  TRACE_RETURNS and carp "session ($session) does not exist";
+  ASSERT_RETURNS and croak "session ($session) does not exist";
 
   $! = ESRCH;
   return;
@@ -3323,8 +3356,8 @@ sub state {
   # though, is already gone.  If TRACE_RETURNS and/or ASSERT_RETURNS
   # is set, this causes a warning or fatal error.
 
-  TRACE_RETURNS and carp "session does not exist";
-  # ASSERT_RETURNS and croak "session does not exist";
+  TRACE_RETURNS and carp "session ($kr_active_session) does not exist";
+  # ASSERT_RETURNS and croak "session ($kr_active_session) does not exist";
 
   return ESRCH;
 }
@@ -3364,8 +3397,9 @@ Methods to manage the process' global Kernel instance:
   $kernel_id = $kernel->ID;
 
   # Run the event loop, only returning when it has no more sessions to
-  # dispatche events to.
+  # dispatch events to.  Supports two forms.
   $poe_kernel->run();
+  POE::Kernel->run();
 
 FIFO event methods:
 
@@ -3585,6 +3619,15 @@ started.
 
   $poe_kernel->run();
   exit;
+
+The run() method may be called on an instance of POE::Kernel.
+
+  my $kernel = POE::Kernel->new();
+  $kernel->run();
+
+It may also be called as class method.
+
+  POE::Kernel->run();
 
 The run() method does not return a meaningful value.
 
@@ -4659,7 +4702,7 @@ code in large scale clients and servers.
 This loop allows POE to work in graphical programs using the Tk-Perl
 library.
 
-  use Event;
+  use Tk;
   use POE;
 
 =back

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.16 2002/06/22 06:18:11 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.25 2002/09/10 19:55:32 rcaputo Exp $
 
 use strict;
 
@@ -22,6 +22,20 @@ if ($@) {
   die if $@;
 }
 
+unless (grep /^--default$/, @ARGV) {
+  print( "\n",
+         "=================================================================\n",
+         "\n",
+         "If the prompts are annoying, they can be bypassed by running\n",
+         "\t$^X $0 --default\n",
+         "\n",
+         "Only the necessary modules will be installed by default.\n",
+         "\n",
+         "=================================================================\n",
+         "\n",
+       );
+}
+
 ExtUtils::AutoInstall->import
   ( -version => '0.32',
     -core => [
@@ -40,6 +54,11 @@ ExtUtils::AutoInstall->import
         -default   => 0,
         -tests     => [ qw(t/27_poll.t) ],
         'IO::Poll' => 0.05,
+    ],
+    "Optional modules for IPv6 support." => [
+        -default  => 0,
+        -tests    => [ qw(t/29_sockfact6.t) ],
+        'Socket6' => 0.11,
     ],
     "Optional modules for controlling full-screen programs (e.g. vi)." => [
         -default  => 0,
@@ -87,6 +106,22 @@ ExtUtils::AutoInstall->import
 # Touch CHANGES so it exists.
 open(CHANGES, ">>CHANGES") and close CHANGES;
 
+sub MY::postamble {
+    return <<EOF;
+reportupload: poe_report.xml
+	$^X lib/reportupload.pl
+
+uploadreport: poe_report.xml
+	$^X lib/reportupload.pl
+	
+testreport: poe_report.xml
+
+poe_report.xml: Makefile
+	$^X lib/testreport.pl
+EOF
+
+}
+
 WriteMakefile
   ( NAME           => 'POE',
 
@@ -101,8 +136,8 @@ WriteMakefile
     dist           =>
     { COMPRESS => 'gzip -9f',
       SUFFIX   => 'gz',
-      PREOP    => ( 'echo $PWD;cvs2cl.pl -l "-d\'a year ago<\'" ' .
-                    '--utc --stdout > $(DISTNAME)-$(VERSION)/CHANGES'
+      PREOP    => ( './lib/cvs-log.perl | ' .
+                    'tee ./$(DISTNAME)-$(VERSION)/CHANGES > ./CHANGES'
                   ),
     },
 

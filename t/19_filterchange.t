@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 19_filterchange.t,v 1.9 2001/11/09 19:26:45 rcaputo Exp $
+# $Id: 19_filterchange.t,v 1.10 2002/07/15 23:20:11 rcaputo Exp $
 
 # Exercises filter changing.  A lot of this code comes from Philip
 # Gwyn's filterchange.perl sample.
@@ -27,7 +27,7 @@ use POE qw( Wheel::ReadWrite Driver::SysRW
 my ($master_read, $master_write, $slave_read, $slave_write) =
   POE::Pipe::TwoWay->new();
 unless (defined $master_read) {
-  &test_setup(0, "could not create a pipe in any form");
+  &test_setup(0, "Could not create a pipe in any form.");
 }
 
 # Set up tests, and go.

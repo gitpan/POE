@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 28_windows.t,v 1.2 2002/06/22 06:21:29 rcaputo Exp $
+# $Id: 28_windows.t,v 1.3 2002/07/15 23:20:11 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -9,7 +9,7 @@ use lib qw(./lib ../lib);
 use TestSetup;
 
 BEGIN {
-  test_setup(0, "Windows tests aren't necessary or $^O")
+  test_setup(0, "Windows tests aren't necessary on $^O")
     if $^O eq 'MacOS';
 };
 

@@ -1,15 +1,16 @@
-# $Id: SysRW.pm,v 1.21 2002/06/30 21:14:59 rcaputo Exp $
+# $Id: SysRW.pm,v 1.22 2002/07/31 20:05:20 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 
 package POE::Driver::SysRW;
+use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.21 $ ))[1];
+$VERSION = (qw($Revision: 1.22 $ ))[1];
 
 use POSIX qw(EAGAIN);
 use Carp qw(croak);
@@ -55,6 +56,8 @@ sub new {
 sub put {
   my ($self, $chunks) = @_;
   my $old_queue_octets = $self->[TOTAL_OCTETS_LEFT];
+
+  {% use_bytes %}
 
   foreach (grep { length } @$chunks) {
     $self->[TOTAL_OCTETS_LEFT] += length;
@@ -113,6 +116,8 @@ sub get {
 
 sub flush {
   my ($self, $handle) = @_;
+
+  {% use_bytes %}
 
   # syswrite() it, like we're supposed to
   while (@{$self->[OUTPUT_QUEUE]}) {

@@ -1,4 +1,4 @@
-# $Id: Event.pm,v 1.16 2002/05/29 05:24:10 rcaputo Exp $
+# $Id: Event.pm,v 1.18 2002/08/20 19:37:32 rcaputo Exp $
 
 # Event.pm substrate for POE::Kernel.
 
@@ -8,7 +8,7 @@ package POE::Kernel::Event;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.16 $ ))[1];
+$VERSION = (qw($Revision: 1.18 $ ))[1];
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -186,6 +186,16 @@ macro substrate_define_callbacks {
     if (@kr_events) {
       $self->[KR_WATCHER_TIMER]->at( $kr_events[0]->[ST_TIME] );
       $self->[KR_WATCHER_TIMER]->start();
+
+      # POE::Kernel's signal polling loop always keeps oe event in the
+      # queue.  We test for an idle kernel if the queue holds only one
+      # event.  A more generic method would be to keep counts of user
+      # vs. kernel events, and GC the kernel when the user events drop
+      # to 0.
+
+      if (@kr_events == 1) {
+        {% test_for_idle_poe_kernel %}
+      }
     }
 
     # Make sure the kernel can still run.
@@ -227,7 +237,7 @@ macro substrate_do_timeslice {
 
 # Initialize static watchers.
 macro substrate_init_main_loop {
-  $self->[KR_WATCHER_TIMER] =
+  $poe_kernel->[KR_WATCHER_TIMER] =
     Event->timer
       ( cb     => \&_substrate_event_callback,
         after  => 0,

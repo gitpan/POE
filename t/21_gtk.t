@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 21_gtk.t,v 1.13 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 21_gtk.t,v 1.15 2002/08/20 19:37:32 rcaputo Exp $
 
 # Tests FIFO, alarm, select and Gtk postback events using Gk's event
 # loop.
@@ -14,7 +14,7 @@ use TestSetup;
 # Skip if Gtk isn't here.
 BEGIN {
   eval 'use Gtk';
-  &test_setup(0, 'need the Gtk module installed to run this test')
+  &test_setup(0, "Gtk is needed for these tests.")
     if ( length($@) or
          not exists($INC{'Gtk.pm'})
        );
@@ -24,16 +24,16 @@ BEGIN {
              defined $ENV{'DISPLAY'} and
              length $ENV{'DISPLAY'}
            ) {
-      &test_setup(0, "can't test Gtk without a DISPLAY (set one today, ok?)");
+      &test_setup(0, "Can't test Gtk without a DISPLAY. (Set one today, ok?)");
     }
   }
 };
 
-&test_setup(8);
+&test_setup(10);
 
 warn( "\n",
       "***\n",
-      "*** Please note: This test will pop up a Gtk window.\n",
+      "*** Please note: This test will pop up a window.\n",
       "***\n",
     );
 
@@ -63,7 +63,7 @@ sub io_start {
 
   # Keep a copy of the unused handles so the pipes remain whole.
   unless (defined $a_read) {
-    print "skip 2 # $@\n";
+    print "ok 2 # skipped: Could not create a pipe in any form.\n";
   }
   else {
     # The wheel uses read and write file events internally, so they're
@@ -254,12 +254,33 @@ POE::Session->create
     }
   );
 
-# Main loop.
-
+# First main loop.
 $poe_kernel->run();
-
-# Congratulate ourselves on a job completed, regardless of how well it
-# was done.
 print "ok 8\n";
+
+# Try re-running the main loop.
+POE::Session->create
+  ( inline_states =>
+    { _start => sub {
+        $_[HEAP]->{count} = 0;
+        $_[KERNEL]->yield("increment");
+      },
+      increment => sub {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+        if ($heap->{count} < 10) {
+          $kernel->yield("increment");
+          $heap->{count}++;
+        }
+      },
+      _stop => sub {
+        print "not " unless $_[HEAP]->{count} == 10;
+        print "ok 9\n";
+      },
+    }
+  );
+
+# Verify that the main loop can run yet again.
+$poe_kernel->run();
+print "ok 10\n";
 
 exit;

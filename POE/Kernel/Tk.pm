@@ -1,4 +1,4 @@
-# $Id: Tk.pm,v 1.23 2002/06/25 07:12:15 rcaputo Exp $
+# $Id: Tk.pm,v 1.24 2002/07/09 21:14:48 rcaputo Exp $
 
 # Tk-Perl substrate for POE::Kernel.
 
@@ -6,7 +6,7 @@
 package POE::Kernel::Tk;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.23 $ ))[1];
+$VERSION = (qw($Revision: 1.24 $ ))[1];
 
 BEGIN {
   die "POE's Tk support requires version Tk 800.021 or higher.\n"
@@ -298,6 +298,16 @@ macro substrate_define_callbacks {
               }
             ],
           );
+
+      # POE::Kernel's signal polling loop always keeps oe event in the
+      # queue.  We test for an idle kernel if the queue holds only one
+      # event.  A more generic method would be to keep counts of user
+      # vs. kernel events, and GC the kernel when the user events drop
+      # to 0.
+
+      if (@kr_events == 1) {
+        {% test_for_idle_poe_kernel %}
+      }
     }
 
     # Make sure the kernel can still run.

@@ -1,1960 +1,1674 @@
-2002-07-04 03:10  rcaputo
+=========================
+2002-13-08 16:56:26 v0_23
+=========================
 
-	* POE.pm: All the mentioned problems in 0.2101 were fixed.  Looks
-	like it's clean.  Bump the version to 0.22 for release.
+  2002-13-08 16:56:26 by rcaputo; README 1.100
 
-2002-07-01 15:57  rcaputo
+    Bring it up to date with what's going on. 
 
-	* t/08_errors.t: Cleared up a warning about Filter being
-	deprecated.  Thanks to ignatz for pointing it out.
+  2002-13-08 16:34:52 by rcaputo; POE.pm 1.147
 
-2002-07-01 04:26  rcaputo
+    Bump the version number to 0.23. 
 
-	* POE.pm: Bump version to 0.2101 for release.
+  2002-13-08 15:07:00 by rcaputo; t/29_sockfact6.t 1.6
 
-2002-07-01 02:16  rcaputo
+    Skip a third test which was failing when AF_INET6 was not configured
+    in the kernel. 
 
-	* POE/Wheel/Run.pm: Todd Caine requested a "Driver" parameter for
-	Wheel::Run.  While I was adding one, I realized that STDIN, STDOUT
-	*and* STDERR were all sharing a single internal driver instance. 
-	That's bad because three handles cannot reliably share a single
-	driver (which can only read on one handle and write on one handle
-	reliably).  This may have uncovered a nasty bug in Wheel::Run. 
-	Thankfully, 0.22 has not yet been released.
+  2002-13-08 14:59:20 by rcaputo; t/29_sockfact6.t 1.5
 
-2002-06-30 21:37  rcaputo
+    Skip tests rather than fail if AF_INET6 gethostbyname2() works but
+    none of the socket calls do. This might indicate that while localhost
+    (::1) is resolvable, the interface is not actually configured. It may
+    also indicate while the interface is configured, an unconfigured ipv6
+    firewall's "deny all" may be blocking it. 
 
-	* lib/ExtUtils/AutoInstall.pm: Updated to ExtUtils::AutoInstall
-	0.33.
+  2002-13-08 02:46:25 by rcaputo
+  POE/Component/Client/TCP.pm 1.21; POE/Component/Server/TCP.pm 1.28
 
-2002-06-30 21:14  rcaputo
+    A previous change to Server::TCP "optimized" some code by moving the
+    ClientDisconnected code to _stop. However, since very little can be
+    done from _stop, this prevented post() calls from working there. I
+    discovered the problem when one of the POE Cookbook recipes stopped
+    exiting as it should. This change moves the ClientDisconnected code
+    back out of _stop. It also pretties the default error handlers for
+    Client::TCP and Server::TCP. 
 
-	* POE/Driver/SysRW.pm: Document why SysRW does not use BlockSize
-	for syswrite(), and fix the BlockSize documentation so that it does
-	not apply to syswrite().
+  2002-12-08 22:11:05 by rcaputo; POE/Wheel/Run.pm 1.38
 
-2002-06-30 20:24  rcaputo
+    Peter Chen discovered and helped solve a problem where the subroutine
+    form of Program caused file handles to bleed into the child process.
+    The result is that sockets linger open beyond the time they're
+    needed-- at least until the child exits. This patch introduces
+    CloseOnCall, which emulates close-on-exec as Perl uses it. 
 
-	* POE/Kernel/Poll.pm, t/27_poll.t: As I once learned long ago,
-	IO::Foo tends to be slow.  In the old case, it was IO::Select.	Now
-	I've discovered that IO::Poll is slow as well.	This is the price
-	one pays for using generic modules, however.  I researched IO::Poll
-	and discovered its internal _poll function, which is written in XS.
-	 POE::Kernel::Poll was revised to use that directly rather than
-	incurring overhead from using the public interface.  I only hope I
-	can keep up with IO::Poll changes.  POE::Kernel::Poll should really
-	be better than select() now regarding latency and scalability, if
-	only a little bit.
+  2002-11-08 19:55:32 by rcaputo
+  lib/Makefile-5004.pm 1.12; lib/Makefile-5005.pm 1.25
 
-2002-06-28 02:22  rcaputo
+    Compatibility enhancements for running test reports on Windows
+    platforms. 
 
-	* POE/Kernel.pm: Matt Sergeant noticed that POE::Wheel::Run
-	sometimes creates defunct (zombie) processes.  I suspected that it
-	was a race between program shutdown and POE::Kernel's reaper.  Matt
-	was able to verify this by adding some non-blocking reaper code
-	after run() was called.  I added code to POE::Kernel that keeps it
-	alive as long as there are outstanding child processes.  This will
-	ensure that they're reaped (no more defunct zombies).
+  2002-09-08 22:05:50 by rcaputo; POE/Wheel/Run.pm 1.37
 
-2002-06-28 02:17  rcaputo
+    Apply JamesCOU's doc patch that stops saying things are optional when
+    they aren't. 
 
-	* POE.pm: Clean up the overview of Filter::Reference after someone
-	(I forget! Baud? Kane?) pointed out a typo.  Thanks, whoever you
-	are.
+  2002-09-08 15:05:09 by rcaputo; POE/Component/Server/TCP.pm 1.27
 
-2002-06-25 07:12  rcaputo
+    Publish ClientShutdownOnError, which sets the defalut value of all
+    client sessions' $heap->{shutdown_on_error} flags. 
 
-	* POE/Kernel/Tk.pm: Worked around a memory leak in Tk 800.023. 
-	Thanks to Zoltan Kandi for reporting the leak (usenet
-	message-ID:3D16D3B2.11FC919E@tellabs.com) and Slaven Rezic (usenet
-	message-ID:87elevetz9.fsf@vran.herceg.de) for the way to avoid it.
+  2002-09-08 00:26:20 by rcaputo; README 1.99
 
-2002-06-22 06:39  rcaputo
+    Remove the link to the deprecated stinky hand-maintained test
+    results. The shiny, pretty automated one is much better. Go there, or
+    else! 
 
-	* POE/Wheel/Run.pm: Update the documentation and carps and croaks
-	to guide people away from the deprecated Filter parameter.
+  2002-06-08 17:08:01 by rcaputo; lib/cvs-log.perl 1.2
 
-2002-06-22 06:24  rcaputo
+    Multi-file commits on slow links are sometimes smeared across several
+    timestamps. Previously the report would present them as separate
+    commits with identical descriptions. Now it detects and combines
+    them. 
 
-	* POE/Wheel/Run.pm, t/22_wheel_run.t: (!!!) POE::Wheel::Run's
-	Filter parameter was broken as designed.  A single Filter instance
-	cannot possibly filter three filehandles!  The fix was to replace
-	Filter with StdioFilter, which only filters STDIN and STDOUT. 
-	StderrFilter must be specified separately.  It's easy to write code
-	that is compatible with the old and new interfaces (for a module,
-	for example).  Just use StdinFilter, StdoutFilter, and StderrFilter
-	explicitly.
+  2002-05-08 01:18:47 by rcaputo; POE/Wheel/ReadLine.pm 1.21
 
-2002-06-22 06:21  rcaputo
+    Applied James M.'s patch to correct some bad example code in the
+    SYNOPSIS. 
 
-	* t/: 00_coverage.t, 01_sessions.t, 08_errors.t, 09_wheels_unix.t,
-	28_windows.t: Iain Chalmers reported 0.20 test failures under MacOS
-	9.1.  These changes address some of the the issues he discovered. 
-	They mainly fall under the categories of signals, UNIX sockets,
-	socketpair(), and fork() incompatibilities between UNIX systems and
-	MacOS pre-X.
+  2002-04-08 19:54:03 by rcaputo; t/29_sockfact6.t 1.4
 
-2002-06-22 06:18  rcaputo
+    It is possible to load Socket6 yet still not have IPv6 configured on
+    the system. Added a check for IPv6 localhost ("::1") and skip the
+    tests if one isn't available. 
 
-	* POE/Kernel/Poll.pm, lib/Makefile-5005.pm, t/27_poll.t: Richard
-	Soderberg pointed out a couple things, which are now fixed.  First,
-	it's possible to run the IO::Poll tests with an older version by
-	saying "no" to installing a newer one.	That leads to test failures
-	later on.  The work-around is to add checks in POE::Kernel::Poll
-	and t/27_poll.t for the proper IO::Poll version.  Second, he
-	pointed out that a few dependencies were missing from the
-	installer.  Added!
+===========================
+2002-04-08 16:01:42 v0_2201
+===========================
 
-2002-06-22 06:15  rcaputo
+  2002-04-08 16:01:42 by rcaputo
+  lib/Makefile-5004.pm 1.11; lib/Makefile-5005.pm 1.24
 
-	* POE/: Pipe.pm, Pipe/OneWay.pm, Pipe/TwoWay.pm: Skip socketpair()
-	and pipe() on MacOS pre-X.  Even with a vastly improved Perl build,
-	these systems seem to have strange problems with non-blocking
-	socketpair() and pipe().
+    Rebuild the XML test report if Makefile has changed. 
 
-2002-06-19 17:24  rcaputo
+  2002-04-08 15:47:24 by rcaputo
+  lib/Makefile-5004.pm 1.10; lib/Makefile-5005.pm 1.23
 
-	* POE.pm: Increase the version number to 0.21.
+    Fix paths to cvs-log.perl. 
 
-2002-06-18 22:18  rcaputo
+  2002-04-08 15:45:57 by rcaputo; README 1.98
 
-	* POE/Component/: Client/TCP.pm, Server/TCP.pm: (!!!) Change the
-	ClientFilter and Filter parameters in Server::TCP and Client::TCP
-	respectively.  They were recently "enhanced" to accept filter
-	instances, and they would create filter instances from class names
-	internally.  However, this new "feature" meant that every
-	connection SHARED THE SAME FILTER.  The changes now let them accept
-	class names and optional constructor parameters, and the components
-	will instantiate new filters for each connection.  "MarkClone" on
-	efnet reported that the POE Cookbook web server was only honoring
-	its first request; the remainders were bombing out with an error
-	which led me to this problem.
+    Last minute tweaks. 
 
-2002-06-18 22:13  rcaputo
+  2002-04-08 04:40:04 by rcaputo; MANIFEST 1.75; lib/cvs-log.perl 1.1
 
-	* POE/Wheel/SocketFactory.pm: Extend the description of
-	SuccessEvent's INET address field.  This is in response to Jos
-	Boumans' question about it.
+    Added cvs-log.perl; added the report upload utility to MANIFEST. 
 
-2002-06-18 21:59  rcaputo
+  2002-04-08 04:39:23 by rcaputo; POE/Filter/HTTPD.pm 1.27
 
-	* POE/Filter/HTTPD.pm: Prettied up the error dump some more.
+    Fixed an undefined warning in a seldom-used block of code. 
 
-2002-06-18 21:23  rcaputo
+  2002-02-08 16:05:33 by rcaputo; t/03_aliases.t 1.10
 
-	* POE/Filter/HTTPD.pm: Justify the offsets in error dumps so things
-	line up better.
+    sungo spotted a warning in this test. It turns out that the test was
+    printing "ok 15" twice instead of 15 and 16. Fixed. 
 
-2002-06-18 21:21  rcaputo
+  2002-32-07 23:13:22 by sungo; MANIFEST 1.74
 
-	* POE/Filter/HTTPD.pm: When the HTTP parser writes a hex dump, make
-	it use a fixed font so things line up.
+    revert last patch. my mistake 
 
-2002-06-13 23:49  rcaputo
+  2002-32-07 23:10:14 by sungo; MANIFEST 1.73
 
-	* POE/Preprocessor.pm: Update the instructions for using
-	POE::Processor with PerlApp.  Thanks to Zoltan Kandi for making
-	sure it works.
+    remove Macro/UseBytes from the manifest 
 
-2002-06-11 17:02  rcaputo
+  2002-32-07 22:54:28 by rcaputo; POE.pm 1.146
 
-	* NEEDS: Peter Chen noticed that the NEEDS file did not list
-	Storable as one of POE::Filter::Reference's dependencies.  Now it
-	does. :)
+    Bump the version to 0.2201 and start a feature freeze. 
 
-2002-06-10 17:53  rcaputo
+  2002-32-07 22:41:03 by sungo; README 1.97
 
-	* t/00_coverage.t: This test never called POE::Kernel's run()
-	method, so we got a warning about that.  Now it's all better.
+    document the test server and the makefile targets 
 
-2002-06-10 17:47  rcaputo
+  2002-31-07 22:17:41 by rcaputo
+  POE/Component/Client/TCP.pm 1.20; POE/Component/Server/TCP.pm 1.26
 
-	* POE/Kernel.pm: feelicks had a problem where his program never
-	ran.  It was traced back to not calling $poe_kernel->run().  This
-	happens to me ALL THE TIME, and feelicks (and I) is sure it happens
-	to a lot of people.  I added a flag that's set when run() is
-	called.  POE::Kernel's DESTROY will warn the programmer/operator if
-	that flag is not set.
+    Added a heap flag for these components: shutdown_on_error. When
+    cleared, it becomes the end developer's responsibility to handle
+    errors and shut down connections when they occur. It defaults to
+    true, which preserves the old behavior of the components shutting
+    connections down. 
 
-2002-06-09 18:32  rcaputo
+  2002-31-07 05:14:38 by rcaputo; samples/filterchange.perl 1.7;
+  samples/socketfactory.perl 1.17; samples/tutorial-chat.perl 1.12
 
-	* lib/: Makefile-5004.pm, Makefile-5005.pm: Fix the cvs2cl
-	invocations so they really include CHANGES files in tarballs.  The
-	order of operations in "make dist" means that PREOP occurs AFTER
-	CHANGES is copied into the tarball tree.  D'oh!
+    Replaced three sample programs with pointers to their updated
+    counterparts on the web. 
 
-2002-06-08 03:29  rcaputo
+  2002-31-07 03:59:58 by rcaputo
+  POE/Component/Client/TCP.pm 1.19; t/29_sockfact6.t 1.3
 
-	* POE.pm, README: Final preparations for releasing POE 0.20.
+    Added BindAddress and BindPort support, allowing client connections
+    to come from specific interfaces on a multi-host system. 
 
-2002-06-08 03:26  rcaputo
+  2002-31-07 03:29:47 by rcaputo; t/29_sockfact6.t 1.2
 
-	* CHANGES: Version 0.20 and beyond use auto-generated CHANGES files
-	based on POE's cvs log.
+    Skip all tests if Socket6 is not loadable. 
 
-2002-06-08 01:58  rcaputo
+  2002-30-07 20:43:30 by rcaputo; lib/testreport.pl 1.11
 
-	* lib/: Makefile-5004.pm, Makefile-5005.pm: Have Makefile.PL touch
-	the CHANGES file so that "make dist" will find it.  Even though we
-	generate CHANGES from the CVS log, WriteMakeFile needs to see
-	something there first.
+    Add an AUTHOR section. Pedantic, yes, but credit where it's due. 
 
-2002-06-07 04:17  rcaputo
+  2002-30-07 20:42:45 by rcaputo; lib/reportupload.pl 1.2
 
-	* lib/Makefile-5004.pm: Perl 5.004_03 didn't like AUTHOR and
-	ABSTRACT, so I removed them.
+    Added documentation and a note at the end where submitters can find
+    their results. 
 
-2002-06-07 04:14  rcaputo
+  2002-30-07 20:40:19 by rcaputo
+  lib/Makefile-5004.pm 1.9; lib/Makefile-5005.pm 1.22
 
-	* lib/Makefile-5005.pm: Perl 5.005_03 didn't like bareword IO::Poll
-	on the left side of the => operator.  I put quotes around it, and
-	things seem to be generally better.
+    Replace cvs2cl with a home-made program that creates much nicer
+    CHANGES files. 
 
-2002-06-07 04:13  rcaputo
+  2002-30-07 14:48:30 by rcaputo
+  POE/Wheel/SocketFactory.pm 1.60; t/29_sockfact6.t 1.1
 
-	* POE/Kernel/Tk.pm, t/06_tk.t: Philip Gwyn discovered a
-	"modification of a read-only value" error in POE::Kernel::Tk's file
-	watcher pause/resume code.  I adapted a previous plain-Tk testcase
-	to verify the behavior outside POE.  It's there in Tk on Perl
-	5.004_05.  The testcase doesn't fail with Perl 5.005_03, so it
-	looks like an incompatibility between Tk and the older version of
-	Perl.  I've decided to discontinue Tk support in Perl versions
-	before 5.005_03.  If anyone has a vested interest in the older
-	Perls + Tk + POE, I can provide the test case for their debugging
-	pleasure.
+    Fixed SocketFactory to support ipv6 host names rather than
+    presentation (human readable numeric) addresses. Added the test
+    program I forgot when the initial support went in. 
 
-2002-06-06 05:19  rcaputo
+  2002-30-07 05:25:42 by rcaputo; MANIFEST 1.72;
+  POE/Component/Client/TCP.pm 1.18; POE/Component/Server/TCP.pm 1.25;
+  POE/Wheel/SocketFactory.pm 1.59; lib/Makefile-5005.pm 1.21
 
-	* t/27_poll.t: Philip Gwyn spotted that TestSetup wasn't being used
-	here.  That's what I get for testing stuff on systems that have
-	everything.
+    Added initial IPv6 support. 
 
-2002-06-03 15:34  rcaputo
+  2002-28-07 04:12:33 by rcaputo; POE/Kernel.pm 1.194; t/03_aliases.t 1.9
 
-	* lib/: Makefile-5005.pm, Makefile-5004.pm: Added the second bit of
-	sungo's Makefile magic.  This part generates POE's CHANGES
-	automatically from the cvs log.  No more twiddling with it by hand!
-	 Yay!  P.S., Everybody better commit decent change descriptions, or
-	else.
+    Applied jinzougen's patch to have alias_list return an arbitrary
+    alias in scalar context. 
 
-2002-06-03 04:46  rcaputo
+  2002-28-07 02:32:01 by rcaputo; POE/Component/Client/TCP.pm 1.17
 
-	* lib/Makefile-5005.pm: Remove IPC::Run (we're not using it yet).
+    Applied a modified version of Averell's patch to let a Client::TCP
+    component connect to a different address and/or port. It first
+    disconnects from any established server. This feature is experimental
+    pending documentation and tests. 
 
-2002-06-02 16:03  rcaputo
+  2002-27-07 22:25:28 by rcaputo
+  POE.pm 1.145; POE/Kernel.pm 1.193; t/11_signals_poe.t 1.22
 
-	* CHANGES, POE.pm: Bump version number to 0.1901
+    Michael Stevens discovered a situation where signals could trigger a
+    session's destruction twice. The symptom is a "session does not
+    exist" error in Session.pm. This patch adds a simplified version of
+    his test case to t/11_signals_poe.t, clarifies the "session does not
+    exist" error message, and prevents what is essentially a double-free
+    error in POE::Kernel. Other files, such as Session.pm and Select.pm
+    were touched during the course of this fix but essentially remain
+    unchanged. 
 
-2002-06-02 16:02  rcaputo
+  2002-21-07 19:37:32 by rcaputo; POE/Kernel.pm 1.192;
+  POE/Kernel/Event.pm 1.18; t/00_coverage.t 1.15; t/04_selects.t 1.15;
+  t/06_tk.t 1.37; t/07_event.t 1.15; t/21_gtk.t 1.15
 
-	* POE/Preprocessor.pm: Fixed a missing symbol warning when expanded
-	source dumping is off.
+    L. Leo reported that run() could not be called twice in the same
+    program. That was true for a number of reasons revolving around
+    signal handling and the need to clean up the Kernel's data structures
+    before run() returned. I have made run() re-callable by re-setting
+    the signal handlers from within run() and by re-initializing the
+    Kernel's data structures too. All tests pass, including L. Leo's test
+    case. 
 
-2002-06-01 22:13  rcaputo
+  2002-20-07 03:52:01 by rcaputo; POE/Wheel/SocketFactory.pm 1.58
 
-	* lib/Makefile-5005.pm: Disable t/27_poll.t if IO::Poll is not
-	installed.
+    Cristiano Lincoln Mattos reported that SocketFactory was not emitting
+    connect errors on Cygwin+Win2k. His debugging pinpointed the section
+    in the code where the problem lay, and with his assistance I was able
+    to put together a working patch. He also tested the patch on Win2k
+    and Linux, while I tested it on FreeBSD. Other tests are forthcoming,
+    but I wanted to get the patch into CVS before that. 
 
-2002-06-01 22:13  rcaputo
+  2002-20-07 03:10:21 by sungo
+  lib/Makefile-5004.pm 1.8; lib/Makefile-5005.pm 1.20
 
-	* t/00_coverage.t: Prettified another message pertaining to a
-	missing optional dependency.  Made an old one more cleare (gods, I
-	hope) about the missing module being optional.
+    add make targets for reportupload 
 
-2002-06-01 22:12  rcaputo
+  2002-20-07 03:07:49 by sungo; lib/reportupload.pl 1.1
 
-	* CHANGES, POE/Wheel/ReadLine.pm: Jos Boumans discovered some
-	segfault-like behavior when using POE::Wheel::ReadLine on MSWin32. 
-	ActiveState Perl does not gracefully handle BEGIN{eval{}}, so the
-	BEGIN{} parts were successfully removed.
+    script to upload a test report 
 
-2002-06-01 22:08  rcaputo
+  2002-19-07 18:35:09 by sungo
+  lib/Makefile-5004.pm 1.7; lib/Makefile-5005.pm 1.19
 
-	* POE/Kernel/Poll.pm: Increased the amount of debugging information
-	when TRACE_SELECT is enabled.  Part of the effort to make IO::Poll
-	work on MSWin32.
+    make the testreport target smarter. checks for existence of
+    poe_report.xml and doesnt rerun the report generator if it exists. 
 
-2002-06-01 22:06  rcaputo
+  2002-19-07 18:17:01 by sungo
+  lib/Makefile-5004.pm 1.6; lib/Makefile-5005.pm 1.18
 
-	* POE/Kernel.pm: Fixed the bug Ted Suzman reported on MSWin32 (re:
-	SIGCHLD returning positive PIDs).  Worked around the fact that
-	IO::Poll is broken (or at least behaving inconsistent with its
-	documentation) on MSWin32.
+    add make testreport target to, guess what, generate the test report
+    :) 
 
-2002-06-01 22:04  rcaputo
+  2002-16-07 19:49:44 by rcaputo; POE/Wheel/FollowTail.pm 1.35
 
-	* CHANGES, MANIFEST, t/28_windows.t: Properly attributed Matt
-	Sergeant (not Scott Beck) for IO::Poll support.  Fixed the bug that
-	Ted Suzman reported in Kernel.pm's SIGCHLD handling.  True
-	processes return positive PIDs, which were being treated as
-	inconsistencies in POE::Kernel.  Added a regression test for this
-	condition. 
-	-------------------------------------------------------------------
-	---
-	-------------------------------------------------------------------
-	---
+    LordVorp discovered that Wheel/FollowTail does not document its
+    defaults for Filter and Driver. They are now documented. 
 
-2002-05-30 06:40  rcaputo
+  2002-05-07 19:14:04 by rcaputo; POE/Macro/UseBytes.pm 1.2
 
-	* CHANGES, MANIFEST, POE.pm, POE/Kernel.pm, POE/Kernel/Poll.pm,
-	lib/Makefile-5005.pm, t/08_errors.t, t/27_poll.t: Matt Sergeant
-	contributed POE::Kernel::Poll, an event loop substrate based on
-	IO::Poll.  IO::Poll is potentially faster than select() in large
-	scale servers (and other multi-connection programs).  I also
-	tweaked a description in the 5005 Makefile so the intent of some
-	modules is more clear.	Test 27_poll.t is neat, and I'm glad that
-	it works.  It reruns test 04_selects.t with IO::Poll loaded,
-	forcing POE::Kernel::Poll to be used instead of
-	POE::Kernel::Select.
+    James March found some debugging prints leftover from testing. They
+    are removed. 
 
-2002-05-30 06:29  rcaputo
+  2002-05-07 18:58:15 by rcaputo
+  POE/Kernel.pm 1.191; POE/Kernel/Poll.pm 1.5; POE/Kernel/Select.pm 1.27
 
-	* t/12_signals_ev.t: Try to make the skip message so friendly that
-	Windows users don't wonder whether they should install Event.pm.
+    James March is trying to tweak a POE program for performance. He was
+    kind enough to provide some Devel::SmallProf output so I could track
+    bottlenecks within POE itself. It turns out that @kr_filenos was a
+    very hot data structure, and it was used primarily in ways that made
+    more sense as a hash. This commit changes @kr_filenos into
+    %kr_filenos. All tests pass. 
 
-2002-05-29 05:29  rcaputo
+  2002-05-07 18:55:40 by rcaputo; POE/Session.pm 1.79
 
-	* CHANGES: Document changes.
+    Invoke inline states with idiomatically correct Perl. This is
+    probably just a syntactic tweak. 
 
-2002-05-29 05:27  rcaputo
+  2002-32-06 20:05:24 by rcaputo; MANIFEST 1.71;
+  POE/Driver/SysRW.pm 1.22; POE/Filter/Block.pm 1.11;
+  POE/Filter/HTTPD.pm 1.26; POE/Filter/Reference.pm 1.26;
+  POE/Kernel.pm 1.190; POE/Macro/UseBytes.pm 1.1;
+  POE/Wheel/ReadLine.pm 1.20; POE/Wheel/SocketFactory.pm 1.57
 
-	* POE/Preprocessor.pm: Added the ability to dump files with
-	expanded macros.  This should let perlapp and perl2exe "compile"
-	POE programs now.
+    Sergey Skvortsov reported that Driver::SysRW uses length() to count
+    octets in buffers, which is broken in newer versions of Perl that
+    support Unicode. In the Unicode sense, length() returns the number of
+    CHARACTERS in a buffer, which may be fewer than the number of octets.
+    This change adds POE/Macro/UseBytes, which is a backward-compatible
+    way of including C<use bytes> in files. It also adds use_bytes
+    directives to wherever looks appropriate. 
 
-2002-05-29 05:25  rcaputo
+  2002-32-06 18:50:21 by rcaputo; POE/Kernel.pm 1.189
 
-	* POE/Kernel.pm: Moved C<use POE::Preprocessor;> to the top of
-	C<package POE::Kernel;> so it would see all of the code therein. 
-	The "# include" directives are incompatible with the new
-	POE::Preprocessor dump feature, so I removed them.
+    "When three people tell you you're sick, lie down." Matt Cashner,
+    Artur Bergman, and Todd Caine told me the "POE::Kernel's run() method
+    was never called." warning was annoying. I suggested not emitting the
+    warning if no sessions were created (so perl -c and some tests don't
+    carp). That seemed ok with everyone, so this commit implements that
+    change. 
 
-2002-05-29 05:24  rcaputo
+  2002-32-06 18:43:01 by rcaputo; t/26_comp_tcp.t 1.2
 
-	* POE/: NFA.pm, Session.pm, Kernel/Event.pm, Kernel/Gtk.pm,
-	Kernel/Select.pm, Kernel/Tk.pm, Wheel/ReadLine.pm: Moved the C<use
-	POE::Preprocessor;> statement to the top of each package it was in.
-	 This lets the preprocessor (and the resulting expanded files)
-	include everything in the package.
+    Changes in Client::TCP and server::TCP caused errors in the tests. I
+    cleaned up some of the error checking and added some subtests. 
 
-2002-05-28 22:53  rcaputo
+  2002-32-06 18:40:51 by rcaputo
+  POE/Component/Client/TCP.pm 1.16; POE/Component/Server/TCP.pm 1.24
 
-	* POE/Kernel.pm: Applied some of the feedback from Android18, errr,
-	and hdm on #poe.  These are minor doc patches to clarify some finer
-	points.
+    (!!!) Peter Chen is writing a SOAP server that exercises
+    Server::TCP's error handling and shutdown semantics. These changes
+    apply modified versions of his patches to Server::TCP, and
+    corresponding shutdown patches to Client::TCP. Error handling is
+    subtly different now; check your code for lingering connections. 
 
-2002-05-28 22:49  rcaputo
+  2002-30-06 22:34:44 by rcaputo
+  POE/Component/Client/TCP.pm 1.15; POE/Component/Server/TCP.pm 1.23
 
-	* CHANGES, POE/Wheel/Run.pm, t/08_errors.t: I patched
-	POE::Wheel::Run to use POE::Filter::Line by default.  This broke a
-	subtest in t/08_errors.t when previously illegal usage became okay.
-	 Heh!
+    James March noted that Client::TCP and Server::TCP don't mention how
+    to send a response on their connected sockets. While omitting such an
+    important fact from the docs is a great way to make people read them
+    carefully, it's better to include the information. 
 
-2002-05-28 22:46  rcaputo
+  2002-18-06 06:39:21 by rcaputo; POE/Filter/Reference.pm 1.25
 
-	* CHANGES, POE/Wheel/FollowTail.pm: My previous "fixes" for
-	FollowTail weren't very good.  This set of fixes seems to work much
-	better in tests.  The problem?	Not properly detecting when log
-	files were reset.  In the process of fixing it, more debugging
-	information was added, and the BUGS were updated.
+    Added tentative (untested) YAML support. It was a trivial extension
+    of the Storable and FreezeThaw code. What could possibly go wrong? 
 
-2002-05-28 02:01  rcaputo
+  2002-17-06 17:40:15 by rcaputo; POE/Kernel/Gtk.pm 1.17
 
-	* t/08_errors.t: Skipped more Wheel::Run based tests.
+    In a tight yield() loop, POE::Kernel::Gtk would fire and reset timers
+    so fast that it would pre-empt window painting. The symptom was empty
+    Gtk windows. This patch interleaves timer and idle events so that Gtk
+    has a chance to catch up with POE. 
 
-2002-05-28 02:00  rcaputo
+  2002-16-06 23:21:27 by rcaputo; t/08_errors.t 1.37
 
-	* t/04_selects.t: The new select bug test failed on Win32 because
-	it assumed select() and non-blocking I/O worked on plain files. 
-	Fixed it to use a socket instead, which Windows can cope with.
+    Standardize skip messages, and use Symbol's delete_package() function
+    instead of the hand-rolled function to delete all the symbols in a
+    package. This should vastly reduce the number of warnings we need to
+    work around. 
 
-2002-05-28 01:59  rcaputo
+  2002-16-06 23:20:11 by rcaputo; t/00_coverage.t 1.14;
+  t/01_sessions.t 1.21; t/06_tk.t 1.36; t/07_event.t 1.14;
+  t/09_wheels_unix.t 1.13; t/11_signals_poe.t 1.21;
+  t/12_signals_ev.t 1.16; t/17_filter_ref.t 1.5; t/18_filter_line.t 1.6;
+  t/19_filterchange.t 1.10; t/21_gtk.t 1.14; t/22_wheel_run.t 1.25;
+  t/27_poll.t 1.5; t/28_windows.t 1.3
 
-	* t/: 01_sessions.t, 22_wheel_run.t: Make the Win32 skip messages a
-	little friendlier.
+    Standardize the skip messages. See the style guide at poe.perl.org
+    for a list of message formats. 
 
-2002-05-27 21:53  rcaputo
+  2002-10-06 21:15:53 by rcaputo; POE/Kernel.pm 1.188
 
-	* lib/Makefile-5005.pm: Re-revised the module categories.  I know
-	it's silly to think there ever will be a wording that will satisfy
-	everyone, but still I try. :)
+    Fix a documentation nit pointed out by Randal Schwartz. 
 
-2002-05-27 21:52  rcaputo
+  2002-10-06 21:14:48 by rcaputo
+  POE/Kernel/Event.pm 1.17; POE/Kernel/Tk.pm 1.24
 
-	* CHANGES, POE/Wheel/ReadLine.pm: ReadLine now assumes vt100 if a
-	TERM environment variable isn't set.
+    Randal Schwartz discovered a problem in POE::Kernel::Event where it
+    would not permit an idle program to shut down. It turned out that an
+    optimization in Kernel garbage collection prevented GC from being
+    tested if there were events in the queue. Newer SIGCHLD polling keeps
+    at least one event in the queue at all times, so GC was never being
+    tweaked. It turns out that POE::Kernel::Tk has the same problem.
+    These beg the question: How were the tests ever working? Note: It
+    might be better to differentiate between Kernel's events and
+    Sessions' events, and force GC when Sessions' count reached 0. 
 
-2002-05-27 21:49  rcaputo
+  2002-09-06 23:23:26 by rcaputo; lib/Makefile-5005.pm 1.17
 
-	* POE/Filter/Reference.pm: Document how easy it is to use YAML with
-	Filter::Reference.  Damn, that's sexy.
+    Some people find the dependency prompts annoying. This change adds a
+    note telling these heathens how they can bypass the prompts. 
 
-2002-05-27 21:48  rcaputo
+  2002-09-06 23:10:28 by rcaputo
+  POE/Kernel.pm 1.187; t/01_sessions.t 1.20; t/03_aliases.t 1.8
 
-	* POE/Component/: Client/TCP.pm, Server/TCP.pm: Standardized the
-	semantics of Filter and ClientFilter.  Both may now take a
-	POE::Filter class instance or name.  For class names, they try
-	building a standard (no parameters) instance of the class
-	internally.
+    PerlPanda on dalnet was disturbed that POE exports $poe_kernel into
+    main. While that can't be changed right now, this change supports two
+    other ways to call run(). Either first call POE::Kernel->new() to get
+    a copy of $poe_kernel, or just call POE::Kernel->run() directly. They
+    are essentially syntactic sugar to mollify OO purists. 
 
-2002-05-27 21:36  rcaputo
+  2002-09-06 23:04:54 by rcaputo
+  POE/Wheel/Run.pm 1.36; t/00_coverage.t 1.13
 
-	* POE/Session.pm: Fixed a typo that Kane found in the docs.
+    Tidy up a skip message for the test scoreboard. 
 
-2002-05-27 02:35  rcaputo
+  2002-09-06 13:32:27 by rcaputo; lib/testreport.pl 1.10
 
-	* lib/Makefile-5005.pm: ttyS on IRC was confused about the
-	"Optional Full-Screen Child Process Support" message, so I revised
-	them all to be a little less dense.
+    Don't accuse MacOS Classic (and other user-less operating systems) of
+    being Windows. That's just uncalled for. 
 
-2002-05-25 19:45  rcaputo
+  2002-09-06 13:31:29 by rcaputo; POE.pm 1.144
 
-	* CHANGES, POE/Kernel.pm, t/04_selects.t: Scott Beck discovered a
-	long-standing (but rarely, if ever heretofore tickled) bug in
-	POE::Kernel's _internal_select().  I tracked it down to a leftover
-	hash key that wasn't removed when necessary.  POE::Kernel now
-	deletes it, and t/04_selects.t has a new test.
+    Document that the samples are moving to the POE Cookbook. 
 
-2002-05-24 21:00  rcaputo
+  2002-09-06 03:09:56 by rcaputo; samples/followtail.perl 1.9;
+  samples/httpd.perl 1.16; samples/neural-net.perl 1.2;
+  samples/proxy.perl 1.18; samples/ref-type.perl 1.5;
+  samples/refsender.perl 1.15; samples/refserver.perl 1.16
 
-	* POE/Wheel/Run.pm, t/22_wheel_run.t: After spending several days
-	beating my head against the fork/exec paradigm on Win32, I have
-	finally concluded that it is not consistently implemented from one
-	Windows version to the next, making it a veritable nightmare of
-	twisty variations to work around.  Neither IPC::Open2, IPC::Open3,
-	nor IPC::Run work across the myriad flavors of "Win32", and I have
-	neither the time nor inclination to attempt success where three
-	such modules-- all dedicated to performing this very task, and it
-	alone-- have failed.  Arf fthagn poit!	(Anyone who does have the
-	time or inclination to fix it is welcome to, though.)
+    Replaced these files with pointers to their counterparts in the POE
+    Cookbook. Eventually these files will be removed altogether, along
+    with the directory they rode in on. 
 
-2002-05-24 20:55  rcaputo
+  2002-08-06 19:12:07 by sungo; lib/testreport.pl 1.9
 
-	* lib/Makefile-5005.pm: Increase the required version for
-	ExtUtils::AutoInstall.
+    strip the t/ off the file name in case its run from the root of the
+    checkout 
 
-2002-05-23 12:45  rcaputo
+  2002-08-06 18:40:09 by sungo; lib/testreport.pl 1.8
 
-	* CHANGES, POE/Wheel/Run.pm, t/22_wheel_run.t: Added ARG4 to
-	Wheel::Run's ErrorEvent.  This extra parameter indicates the child
-	filehandle that generated the error.  For example, "read" error "0"
-	on "STDOUT" means that the child's STDOUT was closed.  I also
-	updated the Wheel::Run test to use CloseEvent instead of signals to
-	detect when a child was done.
+    adding closing quotes on the skip reason helps with parsing :) 
 
-2002-05-22 22:38  rcaputo
+  2002-08-06 18:30:08 by sungo; lib/testreport.pl 1.7
 
-	* CHANGES, POE/Wheel/Run.pm: I added CloseEvent to Wheel::Run. 
-	This should address a long-standing issue where it was difficult to
-	tell when child processes were done sending information.
+    fix use lib to make testreport runnable from the root of the
+    checkout. stop deleting detailed results. fixes failing test reports.
+    add skipped test detail to the report. 
 
-2002-05-22 19:06  rcaputo
+  2002-08-06 18:13:00 by sungo; MANIFEST 1.70
 
-	* POE/Driver/SysRW.pm: Remove a spurious $|=1 leftover from
-	testing.
+    correct the test::harness::iterator entry 
 
-2002-05-22 18:48  rcaputo
+  2002-08-06 04:38:59 by rcaputo; lib/testreport.pl 1.6
 
-	* POE/: NFA.pm, Session.pm: Differentiate between package and
-	object methods in an error message.
+    Move C<use lib> higher so it catches Test::Harness and friends. Work
+    around some unsupported things under Windows. 
 
-2002-05-22 01:41  rcaputo
+  2002-08-06 04:32:35 by sungo; MANIFEST 1.69
 
-	* POE/Kernel.pm: Made some of the TRACE_SELECT warnings a little
-	more descriptive.
+    update manifest for test::harness goodness so it'll ship with the
+    tarball 
 
-2002-05-21 23:02  rcaputo
+  2002-08-06 03:41:12 by sungo; lib/Test/Harness.pm 1.1;
+  lib/Test/Harness/Assert.pm 1.1; lib/Test/Harness/Iterator.pm 1.1;
+  lib/Test/Harness/Straps.pm 1.1
 
-	* MANIFEST, lib/AutoInstall.pm, lib/Makefile-5005.pm,
-	lib/ExtUtils/AutoInstall.pm: Moved ExtUtils::AutoInstall to a
-	location where it may be found with a simple "use" statement.  Also
-	upgraded it to 0.32.
+    add new version of test::harness for convenience use in testreport.pl 
 
-2002-05-21 22:58  rcaputo
+  2002-08-06 03:11:09 by rcaputo; MANIFEST 1.68
 
-	* t/09_wheels_unix.t: Make the "Windows don't do dat!" message a
-	little more professional.
+    Added testreport.pl so it will be included in tarballs. 
 
-2002-05-21 22:51  rcaputo
+  2002-08-06 01:01:31 by rcaputo; lib/testreport.pl 1.5
 
-	* CHANGES, t/06_tk.t: I confirmed that Tk's fileevent watchers are
-	broken on Win32.  POE's Tk I/O tests fail without any reads, and
-	the test is being run under Win32, assume that the installed Tk is
-	a broken one.  In that case, skip the tests rather than fail them. 
-	For all other situations (including working Tk on Win32), the tests
-	should behave normally.
+    Make the program runnable from lib/ or /, and make it fetch the tests
+    to run from Makefile (so it doesn't run tests skipped by
+    AutoInstall). 
 
-2002-05-21 02:26  rcaputo
+  2002-07-06 23:25:18 by sungo; lib/testreport.pl 1.4
 
-	* CHANGES, POE/Wheel/FollowTail.pm: While writing a sample program
-	for POE's cookbook, I found that POE::Wheel::FollowTail would
-	detect log resets even when none happened.  I revised the way log
-	file resets are detected, and it seems to work much better now.
+    get the actual user id not the root one. 
 
-2002-05-20 19:18  rcaputo
+  2002-07-06 23:07:23 by sungo; lib/testreport.pl 1.3
 
-	* POE/Wheel/ReadLine.pm: Ekkis found a system where
-	POSIX::Termios::getospeed() on STDIN returned undef.  Default the
-	terminal output speed to 38400 in this case.
+    strip file names better. add username, hostname, and gmtime to the
+    report 
 
-2002-05-19 02:52  rcaputo
+  2002-07-06 22:02:25 by sungo; lib/testreport.pl 1.2
 
-	* lib/Makefile-5005.pm: 
-	Fixed the filename in the auto-generated CHANGES magic.  That's
-	still commented out, though.  "make dist" will fail if CHANGES
-	isn't there already; this is because it's in MANIFEST, and the
-	Makefile won't build an incomplete tarball.  Added a bit of code to
-	touch the CHANGES file so it always exists after "perl
-	Makefile.PL".  That's also commented out for now.
+    correct the test directory. 
 
-2002-05-18 04:11  rcaputo
+  2002-07-06 21:34:05 by sungo; lib/testreport.pl 1.1
 
-	* CHANGES: Clean out the non-changes bits in preparation for a time
-	when CHANGES will be auto-generated.  Oh, and document the other
-	changes.
+    move testreport.pl to lib. add failing test reporting to
+    testreport.pl 
 
-2002-05-18 04:10  rcaputo
+=========================
+2002-05-06 03:10:05 v0_22
+=========================
 
-	* lib/Makefile-5005.pm: Thanks to sungo, I was able to add magic to
-	automatically generate CHANGES from the cvs log.  Requires a local
-	copy of cvs2cl.pl.  The magic is commented out, however.  We'll be
-	hand-rolling CHANGES through the next release since there's already
-	much custom change doc lovin' going on there.
+  2002-05-06 03:10:05 by rcaputo; POE.pm 1.143
 
-2002-05-18 03:59  rcaputo
+    All the mentioned problems in 0.2101 were fixed. Looks like it's
+    clean. Bump the version to 0.22 for release. 
 
-	* POE/Driver/SysRW.pm: Peter Barabas was going through POE's source
-	and uncovered a logic anomaly :) in Driver::SysRW.  I made the
-	logic clearer and hopefully more correct, and I documented a
-	strangeness between what's expected of sysread() and what actually
-	happens.
+  2002-02-06 15:57:43 by rcaputo; t/08_errors.t 1.36
 
-2002-05-17 01:34  sungo
+    Cleared up a warning about Filter being deprecated. Thanks to ignatz
+    for pointing it out. 
 
-	* lib/Makefile-5005.pm: default the gtk/tk/event tests to not
-	installing all their deps
+===========================
+2002-02-06 04:26:05 v0_2101
+===========================
 
-2002-05-17 01:32  sungo
+  2002-02-06 04:26:05 by rcaputo; POE.pm 1.142
 
-	* Makefile.PL: drop the spurious warn from the makefile
+    Bump version to 0.2101 for release. 
 
-2002-05-15 18:21  rcaputo
+  2002-02-06 02:16:31 by rcaputo; POE/Wheel/Run.pm 1.35
 
-	* Makefile.PL: Tone down the old-Perl warning.	POE hasn't
-	deprecated 5.004 just yet.
+    Todd Caine requested a "Driver" parameter for Wheel::Run. While I was
+    adding one, I realized that STDIN, STDOUT *and* STDERR were all
+    sharing a single internal driver instance. That's bad because three
+    handles cannot reliably share a single driver (which can only read on
+    one handle and write on one handle reliably). This may have uncovered
+    a nasty bug in Wheel::Run. Thankfully, 0.22 has not yet been
+    released. 
 
-2002-05-15 17:44  rcaputo
+  2002-31-05 21:37:46 by rcaputo; lib/ExtUtils/AutoInstall.pm 1.2
 
-	* CHANGES: Document changes.
+    Updated to ExtUtils::AutoInstall 0.33. 
 
-2002-05-15 17:44  rcaputo
+  2002-31-05 21:14:59 by rcaputo; POE/Driver/SysRW.pm 1.21
 
-	* Makefile.PL: Change the deprecation warning back to pre-5.005_03.
-	 It was at pre-5.005_05 for testing.
+    Document why SysRW does not use BlockSize for syswrite(), and fix the
+    BlockSize documentation so that it does not apply to syswrite(). 
 
-2002-05-15 17:38  rcaputo
+  2002-31-05 20:24:11 by rcaputo; POE/Kernel/Poll.pm 1.4; t/27_poll.t 1.4
 
-	* MANIFEST, Makefile.PL, lib/AutoInstall.pm, lib/Makefile-5004.pm,
-	lib/Makefile-5005.pm: Added sungo's makefile magic.
+    As I once learned long ago, IO::Foo tends to be slow. In the old
+    case, it was IO::Select. Now I've discovered that IO::Poll is slow as
+    well. This is the price one pays for using generic modules, however.
+    I researched IO::Poll and discovered its internal _poll function,
+    which is written in XS. POE::Kernel::Poll was revised to use that
+    directly rather than incurring overhead from using the public
+    interface. I only hope I can keep up with IO::Poll changes.
+    POE::Kernel::Poll should really be better than select() now regarding
+    latency and scalability, if only a little bit. 
 
-2002-05-15 17:34  rcaputo
+  2002-29-05 02:22:30 by rcaputo; POE/Kernel.pm 1.186
 
-	* POE/Wheel/Run.pm, t/08_errors.t, t/11_signals_poe.t,
-	t/12_signals_ev.t, t/22_wheel_run.t, t/23_nfa.t: Various
-	work-arounds for fork() not being supported under MacOS 9.x.
+    Matt Sergeant noticed that POE::Wheel::Run sometimes creates defunct
+    (zombie) processes. I suspected that it was a race between program
+    shutdown and POE::Kernel's reaper. Matt was able to verify this by
+    adding some non-blocking reaper code after run() was called. I added
+    code to POE::Kernel that keeps it alive as long as there are
+    outstanding child processes. This will ensure that they're reaped (no
+    more defunct zombies). 
 
-2002-05-11 12:52  rcaputo
+  2002-29-05 02:17:01 by rcaputo; POE.pm 1.141
 
-	* POE/Kernel.pm, POE/Session.pm, samples/tk.perl: Deprecate _signal
-	event, and by association using _default to handle signals.
+    Clean up the overview of Filter::Reference after someone (I forget!
+    Baud? Kane?) pointed out a typo. Thanks, whoever you are. 
 
-2002-05-10 12:14  rcaputo
+  2002-26-05 07:12:15 by rcaputo; POE/Kernel/Tk.pm 1.23
 
-	* POE/Kernel.pm: Alter ssid macro so it won't expand in a comment.
+    Worked around a memory leak in Tk 800.023. Thanks to Zoltan Kandi for
+    reporting the leak (usenet message-ID:3D16D3B2.11FC919E@tellabs.com)
+    and Slaven Rezic (usenet message-ID:87elevetz9.fsf@vran.herceg.de)
+    for the way to avoid it. 
 
-2002-05-10 01:45  rcaputo
+  2002-23-05 06:39:31 by rcaputo; POE/Wheel/Run.pm 1.34
 
-	* CHANGES: Document changes. :)
+    Update the documentation and carps and croaks to guide people away
+    from the deprecated Filter parameter. 
 
-2002-05-10 01:42  rcaputo
+  2002-23-05 06:24:52 by rcaputo
+  POE/Wheel/Run.pm 1.33; t/22_wheel_run.t 1.24
 
-	* POE/Component/Server/TCP.pm: Removed use of deprecated
-	SuccessState and FailureState.	Made them SuccessEvent and
-	FailureEvent instead.
+    (!!!) POE::Wheel::Run's Filter parameter was broken as designed. A
+    single Filter instance cannot possibly filter three filehandles! The
+    fix was to replace Filter with StdioFilter, which only filters STDIN
+    and STDOUT. StderrFilter must be specified separately. It's easy to
+    write code that is compatible with the old and new interfaces (for a
+    module, for example). Just use StdinFilter, StdoutFilter, and
+    StderrFilter explicitly. 
 
-2002-05-10 01:41  rcaputo
+  2002-23-05 06:21:29 by rcaputo; t/00_coverage.t 1.12;
+  t/01_sessions.t 1.19; t/08_errors.t 1.35; t/09_wheels_unix.t 1.12;
+  t/28_windows.t 1.2
 
-	* t/: 01_sessions.t, 02_alarms.t, 03_aliases.t, 07_event.t: Remove
-	implicit signal handling from the tests.
+    Iain Chalmers reported 0.20 test failures under MacOS 9.1. These
+    changes address some of the the issues he discovered. They mainly
+    fall under the categories of signals, UNIX sockets, socketpair(), and
+    fork() incompatibilities between UNIX systems and MacOS pre-X. 
 
-2002-05-10 01:40  rcaputo
+  2002-23-05 06:18:11 by rcaputo
+  POE/Kernel/Poll.pm 1.3; lib/Makefile-5005.pm 1.16; t/27_poll.t 1.3
 
-	* lib/deptest.perl: Remove mandatory tracing on Solaris since
-	nobody has reported the problem it was supposed to help track down
-	for a while.
+    Richard Soderberg pointed out a couple things, which are now fixed.
+    First, it's possible to run the IO::Poll tests with an older version
+    by saying "no" to installing a newer one. That leads to test failures
+    later on. The work-around is to add checks in POE::Kernel::Poll and
+    t/27_poll.t for the proper IO::Poll version. Second, he pointed out
+    that a few dependencies were missing from the installer. Added! 
 
-2002-05-10 01:39  rcaputo
+  2002-23-05 06:15:33 by rcaputo
+  POE/Pipe.pm 1.5; POE/Pipe/OneWay.pm 1.10; POE/Pipe/TwoWay.pm 1.12
 
-	* POE/Wheel/: FollowTail.pm, ListenAccept.pm, ReadWrite.pm,
-	SocketFactory.pm: Begin the next phase of FooState parameter
-	deprecation in the POE wheels.	Now any use of FooState causes a
-	carp.
+    Skip socketpair() and pipe() on MacOS pre-X. Even with a vastly
+    improved Perl build, these systems seem to have strange problems with
+    non-blocking socketpair() and pipe(). 
 
-2002-05-10 01:36  rcaputo
+=========================
+2002-20-05 17:24:58 v0_21
+=========================
 
-	* POE/Kernel.pm: Make TRACE_ and ASSERT_FOO output more friendly.
-	
-	Add sig_handled() and set things in motion for implicit signal
-	handling deprecations.
-	
-	Document sig_handled() and finish documenting the changed signal
-	handling semantics.
+  2002-20-05 17:24:58 by rcaputo; POE.pm 1.140
 
-2002-04-12 21:08  rcaputo
+    Increase the version number to 0.21. 
 
-	* CHANGES: Document three-phase signal dispatch change.
+  2002-19-05 22:18:37 by rcaputo
+  POE/Component/Client/TCP.pm 1.14; POE/Component/Server/TCP.pm 1.22
 
-2002-04-12 21:06  rcaputo
+    (!!!) Change the ClientFilter and Filter parameters in Server::TCP
+    and Client::TCP respectively. They were recently "enhanced" to accept
+    filter instances, and they would create filter instances from class
+    names internally. However, this new "feature" meant that every
+    connection SHARED THE SAME FILTER. The changes now let them accept
+    class names and optional constructor parameters, and the components
+    will instantiate new filters for each connection. "MarkClone" on
+    efnet reported that the POE Cookbook web server was only honoring its
+    first request; the remainders were bombing out with an error which
+    led me to this problem. 
 
-	* t/25_detach.t: Sessions just happened to be destroyed in the
-	proper order for the test to succeed, however, the order depeneded
-	on the position of code and memory use patterns.  Altering signal
-	dispatch changed the way memory was used (and sessions were
-	destroyed), uncovering the problem.  Revised the test to prevent
-	nondeterministic session destruction from causing future problems.
+  2002-19-05 22:13:11 by rcaputo; POE/Wheel/SocketFactory.pm 1.56
 
-2002-04-12 21:04  rcaputo
+    Extend the description of SuccessEvent's INET address field. This is
+    in response to Jos Boumans' question about it. 
 
-	* t/22_wheel_run.t: Add debugging information so that signal
-	dispatch could be monitored.  This is part of the three-phase
-	signal dispatch changes.
+  2002-19-05 21:59:02 by rcaputo; POE/Filter/HTTPD.pm 1.25
 
-2002-04-12 21:03  rcaputo
+    Prettied up the error dump some more. 
 
-	* t/08_errors.t: Three-phase signal dispatch added new constants to
-	POE::Kernel.  Clean those constants out of the package between
-	error tests.
+  2002-19-05 21:23:13 by rcaputo; POE/Filter/HTTPD.pm 1.24
 
-2002-04-12 21:02  rcaputo
+    Justify the offsets in error dumps so things line up better. 
 
-	* POE/Kernel.pm: Implement three-phase signal dispatch.
+  2002-19-05 21:21:24 by rcaputo; POE/Filter/HTTPD.pm 1.23
 
-2002-03-26 00:23  rcaputo
+    When the HTTP parser writes a hex dump, make it use a fixed font so
+    things line up. 
 
-	* CHANGES, POE.pm: Increase version to 0.19
+  2002-14-05 23:49:32 by rcaputo; POE/Preprocessor.pm 1.30
 
-2002-03-26 00:20  rcaputo
+    Update the instructions for using POE::Processor with PerlApp. Thanks
+    to Zoltan Kandi for making sure it works. 
 
-	* CHANGES, lib/deptest.perl: Add blib and blib/lib to
-	lib/deptest.perl, making it more useful for other modules.
+  2002-12-05 17:02:59 by rcaputo; NEEDS 1.7
 
-2002-03-05 00:07  rcaputo
+    Peter Chen noticed that the NEEDS file did not list Storable as one
+    of POE::Filter::Reference's dependencies. Now it does. :) 
 
-	* CHANGES: Document changes.
+  2002-11-05 17:53:18 by rcaputo; t/00_coverage.t 1.11
 
-2002-03-05 00:06  rcaputo
+    This test never called POE::Kernel's run() method, so we got a
+    warning about that. Now it's all better. 
 
-	* POE/Kernel.pm: Tweak the language in a comment.  Nothing
-	functional has changed.
+  2002-11-05 17:47:07 by rcaputo; POE/Kernel.pm 1.185
 
-2002-03-05 00:02  rcaputo
+    feelicks had a problem where his program never ran. It was traced
+    back to not calling $poe_kernel->run(). This happens to me ALL THE
+    TIME, and feelicks (and I) is sure it happens to a lot of people. I
+    added a flag that's set when run() is called. POE::Kernel's DESTROY
+    will warn the programmer/operator if that flag is not set. 
 
-	* t/22_wheel_run.t: A half-hearted attempt at getting the test
-	working on Win32.
+  2002-10-05 18:32:12 by rcaputo
+  lib/Makefile-5004.pm 1.5; lib/Makefile-5005.pm 1.15
 
-2002-03-04 23:59  rcaputo
+    Fix the cvs2cl invocations so they really include CHANGES files in
+    tarballs. The order of operations in "make dist" means that PREOP
+    occurs AFTER CHANGES is copied into the tarball tree. D'oh! 
 
-	* POE/Wheel/ReadLine.pm: Rocco found and fixed a circular reference
-	that prevented it (and thus programs) from exeting cleanly.
+=========================
+2002-09-05 03:29:19 v0_20
+=========================
 
-2002-03-04 23:56  rcaputo
+  2002-09-05 03:29:19 by rcaputo; POE.pm 1.139; README 1.96
 
-	* POE/Wheel/Curses.pm: Turn blocking back on for STDIN, or some
-	curses libraries won't properly refresh the display.
+    Final preparations for releasing POE 0.20. 
 
-2002-03-04 23:52  rcaputo
+  2002-09-05 01:58:31 by rcaputo
+  lib/Makefile-5004.pm 1.4; lib/Makefile-5005.pm 1.14
 
-	* POE/: Pipe.pm, Pipe/OneWay.pm, Pipe/TwoWay.pm: Apply TonyC's
-	suggestion for improved Win32 compatibility.
+    Have Makefile.PL touch the CHANGES file so that "make dist" will find
+    it. Even though we generate CHANGES from the CVS log, WriteMakeFile
+    needs to see something there first. 
 
-2002-03-04 23:46  rcaputo
+  2002-08-05 04:17:09 by rcaputo; lib/Makefile-5004.pm 1.3
 
-	* POE.pm: Updated Windows and MacOS support info. in POE's man
-	page.
+    Perl 5.004_03 didn't like AUTHOR and ABSTRACT, so I removed them. 
 
-2002-02-25 21:45  rcaputo
+  2002-08-05 04:14:26 by rcaputo; lib/Makefile-5005.pm 1.13
 
-	* CHANGES, POE/Kernel.pm: Wrap binmode() in eval so that it won't
-	die if a tied filehandle doesn't support it.  Don't call fcntl() on
-	tied filehandles because that leads to death also.
+    Perl 5.005_03 didn't like bareword IO::Poll on the left side of the
+    => operator. I put quotes around it, and things seem to be generally
+    better. 
 
-2002-02-25 06:02  rcaputo
+  2002-08-05 04:13:18 by rcaputo; POE/Kernel/Tk.pm 1.22; t/06_tk.t 1.35
 
-	* CHANGES, POE/Kernel.pm, POE/Wheel/SocketFactory.pm: Wrap
-	binmode() in eval{} because tied filehandle classes may die in it
-	or fail to implement it altogether.  Both of those conditions will
-	cause a fatal runtime error.
+    Philip Gwyn discovered a "modification of a read-only value" error in
+    POE::Kernel::Tk's file watcher pause/resume code. I adapted a
+    previous plain-Tk testcase to verify the behavior outside POE. It's
+    there in Tk on Perl 5.004_05. The testcase doesn't fail with Perl
+    5.005_03, so it looks like an incompatibility between Tk and the
+    older version of Perl. I've decided to discontinue Tk support in Perl
+    versions before 5.005_03. If anyone has a vested interest in the
+    older Perls + Tk + POE, I can provide the test case for their
+    debugging pleasure. 
 
-2002-02-17 19:06  rcaputo
+  2002-07-05 05:19:59 by rcaputo; t/27_poll.t 1.2
 
-	* CHANGES: Document changes. :)
+    Philip Gwyn spotted that TestSetup wasn't being used here. That's
+    what I get for testing stuff on systems that have everything. 
 
-2002-02-17 19:05  rcaputo
+  2002-04-05 15:34:34 by rcaputo
+  lib/Makefile-5004.pm 1.2; lib/Makefile-5005.pm 1.12
 
-	* POE/Wheel/ReadLine.pm: Made ReadLine use a private copy of STDIN
-	and STDOUT so that redirecting them won't interfere with the
-	console.
+    Added the second bit of sungo's Makefile magic. This part generates
+    POE's CHANGES automatically from the cvs log. No more twiddling with
+    it by hand! Yay! P.S., Everybody better commit decent change
+    descriptions, or else. 
 
-2002-02-17 19:03  rcaputo
+  2002-04-05 04:46:04 by rcaputo; lib/Makefile-5005.pm 1.11
 
-	* POE/NFA.pm: Add CALLER_FILE and CALLER_LINE parameters.  Add a
-	get_runstate() method to fetch a machine's HEAP-like substance.
+    Remove IPC::Run (we're not using it yet). 
 
-2002-02-05 01:31  rcaputo
+===========================
+2002-03-05 16:03:24 v0_1901
+===========================
 
-	* POE/Session.pm: Remove a blank line.
+  2002-03-05 16:03:24 by rcaputo; POE.pm 1.138
 
-2002-02-05 01:31  rcaputo
+    Bump version number to 0.1901 
 
-	* POE/Kernel.pm: Remove some deadwood.	Apply a typo fix that Sungo
-	spotted.
+  2002-03-05 16:02:50 by rcaputo; POE/Preprocessor.pm 1.29
 
-2002-01-25 04:33  rcaputo
+    Fixed a missing symbol warning when expanded source dumping is off. 
 
-	* CHANGES: Document changes.
+  2002-02-05 22:13:56 by rcaputo; lib/Makefile-5005.pm 1.10
 
-2002-01-25 04:26  rcaputo
+    Disable t/27_poll.t if IO::Poll is not installed. 
 
-	* POE/Kernel.pm: Redocument internal data structures.
+  2002-02-05 22:13:17 by rcaputo; t/00_coverage.t 1.10
 
-2002-01-25 04:25  rcaputo
+    Prettified another message pertaining to a missing optional
+    dependency. Made an old one more cleare (gods, I hope) about the
+    missing module being optional. 
 
-	* t/00_coverage.t: Make missing termcap warnings less ugly.
+  2002-02-05 22:12:07 by rcaputo; POE/Wheel/ReadLine.pm 1.19
 
-2002-01-25 04:25  rcaputo
+    Jos Boumans discovered some segfault-like behavior when using
+    POE::Wheel::ReadLine on MSWin32. ActiveState Perl does not gracefully
+    handle BEGIN{eval{}}, so the BEGIN{} parts were successfully removed. 
 
-	* POE/Wheel/Curses.pm: Experimental revision of curses
-	initialization order.
+  2002-02-05 22:08:20 by rcaputo; POE/Kernel/Poll.pm 1.2
 
-2002-01-25 04:25  rcaputo
+    Increased the amount of debugging information when TRACE_SELECT is
+    enabled. Part of the effort to make IO::Poll work on MSWin32. 
 
-	* POE/Component/Client/TCP.pm: Call the Disconnect callback on
-	forced shutdown.
+  2002-02-05 22:06:16 by rcaputo; POE/Kernel.pm 1.184
 
-2002-01-20 17:56  rcaputo
+    Fixed the bug Ted Suzman reported on MSWin32 (re: SIGCHLD returning
+    positive PIDs). Worked around the fact that IO::Poll is broken (or at
+    least behaving inconsistent with its documentation) on MSWin32. 
 
-	* POE.pm: Bump the version to 0.18
+  2002-02-05 22:04:25 by rcaputo; MANIFEST 1.67; t/28_windows.t 1.1
 
-2002-01-20 17:55  rcaputo
+    Properly attributed Matt Sergeant (not Scott Beck) for IO::Poll
+    support. Fixed the bug that Ted Suzman reported in Kernel.pm's
+    SIGCHLD handling. True processes return positive PIDs, which were
+    being treated as inconsistencies in POE::Kernel. Added a regression
+    test for this condition.
+    ---------------------------------------------------------------------
+    -
+    ---------------------------------------------------------------------
+    - 
 
-	* CHANGES, README: update for 0.18 release
+  2002-31-04 06:40:13 by rcaputo; MANIFEST 1.66; POE.pm 1.137;
+  POE/Kernel.pm 1.183; POE/Kernel/Poll.pm 1.1; lib/Makefile-5005.pm 1.9;
+  t/08_errors.t 1.34; t/27_poll.t 1.1
 
-2002-01-20 05:59  rcaputo
+    Matt Sergeant contributed POE::Kernel::Poll, an event loop substrate
+    based on IO::Poll. IO::Poll is potentially faster than select() in
+    large scale servers (and other multi-connection programs). I also
+    tweaked a description in the 5005 Makefile so the intent of some
+    modules is more clear. Test 27_poll.t is neat, and I'm glad that it
+    works. It reruns test 04_selects.t with IO::Poll loaded, forcing
+    POE::Kernel::Poll to be used instead of POE::Kernel::Select. 
 
-	* CHANGES: Document changes.
+  2002-31-04 06:29:40 by rcaputo; t/12_signals_ev.t 1.15
 
-2002-01-20 05:58  rcaputo
+    Try to make the skip message so friendly that Windows users don't
+    wonder whether they should install Event.pm. 
 
-	* POE.pm: Bump version to 0.1703. Document cookbook.
+  2002-30-04 05:27:05 by rcaputo; POE/Preprocessor.pm 1.28
 
-2002-01-20 05:52  rcaputo
+    Added the ability to dump files with expanded macros. This should let
+    perlapp and perl2exe "compile" POE programs now. 
 
-	* POE/Kernel.pm: Tweak alarm docs.
+  2002-30-04 05:25:53 by rcaputo; POE/Kernel.pm 1.182
 
-2002-01-20 05:51  rcaputo
+    Moved C<use POE::Preprocessor;> to the top of C<package POE::Kernel;>
+    so it would see all of the code therein. The "# include" directives
+    are incompatible with the new POE::Preprocessor dump feature, so I
+    removed them. 
 
-	* POE/Wheel/Curses.pm: Add meta(1) so that international characters
-	may be entered.
+  2002-30-04 05:24:10 by rcaputo; POE/Kernel/Event.pm 1.16;
+  POE/Kernel/Gtk.pm 1.16; POE/Kernel/Select.pm 1.26;
+  POE/Kernel/Tk.pm 1.21; POE/NFA.pm 1.16; POE/Session.pm 1.78;
+  POE/Wheel/ReadLine.pm 1.18
 
-2002-01-12 06:13  rcaputo
+    Moved the C<use POE::Preprocessor;> statement to the top of each
+    package it was in. This lets the preprocessor (and the resulting
+    expanded files) include everything in the package. 
 
-	* CHANGES, t/00_coverage.t: t/00_coverage.t test skips looked an
-	awful lot like errors.	Make this class of skipped test look more
-	reasonable.
+  2002-29-04 22:53:23 by rcaputo; POE/Kernel.pm 1.181
 
-2002-01-10 20:39  rcaputo
+    Applied some of the feedback from Android18, errr, and hdm on #poe.
+    These are minor doc patches to clarify some finer points. 
 
-	* CHANGES, POE.pm, POE/Component.pm, POE/Driver.pm, POE/Filter.pm,
-	POE/Kernel.pm, POE/NFA.pm, POE/Pipe.pm, POE/Preprocessor.pm,
-	POE/Session.pm, POE/Wheel.pm, POE/Component/Client/TCP.pm,
-	POE/Driver/SysRW.pm, POE/Filter/Block.pm, POE/Filter/Grep.pm,
-	POE/Filter/HTTPD.pm, POE/Filter/Line.pm, POE/Filter/Map.pm,
-	POE/Filter/RecordBlock.pm, POE/Filter/Reference.pm,
-	POE/Filter/Stackable.pm, POE/Filter/Stream.pm, POE/Kernel/Event.pm,
-	POE/Kernel/Gtk.pm, POE/Kernel/Select.pm, POE/Kernel/Tk.pm,
-	POE/Pipe/OneWay.pm, POE/Pipe/TwoWay.pm, POE/Wheel/Curses.pm,
-	POE/Wheel/FollowTail.pm, POE/Wheel/ListenAccept.pm,
-	POE/Wheel/ReadLine.pm, POE/Wheel/ReadWrite.pm, POE/Wheel/Run.pm,
-	POE/Wheel/SocketFactory.pm, lib/MyOtherFreezer.pm,
-	lib/TestSetup.pm, lib/Devel/Null.pm, lib/Devel/Trace.pm: propagate
-	cvs version number as $VERSION
+  2002-29-04 22:49:15 by rcaputo
+  POE/Wheel/Run.pm 1.32; t/08_errors.t 1.33
 
-2002-01-10 20:16  rcaputo
+    I patched POE::Wheel::Run to use POE::Filter::Line by default. This
+    broke a subtest in t/08_errors.t when previously illegal usage became
+    okay. Heh! 
 
-	* POE/Component/Server/TCP.pm: Add a $VERSION number.
+  2002-29-04 22:46:06 by rcaputo; POE/Wheel/FollowTail.pm 1.34
 
-2002-01-04 17:56  rcaputo
+    My previous "fixes" for FollowTail weren't very good. This set of
+    fixes seems to work much better in tests. The problem? Not properly
+    detecting when log files were reset. In the process of fixing it,
+    more debugging information was added, and the BUGS were updated. 
 
-	* CHANGES, POE/Kernel.pm: increase LARGE_QUEUE_SIZE to 512
+  2002-29-04 02:01:26 by rcaputo; t/08_errors.t 1.32
 
-2002-01-04 04:42  sungo
+    Skipped more Wheel::Run based tests. 
 
-	* CHANGES: document CALLER additions
+  2002-29-04 02:00:44 by rcaputo; t/04_selects.t 1.14
 
-2002-01-04 04:39  sungo
+    The new select bug test failed on Win32 because it assumed select()
+    and non-blocking I/O worked on plain files. Fixed it to use a socket
+    instead, which Windows can cope with. 
 
-	* POE/Session.pm: add caller information to the state arguments
+  2002-29-04 01:59:48 by rcaputo
+  t/01_sessions.t 1.18; t/22_wheel_run.t 1.23
 
-2002-01-03 22:33  rcaputo
+    Make the Win32 skip messages a little friendlier. 
 
-	* POE/Driver/SysRW.pm, samples/httpd.perl, samples/refsender.perl,
-	samples/refserver.perl: fix my e-mail address
+  2002-28-04 21:53:17 by rcaputo; lib/Makefile-5005.pm 1.8
 
-2002-01-03 22:33  rcaputo
+    Re-revised the module categories. I know it's silly to think there
+    ever will be a wording that will satisfy everyone, but still I try.
+    :) 
 
-	* t/14_wheels_ft.t: increase the timeout to make tests more robust
+  2002-28-04 21:52:24 by rcaputo; POE/Wheel/ReadLine.pm 1.17
 
-2002-01-03 22:32  rcaputo
+    ReadLine now assumes vt100 if a TERM environment variable isn't set. 
 
-	* POE.pm: Bump the version number and halfheartedly revise the man
-	page.  The documentation project will make much of the man page
-	obsolete.
+  2002-28-04 21:49:51 by rcaputo; POE/Filter/Reference.pm 1.24
 
-2002-01-03 22:31  rcaputo
+    Document how easy it is to use YAML with Filter::Reference. Damn,
+    that's sexy. 
 
-	* Makefile.PL: fix e-mail address
+  2002-28-04 21:48:24 by rcaputo
+  POE/Component/Client/TCP.pm 1.13; POE/Component/Server/TCP.pm 1.21
 
-2002-01-03 22:31  rcaputo
+    Standardized the semantics of Filter and ClientFilter. Both may now
+    take a POE::Filter class instance or name. For class names, they try
+    building a standard (no parameters) instance of the class internally. 
 
-	* CHANGES: set the release date for 0.1702; prune old news
+  2002-28-04 21:36:31 by rcaputo; POE/Session.pm 1.77
 
-2002-01-03 21:15  rcaputo
+    Fixed a typo that Kane found in the docs. 
 
-	* README: fix some minor typos
+  2002-28-04 02:35:54 by rcaputo; lib/Makefile-5005.pm 1.7
 
-2002-01-03 21:13  rcaputo
+    ttyS on IRC was confused about the "Optional Full-Screen Child
+    Process Support" message, so I revised them all to be a little less
+    dense. 
 
-	* README: revise for imminent 0.1702 release
+  2002-26-04 19:45:36 by rcaputo
+  POE/Kernel.pm 1.180; t/04_selects.t 1.13
 
-2002-01-03 03:44  rcaputo
+    Scott Beck discovered a long-standing (but rarely, if ever heretofore
+    tickled) bug in POE::Kernel's _internal_select(). I tracked it down
+    to a leftover hash key that wasn't removed when necessary.
+    POE::Kernel now deletes it, and t/04_selects.t has a new test. 
 
-	* POE/NFA.pm: remove experimental synchronous stuff
+  2002-25-04 21:00:20 by rcaputo
+  POE/Wheel/Run.pm 1.31; t/22_wheel_run.t 1.22
 
-2002-01-02 14:06  rcaputo
+    After spending several days beating my head against the fork/exec
+    paradigm on Win32, I have finally concluded that it is not
+    consistently implemented from one Windows version to the next, making
+    it a veritable nightmare of twisty variations to work around. Neither
+    IPC::Open2, IPC::Open3, nor IPC::Run work across the myriad flavors
+    of "Win32", and I have neither the time nor inclination to attempt
+    success where three such modules-- all dedicated to performing this
+    very task, and it alone-- have failed. Arf fthagn poit! (Anyone who
+    does have the time or inclination to fix it is welcome to, though.) 
 
-	* t/14_wheels_ft.t: minor nit fix
+  2002-25-04 20:55:52 by rcaputo; lib/Makefile-5005.pm 1.6
 
-2002-01-01 14:19  rcaputo
+    Increase the required version for ExtUtils::AutoInstall. 
 
-	* samples/httpd.perl: remove a debugging warn
+  2002-24-04 12:45:19 by rcaputo
+  POE/Wheel/Run.pm 1.30; t/22_wheel_run.t 1.21
 
-2002-01-01 14:16  rcaputo
+    Added ARG4 to Wheel::Run's ErrorEvent. This extra parameter indicates
+    the child filehandle that generated the error. For example, "read"
+    error "0" on "STDOUT" means that the child's STDOUT was closed. I
+    also updated the Wheel::Run test to use CloseEvent instead of signals
+    to detect when a child was done. 
 
-	* t/06_tk.t: add a comment so something isn't erroneously corrected
+  2002-23-04 22:38:37 by rcaputo; POE/Wheel/Run.pm 1.29
 
-2001-12-20 04:15  rcaputo
+    I added CloseEvent to Wheel::Run. This should address a long-standing
+    issue where it was difficult to tell when child processes were done
+    sending information. 
 
-	* POE/Component/Server/TCP.pm: fix bad parameter scarfing in
-	shutdown
+  2002-23-04 19:06:10 by rcaputo; POE/Driver/SysRW.pm 1.20
 
-2001-12-19 04:09  rcaputo
+    Remove a spurious $|=1 leftover from testing. 
 
-	* CHANGES, POE/Component/Server/TCP.pm: Fixed a stupid closure
-	trick that made every Server::TCP session use the same filter
-	instance.
+  2002-23-04 18:48:50 by rcaputo; POE/NFA.pm 1.15; POE/Session.pm 1.76
 
-2001-12-18 22:16  rcaputo
+    Differentiate between package and object methods in an error message. 
 
-	* POE/Component/Server/TCP.pm: flag a server connection as shut
-	down on error
+  2002-23-04 01:41:04 by rcaputo; POE/Kernel.pm 1.179
 
-2001-12-18 20:55  rcaputo
+    Made some of the TRACE_SELECT warnings a little more descriptive. 
 
-	* POE/Component/: Client/TCP.pm, Server/TCP.pm: increase default
-	block sizes
+  2002-22-04 23:02:22 by rcaputo; MANIFEST 1.65;
+  lib/ExtUtils/AutoInstall.pm 1.1; lib/Makefile-5005.pm 1.5
 
-2001-12-16 20:20  rcaputo
+    Moved ExtUtils::AutoInstall to a location where it may be found with
+    a simple "use" statement. Also upgraded it to 0.32. 
 
-	* POE/Kernel/Select.pm: re-fix messages
+  2002-22-04 22:58:52 by rcaputo; t/09_wheels_unix.t 1.11
 
-2001-12-16 20:19  rcaputo
+    Make the "Windows don't do dat!" message a little more professional. 
 
-	* POE/Kernel/Select.pm: fix messages
+  2002-22-04 22:51:22 by rcaputo; t/06_tk.t 1.34
 
-2001-12-16 20:14  rcaputo
+    I confirmed that Tk's fileevent watchers are broken on Win32. POE's
+    Tk I/O tests fail without any reads, and the test is being run under
+    Win32, assume that the installed Tk is a broken one. In that case,
+    skip the tests rather than fail them. For all other situations
+    (including working Tk on Win32), the tests should behave normally. 
 
-	* CHANGES, POE/Kernel/Event.pm, POE/Kernel/Gtk.pm,
-	POE/Kernel/Select.pm, POE/Kernel/Tk.pm: add more traces to signals
-	stuff
+  2002-22-04 02:26:01 by rcaputo; POE/Wheel/FollowTail.pm 1.33
 
-2001-12-12 04:18  rcaputo
+    While writing a sample program for POE's cookbook, I found that
+    POE::Wheel::FollowTail would detect log resets even when none
+    happened. I revised the way log file resets are detected, and it
+    seems to work much better now. 
 
-	* POE/Wheel/Run.pm, CHANGES: set slave pty's window size
+  2002-21-04 19:18:01 by rcaputo; POE/Wheel/ReadLine.pm 1.16
 
-2001-12-10 19:07  rcaputo
+    Ekkis found a system where POSIX::Termios::getospeed() on STDIN
+    returned undef. Default the terminal output speed to 38400 in this
+    case. 
 
-	* POE/Kernel.pm: remove undef warnings in new ASSERT_DEFAULT code
+  2002-20-04 02:52:15 by rcaputo; lib/Makefile-5005.pm 1.4
 
-2001-12-10 19:02  rcaputo
+     Fixed the filename in the auto-generated CHANGES magic. That's still
+    commented out, though. "make dist" will fail if CHANGES isn't there
+    already; this is because it's in MANIFEST, and the Makefile won't
+    build an incomplete tarball. Added a bit of code to touch the CHANGES
+    file so it always exists after "perl Makefile.PL". That's also
+    commented out for now. 
 
-	* POE/Kernel.pm: -1 is not a process ID on Win32
+  2002-19-04 04:10:02 by rcaputo; lib/Makefile-5005.pm 1.3
 
-2001-12-08 21:18  rcaputo
+    Thanks to sungo, I was able to add magic to automatically generate
+    CHANGES from the cvs log. Requires a local copy of cvs2cl.pl. The
+    magic is commented out, however. We'll be hand-rolling CHANGES
+    through the next release since there's already much custom change doc
+    lovin' going on there. 
 
-	* CHANGES, POE/Kernel.pm: warn if misusing POE's built-in events
+  2002-19-04 03:59:03 by rcaputo; POE/Driver/SysRW.pm 1.19
 
-2001-12-08 03:15  rcaputo
+    Peter Barabas was going through POE's source and uncovered a logic
+    anomaly :) in Driver::SysRW. I made the logic clearer and hopefully
+    more correct, and I documented a strangeness between what's expected
+    of sysread() and what actually happens. 
 
-	* POE/Component/Client/TCP.pm: fix POD syntax errors
+  2002-18-04 01:34:19 by sungo; lib/Makefile-5005.pm 1.2
 
-2001-12-08 03:13  rcaputo
+    default the gtk/tk/event tests to not installing all their deps 
 
-	* t/08_errors.t: clear a new POE::Kernel constant between tests
+  2002-18-04 01:32:48 by sungo; Makefile.PL 1.23
 
-2001-12-08 03:12  rcaputo
+    drop the spurious warn from the makefile 
 
-	* POE/Kernel.pm: Skip some things that ActiveState Perl's POSIX
-	doesn't export.
+  2002-16-04 18:21:54 by rcaputo; Makefile.PL 1.22
 
-2001-12-06 18:12  rcaputo
+    Tone down the old-Perl warning. POE hasn't deprecated 5.004 just yet. 
 
-	* POE/Component/Client/TCP.pm: shut down wheels on errors
+  2002-16-04 17:44:12 by rcaputo; Makefile.PL 1.21
 
-2001-12-05 20:02  rcaputo
+    Change the deprecation warning back to pre-5.005_03. It was at
+    pre-5.005_05 for testing. 
 
-	* POE/Component/: Client/TCP.pm, Server/TCP.pm: don't bother
-	shutting down components that already are shut down
+  2002-16-04 17:38:47 by rcaputo; MANIFEST 1.64; Makefile.PL 1.20;
+  lib/Makefile-5004.pm 1.1; lib/Makefile-5005.pm 1.1
 
-2001-12-05 20:02  rcaputo
+    Added sungo's makefile magic. 
 
-	* POE/Kernel.pm: garbage collect event senders as well as their
-	receivers
+  2002-16-04 17:34:22 by rcaputo; POE/Wheel/Run.pm 1.28;
+  t/08_errors.t 1.31; t/11_signals_poe.t 1.20; t/12_signals_ev.t 1.14;
+  t/22_wheel_run.t 1.20; t/23_nfa.t 1.3
 
-2001-12-05 16:19  rcaputo
+    Various work-arounds for fork() not being supported under MacOS 9.x. 
 
-	* POE/Session.pm: document _stop problems
+  2002-12-04 12:52:44 by rcaputo
+  POE/Kernel.pm 1.178; POE/Session.pm 1.75; samples/tk.perl 1.8
 
-2001-12-05 16:19  rcaputo
+    Deprecate _signal event, and by association using _default to handle
+    signals. 
 
-	* POE/Component/: Client/TCP.pm, Server/TCP.pm: fix shutdown
-	semantics
+  2002-11-04 12:14:40 by rcaputo; POE/Kernel.pm 1.177
 
-2001-12-04 03:53  rcaputo
+    Alter ssid macro so it won't expand in a comment. 
 
-	* POE/Wheel/Run.pm: improve win32 support
+  2002-11-04 01:42:35 by rcaputo; POE/Component/Server/TCP.pm 1.20
 
-2001-12-04 03:52  rcaputo
+    Removed use of deprecated SuccessState and FailureState. Made them
+    SuccessEvent and FailureEvent instead. 
 
-	* POE/Kernel.pm: improve an internal error
+  2002-11-04 01:41:29 by rcaputo; t/01_sessions.t 1.17;
+  t/02_alarms.t 1.10; t/03_aliases.t 1.7; t/07_event.t 1.13
 
-2001-12-04 00:48  rcaputo
+    Remove implicit signal handling from the tests. 
 
-	* CHANGES: document changes
+  2002-11-04 01:40:26 by rcaputo; lib/deptest.perl 1.19
 
-2001-12-04 00:46  rcaputo
+    Remove mandatory tracing on Solaris since nobody has reported the
+    problem it was supposed to help track down for a while. 
 
-	* POE/Wheel/Run.pm: add more Windows compatibility
+  2002-11-04 01:39:04 by rcaputo; POE/Wheel/FollowTail.pm 1.32;
+  POE/Wheel/ListenAccept.pm 1.25; POE/Wheel/ReadWrite.pm 1.59;
+  POE/Wheel/SocketFactory.pm 1.55
 
-2001-12-04 00:45  rcaputo
+    Begin the next phase of FooState parameter deprecation in the POE
+    wheels. Now any use of FooState causes a carp. 
 
-	* POE/Component/Server/TCP.pm: add new dependent modules
+  2002-11-04 01:36:13 by rcaputo; POE/Kernel.pm 1.176
 
-2001-12-04 00:45  rcaputo
+    Make TRACE_ and ASSERT_FOO output more friendly.
 
-	* POE/Component/Client/TCP.pm: add the default error handler
-	(wasn't there)
+    Add sig_handled() and set things in motion for implicit signal
+    handling deprecations.
 
-2001-12-04 00:44  rcaputo
+    Document sig_handled() and finish documenting the changed signal
+    handling semantics. 
 
-	* POE/Driver.pm: document flush() error status
+  2002-13-03 21:06:27 by rcaputo; t/25_detach.t 1.3
 
-2001-12-04 00:44  rcaputo
+    Sessions just happened to be destroyed in the proper order for the
+    test to succeed, however, the order depeneded on the position of code
+    and memory use patterns. Altering signal dispatch changed the way
+    memory was used (and sessions were destroyed), uncovering the
+    problem. Revised the test to prevent nondeterministic session
+    destruction from causing future problems. 
 
-	* Makefile.PL: make Makefile.PL work better on MacOS
+  2002-13-03 21:04:06 by rcaputo; t/22_wheel_run.t 1.19
 
-2001-11-29 22:26  rcaputo
+    Add debugging information so that signal dispatch could be monitored.
+    This is part of the three-phase signal dispatch changes. 
 
-	* POE/Kernel/Select.pm: fix the bad file descriptor error in test
-	14
+  2002-13-03 21:03:20 by rcaputo; t/08_errors.t 1.30
 
-2001-11-29 15:25  rcaputo
+    Three-phase signal dispatch added new constants to POE::Kernel. Clean
+    those constants out of the package between error tests. 
 
-	* t/08_errors.t: just skip the tests on win32
+  2002-13-03 21:02:31 by rcaputo; POE/Kernel.pm 1.175
 
-2001-11-29 15:01  rcaputo
+    Implement three-phase signal dispatch. 
 
-	* t/08_errors.t: just skip the tests on win32
+=========================
+2002-27-02 00:23:45 v0_19
+=========================
 
-2001-11-29 14:58  rcaputo
+  2002-27-02 00:23:45 by rcaputo; POE.pm 1.136
 
-	* t/: 08_errors.t, 08_errors.t: just skip the tests on win32
+    Increase version to 0.19 
 
-2001-11-29 14:49  rcaputo
+  2002-27-02 00:20:37 by rcaputo; lib/deptest.perl 1.18
 
-	* t/08_errors.t: just skip the tests on win32
+    Add blib and blib/lib to lib/deptest.perl, making it more useful for
+    other modules. 
 
-2001-11-29 14:30  rcaputo
+  2002-06-02 00:06:21 by rcaputo; POE/Kernel.pm 1.174
 
-	* CHANGES: document many changes
+    Tweak the language in a comment. Nothing functional has changed. 
 
-2001-11-29 14:28  rcaputo
+  2002-06-02 00:02:42 by rcaputo; t/22_wheel_run.t 1.18
 
-	* POE/Filter/HTTPD.pm: apply Jason Boxman's URI patch
+    A half-hearted attempt at getting the test working on Win32. 
 
-2001-11-29 14:26  rcaputo
+  2002-05-02 23:59:18 by rcaputo; POE/Wheel/ReadLine.pm 1.15
 
-	* POE/Kernel.pm: Fix the cause of the signal() redefinition
-	warnings.  Was being defined by POSIX's signal_h import.
+    Rocco found and fixed a circular reference that prevented it (and
+    thus programs) from exeting cleanly. 
 
-2001-11-29 14:24  rcaputo
+  2002-05-02 23:56:49 by rcaputo; POE/Wheel/Curses.pm 1.10
 
-	* POE/Component/Client/TCP.pm: Filter parameter should not be a
-	coderef
+    Turn blocking back on for STDIN, or some curses libraries won't
+    properly refresh the display. 
 
-2001-11-29 14:23  rcaputo
+  2002-05-02 23:52:55 by rcaputo
+  POE/Pipe.pm 1.4; POE/Pipe/OneWay.pm 1.9; POE/Pipe/TwoWay.pm 1.11
 
-	* t/08_errors.t: updates so it doesn't crash on Windows
+    Apply TonyC's suggestion for improved Win32 compatibility. 
 
-2001-11-26 05:47  rcaputo
+  2002-05-02 23:46:43 by rcaputo; POE.pm 1.135
 
-	* CHANGES: document more changes
+    Updated Windows and MacOS support info. in POE's man page. 
 
-2001-11-26 05:46  rcaputo
+  2002-26-01 21:45:27 by rcaputo; POE/Kernel.pm 1.173
 
-	* POE/Filter/HTTPD.pm: Fix the double-protocol bug Jason Boxman
-	found.
+    Wrap binmode() in eval so that it won't die if a tied filehandle
+    doesn't support it. Don't call fcntl() on tied filehandles because
+    that leads to death also. 
 
-2001-11-26 05:45  rcaputo
+  2002-26-01 06:02:58 by rcaputo
+  POE/Kernel.pm 1.172; POE/Wheel/SocketFactory.pm 1.54
 
-	* POE/Wheel/Run.pm: fix a POD-o
+    Wrap binmode() in eval{} because tied filehandle classes may die in
+    it or fail to implement it altogether. Both of those conditions will
+    cause a fatal runtime error. 
 
-2001-11-26 05:17  rcaputo
+  2002-18-01 19:05:50 by rcaputo; POE/Wheel/ReadLine.pm 1.14
 
-	* POE/Wheel/SocketFactory.pm: fixed an unimplemented constant in
-	Win32 POSIX
+    Made ReadLine use a private copy of STDIN and STDOUT so that
+    redirecting them won't interfere with the console. 
 
-2001-11-24 05:35  rcaputo
+  2002-18-01 19:03:44 by rcaputo; POE/NFA.pm 1.14
 
-	* CHANGES: Document changes.
+    Add CALLER_FILE and CALLER_LINE parameters. Add a get_runstate()
+    method to fetch a machine's HEAP-like substance. 
 
-2001-11-24 05:35  rcaputo
+  2002-06-01 01:31:55 by rcaputo; POE/Session.pm 1.74
 
-	* POE/Component/: Client/TCP.pm, Server/TCP.pm: fix Ann's e-mail
-	address
+    Remove a blank line. 
 
-2001-11-24 05:34  rcaputo
+  2002-06-01 01:31:00 by rcaputo; POE/Kernel.pm 1.171
 
-	* t/08_errors.t: fix a typo in a skip message
+    Remove some deadwood. Apply a typo fix that Sungo spotted. 
 
-2001-11-24 05:33  rcaputo
+  2002-26-00 04:26:24 by rcaputo; POE/Kernel.pm 1.170
 
-	* POE.pm: credit more people
+    Redocument internal data structures. 
 
-2001-11-16 14:19  rcaputo
+  2002-26-00 04:25:53 by rcaputo; t/00_coverage.t 1.9
 
-	* POE/Preprocessor.pm: patch Preprocessor to die on an undefined
-	macro
+    Make missing termcap warnings less ugly. 
 
-2001-11-16 13:22  rcaputo
+  2002-26-00 04:25:34 by rcaputo; POE/Wheel/Curses.pm 1.9
 
-	* POE/Kernel.pm: add parameters to signal()
+    Experimental revision of curses initialization order. 
 
-2001-11-13 14:12  rcaputo
+  2002-26-00 04:25:08 by rcaputo; POE/Component/Client/TCP.pm 1.12
 
-	* POE/Component/: Client/TCP.pm, Server/TCP.pm: Add the ability to
-	define extra states.
+    Call the Disconnect callback on forced shutdown. 
 
-2001-11-13 03:04  rcaputo
+=========================
+2002-21-00 17:56:22 v0_18
+=========================
 
-	* CHANGES, samples/proxy.perl: Apply Miroslav Madzarevic's fix for
-	improper proxy session shutdown.
+  2002-21-00 17:56:22 by rcaputo; POE.pm 1.134
 
-2001-11-13 02:54  rcaputo
+    Bump the version to 0.18 
 
-	* CHANGES, MANIFEST, POE/Component/Client/TCP.pm,
-	POE/Component/Server/TCP.pm, POE/Filter/HTTPD.pm, t/26_comp_tcp.t:
-	Updated CHANGES.  Added new files to MANIFEST.	Added ReadWrite
-	code to Server::TCP.  Added extra-data dumping to Filter::HTTPD.
+  2002-21-00 17:55:33 by rcaputo; README 1.95
 
-2001-11-10 03:16  rcaputo
+    update for 0.18 release 
 
-	* t/11_signals_poe.t: turn off tracing
+  2002-21-00 05:58:38 by rcaputo; POE.pm 1.133
 
-2001-11-09 19:26  rcaputo
+    Bump version to 0.1703. Document cookbook. 
 
-	* CHANGES, t/19_filterchange.t: add MyOtherFreezer to
-	Filter::Reference instantiations
+  2002-21-00 05:52:20 by rcaputo; POE/Kernel.pm 1.169
 
-2001-11-09 15:16  rcaputo
+    Tweak alarm docs. 
 
-	* POE/Wheel/FollowTail.pm, POE/Wheel/ReadWrite.pm, t/06_tk.t,
-	t/07_event.t, t/10_wheels_tcp.t, t/11_signals_poe.t: Add default
-	Driver and Filter to ReadWrite and FollowTail.	Fix tests to
-	exercise defaults in ReadWrite.
+  2002-21-00 05:51:49 by rcaputo; POE/Wheel/Curses.pm 1.8
 
-2001-11-09 14:36  rcaputo
+    Add meta(1) so that international characters may be entered. 
 
-	* t/08_errors.t: fix test failure fixes
+  2002-13-00 06:13:26 by rcaputo; t/00_coverage.t 1.8
 
-2001-11-09 14:33  rcaputo
+    t/00_coverage.t test skips looked an awful lot like errors. Make this
+    class of skipped test look more reasonable. 
 
-	* t/08_errors.t, CHANGES: fix test failure when HTTP::Status is
-	missing
+  2002-11-00 20:39:45 by rcaputo; POE.pm 1.132; POE/Component.pm 1.5;
+  POE/Component/Client/TCP.pm 1.11; POE/Driver.pm 1.14;
+  POE/Driver/SysRW.pm 1.18; POE/Filter.pm 1.12; POE/Filter/Block.pm 1.10;
+  POE/Filter/Grep.pm 1.3; POE/Filter/HTTPD.pm 1.22;
+  POE/Filter/Line.pm 1.22; POE/Filter/Map.pm 1.3;
+  POE/Filter/RecordBlock.pm 1.3; POE/Filter/Reference.pm 1.23;
+  POE/Filter/Stackable.pm 1.3; POE/Filter/Stream.pm 1.11;
+  POE/Kernel.pm 1.168; POE/Kernel/Event.pm 1.15; POE/Kernel/Gtk.pm 1.15;
+  POE/Kernel/Select.pm 1.25; POE/Kernel/Tk.pm 1.20; POE/NFA.pm 1.13;
+  POE/Pipe.pm 1.3; POE/Pipe/OneWay.pm 1.8; POE/Pipe/TwoWay.pm 1.10;
+  POE/Preprocessor.pm 1.27; POE/Session.pm 1.73; POE/Wheel.pm 1.16;
+  POE/Wheel/Curses.pm 1.7; POE/Wheel/FollowTail.pm 1.31;
+  POE/Wheel/ListenAccept.pm 1.24; POE/Wheel/ReadLine.pm 1.13;
+  POE/Wheel/ReadWrite.pm 1.58; POE/Wheel/Run.pm 1.27;
+  POE/Wheel/SocketFactory.pm 1.53; lib/Devel/Null.pm 1.2;
+  lib/Devel/Trace.pm 1.7; lib/MyOtherFreezer.pm 1.3; lib/TestSetup.pm 1.9
 
-2001-11-08 17:14  rcaputo
+    propagate cvs version number as $VERSION 
 
-	* samples/proxy.perl: applied freeside's patch to allow hyphens in
-	hostnames
+  2002-11-00 20:16:34 by rcaputo; POE/Component/Server/TCP.pm 1.19
 
-2001-11-06 23:14  rcaputo
+    Add a $VERSION number. 
 
-	* CHANGES, POE/Kernel.pm: apply Ben Laurie's signal handling
-	algorithm
+  2002-05-00 17:56:41 by rcaputo; POE/Kernel.pm 1.167
 
-2001-11-02 21:09  rcaputo
+    increase LARGE_QUEUE_SIZE to 512 
 
-	* CHANGES: document changes
+  2002-05-00 04:39:43 by sungo; POE/Session.pm 1.72
 
-2001-11-02 21:07  rcaputo
+    add caller information to the state arguments 
 
-	* POE/Kernel.pm: fix a reference count mistake
+===========================
+2002-04-00 22:33:56 v0_1702
+===========================
 
-2001-11-01 18:22  rcaputo
+  2002-04-00 22:33:56 by rcaputo; POE/Driver/SysRW.pm 1.17;
+  samples/httpd.perl 1.15; samples/refsender.perl 1.14;
+  samples/refserver.perl 1.15
 
-	* CHANGES: document changes
+    fix my e-mail address 
 
-2001-11-01 18:21  rcaputo
+  2002-04-00 22:33:06 by rcaputo; t/14_wheels_ft.t 1.9
 
-	* POE/Kernel.pm: Consolidate and clean up comments in the SIGCHLD
-	polling logic.	Add and document TRACE_SIGNALS.
+    increase the timeout to make tests more robust 
 
-2001-11-01 18:20  rcaputo
+  2002-04-00 22:32:38 by rcaputo; POE.pm 1.131
 
-	* POE/Kernel/: Select.pm, Tk.pm: Clean up the SIGCHLD polling
-	logic.	Mostly meaningless source and comment restructuring.
+    Bump the version number and halfheartedly revise the man page. The
+    documentation project will make much of the man page obsolete. 
 
-2001-11-01 18:19  rcaputo
+  2002-04-00 22:31:20 by rcaputo; Makefile.PL 1.19
 
-	* t/11_signals_poe.t: Add a (commented out) TRACE_SIGNALS symbol
-	for testing new SIGCHLD polling logic.
+    fix e-mail address 
 
-2001-11-01 05:17  rcaputo
+  2002-04-00 21:15:00 by rcaputo; README 1.94
 
-	* CHANGES: document changes
+    fix some minor typos 
 
-2001-11-01 05:16  rcaputo
+  2002-04-00 21:13:09 by rcaputo; README 1.93
 
-	* POE/Wheel/ReadWrite.pm: Add pause_input() and resume_input()
-	methods and corresponding documentation.  They still need tests.
+    revise for imminent 0.1702 release 
 
-2001-11-01 05:15  rcaputo
+  2002-04-00 03:44:17 by rcaputo; POE/NFA.pm 1.12
 
-	* POE/Session.pm: Removed some of the mention of synchronous or
-	immediate events from the docs.
+    remove experimental synchronous stuff 
 
-2001-11-01 05:15  rcaputo
+  2002-03-00 14:06:01 by rcaputo; t/14_wheels_ft.t 1.8
 
-	* POE/Kernel.pm: Fix a syntax error from my previous commit. 
-	Removed most mention of synchronous or immediate events from the
-	docs.  This stuff needs a rewrite in a bad way.
+    minor nit fix 
 
-2001-10-31 22:59  rcaputo
+  2002-02-00 14:19:04 by rcaputo; samples/httpd.perl 1.14
 
-	* CHANGES: document changes
+    remove a debugging warn 
 
-2001-10-31 22:58  rcaputo
+  2002-02-00 14:16:39 by rcaputo; t/06_tk.t 1.33
 
-	* samples/forkbomb.perl: add an ASSERT_DEFAULT for fun
+    add a comment so something isn't erroneously corrected 
 
-2001-10-31 22:57  rcaputo
+  2001-21-11 04:15:46 by rcaputo; POE/Component/Server/TCP.pm 1.18
 
-	* POE/Kernel.pm: Remove enqueued events from filehandle watchers
-	that are being removed.  In other words, every file I/O event must
-	have a currently active corresponding watcher or it doesn't get
-	dispatched.
+    fix bad parameter scarfing in shutdown 
 
-2001-10-31 20:16  rcaputo
+  2001-20-11 04:09:01 by rcaputo; POE/Component/Server/TCP.pm 1.17
 
-	* t/00_coverage.t: add newer wheels
+    Fixed a stupid closure trick that made every Server::TCP session use
+    the same filter instance. 
 
-2001-10-31 19:36  rcaputo
+  2001-19-11 22:16:00 by rcaputo; POE/Component/Server/TCP.pm 1.16
 
-	* POE/Wheel/: Curses.pm, FollowTail.pm, ListenAccept.pm,
-	ReadLine.pm, ReadWrite.pm, Run.pm, SocketFactory.pm: Replace $self
-	as the unique identifier in Wheel/*.pm.  Instead it's the wheel's
-	unique ID from Wheel::allocate_unique_id().  Since I/O events are
-	enqueued now, it's possible to delete a wheel before its events are
-	all dispatched and create a new one with the exact same reference. 
-	The new wheel would receive an event for the old one.  Unique IDs
-	prevent this.
+    flag a server connection as shut down on error 
 
-2001-10-30 20:46  rcaputo
+  2001-19-11 20:55:57 by rcaputo
+  POE/Component/Client/TCP.pm 1.10; POE/Component/Server/TCP.pm 1.15
 
-	* CHANGES: document changes
+    increase default block sizes 
 
-2001-10-30 20:41  rcaputo
+  2001-17-11 20:20:46 by rcaputo; POE/Kernel/Select.pm 1.24
 
-	* t/08_errors.t: Replace symbols associated with %kr_handles...
-	with symbols associated with @kr_filenos.
+    re-fix messages 
 
-2001-10-30 20:40  rcaputo
+  2001-17-11 20:19:35 by rcaputo; POE/Kernel/Select.pm 1.23
 
-	* t/: 04_selects.t, 09_wheels_unix.t: add (and comment out) some
-	more handy debugging flags
+    fix messages 
 
-2001-10-30 20:40  rcaputo
+  2001-17-11 20:14:08 by rcaputo; POE/Kernel/Event.pm 1.14;
+  POE/Kernel/Gtk.pm 1.14; POE/Kernel/Select.pm 1.22;
+  POE/Kernel/Tk.pm 1.19
 
-	* POE/Kernel/: Event.pm, Gtk.pm, Select.pm, Tk.pm: Refactor macro
-	interfaces and guts to work from the new @kr_filenos structure
-	instead of the old %kr_handles one.
+    add more traces to signals stuff 
 
-2001-10-30 20:38  rcaputo
+  2001-13-11 04:18:59 by rcaputo; POE/Wheel/Run.pm 1.26
 
-	* POE/Kernel.pm: Change %kr_handles to @kr_filenos and update *all*
-	the logic to maintain the refactored data structure.
+    set slave pty's window size 
 
-2001-10-30 20:35  rcaputo
+  2001-11-11 19:07:19 by rcaputo; POE/Kernel.pm 1.166
 
-	* POE/Wheel/: Curses.pm, FollowTail.pm, ListenAccept.pm,
-	ReadLine.pm, ReadWrite.pm, Run.pm, SocketFactory.pm: add -> back
-	into event names
+    remove undef warnings in new ASSERT_DEFAULT code 
 
-2001-10-30 20:33  rcaputo
+  2001-11-11 19:02:11 by rcaputo; POE/Kernel.pm 1.165
 
-	* samples/tutorial-chat.perl, POE/Wheel.pm: fix a doc typo
+    -1 is not a process ID on Win32 
 
-2001-10-24 19:14  rcaputo
+  2001-09-11 21:18:36 by rcaputo; POE/Kernel.pm 1.164
 
-	* CHANGES: document GK's memory leak fix and collateral repairs
+    warn if misusing POE's built-in events 
 
-2001-10-24 19:13  rcaputo
+  2001-09-11 03:15:12 by rcaputo; POE/Component/Client/TCP.pm 1.9
 
-	* POE/Wheel/ReadWrite.pm: remove an unnecessary level of
-	indirection from the input state
+    fix POD syntax errors 
 
-2001-10-24 19:10  rcaputo
+  2001-09-11 03:13:33 by rcaputo; t/08_errors.t 1.29
 
-	* POE/Wheel.pm: fix a wheel id leak
+    clear a new POE::Kernel constant between tests 
 
-2001-10-24 19:10  rcaputo
+  2001-09-11 03:12:44 by rcaputo; POE/Kernel.pm 1.163
 
-	* samples/thrash.perl: Move the client count to a constant.  Add
-	dummy event handlers to mollify ASSERT_DEFAULT.  Add filehandle
-	leak detecting asserts.
+    Skip some things that ActiveState Perl's POSIX doesn't export. 
 
-2001-10-22 16:43  rcaputo
+  2001-07-11 18:12:49 by rcaputo; POE/Component/Client/TCP.pm 1.8
 
-	* CHANGES: document changes
+    shut down wheels on errors 
 
-2001-10-22 16:43  rcaputo
+  2001-06-11 20:02:56 by rcaputo
+  POE/Component/Client/TCP.pm 1.7; POE/Component/Server/TCP.pm 1.14
 
-	* t/08_errors.t: fix some symbol table cleanup for new symbols in
-	POE::Kernel
+    don't bother shutting down components that already are shut down 
 
-2001-10-22 16:42  rcaputo
+  2001-06-11 20:02:28 by rcaputo; POE/Kernel.pm 1.162
 
-	* POE/Kernel.pm: apostrophic jihad strikes again
+    garbage collect event senders as well as their receivers 
 
-2001-10-22 16:42  rcaputo
+  2001-06-11 16:19:43 by rcaputo; POE/Session.pm 1.71
 
-	* POE.pm: bump version to 0.1701
+    document _stop problems 
 
-2001-10-17 03:36  rcaputo
+  2001-06-11 16:19:14 by rcaputo
+  POE/Component/Client/TCP.pm 1.6; POE/Component/Server/TCP.pm 1.13
 
-	* CHANGES, POE/Kernel/Tk.pm: fix reference loop in filehandles
-	watched by Tk
+    fix shutdown semantics 
 
-2001-10-13 05:00  rcaputo
+  2001-05-11 03:53:10 by rcaputo; POE/Wheel/Run.pm 1.25
 
-	* CHANGES, POE/Wheel/FollowTail.pm: fix FollowTail to pass
-	freeside's test case
+    improve win32 support 
 
-2001-10-12 04:37  rcaputo
+  2001-05-11 03:52:21 by rcaputo; POE/Kernel.pm 1.161
 
-	* CHANGES, README, TODO: move unessential information to the web
+    improve an internal error 
 
-2001-10-11 17:03  rcaputo
+  2001-05-11 00:46:07 by rcaputo; POE/Wheel/Run.pm 1.24
 
-	* POE/Kernel.pm, POE/Kernel/Select.pm, CHANGES: make posted events
-	keep sessions alive
+    add more Windows compatibility 
 
-2001-10-11 04:28  rcaputo
+  2001-05-11 00:45:40 by rcaputo; POE/Component/Server/TCP.pm 1.12
 
-	* CHANGES: document changes
+    add new dependent modules 
 
-2001-10-11 04:26  rcaputo
+  2001-05-11 00:45:23 by rcaputo; POE/Component/Client/TCP.pm 1.5
 
-	* POE/Kernel/Select.pm: fix select assertions per Kirill
+    add the default error handler (wasn't there) 
 
-2001-10-11 04:25  rcaputo
+  2001-05-11 00:44:39 by rcaputo; POE/Driver.pm 1.13
 
-	* POE/Kernel.pm: fix alarm-not-found per Kirill
+    document flush() error status 
 
-2001-10-10 18:19  rcaputo
+  2001-05-11 00:44:23 by rcaputo; Makefile.PL 1.18
 
-	* CHANGES: document changes
+    make Makefile.PL work better on MacOS 
 
-2001-10-10 18:18  rcaputo
+  2001-30-10 22:26:37 by rcaputo; POE/Kernel/Select.pm 1.21
 
-	* POE/Wheel/Run.pm: work around a DESTROY-time undef warning
+    fix the bad file descriptor error in test 14 
 
-2001-10-10 18:17  rcaputo
+  2001-30-10 15:25:15 by rcaputo; t/08_errors.t 1.28
 
-	* POE/Wheel/FollowTail.pm: add capability to detect log resets
+    just skip the tests on win32 
 
-2001-10-01 12:50  rcaputo
+  2001-30-10 14:28:58 by rcaputo; POE/Filter/HTTPD.pm 1.21
 
-	* CHANGES: document changes, of course
+    apply Jason Boxman's URI patch 
 
-2001-10-01 12:50  rcaputo
+  2001-30-10 14:26:23 by rcaputo; POE/Kernel.pm 1.160
 
-	* POE/Kernel/Select.pm: set the minimum select() timeout on Linux
-	to 1 microsecond.  avoids a bug in Linux's select() syscall.
+    Fix the cause of the signal() redefinition warnings. Was being
+    defined by POSIX's signal_h import. 
 
-2001-10-01 12:49  rcaputo
+  2001-30-10 14:24:21 by rcaputo; POE/Component/Client/TCP.pm 1.4
 
-	* POE/NFA.pm: fix a confusing thinko in the docs
+    Filter parameter should not be a coderef 
 
-2001-10-01 12:48  rcaputo
+  2001-30-10 14:23:01 by rcaputo; t/08_errors.t 1.23
 
-	* POE/Kernel.pm: comment on some duplicated code
+    updates so it doesn't crash on Windows 
 
-2001-09-28 13:18  rcaputo
+  2001-27-10 05:46:38 by rcaputo; POE/Filter/HTTPD.pm 1.20
 
-	* CHANGES, POE/Kernel.pm, POE/Kernel/Gtk.pm, POE/Kernel/Select.pm,
-	POE/Kernel/Tk.pm: change 'state' to 'event' in places
+    Fix the double-protocol bug Jason Boxman found. 
 
-2001-09-27 16:28  rcaputo
+  2001-27-10 05:45:30 by rcaputo; POE/Wheel/Run.pm 1.23
 
-	* POE/Kernel.pm, POE/Kernel/Event.pm, POE/Kernel/Gtk.pm,
-	POE/Kernel/Select.pm, POE/Kernel/Tk.pm, t/08_errors.t: remove
-	obsolete idle watchers
+    fix a POD-o 
 
-2001-09-27 15:25  rcaputo
+  2001-27-10 05:17:28 by rcaputo; POE/Wheel/SocketFactory.pm 1.52
 
-	* CHANGES: document changes
+    fixed an unimplemented constant in Win32 POSIX 
 
-2001-09-27 15:07  rcaputo
+  2001-25-10 05:35:13 by rcaputo
+  POE/Component/Client/TCP.pm 1.3; POE/Component/Server/TCP.pm 1.11
 
-	* POE/Kernel.pm, POE/Kernel/Event.pm, POE/Kernel/Gtk.pm,
-	POE/Kernel/Select.pm, POE/Kernel/Tk.pm, t/08_errors.t: recombine
-	alarm and event queues
+    fix Ann's e-mail address 
 
-2001-09-27 15:06  rcaputo
+  2001-25-10 05:34:47 by rcaputo; t/08_errors.t 1.22
 
-	* POE/Wheel/SocketFactory.pm: make warnings more understandable
+    fix a typo in a skip message 
 
-2001-09-15 17:10  sungo
+  2001-25-10 05:33:32 by rcaputo; POE.pm 1.130
 
-	* POE/Preprocessor.pm: rocco's nits picked
+    credit more people 
 
-2001-09-10 18:21  rcaputo
+  2001-17-10 14:19:22 by rcaputo; POE/Preprocessor.pm 1.26
 
-	* POE/: Kernel.pm, Kernel/Event.pm, Kernel/Gtk.pm,
-	Kernel/Select.pm, Kernel/Tk.pm: patch SIGCHLD poll loop to only
-	spawn one timer if CHLD and CLD are present
+    patch Preprocessor to die on an undefined macro 
 
-2001-09-10 16:38  rcaputo
+  2001-17-10 13:22:17 by rcaputo; POE/Kernel.pm 1.159
 
-	* CHANGES, POE/Kernel.pm, POE/Kernel/Event.pm, POE/Kernel/Gtk.pm,
-	POE/Kernel/Select.pm, POE/Kernel/Tk.pm, t/01_sessions.t:
-	experimental SIGCHLD poll patch
+    add parameters to signal() 
 
-2001-09-10 16:06  rcaputo
+  2001-14-10 14:12:23 by rcaputo
+  POE/Component/Client/TCP.pm 1.2; POE/Component/Server/TCP.pm 1.10
 
-	* CHANGES: document more changes
+    Add the ability to define extra states. 
 
-2001-09-10 16:06  rcaputo
+  2001-14-10 03:04:23 by rcaputo; samples/proxy.perl 1.17
 
-	* POE/Component/Server/TCP.pm: dummy states to prevent warnings
+    Apply Miroslav Madzarevic's fix for improper proxy session shutdown. 
 
-2001-09-10 16:02  rcaputo
+  2001-14-10 02:54:29 by rcaputo; MANIFEST 1.63;
+  POE/Component/Client/TCP.pm 1.1; POE/Component/Server/TCP.pm 1.9;
+  POE/Filter/HTTPD.pm 1.19; t/26_comp_tcp.t 1.1
 
-	* POE/Wheel/ReadWrite.pm: TonyC's doc and carp patch
+    Updated CHANGES. Added new files to MANIFEST. Added ReadWrite code to
+    Server::TCP. Added extra-data dumping to Filter::HTTPD. 
 
-2001-09-10 16:02  rcaputo
+  2001-11-10 03:16:14 by rcaputo; t/11_signals_poe.t 1.19
 
-	* POE/Filter/HTTPD.pm: Sky's doc patch and content unmangling patch
+    turn off tracing 
 
-2001-09-10 16:01  rcaputo
+  2001-10-10 19:26:45 by rcaputo; t/19_filterchange.t 1.9
 
-	* CHANGES: document changes
+    add MyOtherFreezer to Filter::Reference instantiations 
 
-2001-09-10 14:44  sungo
+  2001-10-10 15:16:43 by rcaputo; POE/Wheel/FollowTail.pm 1.30;
+  POE/Wheel/ReadWrite.pm 1.57; t/06_tk.t 1.32; t/07_event.t 1.12;
+  t/10_wheels_tcp.t 1.12; t/11_signals_poe.t 1.18
 
-	* POE/Preprocessor.pm: added "isa" syntax to the import. allows
-	modules to import the macros and constants of another class
+    Add default Driver and Filter to ReadWrite and FollowTail. Fix tests
+    to exercise defaults in ReadWrite. 
 
-2001-09-03 20:53  rcaputo
+  2001-10-10 14:36:34 by rcaputo; t/08_errors.t 1.21
 
-	* TODO: Update the following sections: signal dispatching; safe
-	signals; how to distribute the TODO file's maintenance; pre-emptive
-	mul-ti-task-ing; administrivia (moving sites, etc.).
+    fix test failure fixes 
 
-2001-08-29 21:30  rcaputo
+  2001-10-10 14:33:35 by rcaputo; t/08_errors.t 1.20
 
-	* README: update test results, FreeBSD, Linux, Solaris
+    fix test failure when HTTP::Status is missing 
 
-2001-08-29 21:29  rcaputo
+  2001-09-10 17:14:10 by rcaputo; samples/proxy.perl 1.16
 
-	* POE.pm: bump the version to 0.17
+    applied freeside's patch to allow hyphens in hostnames 
 
-2001-08-29 21:29  rcaputo
+  2001-07-10 23:14:34 by rcaputo; POE/Kernel.pm 1.158
 
-	* CHANGES: finalize CHANGES for 0.17
+    apply Ben Laurie's signal handling algorithm 
 
-2001-08-29 20:15  rcaputo
+  2001-03-10 21:07:20 by rcaputo; POE/Kernel.pm 1.157
 
-	* CHANGES: document changes
+    fix a reference count mistake 
 
-2001-08-29 19:44  rcaputo
+  2001-02-10 18:21:49 by rcaputo; POE/Kernel.pm 1.156
 
-	* POE/Wheel/Run.pm: forced filehandle flushes before exiting a
-	child process (coderef execution)
+    Consolidate and clean up comments in the SIGCHLD polling logic. Add
+    and document TRACE_SIGNALS. 
 
-2001-08-29 19:43  rcaputo
+  2001-02-10 18:20:18 by rcaputo
+  POE/Kernel/Select.pm 1.20; POE/Kernel/Tk.pm 1.18
 
-	* README: added dynweb's solaris and titanic's linux test results
+    Clean up the SIGCHLD polling logic. Mostly meaningless source and
+    comment restructuring. 
 
-2001-08-29 19:40  rcaputo
+  2001-02-10 18:19:02 by rcaputo; t/11_signals_poe.t 1.17
 
-	* POE/Pipe.pm: Compared packed socket addresses on both ends of the
-	socketpair emulation function.	This works on FreeBSD and Solaris,
-	but it fails terribly on Linux.  Changed it to compare unpacked
-	port/address values.
+    Add a (commented out) TRACE_SIGNALS symbol for testing new SIGCHLD
+    polling logic. 
 
-2001-08-29 19:21  rcaputo
+  2001-02-10 05:16:48 by rcaputo; POE/Wheel/ReadWrite.pm 1.56
 
-	* TODO: document coral's idea for timesliced code
+    Add pause_input() and resume_input() methods and corresponding
+    documentation. They still need tests. 
 
-2001-08-29 13:45  rcaputo
+  2001-02-10 05:15:53 by rcaputo; POE/Session.pm 1.70
 
-	* POE/Kernel.pm: remove the double-run check from POE::Kernel
+    Removed some of the mention of synchronous or immediate events from
+    the docs. 
 
-2001-08-29 13:45  rcaputo
+  2001-02-10 05:15:08 by rcaputo; POE/Kernel.pm 1.155
 
-	* CHANGES: document changes
+    Fix a syntax error from my previous commit. Removed most mention of
+    synchronous or immediate events from the docs. This stuff needs a
+    rewrite in a bad way. 
 
-2001-08-29 13:29  rcaputo
+  2001-32-09 22:58:39 by rcaputo; samples/forkbomb.perl 1.13
 
-	* POE/Wheel/ReadLine.pm: added a gotchas/faq section to the docs
+    add an ASSERT_DEFAULT for fun 
 
-2001-08-29 13:28  rcaputo
+  2001-32-09 22:57:49 by rcaputo; POE/Kernel.pm 1.154
 
-	* TODO: Added POE::Monitor.  Added ideas to simplify POE::Kernel. 
-	Added ideas to split up POE::Kernel so bits of it can be
-	overridden/overloaded.	Added notes on multiple dispatch
-	optimization.  Document how 5.004 compatibility is holding back
-	development.  Documented Windows NT socket stupidity.
+    Remove enqueued events from filehandle watchers that are being
+    removed. In other words, every file I/O event must have a currently
+    active corresponding watcher or it doesn't get dispatched. 
 
-2001-08-29 13:25  rcaputo
+  2001-32-09 20:16:30 by rcaputo; t/00_coverage.t 1.7
 
-	* POE.pm, README: bump the version to 0.16
+    add newer wheels 
 
-2001-08-29 13:24  rcaputo
+  2001-32-09 19:36:06 by rcaputo; POE/Wheel/Curses.pm 1.6;
+  POE/Wheel/FollowTail.pm 1.29; POE/Wheel/ListenAccept.pm 1.23;
+  POE/Wheel/ReadLine.pm 1.12; POE/Wheel/ReadWrite.pm 1.55;
+  POE/Wheel/Run.pm 1.22; POE/Wheel/SocketFactory.pm 1.51
 
-	* CHANGES: finalize changes for 0.16
+    Replace $self as the unique identifier in Wheel/*.pm. Instead it's
+    the wheel's unique ID from Wheel::allocate_unique_id(). Since I/O
+    events are enqueued now, it's possible to delete a wheel before its
+    events are all dispatched and create a new one with the exact same
+    reference. The new wheel would receive an event for the old one.
+    Unique IDs prevent this. 
 
-2001-08-17 03:13  rcaputo
+  2001-31-09 20:41:47 by rcaputo; t/09_wheels_unix.t 1.10
 
-	* POE/Kernel/: Event.pm, Gtk.pm, Select.pm, Tk.pm: Add
-	substrate_reset_alarm_watcher to reset the next-alarm timer.
+    add (and comment out) some more handy debugging flags 
 
-2001-08-17 03:12  rcaputo
+  2001-31-09 20:41:29 by rcaputo; t/08_errors.t 1.19
 
-	* POE/Kernel.pm: Fix the way alarms interact with event loops.
+    Replace symbols associated with %kr_handles... with symbols
+    associated with @kr_filenos. 
 
-2001-08-17 03:10  rcaputo
+  2001-31-09 20:40:51 by rcaputo; t/04_selects.t 1.12
 
-	* TODO: Add notes about stream paradigms.  Document Artur's request
-	for instant writes.  Note that someone is working on POE-ized LDAP.
-	 Document the POE::Filter::Bisync idea from a longish mailing list
-	thread on synchronized streams.  Document the Asynchronous DBI
-	idea.  Document the possibility that filters' get() methods may be
-	depreciated.  Move "Make Filter Changing Usable" to the "done"
-	section.
+    add (and comment out) some more handy debugging flags 
 
-2001-08-17 03:07  rcaputo
+  2001-31-09 20:40:01 by rcaputo; POE/Kernel/Event.pm 1.13;
+  POE/Kernel/Gtk.pm 1.13; POE/Kernel/Select.pm 1.19;
+  POE/Kernel/Tk.pm 1.17
 
-	* README: Add dynweb's most recent test results.
+    Refactor macro interfaces and guts to work from the new @kr_filenos
+    structure instead of the old %kr_handles one. 
 
-2001-08-17 03:06  rcaputo
+  2001-31-09 20:38:58 by rcaputo; POE/Kernel.pm 1.153
 
-	* CHANGES: document changes
+    Change %kr_handles to @kr_filenos and update *all* the logic to
+    maintain the refactored data structure. 
 
-2001-08-12 16:28  rcaputo
+  2001-31-09 20:35:44 by rcaputo; POE/Wheel/Curses.pm 1.5;
+  POE/Wheel/FollowTail.pm 1.28; POE/Wheel/ListenAccept.pm 1.22;
+  POE/Wheel/ReadLine.pm 1.11; POE/Wheel/ReadWrite.pm 1.54;
+  POE/Wheel/Run.pm 1.21; POE/Wheel/SocketFactory.pm 1.50
 
-	* README: update test and coverage information
+    add -> back into event names 
 
-2001-08-12 12:55  rcaputo
+  2001-31-09 20:34:02 by rcaputo
+  POE/Wheel.pm 1.15; samples/tutorial-chat.perl 1.11
 
-	* POE.pm: set the version number to 0.1502
+    fix a doc typo 
 
-2001-08-12 12:55  rcaputo
+  2001-25-09 19:13:41 by rcaputo; POE/Wheel/ReadWrite.pm 1.53
 
-	* CHANGES: set the release date for 0.1502
+    remove an unnecessary level of indirection from the input state 
 
-2001-08-12 02:16  rcaputo
+  2001-25-09 19:10:45 by rcaputo; POE/Wheel.pm 1.14
 
-	* CHANGES: document yet more changes
+    fix a wheel id leak 
 
-2001-08-12 01:59  rcaputo
+  2001-25-09 19:10:17 by rcaputo; samples/thrash.perl 1.12
 
-	* t/19_filterchange.t: Add streaming filter change tests.
+    Move the client count to a constant. Add dummy event handlers to
+    mollify ASSERT_DEFAULT. Add filehandle leak detecting asserts. 
 
-2001-08-12 01:58  rcaputo
+===========================
+2001-23-09 16:43:16 v0_1701
+===========================
 
-	* POE/Wheel/ReadWrite.pm: Update set_filter and set_input_filter to
-	transfer pending input buffer data with get_one_start() and
-	get_one() if they're available instead of the ickier get().
+  2001-23-09 16:43:16 by rcaputo; t/08_errors.t 1.18
 
-2001-08-11 22:48  rcaputo
+    fix some symbol table cleanup for new symbols in POE::Kernel 
 
-	* CHANGES: document changes
+  2001-23-09 16:42:58 by rcaputo; POE/Kernel.pm 1.152
 
-2001-08-11 22:46  rcaputo
+    apostrophic jihad strikes again 
 
-	* TODO: s/depreciat/deprecat/g; Update status of wheels, signals,
-	and other design changes.  Categorize miscellaneous stuff. 
-	Document ideas for session relationships.  Talk about named state
-	parameters.
+  2001-23-09 16:42:26 by rcaputo; POE.pm 1.129
 
-2001-08-11 22:40  rcaputo
+    bump version to 0.1701 
 
-	* CHANGES, POE/Kernel.pm, POE/Session.pm, POE/Wheel/FollowTail.pm,
-	POE/Wheel/ListenAccept.pm, POE/Wheel/ReadWrite.pm,
-	POE/Wheel/SocketFactory.pm: s/depreciat/deprecat/g;
+  2001-18-09 03:36:09 by rcaputo; POE/Kernel/Tk.pm 1.16
 
-2001-08-08 15:46  rcaputo
+    fix reference loop in filehandles watched by Tk 
 
-	* TODO: Update signal ideas.  Document plans for the successor to
-	POE::Wheel::Xyz.  Document POE::Semaphore.  Document POE::Nexus (a
-	bad name for subscribe/broadcast monitoring).
+  2001-14-09 05:00:34 by rcaputo; POE/Wheel/FollowTail.pm 1.27
 
-2001-08-07 03:33  rcaputo
+    fix FollowTail to pass freeside's test case 
 
-	* CHANGES: document changes :)
+  2001-13-09 04:37:52 by rcaputo; README 1.92; TODO 1.33
 
-2001-08-07 03:32  rcaputo
+    move unessential information to the web 
 
-	* POE/Wheel/ReadLine.pm: add a clear() method to clear the terminal
+  2001-12-09 17:04:13 by rcaputo
+  POE/Kernel.pm 1.151; POE/Kernel/Select.pm 1.18
 
-2001-08-07 03:32  rcaputo
+    make posted events keep sessions alive 
 
-	* TODO: add uncategorized user requests
+  2001-12-09 04:26:19 by rcaputo; POE/Kernel/Select.pm 1.17
 
-2001-08-05 20:29  rcaputo
+    fix select assertions per Kirill 
 
-	* CHANGES: document yet more changes
+  2001-12-09 04:25:47 by rcaputo; POE/Kernel.pm 1.150
 
-2001-08-05 20:29  rcaputo
+    fix alarm-not-found per Kirill 
 
-	* POE/Wheel/: Curses.pm, ReadLine.pm: Pass filehandles by
-	reference, or things tend to break.
+  2001-11-09 18:18:39 by rcaputo; POE/Wheel/Run.pm 1.20
 
-2001-08-05 20:28  rcaputo
+    work around a DESTROY-time undef warning 
 
-	* README: freebsd tests with Event 0.83 now
+  2001-11-09 18:17:54 by rcaputo; POE/Wheel/FollowTail.pm 1.26
 
-2001-08-05 03:34  rcaputo
+    add capability to detect log resets 
 
-	* CHANGES: document another change
+  2001-02-09 12:50:19 by rcaputo; POE/Kernel/Select.pm 1.16
 
-2001-08-05 03:33  rcaputo
+    set the minimum select() timeout on Linux to 1 microsecond. avoids a
+    bug in Linux's select() syscall. 
 
-	* POE/Wheel/Run.pm: add a kill() method
+  2001-02-09 12:49:39 by rcaputo; POE/NFA.pm 1.11
 
-2001-08-05 03:33  rcaputo
+    fix a confusing thinko in the docs 
 
-	* README: update freebsd test results for Gtk 0.7008
+  2001-02-09 12:48:54 by rcaputo; POE/Kernel.pm 1.149
 
-2001-08-03 14:52  rcaputo
+    comment on some duplicated code 
 
-	* CHANGES: document changes again
+  2001-29-08 13:18:53 by rcaputo; POE/Kernel.pm 1.148;
+  POE/Kernel/Gtk.pm 1.12; POE/Kernel/Select.pm 1.15;
+  POE/Kernel/Tk.pm 1.15
 
-2001-08-03 14:51  rcaputo
+    change 'state' to 'event' in places 
 
-	* POE/Pipe/: OneWay.pm, TwoWay.pm: added Philip Gwyn's debugging
-	patches
+  2001-28-08 16:28:42 by rcaputo; POE/Kernel.pm 1.147;
+  POE/Kernel/Event.pm 1.12; POE/Kernel/Gtk.pm 1.11;
+  POE/Kernel/Select.pm 1.14; POE/Kernel/Tk.pm 1.14; t/08_errors.t 1.17
 
-2001-08-03 03:45  rcaputo
+    remove obsolete idle watchers 
 
-	* CHANGES: Document changes, of course.
+  2001-28-08 15:07:43 by rcaputo; POE/Kernel.pm 1.146;
+  POE/Kernel/Event.pm 1.11; POE/Kernel/Gtk.pm 1.10;
+  POE/Kernel/Select.pm 1.13; POE/Kernel/Tk.pm 1.13; t/08_errors.t 1.16
 
-2001-08-03 03:44  rcaputo
+    recombine alarm and event queues 
 
-	* t/22_wheel_run.t: Change the -e delimiter on Windows to a double
-	quote.	Booger.
+  2001-28-08 15:06:14 by rcaputo; POE/Wheel/SocketFactory.pm 1.49
 
-2001-08-03 03:44  rcaputo
+    make warnings more understandable 
 
-	* README: Document Mac OS X test results.
+  2001-16-08 17:10:56 by sungo; POE/Preprocessor.pm 1.25
 
-2001-08-01 15:23  rcaputo
+    rocco's nits picked 
 
-	* CHANGES: document some windows compatibility changes
-
-2001-08-01 15:22  rcaputo
-
-	* t/08_errors.t: try to avoid the windows equivalent of a coredump
-
-2001-08-01 15:22  rcaputo
-
-	* POE/Wheel/SocketFactory.pm: commented some of the strange
-	data-driven features
-
-2001-08-01 02:03  rcaputo
-
-	* CHANGES: document changes :)
-
-2001-08-01 02:02  rcaputo
-
-	* MANIFEST: add POE::Pipe
-
-2001-08-01 02:01  rcaputo
-
-	* t/22_wheel_run.t: Turn on ASSERT_STATES and add dummy states for
-	events which didn't have handlers before.
-
-2001-08-01 02:00  rcaputo
-
-	* POE/Pipe/: OneWay.pm, TwoWay.pm: Use POE::Pipe's version of
-	socketpair if pipe() and socketpair() fail.  They should work on
-	Windows now.
-
-2001-08-01 01:59  rcaputo
-
-	* POE/Kernel.pm: Make the code which sets filehandles nonblocking
-	more robust.  Retry on EAGAIN.
-	
-	Fix a typo in the TRACE_PROFILE output.
-
-2001-08-01 01:57  rcaputo
-
-	* POE/Pipe.pm: add helper functions for POE::Pipe::OneWay and
-	::TwoWay
-
-2001-07-31 14:31  rcaputo
-
-	* CHANGES, POE/Filter/HTTPD.pm: Apply more of Anton Berezin's
-	patches to Filter::HTTPD.
-
-2001-07-31 04:56  rcaputo
-
-	* CHANGES, POE/Filter/HTTPD.pm: Apply Anton Berezin's patches to
-	Filter::HTTPD.
-
-2001-07-29 18:37  rcaputo
-
-	* t/02_alarms.t: make some changes, and then back them out.  all
-	that's left are some whitespace changes.
-
-2001-07-29 18:36  rcaputo
-
-	* POE/Kernel.pm: tweak a comment
-
-2001-07-29 18:35  rcaputo
-
-	* POE/Filter.pm: document get_one_start() and get_one() and why
-	they exist
-
-2001-07-29 18:34  rcaputo
-
-	* TODO: Develop the filter changing fix.
-	
-	Document Torvald Riegel's suggestion for automatic postbacks.  This
-	reminded me of POE::Message, which brought up a slew of repressed
-	memories about call() and yield(), so I documented all that too.
-	
-	Documented Artur's suggestion for a simpler PoCo::Server::TCP.
-	
-	Documented a general request for named parameters.  At least three
-	people have asked about them recently.
-
-2001-07-28 16:58  rcaputo
-
-	* CHANGES: document yet more changes
-
-2001-07-28 16:57  rcaputo
-
-	* lib/deptest.perl: try forward and back slashes just in case
-	File::Spec->catdir() disagrees with %INC
-
-2001-07-28 16:42  rcaputo
-
-	* CHANGES: document changes, of course
-
-2001-07-28 16:41  rcaputo
-
-	* samples/httpd.perl: updated the sample server to use the changed
-	Filter::HTTPD return values
-
-2001-07-28 16:40  rcaputo
-
-	* POE/Filter/HTTPD.pm: fixed error reporting, breaking the filter's
-	public interface (see manpage)
-
-2001-07-28 16:39  rcaputo
-
-	* README: updated dynweb's test results.  damn, he's fast.
-
-2001-07-27 21:09  rcaputo
-
-	* CHANGES: update release date for 0.1501
-
-2001-07-27 21:08  rcaputo
-
-	* README: update coverage results
-
-2001-07-27 20:27  rcaputo
-
-	* CHANGES: Document more changes.
-
-2001-07-27 20:25  rcaputo
-
-	* t/24_filter_stack.t: Added get_one_start() and get_one() tests
-	for discrete filters: Map and Grep.
-	
-	Added tests for Filter::Stackable's stack management methods: push,
-	pop, shift, unshift, filter_types, and filters.
-
-2001-07-27 20:23  rcaputo
-
-	* t/17_filter_ref.t: Added tests for get_one_start().
-
-2001-07-27 20:23  rcaputo
-
-	* t/15_filter_block.t: Added tests for get_one_start() and
-	get_one() methods.
-
-2001-07-27 20:22  rcaputo
-
-	* t/10_wheels_tcp.t: Added a test for the shutdown event.
-
-2001-07-27 20:21  rcaputo
-
-	* t/08_errors.t: Added several new tests.
-
-2001-07-27 20:21  rcaputo
-
-	* POE/Wheel/Run.pm: Using unsupported or unimplemented methods is
-	now an error.
-
-2001-07-27 20:20  rcaputo
-
-	* POE/Filter/HTTPD.pm: Increased severity of using unsupported
-	get_pending() method.
-
-2001-07-27 20:19  rcaputo
-
-	* POE/Session.pm: Made bad constructor parameter errors more
-	descriptive.
-
-2001-07-27 16:59  rcaputo
-
-	* CHANGES: Document changes, of course.
-
-2001-07-27 16:59  rcaputo
-
-	* POE/Wheel/FollowTail.pm: Fix some comments, but nothing important
-	has changed.
-
-2001-07-27 16:58  rcaputo
-
-	* POE/Filter/Stackable.pm: Comment why this filter doesn't use
-	get_one() etc.
-
-2001-07-27 16:58  rcaputo
-
-	* POE/Filter/HTTPD.pm: Fix some indenting.  Whee!
-
-2001-07-27 16:57  rcaputo
-
-	* TODO: Document fixing filter changing, and fix depreciation
-	language.
-
-2001-07-27 16:34  rcaputo
-
-	* POE/Wheel/ReadWrite.pm: Add support for get_one_start() and
-	get_one() to Wheel::ReadWrite.	It only uses these methods if the
-	input wheel supports them.  Otherwise it falls back to the older,
-	faster, but more dangerous get().
-
-2001-07-27 16:26  rcaputo
-
-	* POE/Filter/: Block.pm, Grep.pm, Line.pm, Map.pm, RecordBlock.pm,
-	Reference.pm, Stream.pm: Add get_one_start() and get_one() for the
-	alternate ReadWrite wheel reading method.  Switching to/from this
-	filter should be robust now.
-
-2001-07-27 03:59  rcaputo
-
-	* TODO: document change dependencies
-
-2001-07-26 20:15  rcaputo
-
-	* TODO: document change dependencies
-
-2001-07-26 19:06  rcaputo
-
-	* TODO: develop some of the ideas herein
-
-2001-07-25 21:53  rcaputo
-
-	* CHANGES, t/18_filter_line.t: fixed skipped compiled regexp tests
-	in t/18_filter_line.t
-
-2001-07-25 19:25  rcaputo
-
-	* CHANGES, lib/deptest.perl: make the diagnostic more meaningful
-	when a module cannot be found in %INC
-
-2001-07-25 16:26  rcaputo
-
-	* CHANGES: document changes, of course
-
-2001-07-25 16:26  rcaputo
-
-	* POE/: NFA.pm, Session.pm: Revert const and enum constants back to
-	Perl constant subs.  Profiling and coverage testing will be slower
-	(and maybe less accurate), but this is a necessary step towards a
-	POE::Session::Base class and inheritable session types.
-
-2001-07-25 15:52  rcaputo
-
-	* CHANGES: document changes, of course
-
-2001-07-25 15:51  rcaputo
-
-	* t/08_errors.t: Add Windows compatibility constants to the symbols
-	that must be cleared from POE::Kernel's namespace between tests.
-
-2001-07-25 15:50  rcaputo
-
-	* t/01_sessions.t: bypass the signals tests on Windows
-
-2001-07-25 15:50  rcaputo
-
-	* POE/Wheel/Run.pm: Wrap getpriority() and setpriority() calls in
-	an eval block so they don't kill programs running where those
-	syscalls aren't supported.  Namely Windows.
-
-2001-07-25 15:29  rcaputo
-
-	* POE/Pipe/: OneWay.pm, TwoWay.pm: socketpair() doesn't seem to do
-	the right thing for Windows systems; force pipes to use
-	IO::Socket::INET instead on Windows
-
-2001-07-25 15:28  rcaputo
-
-	* POE/Preprocessor.pm: Enhance runtime error messages so they show
-	the absolute line number in the macro definition file where the
-	error occurs.  Developers should be able to jump to that line in
-	the file and reach the offending code.
-
-2001-07-25 15:26  rcaputo
-
-	* README: add Windows testing information
-
-2001-07-24 20:16  rcaputo
-
-	* CHANGES: document changes, of course
-
-2001-07-24 20:15  rcaputo
-
-	* samples/preforkedserver.perl: remove an extra _stop in child
-	processes
-
-2001-07-24 20:14  rcaputo
-
-	* POE/Session.pm: move ARG0..ARG9 so they match NFA's, and document
-	that they need to be the same in both kinds of session
-
-2001-07-24 20:13  rcaputo
-
-	* POE/NFA.pm: document that the event handler parameter offsets
-	need to match Session's
-
-2001-07-24 20:12  rcaputo
-
-	* README: fix Solaris 8 test information
-
-2001-07-24 20:12  rcaputo
-
-	* TODO: documented an alternative signal propagation and handling
-	scheme; documented an alternative to yield()
-
-2001-07-18 18:44  rcaputo
-
-	* t/: 01_sessions.t, 03_aliases.t, 04_selects.t, 07_event.t,
-	10_wheels_tcp.t, 14_wheels_ft.t, 20_accept.t, 22_wheel_run.t,
-	23_nfa.t, 25_detach.t: fix tests so Kernel::ASSERT_DEFAULT doesn't
-	cause missing state warnings.  I'd used missing states on purpose,
-	and now they're noisy!
-
-2001-07-18 18:42  rcaputo
-
-	* POE/Kernel.pm: comment and documentation tweaks; no new
-	functionality
-
-2001-07-18 18:41  rcaputo
-
-	* TODO: document the need for a POE that can facilitate one-liners
-
-2001-07-18 18:41  rcaputo
-
-	* POE.pm: bump version to 0.1501
-
-2001-07-18 18:40  rcaputo
-
-	* CHANGES: document ASSERT_STATES change
-
-2001-07-18 18:40  rcaputo
-
-	* POE/Session.pm: add ASSERT_DEFAULT and ASSERT_STATES
-
-2001-07-17 19:05  rcaputo
-
-	* TODO: document implicit sessions
-
-2001-07-17 15:14  rcaputo
-
-	* CHANGES: document HTTPD patch
-
-2001-07-17 15:12  rcaputo
-
-	* POE/Filter/HTTPD.pm: document get() method, and apply a patch
-	from Anton Berezin
-
-2001-07-16 19:02  rcaputo
-
-	* TODO: rewrite the input flow control notes
-
-2001-07-15 20:30  rcaputo
-
-	* POE/Filter/Reference.pm: apply Philip Gwyn's patch for better
-	external data marshaller support
-
-2001-07-15 20:29  rcaputo
-
-	* POE/Kernel.pm: all i did was fix a comment, honest!
-
-2001-07-15 19:46  rcaputo
-
-	* TODO: Rewrite the introduction.  Hopefully it'll be easier to
-	understand.  Edit the change schedules for readability, and add
-	dates now that 0.15 is being released.
-
-2001-07-15 19:43  rcaputo
-
-	* README: tweak the testing and coverage results; edit for
-	readability
-
-2001-07-15 19:42  rcaputo
-
-	* POE.pm: bump the version te 0.15
-
-2001-07-15 19:23  rcaputo
-
-	* CHANGES: add 0.15 release info
-
+=============================
+Beginning of Recorded History
+=============================

@@ -1,4 +1,4 @@
-# $Id: Session.pm,v 1.78 2002/05/29 05:24:10 rcaputo Exp $
+# $Id: Session.pm,v 1.79 2002/08/04 18:55:40 rcaputo Exp $
 
 package POE::Session;
 use POE::Preprocessor;
@@ -6,7 +6,7 @@ use POE::Preprocessor;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.78 $ ))[1];
+$VERSION = (qw($Revision: 1.79 $ ))[1];
 
 use Carp qw(carp croak);
 use POSIX qw(ENOSYS);
@@ -585,7 +585,7 @@ sub _invoke_state {
   # Inline states are invoked this way.
 
   if (ref($self->[SE_STATES]->{$state}) eq 'CODE') {
-    return &{$self->[SE_STATES]->{$state}}
+    return $self->[SE_STATES]->{$state}->
       ( undef,                          # object
         $self,                          # session
         $POE::Kernel::poe_kernel,       # kernel

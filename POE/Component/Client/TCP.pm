@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.14 2002/06/18 22:18:37 rcaputo Exp $
+# $Id: TCP.pm,v 1.21 2002/09/12 02:46:24 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.14 $ ))[1];
+$VERSION = (qw($Revision: 1.21 $ ))[1];
 
 use Carp qw(carp croak);
 
@@ -39,9 +39,12 @@ sub new {
     unless exists $param{RemotePort};
 
   # Extract parameters.
-  my $alias   = delete $param{Alias};
-  my $address = delete $param{RemoteAddress};
-  my $port    = delete $param{RemotePort};
+  my $alias        = delete $param{Alias};
+  my $address      = delete $param{RemoteAddress};
+  my $port         = delete $param{RemotePort};
+  my $domain       = delete $param{Domain};
+  my $bind_address = delete $param{BindAddress};
+  my $bind_port    = delete $param{BindPort};
 
   foreach ( qw( Connected ConnectError Disconnected ServerInput
                 ServerError ServerFlushed
@@ -96,7 +99,7 @@ sub new {
   }
 
   $conn_error_callback = \&_default_error unless defined $conn_error_callback;
-  $error_callback      = \&_default_error unless defined $error_callback;
+  $error_callback      = \&_default_io_error unless defined $error_callback;
 
   $disc_callback  = sub {} unless defined $disc_callback;
   $conn_callback  = sub {} unless defined $conn_callback;
@@ -108,7 +111,8 @@ sub new {
   POE::Session->create
     ( inline_states =>
       { _start => sub {
-          my $kernel = $_[KERNEL];
+          my ($kernel, $heap) = @_[KERNEL, HEAP];
+          $heap->{shutdown_on_error} = 1;
           $kernel->alias_set( $alias ) if defined $alias;
           $kernel->yield( 'reconnect' );
         },
@@ -127,9 +131,19 @@ sub new {
           $heap->{server} = POE::Wheel::SocketFactory->new
             ( RemoteAddress => $address,
               RemotePort    => $port,
+              SocketDomain  => $domain,
+              BindAddress   => $bind_address,
+              BindPort      => $bind_port,
               SuccessEvent  => 'got_connect_success',
               FailureEvent  => 'got_connect_error',
             );
+        },
+
+        connect => sub {
+          my ($new_address, $new_port) = @_[ARG0, ARG1];
+          $address = $new_address if defined $new_address;
+          $port    = $new_port    if defined $new_port;
+          $_[KERNEL]->yield("reconnect");
         },
 
         got_connect_success => sub {
@@ -157,19 +171,8 @@ sub new {
         },
 
         got_server_error => sub {
-          my ($heap, $operation, $errnum) = @_[HEAP, ARG0, ARG1];
-
-          $heap->{connected} = 0;
-
-          # Read error 0 is disconnect.
-          if ($operation eq 'read' and $errnum == 0) {
-            $disc_callback->(@_);
-          }
-          else {
-            $error_callback->(@_);
-          }
-
-          delete $heap->{server};
+          $error_callback->(@_);
+          $_[KERNEL]->yield("shutdown") if $_[HEAP]->{shutdown_on_error};
         },
 
         got_server_input => sub {
@@ -219,6 +222,13 @@ sub _default_error {
   delete $_[HEAP]->{server};
 }
 
+sub _default_io_error {
+  my ($syscall, $errno, $error) = @_[ARG0..ARG2];
+  $error = "Normal disconnection" unless $errno;
+  warn('Client ', $_[SESSION]->ID, " got $syscall error $errno ($error)\n");
+  $_[KERNEL]->yield("shutdown");
+}
+
 1;
 
 __END__
@@ -236,6 +246,7 @@ POE::Component::Client::TCP - a simplified TCP client
   POE::Component::Client::TCP->new
     ( RemoteAddress => "127.0.0.1",
       RemotePort    => "chargen",
+      Domain        => AF_INET,      # Optional.
       ServerInput   => sub {
         my $input = $_[ARG0];
         print "from server: $input\n";
@@ -247,6 +258,9 @@ POE::Component::Client::TCP - a simplified TCP client
   POE::Component::Client::TCP->new
     ( RemoteAddress => "127.0.0.1",
       RemotePort    => "chargen",
+      BindAddress   => "127.0.0.1",
+      BindPort      => 8192,
+      Domain        => AF_INET,     # Optional.
 
       Connected     => \&handle_connect,
       ConnectError  => \&handle_connect_error,
@@ -291,14 +305,19 @@ POE::Component::Client::TCP - a simplified TCP client
 
   # Reserved HEAP variables:
 
-  $heap->{server}   = ReadWrite wheel representing the server
-  $heap->{shutdown} = shutdown flag (check to see if shutting down)
-  $heap->{connected} = connected flag (check to see if session is connected)
+  $heap->{server}    = ReadWrite wheel representing the server.
+  $heap->{shutdown}  = Shutdown flag (check to see if shutting down).
+  $heap->{connected} = Connected flag (check to see if session is connected).
+  $heap->{shutdown_on_error} = Automatically disconnect on error.
 
   # Accepted public events.
 
   $kernel->yield( "shutdown" )   # shut down a connection
   $kernel->yield( "reconnect" )  # reconnect to a server
+
+  # Responding to a server.
+
+  $heap->{server}->put(@things_to_send);
 
 =head1 DESCRIPTION
 
@@ -320,6 +339,14 @@ Alias is an optional component alias.  It's used to post events to the
 TCP client component from other sessions.  The most common use of
 Alias is to allow a client component to receive "shutdown" and
 "reconnect" events from a user interface session.
+
+=item BindAddress
+
+=item BindPort
+
+Specifies the local interface address and/or port to bind to before
+connecting.  This allows the client's connection to come from specific
+addresses on a multi-host system.
 
 =item ConnectError
 
@@ -370,6 +397,17 @@ example, this reconnects after waiting a minute:
 
 The component will shut down after disconnecting if a reconnect isn't
 requested.
+
+=item Domain
+
+Specifies the domain within which communication will take place.  It
+selects the protocol family which should be used.  Currently supported
+values are AF_INET, AF_INET6, PF_INET or PF_INET6.  This parameter is
+optional and will default to AF_INET if omitted.
+
+Note: AF_INET6 and PF_INET6 are supplied by the Socket6 module, which
+is available on the CPAN.  You must have Socket6 loaded before
+POE::Component::Server::TCP will create IPv6 sockets.
 
 =item Filter
 

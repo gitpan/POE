@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 12_signals_ev.t,v 1.15 2002/05/30 06:29:40 rcaputo Exp $
+# $Id: 12_signals_ev.t,v 1.16 2002/07/15 23:20:11 rcaputo Exp $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -12,10 +12,10 @@ use TestSetup;
 BEGIN {
   eval 'use Event';
   unless (exists $INC{'Event.pm'}) {
-    test_setup(0, 'the optional Event module is not installed');
+    test_setup(0, "Event is needed for these tests.");
   }
-  test_setup(0, "Windows doesn't support signals") if $^O eq 'MSWin32';
-  test_setup(0, "MacOS doesn't support fork") if $^O eq 'MacOS';
+  test_setup(0, "$^O does not support signals.") if $^O eq "MSWin32";
+  test_setup(0, "$^O does not support fork.") if $^O eq "MacOS";
 };
 
 # Turn on all asserts.
@@ -38,9 +38,9 @@ my $start_time = time();
 warn( "\n",
       "***\n",
       "*** This test tries to compensate for slow machines.  It times its\n",
-      "*** first test and uses that as its timeout for subsequent ones.\n",
-      "*** It may take a while on slow or resource-starved machines.\n",
-      "*** It may even fail if it guesses the time wrongly.\n",
+      "*** first test and uses that as its timeout for subsequent tests.\n",
+      "*** This test may take a while on slow or resource-starved machines.\n",
+      "*** It may even fail if it incorrectly estimates its timeouts.\n",
       "***\n"
     );
 

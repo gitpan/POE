@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.25 2002/06/18 21:59:02 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.27 2002/09/03 04:39:23 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -12,11 +12,12 @@
 # and from HTTPD filters, they should say so on POE's mailing list.
 
 package POE::Filter::HTTPD;
+use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.25 $ ))[1];
+$VERSION = (qw($Revision: 1.27 $ ))[1];
 
 use Carp qw(croak);
 use HTTP::Status;
@@ -44,6 +45,8 @@ sub new {
 sub get {
   my ($self, $stream) = @_;
 
+  {% use_bytes %}
+
   local($_);
 
   # Sanity check.  "finish" is set when a request has completely
@@ -58,7 +61,8 @@ sub get {
 
     # return [] unless @$stream and grep /\S/, @$stream;
 
-    my (@dump, $offset);
+    my @dump;
+    my $offset = 0;
     $stream = join("", @$stream);
     while (length $stream) {
       my $line = substr($stream, 0, 16);
@@ -243,6 +247,8 @@ sub _http_version {
 
 sub build_basic_response {
   my ($self, $content, $content_type, $status) = @_;
+
+  {% use_bytes %}
 
   $content_type ||= 'text/html';
   $status       ||= RC_OK;

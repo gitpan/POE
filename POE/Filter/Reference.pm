@@ -1,14 +1,15 @@
-# $Id: Reference.pm,v 1.24 2002/05/27 21:49:51 rcaputo Exp $
+# $Id: Reference.pm,v 1.26 2002/07/31 20:05:22 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
 
 package POE::Filter::Reference;
+use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.24 $ ))[1];
+$VERSION = (qw($Revision: 1.26 $ ))[1];
 
 use Carp qw(carp croak);
 
@@ -19,12 +20,12 @@ sub _default_freezer {
   local $SIG{'__DIE__'} = 'DEFAULT';
   my $ret;
 
-  foreach my $p (qw(Storable FreezeThaw)) {
+  foreach my $p (qw(Storable FreezeThaw YAML)) {
     eval { require "$p.pm"; import $p (); };
     warn $@ if $@;
     return $p if $@ eq '';
   }
-  die "Filter::Reference requires Storable or FreezeThaw";
+  die "Filter::Reference requires Storable, FreezeThaw, or YAML";
 }
 
 #------------------------------------------------------------------------------
@@ -122,6 +123,8 @@ sub get {
   my ($self, $stream) = @_;
   my @return;
 
+  {% use_bytes %}
+
   $self->{buffer} .= join('', @$stream);
 
   while ( defined($self->{expecting}) ||
@@ -155,6 +158,8 @@ sub get_one_start {
 sub get_one {
   my $self = shift;
 
+  {% use_bytes %}
+
   while ( defined($self->{expecting}) ||
           ( ($self->{buffer} =~ s/^(\d+)\0//s) &&
             ($self->{expecting} = $1)
@@ -178,6 +183,8 @@ sub get_one {
 
 sub put {
   my ($self, $references) = @_;
+
+  {% use_bytes %}
 
   my @raw = map {
     my $frozen = $self->{freeze}->($_);
@@ -263,10 +270,10 @@ method as well as either an nfreeze() or freeze() method.
   my $filter = POE::Filter::Reference->new($object);
 
 If SERIALIZER is omitted or undef, the Reference filter will try to
-use Storable.  If storable isn't found, it will try FreezeThaw.  And
-finally, if FreezeThaw is not found, it will die.
+use Storable, FreezeThaw, and YAML.  Filter::Reference will die if it
+cannot find one of these serializers.
 
-  # Use the default filter (either Storable or FreezeThaw).
+  # Use the default filter (either Storable, FreezeThaw, or YAML).
   my $filter = POE::Filter::Reference->new();
 
 Filter::Reference will try to compress frozen strings and uncompress
@@ -288,7 +295,7 @@ naming a serializer.
 
 For example:
 
-  # Use the default filter (either Storable or FreezeThaw).
+  # Use the default filter (either Storable, FreezeThaw, or YAML).
   my $filter = POE::Filter::Reference->new();
 
   # Use an object, with compression.
@@ -299,10 +306,8 @@ For example:
 
 The new() method will try to require any packages it needs.
 
-The default behavior is to try Storable first, FreezeThaw second, and
-fail if neither is present.  This is rapidly becoming moot because of
-the PM_PREREQ entry in Makefile.PL, which makes CPAN and ``make'' carp
-about requirements even when they aren't required.
+The default behavior is to try Storable first, FreezeThaw second, YAML
+third, and finally fail.
 
 =item *
 

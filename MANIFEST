@@ -1,4 +1,4 @@
-# $Id: MANIFEST,v 1.67 2002/06/01 22:04:25 rcaputo Exp $
+# $Id: MANIFEST,v 1.75 2002/09/03 04:40:04 rcaputo Exp $
 CHANGES
 MANIFEST
 Makefile.PL
@@ -25,6 +25,7 @@ POE/Kernel/Gtk.pm
 POE/Kernel/Poll.pm
 POE/Kernel/Select.pm
 POE/Kernel/Tk.pm
+POE/Macro/UseBytes.pm
 POE/NFA.pm
 POE/Pipe.pm
 POE/Pipe/OneWay.pm
@@ -47,9 +48,16 @@ lib/ExtUtils/AutoInstall.pm
 lib/Makefile-5004.pm
 lib/Makefile-5005.pm
 lib/MyOtherFreezer.pm
+lib/Test/Harness.pm
+lib/Test/Harness/Assert.pm
+lib/Test/Harness/Iterator.pm
+lib/Test/Harness/Straps.pm
 lib/TestSetup.pm
 lib/coverage.perl
+lib/cvs-log.perl
 lib/deptest.perl
+lib/reportupload.pl
+lib/testreport.pl
 samples/create.perl
 samples/fakelogin.perl
 samples/filterchange.perl
@@ -108,3 +116,4 @@ t/25_detach.t
 t/26_comp_tcp.t
 t/27_poll.t
 t/28_windows.t
+t/29_sockfact6.t

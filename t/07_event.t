@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 07_event.t,v 1.13 2002/05/10 01:41:29 rcaputo Exp $
+# $Id: 07_event.t,v 1.15 2002/08/20 19:37:32 rcaputo Exp $
 
 # Tests FIFO, alarm, select and postback events using Event's event
 # loop.
@@ -13,13 +13,13 @@ use TestSetup;
 # Skip if Event isn't here.
 BEGIN {
   eval 'use Event';
-  &test_setup(0, 'need the Event module installed to run this test')
+  &test_setup(0, "Event is needed for these tests")
     if ( length($@) or
          not exists($INC{'Event.pm'})
        );
 };
 
-&test_setup(6);
+&test_setup(8);
 
 # Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
@@ -151,12 +151,32 @@ POE::Session->create
     },
   );
 
-# Main loop.
-
+# First main loop.
 $poe_kernel->run();
-
-# Congratulate ourselves on a job completed, regardless of how well it
-# was done.
 print "ok 6\n";
 
+# Try a re-entrant version.
+POE::Session->create
+  ( inline_states =>
+    { _start => sub {
+        $_[HEAP]->{count} = 0;
+        $_[KERNEL]->yield("increment");
+      },
+      increment => sub {
+        my ($kernel, $heap) = @_[KERNEL, HEAP];
+        if ($heap->{count} < 10) {
+          $kernel->yield("increment");
+          $heap->{count}++;
+        }
+      },
+      _stop => sub {
+        print "not " unless $_[HEAP]->{count} == 10;
+        print "ok 7\n";
+      },
+    }
+  );
+
+# Verify that the main loop can run yet again.
+$poe_kernel->run();
+print "ok 8\n";
 exit;

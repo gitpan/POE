@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 17_filter_ref.t,v 1.4 2001/07/27 20:23:57 rcaputo Exp $
+# $Id: 17_filter_ref.t,v 1.5 2002/07/15 23:20:11 rcaputo Exp $
 
 # Exercises Filter::Reference without the rest of POE.
 
@@ -15,7 +15,9 @@ use TestSetup;
 { local $SIG{__WARN__} = sub { };
   my $reference = eval { POE::Filter::Reference->new(); };
   if (length $@) {
-    &test_setup(0, "can't test without either Storable or FreezeThaw")
+    &test_setup( 0,
+                 "Storable, FreezeThaw, or YAML is required for these tests."
+               )
       if $@ =~ /requires Storable/;
     $@ =~ s/ at .*$//s;
     &test_setup(0, $@);

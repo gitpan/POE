@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_sessions.t,v 1.19 2002/06/22 06:21:29 rcaputo Exp $
+# $Id: 01_sessions.t,v 1.21 2002/07/15 23:20:10 rcaputo Exp $
 
 # Tests basic compilation and events.
 
@@ -388,7 +388,7 @@ POE::Session->new
 # Main loop.
 
 $get_active_session_before = $poe_kernel->get_active_session() == $poe_kernel;
-$poe_kernel->run();
+POE::Kernel->run();
 $get_active_session_after = $poe_kernel->get_active_session() == $poe_kernel;
 
 #------------------------------------------------------------------------------
@@ -402,8 +402,8 @@ for (my $i=0; $i<$machine_count; $i++) {
 
 # Were all the signals caught?
 if ($^O eq 'MSWin32' or $^O eq 'MacOS') {
-  print "ok 11 # skipped: $^O doesn't support signals\n";
-  print "ok 12 # skipped: $^O doesn't support signals\n";
+  print "ok 11 # skipped: $^O does not support signals.\n";
+  print "ok 12 # skipped: $^O does not support signals.\n";
 }
 else {
   print 'not ' unless $sigalrm_caught == $event_count;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 18_filter_line.t,v 1.5 2001/07/25 21:53:26 rcaputo Exp $
+# $Id: 18_filter_line.t,v 1.6 2002/07/15 23:20:11 rcaputo Exp $
 
 # Exercises Filter::Line without the rest of POE.
 
@@ -146,7 +146,9 @@ if (defined $compiled_regexp) {
 }
 else {
   for (0..5) {
-    print "ok ", $base+$_, " # skipped: compiled regexps not supported\n";
+    print( "ok ", $base+$_,
+           " # skipped: Perl $] does not support compiled regexps.\n"
+         );
   }
 }
 
