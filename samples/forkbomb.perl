@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: forkbomb.perl,v 1.11 2000/01/23 18:30:07 rcaputo Exp $
+# $Id: forkbomb.perl,v 1.12 2000/11/03 21:59:02 rcaputo Exp $
 
 # This is another of the earlier test programs.  It creates a single
 # session whose job is to create more of itself.  There is a built-in
@@ -48,8 +48,8 @@ sub _stop {
 # This sub handles POE's standard _child event.  It acknowledges that
 # the session is gaining or losing a child session.
 
-my %english = ( lose => 'is losing',
-                gain => 'is gaining',
+my %english = ( lose   => 'is losing',
+                gain   => 'is gaining',
                 create => 'has created'
               );
 
@@ -161,14 +161,14 @@ sub fetch_id {
 # This is a helper function that creates a new forkbomber session.
 
 sub create_new_forkbomber {
-  new POE::Session( '_start'         => \&_start,
-                    '_stop'          => \&_stop,
-                    '_child'         => \&_child,
-                    '_parent'        => \&_parent,
-                    'signal_handler' => \&signal_handler,
-                    'fork'           => \&fork,
-                    'fetch_id'       => \&fetch_id,
-                  );
+  POE::Session->new( '_start'         => \&_start,
+                     '_stop'          => \&_stop,
+                     '_child'         => \&_child,
+                     '_parent'        => \&_parent,
+                     'signal_handler' => \&signal_handler,
+                     'fork'           => \&fork,
+                     'fetch_id'       => \&fetch_id,
+                   );
 }
 
 #==============================================================================

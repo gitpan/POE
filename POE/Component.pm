@@ -1,9 +1,10 @@
-# $Id: Component.pm,v 1.1 2000/03/08 22:28:31 rcaputo Exp $
+# $Id: Component.pm,v 1.2 2000/11/19 17:05:12 rcaputo Exp $
 # Copyrights and documentation are after __end__.
 
 package POE::Component;
 
 use strict;
+use Carp qw(croak);
 
 sub new {
   my $type = shift;

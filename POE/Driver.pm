@@ -1,8 +1,9 @@
-# $Id: Driver.pm,v 1.8 2000/06/17 20:05:46 rcaputo Exp $
+# $Id: Driver.pm,v 1.9 2000/09/01 19:53:53 rcaputo Exp $
 
 package POE::Driver;
 
 use strict;
+use Carp;
 
 #------------------------------------------------------------------------------
 

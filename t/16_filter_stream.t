@@ -1,10 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 16_filter_stream.t,v 1.1 2000/06/19 04:08:59 rcaputo Exp $
+# $Id: 16_filter_stream.t,v 1.2 2000/08/06 19:52:40 rcaputo Exp $
 
 # Exercises Filter::Stream without the rest of POE.
 
 use strict;
 use lib qw(./lib ../lib);
+
+sub POE::Kernel::TRACE_DEFAULT () { 1 } # not needed though
 use POE::Filter::Stream;
 
 use TestSetup;

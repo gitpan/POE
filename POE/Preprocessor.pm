@@ -1,4 +1,4 @@
-# $Id: Preprocessor.pm,v 1.9 2000/06/17 02:56:18 rcaputo Exp $
+# $Id: Preprocessor.pm,v 1.15 2000/10/31 03:04:28 rcaputo Exp $
 
 package POE::Preprocessor;
 
@@ -8,109 +8,110 @@ use Filter::Util::Call;
 sub MAC_PARAMETERS () { 0 }
 sub MAC_CODE       () { 1 }
 
-sub DEBUG     () { 0 }
-sub DEBUG_ROP () { 0 } # Regexp optimizer.
+sub STATE_PLAIN     () { 0x0000 }
+sub STATE_MACRO_DEF () { 0x0001 }
 
-# Create an optimal regexp to match a list of things.
-my $debug_level = 0;
+sub COND_FLAG   () { 0 }
+sub COND_LINE   () { 1 }
+sub COND_INDENT () { 2 }
 
-sub optimum_match {
-  my @sorted = sort { (length($b) <=> length($a)) || ($a cmp $b) } @_;
-  my @regexp;
-  my $width = 40 - $debug_level;
+BEGIN {
+  defined &DEBUG        or eval 'sub DEBUG        () { 0 }'; # preprocessor
+  defined &DEBUG_INVOKE or eval 'sub DEBUG_INVOKE () { 0 }'; # macro invocs
+  defined &DEBUG_DEFINE or eval 'sub DEBUG_DEFINE () { 0 }'; # macro defines
+};
 
-  DEBUG_ROP and do {
-    warn ' ' x $debug_level, "+-----\n";
-    warn ' ' x $debug_level, "| Given: @sorted\n";
-    warn ' ' x $debug_level, "+-----\n";
-  };
+# text_trie_trie is virtually identical to code in Ilya Zakharevich's
+# Text::Trie::Trie function.  The minor differences involve hardcoding
+# the minimum substring length to 1 and sorting the output.
 
-  while (@sorted) {
-    my $longest = $sorted[0];
+sub text_trie_trie {
+  my @list = @_;
+  return shift if @_ == 1;
+  my (@trie, %first);
 
-    DEBUG_ROP and do {
-      warn ' ' x $debug_level, "+-----\n";
-      warn( ' ' x $debug_level,
-            "| Longest : ",
-            sprintf("%-${width}s", unpack('H*', $longest)),
-            " ($longest)\n"
-          );
-    };
-
-    # Find the length of the longest match.
-    my $minimum_match_count = length $longest;
-    foreach (@sorted) {
-      my $xor = $_ ^ $longest;
-      if (($xor =~ /^(\000+)/) and (length($1) < $minimum_match_count)) {
-        $minimum_match_count = length($1);
-      }
+  foreach (@list) {
+    my $c = substr $_, 0, 1;
+    if (exists $first{$c}) {
+      push @{$first{$c}}, $_;
     }
-
-    DEBUG_ROP and
-      warn ' ' x $debug_level, "| sz_match: $minimum_match_count\n";
-
-    # Extract the things matching it.
-    my $minimum_match_string = substr($longest, 0, $minimum_match_count);
-    DEBUG_ROP and
-      warn ' ' x $debug_level, "| st_match: $minimum_match_string\n";
-
-    my @matches = grep /^$minimum_match_string/, @sorted;
-    @sorted = grep !/^$minimum_match_string/, @sorted;
-
-    # Only one match? Nothing to compare, or anything.
-    if (@matches == 1) {
-      DEBUG_ROP and warn ' ' x $debug_level, "| matches : $matches[0]\n";
-      push @regexp, $matches[0];
-    }
-
-    # More than one match? Recurse!
     else {
-      # Remove the common prefix.
-      my $matches_index = @matches;
-      while ($matches_index--) {
-        $matches[$matches_index] =~ s/^$minimum_match_string//;
-        splice(@matches, $matches_index, 1)
-          unless length $matches[$matches_index];
-      }
-
-      # If only one left now, then it's an optional prefix.
-      if (@matches == 1) {
-        my $sub_expression = "$minimum_match_string(?:$matches[0])?";
-        DEBUG_ROP and warn ' ' x $debug_level, "| option  : $sub_expression\n";
-        push @regexp, $sub_expression;
-      }
-      else {
-        DEBUG_ROP and warn ' ' x $debug_level, "| recurse : @matches\n";
-
-        $debug_level++;
-        my $sub_expression = &optimum_match(@matches);
-        $debug_level--;
-
-        # Build part of this regexp.
-        push @regexp, '(?:' . $minimum_match_string . $sub_expression . ')';
-      }
+      $first{$c} = [ $_ ];
     }
   }
 
-  my $sub_expression = '(?:' . join('|', @regexp). ')';
+  foreach (sort keys %first) {
+    # Find common substring
+    my $substr = $first{$_}->[0];
+    (push @trie, $substr), next if @{$first{$_}} == 1;
+    my $l = length($substr);
+    foreach (@{$first{$_}}) {
+      $l-- while substr($_, 0, $l) ne substr($substr, 0, $l);
+    }
+    $substr = substr $substr, 0, $l;
 
-  DEBUG_ROP and do {
-    warn ' ' x $debug_level, "+-----\n";
-    warn ' ' x $debug_level, "| Returns: $sub_expression\n";
-    warn ' ' x $debug_level, "+-----\n";
-  };
+    # Feed the trie.
+    @list = map {substr $_, $l} @{$first{$_}};
+    push @trie, [$substr, text_trie_trie(@list)];
+  }
 
-  $sub_expression;
+  @trie;
 }
 
+# This is basically Text::Trie::walkTrie, but it's hardcoded to build
+# regular expressions.
+
+sub text_trie_as_regexp {
+  my @trie   = @_;
+  my $num    = 0;
+  my $regexp = '';
+
+  foreach (@trie) {
+    $regexp .= '|' if $num++;
+    if (ref $_ eq 'ARRAY') {
+      $regexp .= $_->[0] . '(?:';
+      if ($#$_ > 1) {
+        $regexp .= text_trie_as_regexp( @{$_}[1 .. $#$_] );
+      }
+      $regexp .= ')';
+    }
+    else {
+      $regexp .= $_;
+    }
+  }
+
+  $regexp;
+}
+
+### End of regexp optimizer.
+
+# These must be accessible from outside the current package.
+use vars qw(%conditional_stacks %excluding_code %exclude_indent);
+
+sub fix_exclude {
+  my $package_name = shift;
+  $excluding_code{$package_name} = 0;
+  if (@{$conditional_stacks{$package_name}}) {
+    foreach my $flag (@{$conditional_stacks{$package_name}}) {
+      unless ($flag->[COND_FLAG]) {
+        $excluding_code{$package_name} = 1;
+        $exclude_indent{$package_name} = $flag->[COND_INDENT];
+        last;
+      }
+    }
+  }
+}
 
 sub import {
-
   # Outer closure to define a unique scope.
   { my $macro_name = '';
-    my ($macro_line, %macros, %constants, $const_regexp, $enum_index);
-    my ($file_name, $line_number) = (caller)[1,2];
+    my ( %macros, $macro_line, %constants, $const_regexp, $enum_index );
+    my ($package_name, $file_name, $line_number) = (caller)[0,1,2];
     my $const_regexp_dirty = 0;
+    my $state = STATE_PLAIN;
+
+    $conditional_stacks{$package_name} = [ ];
+    $excluding_code{$package_name} = 0;
 
     my $set_const = sub {
       my ($name, $value) = @_;
@@ -122,7 +123,7 @@ sub import {
       $constants{$name} = $value;
       $const_regexp_dirty++;
 
-      DEBUG and
+      DEBUG_DEFINE and
         warn( ",-----\n",
               "| Defined a constant: $name = $value\n",
               "`-----\n"
@@ -135,18 +136,168 @@ sub import {
           my $status = filter_read();
           $line_number++;
 
-          # Handle errors or EOF.
-          return $status if $status <= 0;
+          ### Handle errors or EOF.
+          if ($status <= 0) {
+            if (@{$conditional_stacks{$package_name}}) {
+              die( "include block never closed.  It probably started " .
+                   "at $file_name line " .
+                   $conditional_stacks{$package_name}->[0]->[COND_LINE] . "\n"
+                 );
+            }
+            return $status;
+          }
 
-          # Inside a macro definition.
-          if ($macro_name ne '') {
+          ### Usurp modified Perl syntax for code inclusion.  These
+          ### are hardcoded and always handled.
 
-            DEBUG and warn sprintf "%4d M: %s", $line_number, $_;
+          # Only do the conditionals if there's a flag present.
+          if (/include/) {
+
+            # if (...) { # include
+            if (/^(\s*)if\s*\((.+)\)\s*\{\s*\#\s*include\s*$/) {
+              my $space = (defined $1) ? $1 : '';
+              $_ =
+                ( $space .
+                  "BEGIN { push( \@{\$" . __PACKAGE__ .
+                  "::conditional_stacks{'$package_name'}}, " .
+                  "[ !!$2, $line_number, '$space' ] ); \&" . __PACKAGE__ .
+                  "::fix_exclude('$package_name'); }; # $_"
+                );
+              s/\#\s+/\# /;
+
+              # Dummy line in the macro.
+              if ($state & STATE_MACRO_DEF) {
+                local $_ = $_;
+                s/B/\# B/;
+                $macro_line++;
+                $macros{$macro_name}->[MAC_CODE] .= $_;
+                DEBUG and
+                  warn sprintf "%4d M: # mac 1: %s", $line_number, $_;
+              }
+              else {
+                DEBUG and warn sprintf "%4d C: %s", $line_number, $_;
+              }
+
+              return $status;
+            }
+
+            # } # include
+            elsif (/^\s*\}\s*\#\s*include\s*$/) {
+              s/^(\s*)/$1\# /;
+              pop @{$conditional_stacks{$package_name}};
+              &fix_exclude($package_name);
+
+              unless ($state & STATE_MACRO_DEF) {
+                DEBUG and warn sprintf "%4d C: %s", $line_number, $_;
+                return $status;
+              }
+            }
+
+            # } else { # include
+            elsif (/^\s*\}\s*else\s*\{\s*\#\s*include\s*$/) {
+              unless (@{$conditional_stacks{$package_name}}) {
+                die( "else { # include ... without if or unless " .
+                     "at $file_name line $line_number\n"
+                   );
+                return -1;
+              }
+
+              s/^(\s*)/$1\# /;
+              $conditional_stacks{$package_name}->[-1]->[COND_FLAG] =
+                !$conditional_stacks{$package_name}->[-1]->[COND_FLAG];
+              &fix_exclude($package_name);
+
+              unless ($state & STATE_MACRO_DEF) {
+                DEBUG and warn sprintf "%4d C: %s", $line_number, $_;
+                return $status;
+              }
+            }
+
+            # unless (...) { # include
+            elsif (/^(\s*)unless\s*\((.+)\)\s*\{\s*\#\s*include\s*$/) {
+              my $space = (defined $1) ? $1 : '';
+              $_ = ( $space .
+                     "BEGIN { push( \@{\$" . __PACKAGE__ .
+                     "::conditional_stacks{'$package_name'}}, " .
+                     "[ !$2, $line_number, '$space' ] ); \&" . __PACKAGE__ .
+                     "::fix_exclude('$package_name'); }; # $_"
+                   );
+              s/\#\s+/\# /;
+
+              # Dummy line in the macro.
+              if ($state & STATE_MACRO_DEF) {
+                local $_ = $_;
+                s/B/\# B/;
+                $macro_line++;
+                $macros{$macro_name}->[MAC_CODE] .= $_;
+                DEBUG and
+                  warn sprintf "%4d M: # mac 2: %s", $line_number, $_;
+              }
+              else {
+                DEBUG and warn sprintf "%4d C: %s", $line_number, $_;
+              }
+
+              return $status;
+            }
+
+            # } elsif (...) { # include
+            elsif (/^(\s*)\}\s*elsif\s*\((.+)\)\s*\{\s*\#\s*include\s*$/) {
+              unless (@{$conditional_stacks{$package_name}}) {
+                die( "Include elsif without include if or unless " .
+                     "at $file_name line $line_number\n"
+                   );
+                return -1;
+              }
+
+              my $space = (defined $1) ? $1 : '';
+              $_ = ( $space .
+                     "BEGIN { \$" . __PACKAGE__ .
+                     "::conditional_stacks{'$package_name'}->[-1] = " .
+                     "[ !!$2, $line_number, '$space' ]; \&" . __PACKAGE__ .
+                     "::fix_exclude('$package_name'); }; # $_"
+                   );
+              s/\#\s+/\# /;
+
+              # Dummy line in the macro.
+              if ($state & STATE_MACRO_DEF) {
+                local $_ = $_;
+                s/B/\# B/;
+                $macro_line++;
+                $macros{$macro_name}->[MAC_CODE] .= $_;
+                DEBUG and
+                  warn sprintf "%4d M: # mac 3: %s", $line_number, $_;
+              }
+              else {
+                DEBUG and warn sprintf "%4d C: %s", $line_number, $_;
+              }
+
+              return $status;
+            }
+          }
+
+          ### Not including code, so comment it out.  Don't return
+          ### $status here since the code may well be in a macro.
+          if ($excluding_code{$package_name}) {
+            s{^($exclude_indent{$package_name})?}
+             {$exclude_indent{$package_name}\# };
+
+            # Kludge: Must thwart macros on this line.
+            s/\{\%(.*?)\%\}/MACRO($1)/g;
+
+            unless ($state & STATE_MACRO_DEF) {
+              DEBUG and warn sprintf "%4d C: %s", $line_number, $_;
+              return $status;
+            }
+          }
+
+          ### Inside a macro definition.
+          if ($state & STATE_MACRO_DEF) {
 
             # Close it!
-            if (/^\}$/) {
+            if (/^\}\s*$/) {
+              $state = STATE_PLAIN;
 
-              DEBUG and
+              DEBUG_DEFINE and
                 warn( ",-----\n",
                       "| Defined macro $macro_name\n",
                       "| Parameters: ",
@@ -157,10 +308,8 @@ sub import {
                       "`-----\n"
                     );
 
-              unless ($macros{$macro_name}->[MAC_CODE] =~ /\;$/) {
-                $macros{$macro_name}->[MAC_CODE] =~ s/^\s*//;
-                $macros{$macro_name}->[MAC_CODE] =~ s/\s*$//;
-              }
+              $macros{$macro_name}->[MAC_CODE] =~ s/^\s*//;
+              $macros{$macro_name}->[MAC_CODE] =~ s/\s*$//;
 
               $macro_name = '';
             }
@@ -172,30 +321,27 @@ sub import {
             }
 
             # Either way, the code must not go on.
-            $_ = "\n";
+            $_ = "# mac 4: $_";
+            DEBUG and warn sprintf "%4d M: %s", $line_number, $_;
+
             return $status;
           }
 
-          # The next two returns speed up multiple const/enum
-          # definitions in the same area.  They also eliminate the
-          # need to check for things in semantically nil lines.
-
-          # Ignore comments and blank lines.
-          if ( /^\s*\#/ or /^\s*$/ ) {
-            return $status;
-          }
-
-          # This return works around a bug where __END__ and __DATA__
-          # cause perl 5.005_61 through 5.6.0 to blow up with memory
-          # errors.  It detects these tags, replaces them with a blank
-          # line, and simulates EOF.
+          ### Ignore everything after __END__ or __DATA__.  This works
+          ### around a coredump in 5.005_61 through 5.6.0 at the
+          ### expense of preprocessing data and documentation.
           if (/^__(END|DATA)__\s*$/) {
-            $_ = "\n";
+            $_ = "# $_";
             return 0;
           }
 
-          # Define an enum.
+          ### We're done if we're excluding code.
+          return $status if $excluding_code{$package_name};
+
+          ### Define an enum.
           if (/^enum(?:\s+(\d+|\+))?\s+(.*?)\s*$/) {
+            my $temp_line = $_;
+
             $enum_index = ( (defined $1)
                             ? ( ($1 eq '+')
                                 ? $enum_index
@@ -206,21 +352,27 @@ sub import {
             foreach (split /\s+/, $2) {
               &{$set_const}($_, $enum_index++);
             }
-            $_ = "\n";
+
+            $_ = "# $temp_line";
+
+            DEBUG and warn sprintf "%4d E: %s", $line_number, $_;
+
             return $status;
           }
 
-          # Define a constant.
-          if (/^const\s+([A-Z_][A-Z_0-9]+)\s+(.+?)\s*$/) {
+          ### Define a constant.
+          if (/^const\s+(\S+)\s+(.+?)\s*$/i) {
             &{$set_const}($1, $2);
-            $_ = "\n";
+            $_ = "# $_";
+            DEBUG and warn sprintf "%4d E: %s", $line_number, $_;
             return $status;
           }
 
-          # Define a macro.
+          ### Begin a macro definition.
           if (/^macro\s*(\w+)\s*(?:\((.*?)\))?\s*\{\s*$/) {
+            $state = STATE_MACRO_DEF;
 
-            DEBUG and warn sprintf "%4d D: %s", $line_number, $_;
+            my $temp_line = $_;
 
             $macro_name = $1;
             $macro_line = 0;
@@ -240,20 +392,21 @@ sub import {
             $macros{$macro_name}->[MAC_PARAMETERS] = \@macro_params;
             $macros{$macro_name}->[MAC_CODE] = '';
 
-            $_ = "\n";
+            $_ = "# $temp_line";
+            DEBUG and warn sprintf "%4d D: %s", $line_number, $_;
             return $status;
           }
 
-          # Perform macro substitutions.
+          ### Perform macro substitutions.
+          my $substitutions = 0;
           while (/^(.*?)\{\%\s+(\S+)\s*(.*?)\s*\%\}(.*)$/s) {
-
-            DEBUG and warn sprintf "%4d S: %s", $line_number, $_;
-
             my ($left, $name, $params, $right) = ($1, $2, $3, $4);
-            DEBUG and
+
+            DEBUG_INVOKE and
               warn ",-----\n| macro invocation: $name $params\n";
 
             if (exists $macros{$name}) {
+
               my @use_params = split /\s*\,\s*/, $params;
               my @mac_params = @{$macros{$name}->[MAC_PARAMETERS]};
 
@@ -268,7 +421,7 @@ sub import {
               }
 
               # Build a new bit of code here.
-              my $substitution = "\n" . $macros{$name}->[MAC_CODE];
+              my $substitution = $macros{$name}->[MAC_CODE];
 
               foreach my $mac_param (@mac_params) {
                 my $use_param = shift @use_params;
@@ -276,12 +429,14 @@ sub import {
               }
 
               unless ($^P) {
-                my @sub_lines = split "\n", $substitution;
-                for (my $sub_line = 0; $sub_line < @sub_lines; $sub_line++) {
-                  $sub_lines[$sub_line] =
-                    ( "# line $line_number \"macro $name (line $sub_line) " .
-                      "invoked from $file_name\"\n"
-                    ) . $sub_lines[$sub_line];
+                my @sub_lines = split /\n/, $substitution;
+                my $sub_line = @sub_lines;
+                while ($sub_line--) {
+                  splice( @sub_lines, $sub_line, 0,
+                          "# line $line_number " .
+                          "\"macro $name (line $sub_line) " .
+                          "invoked from $file_name\""
+                        );
                 }
                 $substitution = join "\n", @sub_lines;
               }
@@ -290,7 +445,9 @@ sub import {
               $_ .= "# line " . ($line_number+1) . " \"$file_name\"\n"
                 unless $^P;
 
-              DEBUG and warn "$_`-----\n";
+              DEBUG_INVOKE and warn "$_`-----\n";
+
+              $substitutions++;
             }
             else {
               warn( "macro $name has not been defined ",
@@ -304,17 +461,27 @@ sub import {
           # prevents redundant regexp rebuilds when defining several
           # constants all together.
           if ($const_regexp_dirty) {
-            $const_regexp = &optimum_match(keys %constants);
+            $const_regexp =
+              text_trie_as_regexp(text_trie_trie(keys %constants));
             $const_regexp_dirty = 0;
           }
 
           # Perform constant substitutions.
           if (defined $const_regexp) {
-            s/\b($const_regexp)\b/$constants{$1}/sg;
+            $substitutions += s/\b($const_regexp)\b/$constants{$1}/sg;
           }
 
-          # Unmolested lines.
-          DEBUG and warn sprintf "%4d |: %s", $line_number, $_;
+          # Trace substitutions.
+          if (DEBUG) {
+            if ($substitutions) {
+              foreach my $line (split /\n/) {
+                warn sprintf "%4d S: %s\n", $line_number, $line;
+              }
+            }
+            else {
+              warn sprintf "%4d |: %s", $line_number, $_;
+            }
+          }
 
           $status;
         }
@@ -350,10 +517,24 @@ POE::Preprocessor - A Macro Preprocessor
 
   print "ONE TWO THREE TWELVE THIRTEEN FOURTEEN FIFTEEN SIXTEEN SEVENTEEN\n";
 
+  if ($expression) {      # include
+     ... lines of code ...
+  }                       # include
+
+  unless ($expression) {  # include
+    ... lines of code ...
+  } elsif ($expression) { # include
+    ... lines of code ...
+  } else {                # include
+    ... lines of code ...
+  }                       # include
+
 =head1 DESCRIPTION
 
 POE::Preprocessor is a Perl source filter that implements a simple
 macro substitution language.
+
+=head2 Macros
 
 The preprocessor defines a "macro" compile-time directive:
 
@@ -368,6 +549,8 @@ Macros are substituted into a program with a syntax borrowed from
 Iaijutsu and altered slightly to jive with Perl's native syntax.
 
   {% macro_name parameter_0, parameter_1 %}
+
+=head2 Constants and Enumerations
 
 Constants are defined this way:
 
@@ -386,6 +569,46 @@ Or continue where the previous one left off, which is necessary
 because an enumeration can't span lines:
 
   enum + THIRTEENTH FOURTEENTH FIFTEENTH ...
+
+=head2 Conditional Code Inclusion (#ifdef)
+
+The preprocessor supports something like cpp's #if/#else/#endif by
+usurping a bit of Perl's conditional syntax.  The following
+conditional statements will be evaluated at compile time if they are
+followed by the comment C<# include>:
+
+  if (EXPRESSION) {      # include
+    BLOCK;
+  } elsif (EXPRESSION) { # include
+    BLOCK;
+  } else {               # include
+    BLOCK;
+  }                      # include
+
+  unless (EXPRESSION) {  # include
+    BLOCK;
+  }                      # include
+
+The code in each conditional statement's BLOCK will be included or
+excluded in the compiled code depending on the outcome of its
+EXPRESSION.
+
+Conditional includes are nestable, but else and elsif must be on the
+same line as the previous block's closing brace.  This may change
+later.
+
+=head1 DEBUGGING
+
+POE::Preprocessor has three debugging constants: DEBUG (which traces
+source filtering to stderr); DEBUG_INVOKE (which traces macro
+substitutions); and DEBUG_DEFINE (which traces macro, const and enum
+definitions).  They can be overridden prior to POE::Preprocessor's
+use:
+
+  sub POE::Preprocessor::DEBUG        () { 1 } # trace preprocessor
+  sub POE::Preprocessor::DEBUG_INVOKE () { 1 } # trace macro use
+  sub POE::Preprocessor::DEBUG_DEFINE () { 1 } # trace macro/const/enum defs
+  use POE::Preprocessor;
 
 =head1 BUGS
 
@@ -414,6 +637,11 @@ around until no more substitutions occurred.
 Optimum matches aren't, but they're better than nothing.
 
 =back
+
+=head1 SEE ALSO
+
+The regexp optimizer is based on code in Ilya Zakharevich's
+Text::Trie.
 
 =head1 AUTHOR & COPYRIGHT
 

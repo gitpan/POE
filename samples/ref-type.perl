@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: ref-type.perl,v 1.2 2000/01/23 18:32:00 rcaputo Exp $
+# $Id: ref-type.perl,v 1.3 2000/11/03 21:59:03 rcaputo Exp $
 
 # This program tests the ability of Filter::Reference to use "any"
 # package or object for freeze/thaw.
@@ -36,7 +36,7 @@ sub create
 sub c_start
 {
     my($heap, $port, $freezer)=@_[HEAP, ARG0, ARG1];
-    $heap->{wheel} = new POE::Wheel::SocketFactory
+    $heap->{wheel} = POE::Wheel::SocketFactory->new
     ( RemotePort     => $port,
       RemoteAddress  => '127.0.0.1',
       SuccessState   => 'connected',    # generating this event on connection
@@ -73,7 +73,7 @@ sub _start
 {
     my($heap, $handle, $freezer)=@_[HEAP, ARG0, ARG1];
 
-    $heap->{wheel_client} = new POE::Wheel::ReadWrite
+    $heap->{wheel_client} = POE::Wheel::ReadWrite->new
     ( Handle     => $handle,                    # on this handle
       Driver     => POE::Driver::SysRW->new(),  # using sysread and syswrite
       InputState => 'received',
@@ -150,7 +150,7 @@ sub create
 sub e_start
 {
     my($heap, $port, $freezer)=@_[HEAP, ARG0, ARG1];
-    $heap->{wheel} = new POE::Wheel::SocketFactory
+    $heap->{wheel} = POE::Wheel::SocketFactory->new
     ( BindPort     => $port,
       BindAddress  => '127.0.0.1',
       Reuse         => 1,
@@ -186,7 +186,7 @@ sub _start
 {
     my($heap, $session, $handle, $freezer)=@_[HEAP, SESSION, ARG0, ARG1];
 
-    $heap->{wheel_client} = new POE::Wheel::ReadWrite
+    $heap->{wheel_client} = POE::Wheel::ReadWrite->new
     ( Handle     => $handle,                    # on this handle
       Driver     => POE::Driver::SysRW->new(),  # using sysread and syswrite
       ErrorState => 'error',            # generate this event on error

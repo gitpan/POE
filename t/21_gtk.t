@@ -1,26 +1,23 @@
 #!/usr/bin/perl -w
-# $Id: 06_tk.t,v 1.20 2000/10/04 18:31:15 rcaputo Exp $
+# $Id: 21_gtk.t,v 1.2 2000/10/06 20:05:52 rcaputo Exp $
 
-# Tests FIFO, alarm, select and Tk postback events using Tk's event
+# Tests FIFO, alarm, select and Gtk postback events using Gk's event
 # loop.
 
 use strict;
 use lib qw(./lib ../lib);
-use lib '/usr/mysrc/Tk800.021/blib';
-use lib '/usr/mysrc/Tk800.021/blib/lib';
-use lib '/usr/mysrc/Tk800.021/blib/arch';
 
 use Symbol;
 
 use TestSetup;
 use TestPipe;
 
-# Skip if Tk isn't here.
+# Skip if Gtk isn't here.
 BEGIN {
-  eval 'use Tk';
-  &test_setup(0, 'need the Tk module installed to run this test')
+  eval 'use Gtk';
+  &test_setup(0, 'need the Gtk module installed to run this test')
     if ( length($@) or
-         not exists($INC{'Tk.pm'})
+         not exists($INC{'Gtk.pm'})
        );
   # MSWin32 doesn't need DISPLAY set.
   if ($^O ne 'MSWin32') {
@@ -28,7 +25,7 @@ BEGIN {
              defined $ENV{'DISPLAY'} and
              length $ENV{'DISPLAY'}
            ) {
-      &test_setup(0, "can't test Tk without a DISPLAY (set one today, ok?)");
+      &test_setup(0, "can't test Gtk without a DISPLAY (set one today, ok?)");
     }
   }
 };
@@ -37,11 +34,12 @@ BEGIN {
 
 warn( "\n",
       "***\n",
-      "*** Please note: This test will pop up a Tk window.\n",
+      "*** Please note: This test will pop up a Gtk window.\n",
       "***\n",
     );
 
 # Turn on all asserts.
+# sub POE::Kernel::TRACE_DEFAULT () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW);
 
@@ -55,11 +53,11 @@ my @after_alarms;
 # Congratulate ourselves for getting this far.
 print "ok 1\n";
 
-# Attempt to set the window position.  This was borrowed from one of
-# Tk's own tests.  It glues the window into place so the program can
-# continue.  This may be unfriendly, but it minimizes the amount of
-# user interaction needed to perform this test.
-eval { $poe_main_window->geometry('+10+10') };
+# # Attempt to set the window position.  This was borrowed from one of
+# # Tk's own tests.  It glues the window into place so the program can
+# # continue.  This may be unfriendly, but it minimizes the amount of
+# # user interaction needed to perform this test.
+# eval { $poe_main_window->geometry('+10+10') };
 
 # I/O session
 
@@ -94,32 +92,58 @@ sub io_start {
 
   # And counters to monitor read/write progress.
 
-  my $write_count = 0;
-  $heap->{write_count} = \$write_count;
-  $poe_main_window->Label( -text => 'Write Count' )->pack;
-  $poe_main_window->Label( -textvariable => $heap->{write_count} )->pack;
+  my $box = Gtk::VBox->new(0, 0);
+  $poe_main_window->add($box);
+  $box->show();
 
-  my $read_count  = 0;
-  $heap->{read_count} = \$read_count;
-  $poe_main_window->Label( -text => 'Read Count' )->pack;
-  $poe_main_window->Label( -textvariable => $heap->{read_count} )->pack;
+  { my $label = Gtk::Label->new( 'Write Count' );
+    $box->pack_start( $label, 1, 1, 0 );
+    $label->show();
+
+    $heap->{write_count} = 0;
+    $heap->{write_label} = Gtk::Label->new( $heap->{write_count} );
+    $box->pack_start( $heap->{write_label}, 1, 1, 0 );
+    $heap->{write_label}->show();
+  }
+
+  { my $label = Gtk::Label->new( 'Read Count' );
+    $box->pack_start( $label, 1, 1, 0 );
+    $label->show();
+
+    $heap->{read_count} = 0;
+    $heap->{read_label} = Gtk::Label->new( $heap->{read_count} );
+    $box->pack_start( $heap->{read_label}, 1, 1, 0 );
+    $heap->{read_label}->show();
+  }
 
   # And an idle loop.
 
-  my $idle_count  = 0;
-  $heap->{idle_count} = \$idle_count;
-  $poe_main_window->Label( -text => 'Idle Count' )->pack;
-  $poe_main_window->Label( -textvariable => $heap->{idle_count} )->pack;
-  $kernel->yield( 'ev_idle_increment' );
+  { my $label = Gtk::Label->new( 'Idle Count' );
+    $box->pack_start( $label, 1, 1, 0 );
+    $label->show();
+
+    $heap->{idle_count} = 0;
+    $heap->{idle_label} = Gtk::Label->new( $heap->{idle_count} );
+    $box->pack_start( $heap->{idle_label}, 1, 1, 0 );
+    $heap->{idle_label}->show();
+
+    $kernel->yield( 'ev_idle_increment' );
+  }
 
   # And an independent timer loop to test it separately from pipe
   # writer's.
 
-  my $timer_count = 0;
-  $heap->{timer_count} = \$timer_count;
-  $poe_main_window->Label( -text => 'Timer Count' )->pack;
-  $poe_main_window->Label( -textvariable => $heap->{timer_count} )->pack;
-  $kernel->delay( ev_timer_increment => 0.5 );
+  { my $label = Gtk::Label->new( 'Timer Count' );
+    $box->pack_start( $label, 1, 1, 0 );
+    $label->show();
+
+    $heap->{timer_count} = 0;
+    $heap->{timer_label} = Gtk::Label->new( $heap->{timer_count} );
+    $box->pack_start( $heap->{timer_label}, 1, 1, 0 );
+    $heap->{timer_label}->show();
+
+    $kernel->delay( ev_timer_increment => 0.5 );
+  }
 
   # Add default postback test results.  They fail if they aren't
   # delivered.
@@ -129,48 +153,51 @@ sub io_start {
     6 => "not ok 6\n",
     7 => "not ok 7\n",
   };
+
+  $poe_main_window->show();
 }
 
 sub io_pipe_write {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
+
   $heap->{pipe_wheel}->put( scalar localtime );
-  if (++${$heap->{write_count}} < $write_max) {
+  $heap->{write_label}->set_text( ++$heap->{write_count} );
+
+  if ($heap->{write_count} < $write_max) {
     $kernel->delay( ev_pipe_write => 1 );
   }
   else {
-    $after_alarms[5] =
-      Tk::After->new( $poe_main_window, 1000, 'once',
-                      $_[SESSION]->postback( ev_postback => 5 )
-                    );
-    undef;
+    Gtk->timeout_add( 1000, $_[SESSION]->postback( ev_postback => 5 ) );
   }
 }
 
 sub io_pipe_read {
   my ($kernel, $heap) = @_[KERNEL, HEAP];
-  ${$heap->{read_count}}++;
+
+  $heap->{read_label}->set_text( ++$heap->{read_count} );
 
   # Shut down the wheel if we're done.
-  if ( ${$heap->{write_count}} == $write_max ) {
+  if ( $heap->{write_count} == $write_max ) {
     delete $heap->{pipe_wheel};
   }
 }
 
 sub io_idle_increment {
-  if (++${$_[HEAP]->{idle_count}} < 10) {
+  $_[HEAP]->{idle_label}->set_text( ++$_[HEAP]->{idle_count} );
+
+  if ($_[HEAP]->{idle_count} < 100) {
     $_[KERNEL]->yield( 'ev_idle_increment' );
   }
   else {
-    $after_alarms[6] =
-      Tk::After->new( $poe_main_window, 1000, 'once',
-                      $_[SESSION]->postback( ev_postback => 6 )
-                    );
+    Gtk->timeout_add( 1000, $_[SESSION]->postback( ev_postback => 6 ) );
     undef;
   }
 }
 
 sub io_timer_increment {
-  if (++${$_[HEAP]->{timer_count}} < 10) {
+  $_[HEAP]->{timer_label}->set_text( ++$_[HEAP]->{timer_count} );
+
+  if ($_[HEAP]->{timer_count} < 10) {
     $_[KERNEL]->delay( ev_timer_increment => 0.5 );
   }
 
@@ -180,10 +207,7 @@ sub io_timer_increment {
   # given at creation time.
 
   else {
-    $after_alarms[7] =
-      Tk::After->new( $poe_main_window, 1000, 'once',
-                      $_[SESSION]->postback( ev_postback => 7 )
-                    );
+    Gtk->timeout_add( 1000, $_[SESSION]->postback( ev_postback => 7 ) );
     undef;
   }
 }
@@ -191,15 +215,15 @@ sub io_timer_increment {
 sub io_stop {
   my $heap = $_[HEAP];
 
-  if (${$heap->{read_count}}) {
-    print "not " unless ${$heap->{read_count}} == ${$heap->{write_count}};
+  if ($heap->{read_count}) {
+    print "not " unless $heap->{read_count} == $heap->{write_count};
     print "ok 2\n";
   }
 
-  print "not " unless ${$heap->{idle_count}};
+  print "not " unless $heap->{idle_count};
   print "ok 3\n";
 
-  print "not " unless ${$heap->{timer_count}};
+  print "not " unless $heap->{timer_count};
   print "ok 4\n";
 
   foreach (sort { $a <=> $b } keys %{$heap->{postback_tests}}) {
@@ -214,14 +238,6 @@ sub io_postback {
   my $test_number = $postback_given->[0];
 
   if ($test_number =~ /^\d+$/) {
-
-    # This is so incredibly horribly bad that I'm ashamed to be doing
-    # it.  First we violate the Tk::After object to get at the
-    # Tk::Callback object within it.  Then we violate THAT to remove
-    # the POE::Session::Postback so that it's destroyed and our
-    # reference count decrements.
-    $after_alarms[$test_number]->[4]->[0] = undef;
-
     $_[HEAP]->{postback_tests}->{$test_number} = "ok $test_number\n";
   }
 }

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: filterchange.perl,v 1.3 2000/01/24 19:27:33 rcaputo Exp $
+# $Id: filterchange.perl,v 1.5 2000/11/03 21:59:01 rcaputo Exp $
 
 # This program tests the new filter-changing capabilities of
 # Wheel::ReadWrite
@@ -38,7 +38,7 @@ sub create
 sub c_start
 {
     my($heap, $port)=@_[HEAP, ARG0];
-    $heap->{wheel} = new POE::Wheel::SocketFactory
+    $heap->{wheel} = POE::Wheel::SocketFactory->new
     ( RemotePort     => $port,
       RemoteAddress  => '127.0.0.1',
       SuccessState   => 'connected',    # generating this event on connection
@@ -79,7 +79,7 @@ sub c_connected
 sub _start
 {
     my($heap, $handle)=@_[HEAP, ARG0];
-    $heap->{wheel_client} = new POE::Wheel::ReadWrite
+    $heap->{wheel_client} = POE::Wheel::ReadWrite->new
     ( Handle     => $handle,                    # on this handle
       Driver     => POE::Driver::SysRW->new(),  # using sysread and syswrite
       InputState => 'received',
@@ -112,11 +112,13 @@ sub _start
 
         '"IWANT Stream\nHELLO"',
         '"IWANT Reference"',
-        '{my $f = freeze(\ "IWANT Line"); return length($f) . "\0" . $f . "HELLO
-\n"}',
+        ( '{my $f = freeze(\ "IWANT Line"); return length($f) ' .
+          '. "\0" . $f . "HELLO\n"}'
+        ),
         '"IWANT Reference\n"',
-        '{my $f = freeze(\ "IWANT Stream"); return length($f) . "\0" . $f . "HEL
-LO"}',
+        ( '{my $f = freeze(\ "IWANT Stream"); return length($f) ' .
+          '. "\0" . $f . "HELLO"}'
+        ),
         '"DONE"',
     ];
 }
@@ -176,7 +178,7 @@ sub received
         if($send)
         {
             print "Cause  [$$] send '$send'\n";
-print "Cause  [$$] (running $send )\n";
+            #print "Cause  [$$] (running $send)\n";
             $send=eval($send);
             die $@ if $@;
             # print "Cause  [$$] send '", quotemeta($send), "'\n";
@@ -228,7 +230,7 @@ sub create
 sub e_start
 {
     my($heap, $port)=@_[HEAP, ARG0];
-    $heap->{wheel} = new POE::Wheel::SocketFactory
+    $heap->{wheel} = POE::Wheel::SocketFactory->new
     ( BindPort     => $port,
       BindAddress  => '127.0.0.1',
       Reuse         => 1,
@@ -272,7 +274,7 @@ sub _start
         Reference=>['r_reference', POE::Filter::Reference->new(), 1],
     };
 
-    $heap->{wheel_client} = new POE::Wheel::ReadWrite
+    $heap->{wheel_client} = POE::Wheel::ReadWrite->new
     ( Handle     => $handle,                    # on this handle
       Driver     => POE::Driver::SysRW->new(),  # using sysread and syswrite
       ErrorState => 'error',            # generate this event on error
@@ -428,6 +430,3 @@ if(not defined $pid)                    # wha?  we can't!
 print "$me [$$] POE->run\n";
 $poe_kernel->run();
 print "$me [$$] Exit\n";
-
-
-

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: tutorial-chat.perl,v 1.7 2000/03/02 19:53:02 rcaputo Exp $
+# $Id: tutorial-chat.perl,v 1.9 2000/11/17 22:33:18 rcaputo Exp $
 
 =pod //////////////////////////////////////////////////////////////////////////
 
@@ -101,7 +101,7 @@ sub server_start {
   # count drops to zero, and Perl destroys it for us.  Then it does a
   # little "close the socket" dance inside, and everything is tidy.
 
-  $heap->{listener} = new POE::Wheel::SocketFactory
+  $heap->{listener} = POE::Wheel::SocketFactory->new
     ( BindPort       => 30023,
       Reuse          => 'yes',           # reuse the port right away
       SuccessState   => 'event_success', # event to send on connection
@@ -154,22 +154,23 @@ sub server_accept {
   # but it stays in the same process.  So it's more like threading, I
   # suppose.
 
-  new POE::Session( _start      => \&chat_start, # _start event handler
-                    _stop       => \&chat_stop,  # _stop event handler
-                    line_input  => \&chat_input, # input event handler
-                    io_error    => \&chat_error, # error event handler
-                    out_flushed => \&chat_flush, # flush event handler
-                    hear        => \&chat_heard, # someone said something
+  POE::Session->new
+    ( _start      => \&chat_start, # _start event handler
+      _stop       => \&chat_stop,  # _stop event handler
+      line_input  => \&chat_input, # input event handler
+      io_error    => \&chat_error, # error event handler
+      out_flushed => \&chat_flush, # flush event handler
+      hear        => \&chat_heard, # someone said something
 
-                    # To pass arguments to a session's _start handler,
-                    # include them in an array reference.  For
-                    # example, the following array reference causes
-                    # $accepted_handle, $peer_addr and $peer_port to
-                    # arrive at the chat session's _start event
-                    # handler as ARG0, ARG1 and ARG2, respectively.
+      # To pass arguments to a session's _start handler,
+      # include them in an array reference.  For
+      # example, the following array reference causes
+      # $accepted_handle, $peer_addr and $peer_port to
+      # arrive at the chat session's _start event
+      # handler as ARG0, ARG1 and ARG2, respectively.
 
-                    [ $accepted_socket, $peer_address, $peer_port ]
-                  );
+      [ $accepted_socket, $peer_address, $peer_port ]
+    );
 
   # That's all there is to it.  Take the handle, and start a session
   # to cope with it.  Easy stuff.
@@ -272,10 +273,10 @@ sub chat_start {
   # I/O as lines, and generating events for input, error, and output
   # flushed conditions.
 
-  $heap->{readwrite} = new POE::Wheel::ReadWrite
-    ( Handle       => $accepted_socket,       # read/write on this handle
-      Driver       => new POE::Driver::SysRW, # using sysread and syswrite
-      Filter       => new POE::Filter::Line,  # filtering I/O as lines
+  $heap->{readwrite} = POE::Wheel::ReadWrite->new
+    ( Handle       => $accepted_socket,        # read/write on this handle
+      Driver       => POE::Driver::SysRW->new, # using sysread and syswrite
+      Filter       => POE::Filter::Line->new,  # filtering I/O as lines
       InputState   => 'line_input',     # generate line_input on input
       ErrorState   => 'io_error',       # generate io_error on error
       FlushedState => 'out_flushed',    # geterate out_flushed on flush
@@ -286,6 +287,10 @@ sub chat_start {
 
   $connected_sessions{$session} = [ $session, "$peer_addr:$peer_port" ];
   &say($_[KERNEL], $session, '[has joined chat]');
+
+  # Initialize the we're-shutting-down flag for graceful quitting.
+
+  $heap->{session_is_shutting_down} = 0;
 
   # Oh, and log the client session's start.
 
@@ -308,9 +313,11 @@ sub chat_stop {
 
     print "CLIENT: $connected_sessions{$session}->[1] disconnected.\n";
 
-    # And say goodbye to everyone else.
+    # And say goodbye to everyone else (if we haven't already).
 
-    &say($kernel, $session, '[has left chat]');
+    &say($kernel, $session, '[has left chat]')
+      unless $heap->{session_is_shutting_down};
+
     delete $connected_sessions{$session};
   }
 
@@ -320,11 +327,26 @@ sub chat_stop {
   delete $heap->{readwrite};
 }
 
+# Search for the requested nick, and return whether it was found.
+# Jeffrey Goff suggested this function, but I swapped its return
+# values.
+
+sub find_nick {
+  my $nick_to_find = shift;
+  foreach my $session (values(%connected_sessions)) {
+    return $session if $session->[1] eq $nick_to_find;
+  }
+  return undef;
+}
+
 # This is what the ReadWrite wheel calls when the client end of the
 # socket has sent a line of text.  The actual text is in ARG0.
 
 sub chat_input {
-  my ($kernel, $session, $input) = @_[KERNEL, SESSION, ARG0];
+  my ($kernel, $heap, $session, $input) = @_[KERNEL, HEAP, SESSION, ARG0];
+
+  # Ignore input if we're shutting down.
+  return if $heap->{session_is_shutting_down};
 
   # Preprocess the input, backspacing over backspaced/deleted
   # characters.  It's just a nice thing to do for people using
@@ -334,16 +356,43 @@ sub chat_input {
   $input =~ tr[\x08\x7F][]d;
 
   # Parse the client's input for commands, and handle them.  For this
-  # little demo/tutorial, we only bother with one command.
+  # little demo/tutorial, we only bother with one or two commands.
 
-  # The /nick command.  This changes the user's nickname.
+  # The /nick command.  This changes the user's nickname.  Added nick
+  # collision avoidance code by Jeffrey Goff.
 
   if ($input =~ m!^/nick\s+(.*?)\s*$!i) {
     my $nick = $1;
     $nick =~ s/\s+/ /g;
 
-    &say($kernel, $session, "[is now known as $nick]");
-    $connected_sessions{$session} = [ $session, $nick ];
+    if (defined &find_nick($nick)) {
+      &say($kernel, $session, "[that nickname already is in use, sorry]");
+    }
+    else {
+      &say($kernel, $session, "[is now known as $nick]");
+      $connected_sessions{$session} = [ $session, $nick ];
+    }
+  }
+
+  # The /quit command works on the principle of least surprise.
+  # Everyone expects it, and they want to be polite about
+  # disconnecting.
+
+  elsif ($input =~ m!^/quit\s*(.*?)\s*$!i) {
+    my $message = $1;
+    if (defined $message and length $message) {
+      $message =~ s/\s+/ /g;
+    }
+    else {
+      $message = 'no quit message';
+    }
+
+    &say($kernel, $session, "[has quit: $message]");
+
+    # Set the we're-shutting-down flag, so we ignore further input
+    # *and* disconnect when all output has been flushed to the
+    # client's socket.
+    $heap->{session_is_shutting_down} = 1;
   }
 
   # Anything that isn't a recognized command is sent as a spoken
@@ -387,18 +436,22 @@ sub chat_error {
 }
 
 # This handler is called every time the ReadWrite's output queue
-# becomes empty.  It can be used to stop the session after a "quit"
-# message has been sent to client.  It can also be used to send a
-# prompt or something.
+# becomes empty.  It is used to stop the session after a "quit"
+# confirmation has been sent to the client.  It is also used to prompt
+# the user after all previous output has been sent, but making sure
+# you don't go into an infinite loop of prompts (prompting again after
+# the prompt has been flushed) is trickier than I want to deal with at
+# the moment.
 
 sub chat_flush {
-  # Actually, I don't really care at this point.  I'm tired of writing
-  # comments already, and whatever this is going to do will have to be
-  # defined later.
+  my $heap = $_[HEAP];
 
-  # It's wasteful to leave this here.  Removing the FlushedState
-  # parameter from the ReadWrite wheel will prevent this event handler
-  # from being called.  But I'm leaving it this way as an example.
+  # If we're shutting down, then delete the I/O wheel.  This will shut
+  # down the session.
+
+  if ($heap->{session_is_shutting_down}) {
+    delete $heap->{readwrite};
+  }
 }
 
 # And finally, this is the "hear" event handler.  It's called by the
@@ -407,6 +460,10 @@ sub chat_flush {
 
 sub chat_heard {
   my ($heap, $what_was_heard) = @_[HEAP, ARG0];
+
+  # This chat session hears nothing if it's shutting down.
+
+  return if $heap->{session_is_shutting_down};
 
   # Put the message in the ReadWrite wheel's output queue.  All the
   # line-formatting and buffered I/O stuff happens inside the wheel,

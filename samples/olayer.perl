@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: olayer.perl,v 1.5 2000/01/23 18:30:08 rcaputo Exp $
+# $Id: olayer.perl,v 1.6 2000/11/03 21:59:02 rcaputo Exp $
 
 # This is a simple Object Layer functionality test.  It contains a
 # simple "soft" object repository that works like the sessions.perl
@@ -238,8 +238,8 @@ my $repository =
 # storage.  This type of repository might be "POE::Repository::Array".
 # Another useful repository type might be "POE::Repository::DBI".
 
-my $curator = new POE::Curator
-  ( Repository => new POE::Repository::Array($repository)
+my $curator = POE::Curator->new
+  ( Repository => POE::Repository::Array->new($repository)
   );
 
 initialize POE::Runtime Curator => $curator;

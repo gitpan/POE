@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.6 1999/07/02 13:58:36 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.8 2000/07/20 22:00:19 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -123,7 +123,31 @@ sub get {
 
 sub put {
   my ($self, $responses) = @_;
-  my @raw = map { $HTTP_1_0 . ' ' . $_->as_string(); } @$responses;
+  my @raw;
+
+  # HTTP::Response's as_string method returns the header lines
+  # terminated by "\n", which does not do the right thing if we want
+  # to send it to a client.  Here I've stolen HTTP::Response's
+  # as_string's code and altered it to use network newlines so picky
+  # browsers like lynx get what they expect.
+
+  foreach (@$responses) {
+    my @result;
+    my $code           = $_->code;
+    my $status_message = HTTP::Status::status_message($code) || "Unknown code";
+    my $message        = $_->message || "";
+    my $status_line    = "$code";
+    my $proto          = $_->protocol;
+    $status_line  = "$proto $status_line" if $proto;
+    $status_line .= " ($status_message)"  if $status_message ne $message;
+    $status_line .= " $message";
+    push @result, $status_line;
+    push @result, $_->headers_as_string("\x0D\x0A"); # network newlines!
+    my $content = $_->content;
+    push @result, $content if defined $content;
+    push @raw, 'HTTP/1.0 ' . join("\x0D\x0A", @result, ""); # network newlines!
+  }
+
   \@raw;
 }
 
@@ -167,12 +191,7 @@ sub send_error {
     $status ||= RC_BAD_REQUEST;
     my $mess = status_message($status);
     $error  ||= "";
-    $mess = <<EOT;
-<title>$status $mess</title>
-<h1>$status $mess</h1>
-$error
-EOT
-
+    $mess = "<title>$status $mess</title><h1>$status $mess</h1>$error";
     $self->send_basic_header($status);
     $self->put("Content-Type: text/html");
     $self->put("Content-Length: " . length($mess));

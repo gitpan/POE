@@ -1,4 +1,4 @@
-# $Id: Block.pm,v 1.3 2000/06/19 04:08:58 rcaputo Exp $
+# $Id: Block.pm,v 1.4 2000/11/12 00:38:59 rcaputo Exp $
 
 package POE::Filter::Block;
 
@@ -17,7 +17,7 @@ sub new {
   my %params = @_;
 
   my $block_size = $params{BlockSize};
-  if (exists($params{BlockSize}) and defined($block_size)) {
+  if (defined($params{BlockSize}) and defined($block_size)) {
     croak "$type doesn't support zero or negative block sizes"
       if $block_size < 1;
   }

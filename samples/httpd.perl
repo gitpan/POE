@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: httpd.perl,v 1.9 2000/05/10 17:42:06 rcaputo Exp $
+# $Id: httpd.perl,v 1.11 2000/11/03 21:59:02 rcaputo Exp $
 
 # This program tests POE::Filter::HTTPD by setting up a small server.
 # By default, it will bind to port 80 of all addresses on the local
@@ -58,10 +58,10 @@ sub _start {
                                         # watch for SIGINT
   $kernel->sig('INT', 'signals');
                                         # start reading and writing
-  $heap->{wheel} = new POE::Wheel::ReadWrite
-    ( Handle       => $handle,                # on this handle
-      Driver       => new POE::Driver::SysRW, # using sysread and syswrite
-      Filter       => new POE::Filter::HTTPD, # parsing I/O as http requests
+  $heap->{wheel} = POE::Wheel::ReadWrite->new
+    ( Handle       => $handle,                  # on this handle
+      Driver       => POE::Driver::SysRW->new,  # using sysread and syswrite
+      Filter       =>  POE::Filter::HTTPD->new, # parsing I/O as http requests
       InputState   => 'receive',        # generating this event for requests
       ErrorState   => 'error',          # generating this event for errors
       FlushedState => 'flushed',        # generating this event for all-sent
@@ -94,7 +94,7 @@ sub receive {
 
 #  print "GOT ".$request->content()."\n";
                                         # create a response for the request
-  my $response = new HTTP::Response('200');
+  my $response = HTTP::Response->new('200');
   $response->push_header('Content-type', 'text/html');
   $response->content("hello: " . $request->as_string());
                                         # queue the response for output
@@ -165,16 +165,12 @@ sub _start {
                                          # watch for SIGINT
   $kernel->sig('INT', 'signals');
                                          # create a socket factory
-  $heap->{wheel} = new POE::Wheel::SocketFactory
+  $heap->{wheel} = POE::Wheel::SocketFactory->new
     ( BindPort       => $port,           # on this port
       Reuse          => 'yes',           # and allow immediate port reuse
       SuccessState   => 'accept_client', # generating this event on connection
       FailureState   => 'accept_error'   # generating this event on error
     );
-
-  # -><- Bug here!  When binding to an existing port, it *should* be
-  # firing back a FailureState, but it isn't.  More correctly: it *is*
-  # firing one, but it doesn't seem to be delivered.  What's going on?
 
   DEBUG && print "Listening to port $port on all interfaces.\n";
 }
@@ -202,7 +198,7 @@ sub accept_client {
   $peer_addr = inet_ntoa($peer_addr);
   print "Server received connection from $peer_addr : $peer_port\n";
 
-  new ServerSession($accepted_handle, $peer_addr, $peer_port);
+  ServerSession->new($accepted_handle, $peer_addr, $peer_port);
 }
 
 #------------------------------------------------------------------------------
@@ -223,6 +219,14 @@ sub signals {
 package main;
 
 my $listen_port = shift(@ARGV) || 80;
+if (not defined $listen_port) {
+  print( "*** This program listens on port 80 by default.  You can change\n",
+         "*** the port by putting a new one on the command line.  For\n",
+         "*** example, to listen on port 10080:\n",
+         "*** $0 10080\n",
+       );
+  $listen_port = 80;
+}
 
 my $session = POE::Session->new
   ( Server => [ qw(_start accept_client accept_error signals) ],

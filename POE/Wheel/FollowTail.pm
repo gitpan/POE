@@ -1,13 +1,30 @@
-# $Id: FollowTail.pm,v 1.15 2000/06/21 17:29:06 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.18 2000/11/12 00:38:59 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 use Carp;
 use POSIX qw(SEEK_SET SEEK_CUR SEEK_END);
-use POE;
+use POE qw(Wheel);
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
+
+# Turn on tracing.  A lot of debugging occurred just after 0.11.
+sub TRACE () { 0 }
+
+# Tk doesn't provide a SEEK method, as of 800.022
+BEGIN {
+  if (exists $INC{'Tk.pm'}) {
+    eval <<'    EOE';
+      sub Tk::Event::IO::SEEK {
+        my $o = shift;
+        $o->wait(Tk::Event::IO::READABLE);
+        my $h = $o->handle;
+        sysseek($h, shift, shift);
+      }
+    EOE
+  }
+}
 
 #------------------------------------------------------------------------------
 
@@ -21,24 +38,23 @@ sub new {
   croak "$type requires a working Kernel"
     unless (defined $poe_kernel);
 
-  croak "Handle required"     unless (exists $params{'Handle'});
-  croak "Driver required"     unless (exists $params{'Driver'});
-  croak "Filter required"     unless (exists $params{'Filter'});
-  croak "InputState required" unless (exists $params{'InputState'});
+  croak "Handle required"     unless defined $params{'Handle'};
+  croak "Driver required"     unless defined $params{'Driver'};
+  croak "Filter required"     unless defined $params{'Filter'};
+  croak "InputState required" unless defined$params{'InputState'};
 
   my ($handle, $driver, $filter) = @params{ qw(Handle Driver Filter) };
 
-  my $poll_interval = ( (exists $params{'PollInterval'})
+  my $poll_interval = ( (defined $params{'PollInterval'})
                         ? $params{'PollInterval'}
                         : 1
                       );
 
-  my $seek_back = ( (exists $params{'SeekBack'})
-                    ? $params{'SeekBack'}
+  my $seek_back = ( (defined $params{SeekBack})
+                    ? $params{SeekBack}
                     : 4096
                   );
   $seek_back = 0 if $seek_back < 0;
-
 
   my $self = bless { handle      => $handle,
                      driver      => $driver,
@@ -46,6 +62,7 @@ sub new {
                      interval    => $poll_interval,
                      event_input => $params{'InputState'},
                      event_error => $params{'ErrorEvent'},
+                     unique_id   => &POE::Wheel::allocate_wheel_id(),
                    }, $type;
 
   $self->_define_states();
@@ -57,12 +74,24 @@ sub new {
   $poe_kernel->select($handle, $self->{state_read});
 
   # Try to position the file pointer before the end of the file.  This
-  # is so we can "tail -f" an existing file.
+  # is so we can "tail -f" an existing file.  FreeBSD, at least,
+  # allows sysseek to go before the beginning of a file.  Trouble
+  # ensues at that point, causing the file never to be read again.
+  # This code does some extra work to prevent seeking beyond the start
+  # of a file.
 
-  eval { seek($handle, -$seek_back, SEEK_END); };
+  eval {
+    my $end = sysseek($handle, 0, SEEK_END);
+    if (defined($end) and ($end < $seek_back)) {
+      sysseek($handle, 0, SEEK_SET);
+    }
+    else {
+      sysseek($handle, -$seek_back, SEEK_END);
+    }
+  };
 
   # Discard partial input chunks unless a SeekBack was specified.
-  unless (exists $params{SeekBack}) {
+  unless (defined $params{SeekBack}) {
     while (defined(my $raw_input = $driver->get($handle))) {
       # Skip out if there's no more input.
       last unless @$raw_input;
@@ -70,7 +99,7 @@ sub new {
     }
   }
 
-  $self;
+  return $self;
 }
 
 #------------------------------------------------------------------------------
@@ -88,12 +117,15 @@ sub _define_states {
   my $driver        = $self->{driver};
   my $event_input   = \$self->{event_input};
   my $event_error   = \$self->{event_error};
-  my $state_wake    = $self->{state_wake} = $self . ' -> alarm';
-  my $state_read    = $self->{state_read} = $self . ' -> select read';
+  my $state_wake    = $self->{state_wake} = $self . ' alarm';
+  my $state_read    = $self->{state_read} = $self . ' select read';
   my $poll_interval = $self->{interval};
   my $handle        = $self->{handle};
+  my $unique_id     = $self->{unique_id};
 
   # Define the read state.
+
+  TRACE and do { warn $state_read; };
 
   $poe_kernel->state
     ( $state_read,
@@ -103,25 +135,36 @@ sub _define_states {
                                         # subroutine starts here
         my ($k, $ses, $hdl) = @_[KERNEL, SESSION, ARG0];
 
+        $k->select_read($hdl);
+
+        eval { sysseek($hdl, 0, SEEK_CUR); };
+        $! = 0;
+
+        TRACE and do { warn time . " read ok\n"; };
+
         if (defined(my $raw_input = $driver->get($hdl))) {
+          TRACE and do { warn time . " raw input\n"; };
           foreach my $cooked_input (@{$filter->get($raw_input)}) {
-            $k->call($ses, $$event_input, $cooked_input);
+            TRACE and do { warn time . " cooked input\n"; };
+            $k->call($ses, $$event_input, $cooked_input, $unique_id);
           }
         }
 
-        $k->select_read($hdl);
-
         if ($!) {
-          $$event_error && $k->call($ses, $$event_error, 'read', ($!+0), $!);
+          TRACE and do { warn time . " error: $!\n"; };
+          $$event_error and
+            $k->call($ses, $$event_error, 'read', ($!+0), $!, $unique_id);
         }
-        else {
-          $k->delay($state_wake, $poll_interval);
-        }
+
+        TRACE and do { warn time . " set delay\n"; };
+        $k->delay($state_wake, $poll_interval);
       }
     );
 
   # Define the alarm state that periodically wakes the wheel and
   # retries to read from the file.
+
+  TRACE and do { warn $state_wake; };
 
   $poe_kernel->state
     ( $state_wake,
@@ -130,6 +173,9 @@ sub _define_states {
         0 && CRIMSON_SCOPE_HACK('<');
                                         # subroutine starts here
         my $k = $_[KERNEL];
+
+        TRACE and do { warn time . " wake up and select the handle\n"; };
+
         $k->select_read($handle, $state_read);
       }
     );
@@ -179,6 +225,14 @@ sub DESTROY {
     $poe_kernel->state($self->{state_wake});
     delete $self->{state_wake};
   }
+
+  &POE::Wheel::free_wheel_id($self->{unique_id});
+}
+
+#------------------------------------------------------------------------------
+
+sub ID {
+  return $_[0]->{unique_id};
 }
 
 ###############################################################################
@@ -206,8 +260,9 @@ POE::Wheel - POE FollowTail Protocol Logic
 This wheel follows the end of an ever-growing file, perhaps a log
 file, and generates events whenever new data appears.  It is a
 read-only wheel, so it does not include a put() method.  It uses
-tell() and seek() functions, so it's only suitable for plain files.
-It won't tail pipes or consoles.
+sysseek(2) wrapped in eval { }, so it should work okay on all sorts of
+files.  That is, if perl supports select(2)'ing them on the underlying
+operating system.
 
 =head1 PUBLIC METHODS
 
@@ -218,6 +273,13 @@ It won't tail pipes or consoles.
 POE::Wheel::FollowTail::event(...)
 
 Please see POE::Wheel.
+
+=item *
+
+POE::Wheel::FollowTail::ID()
+
+Returns the FollowTail wheel's unique ID.  This can be used to
+associate the wheel's events back to the wheel itself.
 
 =back
 
@@ -252,7 +314,7 @@ InputState.  It's the state to be called when the followed file
 lengthens.
 
 ARG0 contains a logical chunk of data, read from the end of the tailed
-file.
+file.  ARG1 contains the ID of the wheel that received this input.
 
 =item *
 
@@ -260,11 +322,15 @@ ErrorState
 
 The ErrorState event contains the name of the state that will be
 called when a file error occurs.  The FollowTail wheel knows what to
-do with EAGAIN, so it's not considered a true error.
+do with EAGAIN, so it's not considered a true error.  FollowTail will
+continue running even on an error, so it's up to the Session to stop
+things if that's what it wants.
 
 The ARG0 parameter contains the name of the function that failed.
 ARG1 and ARG2 contain the numeric and string versions of $! at the
-time of the error, respectively.
+time of the error, respectively.  ARG3 contains the ID of the wheel
+that encountered the error; this is useful for closing the proper
+wheel when one of several has encountered an error.
 
 A sample ErrorState state:
 

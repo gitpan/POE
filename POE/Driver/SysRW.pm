@@ -1,4 +1,4 @@
-# $Id: SysRW.pm,v 1.12 2000/06/17 20:05:46 rcaputo Exp $
+# $Id: SysRW.pm,v 1.13 2000/11/12 00:38:58 rcaputo Exp $
 
 # Copyright 1998 Rocco Caputo <troc@netrus.net>.  All rights reserved.
 # This program is free software; you can redistribute it and/or modify
@@ -32,7 +32,7 @@ sub new {
       croak "$type requires an even number of parameters, if any";
     }
     my %args = @_;
-    if (exists $args{BlockSize}) {
+    if (defined $args{BlockSize}) {
       $self->[BLOCK_SIZE] = delete $args{BlockSize};
       croak "$type BlockSize must be greater than 0"
         if ($self->[BLOCK_SIZE]<1);

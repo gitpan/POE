@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: signals.perl,v 1.12 2000/02/16 04:00:10 rcaputo Exp $
+# $Id: signals.perl,v 1.13 2000/11/03 21:59:04 rcaputo Exp $
 
 # This program tests signals.  It tests OS signals (such as SIGINT),
 # soft signals to sessions, and soft signals to kernels.  Soft
@@ -20,7 +20,7 @@ use POE;
 # fictitious signals (SIGFOO and SIGQUUX).  The session then starts an
 # alarm loop that signals FOO to itself once a second.
 
-new POE::Session
+POE::Session->new
                                         ### _start the session
   ( '_start' => sub
     { my $kernel = $_[KERNEL];
@@ -67,7 +67,7 @@ new POE::Session
 # The session then starts an alarm loop that signals QUUX to the
 # kernel twice a second.  This propagates SIGQUUX to every session.
 
-new POE::Session
+POE::Session->new
                                         ### _start the session
   ( '_start' => sub
     { my $kernel = $_[KERNEL];

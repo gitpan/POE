@@ -1,11 +1,13 @@
 #!/usr/bin/perl -w
-# $Id: 15_filter_block.t,v 1.1 2000/06/19 04:08:59 rcaputo Exp $
+# $Id: 15_filter_block.t,v 1.2 2000/08/06 19:52:40 rcaputo Exp $
 
 # Exercises Filter::Block without the rest of POE.  Suddenly things
 # are looking a lot easier.
 
 use strict;
 use lib qw(./lib ../lib);
+
+sub POE::Kernel::TRACE_DEFAULT () { 1 } # not needed though
 use POE::Filter::Block;
 
 use TestSetup;

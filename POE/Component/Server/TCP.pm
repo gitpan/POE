@@ -1,8 +1,8 @@
-# $Id: TCP.pm,v 1.2 2000/03/09 19:09:11 rcaputo Exp $
-
-use strict;
+# $Id: TCP.pm,v 1.3 2000/08/08 03:39:29 rcaputo Exp $
 
 package POE::Component::Server::TCP;
+
+use strict;
 
 use Carp qw(carp croak);
 use vars qw($VERSION);

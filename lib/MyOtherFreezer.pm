@@ -1,4 +1,4 @@
-# $Id: MyOtherFreezer.pm,v 1.1 2000/06/21 19:49:40 rcaputo Exp $
+# $Id: MyOtherFreezer.pm,v 1.2 2000/08/15 14:31:36 rcaputo Exp $
 # A sample external freezer for POE::Filter::Reference testing.
 
 package MyOtherFreezer;
@@ -18,7 +18,7 @@ sub freeze {
   elsif (ref($thing) eq 'Package') {
     return reverse(join "\0", ref($thing), @$thing);
   }
-  die;
+  die "can't freeze things of type ", ref($thing);
 }
 
 sub thaw {
@@ -33,7 +33,7 @@ sub thaw {
   elsif ($type eq 'Package') {
     return bless \@stuff, $type;
   }
-  die;
+  die "can't thaw things of type $type";
 }
 
 1;

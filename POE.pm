@@ -1,4 +1,4 @@
-# $Id: POE.pm,v 1.78 2000/07/10 04:31:58 rcaputo Exp $
+# $Id: POE.pm,v 1.96 2000/11/19 15:02:39 rcaputo Exp $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,12 +7,27 @@ use strict;
 use Carp;
 
 use vars qw($VERSION);
-$VERSION = '0.11';
+$VERSION = '0.12';
 
 sub import {
   my $self = shift;
-  my @modules = grep(!/^(Kernel|Session)$/, @_);
-  unshift @modules, qw(Kernel Session);
+
+  my @sessions = grep(/^(Session|NFA)$/, @_);
+  my @modules = grep(!/^(Kernel|Session|NFA)$/, @_);
+
+  croak "Can't load both POE::Session and POE::NFA at once"
+    if grep(/^(Session|NFA)$/, @sessions) > 1;
+
+  # Add Kernel back it, whether anybody wanted it or not.
+  unshift @modules, 'Kernel';
+
+  # If a session was specified, use that.  Otherwise use Session.
+  if (@sessions) {
+    unshift @modules, @sessions;
+  }
+  else {
+    unshift @modules, 'Session';
+  }
 
   my $package = (caller())[0];
 
@@ -43,7 +58,7 @@ __END__
 
 =head1 NAME
 
-POE - a persistent object environment
+POE - event driven state machines
 
 =head1 SYNOPSIS
 
@@ -234,8 +249,8 @@ they need but no more.  The layers are:
 Events layer
 
 This was already discussed earlier.  It consists of an event
-dispatcher, POE::Kernel, and POE::Session, which is a generic state
-machine.
+dispatcher, POE::Kernel; POE::Session, which is a generic state
+machine; and POE::NFA, which is a non-deterministic finite automaton.
 
 =item *
 
@@ -808,6 +823,15 @@ Storable tends to be the fastest, and it's checked first.
 Filter::Reference can also use Compress::Zlib upon request, but it's
 not required.
 
+B<If you intend to pass reference across machines, such as with Philip
+Gwyn's POE::Component::IKC, then be sure that both ends of the
+connection use the same version of the same libraries.  Subtle
+differences in libraries, or even between different versions of the
+same library, can cause mysterious errors when data is reconstituted
+on the receiving end.  When all else fails, upgrade to the latest
+version; this has been known to fix problems between Filter::Reference
+and Storable, for example.>
+
 Filter::HTTPD requires a small world of modules, including
 HTTP::Status; HTTP::Request; HTTP::Date and URI::URL.  The httpd.perl
 sample program uses Filter::HTTPD, which uses all that other stuff.
@@ -832,10 +856,10 @@ POE.
 
 The POE Mailing List
 
-POE has a mailing list thanks to Artur Bergman and Vogon Solutions.
-You may subscribe to it by sending e-mail:
+POE has a mailing list at perl.org.  You may subscribe to it by
+sending e-mail:
 
-  To: poe-help@vogon.se
+  To: poe-help@perl.org
   Subject: (anything will do)
 
   Anything will do for the message body.
@@ -844,9 +868,10 @@ All forms of feedback are welcome.
 
 =item *
 
-POE has a web site thanks to Johnathan Vail.  The latest POE
-development snapshot, along with the Changes file and some other stuff
-can be found at <http://www.newts.org/~troc/poe.html>.
+The POE Web Site
+
+POE has a web site where the latest development snapshot, along with
+the Changes file and other stuff may be found: <http://poe.perl.org/>
 
 =back
 
@@ -860,7 +885,7 @@ This is a summary of POE's modules.
 
 Events Layer
 
-POE::Kernel; POE::Session
+POE::Kernel; POE::NFA; POE::Session
 
 =item *
 
@@ -1017,9 +1042,20 @@ problem relating to anonymous subs, scope and @{} processing.
 
 =item *
 
+Dennis Taylor
+
+Dennis Taylor is <dennis@funkplanet.com>.  Dennis has been testing,
+debugging and patching bits here and there, such as Filter::Line which
+he improved by leaps in 0.1102.  He's also the author of
+POE::Component::IRC, which isn't included here but may be found at
+either <http://www.infobot.org/dev/POE/> or
+<http://www.funkplanet.com/POE/>.
+
+=item *
+
 Others?
 
-Anyone who has been forgotten, please contact me.
+Anyone who has been forgotten, please contact the author.
 
 =back
 

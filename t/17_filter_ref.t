@@ -1,10 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 17_filter_ref.t,v 1.1 2000/06/21 19:49:40 rcaputo Exp $
+# $Id: 17_filter_ref.t,v 1.3 2000/08/17 05:16:24 rcaputo Exp $
 
 # Exercises Filter::Reference without the rest of POE.
 
 use strict;
 use lib qw(./lib ../lib);
+
+sub POE::Kernel::TRACE_DEFAULT () { 1 } # not needed though
 use POE::Filter::Reference;
 
 use TestSetup;
@@ -13,7 +15,9 @@ use TestSetup;
 { local $SIG{__WARN__} = sub { };
   my $reference = eval { POE::Filter::Reference->new(); };
   if (length $@) {
-    $@ =~ s/\n.*$//;
+    &test_setup(0, "can't test without either Storable or FreezeThaw")
+      if $@ =~ /requires Storable/;
+    $@ =~ s/ at .*$//s;
     &test_setup(0, $@);
     exit;
   }

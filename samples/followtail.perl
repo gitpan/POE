@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: followtail.perl,v 1.5 2000/01/23 18:30:07 rcaputo Exp $
+# $Id: followtail.perl,v 1.7 2000/11/03 21:59:01 rcaputo Exp $
 
 # This program tests Wheel::FollowTail.  The FollowTail wheel provides
 # a reusable "tail -f" behavior for drivers and filters.
@@ -32,19 +32,19 @@ for my $j (0..9) {
                                         # track the names for later cleanup
   push @names, $name;
                                         ### create a log writer
-  new POE::Session
+  POE::Session->new
     ( '_start' => sub
       { my ($kernel, $session, $heap) = @_[KERNEL, SESSION, HEAP];
                                         # save my ID
         $heap->{'id'} = $i;
                                         # create the "log" file
-        my $handle = new IO::File(">$name");
+        my $handle = IO::File->new(">$name");
         if (defined $handle) {
                                         # create non-blocking write-only wheel
-          $heap->{'wheel'} = new POE::Wheel::ReadWrite
+          $heap->{'wheel'} = POE::Wheel::ReadWrite->new
             ( Handle     => $handle,                  # using this handle
-              Driver     => new POE::Driver::SysRW(), # using syswrite
-              Filter     => new POE::Filter::Line(),  # write lines
+              Driver     => POE::Driver::SysRW->new,  # using syswrite
+              Filter     => POE::Filter::Line->new,   # write lines
               ErrorState => 'log_error'               # acknowledge errors
             );
 
@@ -81,17 +81,17 @@ for my $j (0..9) {
       }
     );
                                         ### create a log follower
-  new POE::Session
+  POE::Session->new
     ( '_start' => sub
       { my ($kernel, $session, $heap) = @_[KERNEL, SESSION, HEAP];
         $heap->{'id'} = $i;
                                         # try to open the file
-        if (defined(my $handle = new IO::File("<$name"))) {
+        if (defined(my $handle = IO::File->new("<$name"))) {
                                         # start following the file's tail
-          $heap->{'wheel'} = new POE::Wheel::FollowTail
+          $heap->{'wheel'} = POE::Wheel::FollowTail->new
             ( 'Handle' => $handle,                  # follow this handle
-              'Driver' => new POE::Driver::SysRW(), # use sysread to read
-              'Filter' => new POE::Filter::Line(),  # file contains lines
+              'Driver' => POE::Driver::SysRW->new,  # use sysread to read
+              'Filter' => POE::Filter::Line->new,   # file contains lines
               'InputState' => 'got a line',         # input handler
               'ErrorState' => 'error reading',      # error handler
               'PollInterval' => 2,
@@ -123,6 +123,20 @@ for my $j (0..9) {
                                         # just display the input
         print $line_of_input, "\n";
       },
+
+      # To catch strange events.
+      _default =>
+      sub {
+        warn "default caught $_[ARG0] with (@{$_[ARG1]})";
+        my $i = 0;
+        while (1) {
+          my @xyz = map { defined($_) ? $_ : '(undef)' } caller($i++);
+          $xyz[-1] = unpack 'B*', $xyz[-1];
+          last unless @xyz;
+          warn "$i: @xyz\n";
+        }
+        return 0;
+      },
     );
 }
 
@@ -131,8 +145,8 @@ for my $j (0..9) {
 # second.  It does this to ensure that the other twenty sessions are
 # not blocking while waiting for input.
 
-new POE::Session
-  ( '_start' => sub
+POE::Session->new
+  ( _start => sub
     { my ($kernel, $session) = @_[KERNEL, SESSION];
       $kernel->post($session, 'spin a wheel');
     },

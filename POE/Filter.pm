@@ -1,8 +1,9 @@
-# $Id: Filter.pm,v 1.6 1999/06/18 17:35:44 rcaputo Exp $
+# $Id: Filter.pm,v 1.7 2000/09/01 19:53:53 rcaputo Exp $
 
 package POE::Filter;
 
 use strict;
+use Carp;
 
 #------------------------------------------------------------------------------
 
