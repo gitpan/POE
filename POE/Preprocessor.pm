@@ -1,4 +1,4 @@
-# $Id: Preprocessor.pm,v 1.22 2001/03/01 20:53:30 rcaputo Exp $
+# $Id: Preprocessor.pm,v 1.23 2001/07/25 15:28:24 rcaputo Exp $
 
 package POE::Preprocessor;
 
@@ -9,7 +9,8 @@ use Filter::Util::Call;
 sub MAC_PARAMETERS () { 0 }
 sub MAC_CODE       () { 1 }
 sub MAC_NAME       () { 2 } # only used in temporary %macro
-sub MAC_LINE       () { 3 } # only used in temporary %macro
+sub MAC_FILE       () { 3 }
+sub MAC_LINE       () { 4 } # only used in temporary %macro
 
 sub STATE_PLAIN     () { 0x0000 }
 sub STATE_MACRO_DEF () { 0x0001 }
@@ -421,6 +422,7 @@ sub import {
               [ \@macro_params, # MAC_PARAMETERS
                 '',             # MAC_CODE
                 $macro_name,    # MAC_NAME
+                $file_name,     # MAC_FILE
                 $line_number,   # MAC_LINE
               ];
 
@@ -459,6 +461,8 @@ sub import {
 
               # Build a new bit of code here.
               my $substitution = $macros{$package_name}->{$name}->[MAC_CODE];
+              my $macro_file   = $macros{$package_name}->{$name}->[MAC_FILE];
+              my $macro_line   = $macros{$package_name}->{$name}->[MAC_LINE];
 
               foreach my $mac_param (@mac_params) {
                 my $use_param = shift @use_params;
@@ -471,7 +475,8 @@ sub import {
                 while ($sub_line--) {
                   splice( @sub_lines, $sub_line, 0,
                           "# line $line_number " .
-                          "\"macro $name (line $sub_line) " .
+                          "\"macro $name (defined in $macro_file at line " .
+                          ($macro_line + $sub_line + 1) . ") " .
                           "invoked from $file_name\""
                         );
                 }

@@ -1,11 +1,11 @@
-$Id: CHANGES,v 1.14 2001/07/15 19:23:57 rcaputo Exp $
+$Id: CHANGES,v 1.42 2001/08/29 13:45:02 rcaputo Exp $
 
 Revision history for POE
 ========================
 
 Changes marked with "(!!!)" may break backward compatibility.
 
-Version numbers have four fields: X.YYZZAA
+Version numbers have four fields: X.YYZZAAB
 
   X  is the interface version, currently 0 as public interfaces gel.
   YY is the major revision number.
@@ -22,6 +22,213 @@ Version numbers have four fields: X.YYZZAA
 | cvs tag -Rc v0_11   .
 | cvs tag -Rc v0_1009 .
 `------------------------------------------------------------------------------
+
+0.16 2001.08.29
+---------------
+
+Dan McCormick spotted a (pretty big) problem in the way Gtk alarms
+were dispatched.  It turned out that the next-alarm timeout was not
+being refreshed for the second or subequent alarm set.  That doesn't
+matter if alarms are always set later than previous ones, but it
+failed when he tried to set an alarm before the first one in the
+queue.  Fixed!  And fixed for Tk and Event, too.  Select didn't have a
+problem.
+
+Added a GOTCHAS / FAQ section to POE::Wheel::ReadLine's manpage.  This
+seems like a good idea, so maybe I'll add one to other pages as
+questions come up.
+
+Commented out the "posthumous re-entry" check in POE::Kernel's run
+method.  I don't remember why this was added; maybe some event loops
+don't like it.
+
+Many many TODO additions and updates.
+
+Everything in 0.1501 and 0.1502.
+
+
+0.1502 2001.08.12 (!!!)
+-----------------------
+
+Updated README to include dynweb's test results for Solaris 8.
+
+(!!!) Fixed Filter::HTTPD so it doesn't crash at runtime when a
+malformed HTTP request arrives.  This required altering the filter's
+return values slightly!  The filter may return an HTTP::Response
+object if there has been an error parsing the request.  Please see the
+updated documentation for a suggestion on how to handle the new
+behavior.  Thanks to undercut for spotting this problem.
+
+Updated samples/httpd.perl to properly deal with Filter::HTTPD
+returning HTTP::Response objects.
+
+lib/deptest.perl was failing on Windows because File::Spec->catdir()
+properly uses backslashes ("\") as path separators on DOSISH systems,
+but %INC uses forward slashes ("/").  The module was used okay, but it
+was never found in %INC.  Now deptest.perl tries both, damnit.
+
+Fixed Filter::HTTPD to not print diagnostics and not die with an error
+on malformed requests.  Rather, it generates an HTTP::Response object
+when bad requests arrive.  These and more Filter::HTTPD patches are
+courtesy of Anton Berezin.
+
+Anton Berezin posted several more Filter::HTTPD cleanup patches.  He
+changed the magic numbers for HTTP errors into their corresponding
+constants.  He Made it illegal for HEAD requests to contain content.
+Finally he made POST requests' content length checking stricter yet
+less likely to cause programs to warn or die.
+
+Make turning off blocking in POE::Kernel more robust.  Retry on EAGAIN
+or EWOULDBLOCK.
+
+Implement a replacement for socketpair() in POE::Pipe, and have
+POE::Pipe::OneWay and ::TwoWay use that on systems where pipe() and
+socketpair() aren't supported.  If we're lucky, the tests which used
+to hang on Windows won't anymore.  They may crash outright, though,
+but that's a different issue altogether. :)
+
+Add POE::Pipe to the MANIFEST.
+
+Tweak the TRACE_PROFILE output at the end of a program's run.  It
+should not have been adding an "s" to each event name.
+
+Skipped the protocol-with-UNIX-sockets test in t/08_errors.t on
+Windows systems.  Windows don't do UNIX sockets.  Also broke the
+relationship between two tests so that one's failure does not
+necessarily cascade into the other's.
+
+Commented upon some of the odd data-driven features in
+SocketFactory.pm.
+
+Test 22 (Wheel::Run) may have been failing because the command line to
+run child processes include single quotes.  Windows shells usually use
+double quotes around arguments containing spaces.  Bleah!
+
+Added Philip Gwyn's debugging information patches to POE::Pipe::*Way.
+Perhaps this will speed up finding problems on Windows.
+
+Added a kill() method to Wheel::Run, so that child processes may be
+forcibly toasted if necessary.
+
+Replaced *STDIN with \*STDIN in Wheel::ReadLine and Wheel::Curses,
+fixing those modules with Event (and possibly other event systems).
+Thanks to Fletch for spotting the problem.
+
+Documented addhistory() in POE::Wheel::ReadLine.
+
+Added a clear() method so POE::Wheel::ReadLine can be used to clear
+the terminal.
+
+Documented several ideas, contributed or otherwise, in the TODO.
+
+s/depreciat/deprecat/g; Thanks to fimmtiu for pointing out this long
+standing error.
+
+Added streaming filter change tests to t/19_filterchange.t.  Fixed
+set_filter and set_input_filter in Wheel::ReadWrite so this works.
+Finally!
+
+
+0.1501 2001.07.27
+-----------------
+
+POE::Filter::HTTPD would corrupt long requests (ones which need to be
+read by more than one get() call).  Anton Berezin spotted the problem
+and patched it.
+
+Added POE::Session::ASSERT_DEFAULT (see POE::Kernel::ASSERT_DEFAULT
+for an explanation), and POE::Session::ASSERT_STATES.  The STATES
+assertion turns on "debug" options for POE::Session instances by
+default.  With one assertion, misspelled state names are caught in an
+entire program.  ASSERT_STATES isn't necessary for POE::NFA because
+that variation of POE::Session dies on bad events.
+
+Fixed Solaris 8 test results in README.  Thanks, dynweb!
+
+Documented in TODO: An alternative design for signal propagation and
+handling.
+
+Documented in TODO: An alternative to yield().
+
+Fixed ARG0..ARG9 offsets so they match in POE::Session and POE::NFA,
+which they must do or bad things happen.
+
+Removed an extra _stop in samples/preforkedserver.perl.
+
+The following Windows fixes are in response to some fine testing by
+Philip Gwyn and Mike Wilkinson.
+
+Wrap Wheel::Run's getpriority() and setpriority() calls in eval, and
+check their return values.  Hopefully Wheel::Run won't die terribly on
+systems that don't support these calls.
+
+Update the README with more detailed Windows testing information.
+
+Change Pipe::(One|Two)Way to always use IO::Socket::INET on Windows
+systems.  I suspect socketpair() is succeeding under Windows but
+creating "sockets" which select() doesn't recognize as sockets.
+
+Fix t/01_sessions.t to skip its signals tests on Windows.  Windows'
+signals support is, erm, lacking at this time.
+
+Add Windows compatibility constants to the symbols which need to be
+cleaned out from POE::Kernel's namespace in t/08_errors.t.
+
+Make runtime errors in macros point to the absolute line in the file
+where the macro was defined, rather than the offset into the macro
+itself.  Developers can jump directly to the offending code in the
+file rather than count lines in the macro.
+
+Turn const and enum constants in POE::Session and POE::NFA back into
+constant subs.  This is a step towards inheritable sessions, now that
+@ISA and method calls aren't real slow anymore.  There may still be a
+performance hit in legacy versions of Perl, but the code will still
+work there.
+
+Turn DEB_DESTROY into TRACE_DESTROY in POE::Session and POE::NFA, so
+it's more like all the rest.  I didn't actually document it,
+though. :)
+
+Tweak lib/deptest.perl to print a more useful diagnostic message for
+not finding a module in %INC although it loaded okay.
+
+Fix test 18's skips for unsupported compiled regexps in older perl
+versions (namely 5.004_05).
+
+Add get_one_start() and get_one() to the following filters: Block,
+Grep, Line, Map, RecordBlock, Reference, and Stream.  Switching
+between these filters should be robust now.
+
+Add support for get_one_start() and get_one() to Wheel::ReadWrite.  It
+only uses these methods if the input wheel supports them.  Otherwise
+it falls back to the older, faster, but more dangerous get().
+
+Tweak language for existing deprecations in TODO, so the schedule of
+changes is more explicit.  Please don't misunderstand.
+
+Develop the ideas for fixing filter changing in TODO.  Set up a
+checklist, and actually begin implementing stuff.
+
+Tested error conditions in several modules, prompting some changes.
+
+Made the errors for Session->new() parameters a little more
+descriptive.
+
+Made misuse of Filter::HTTPD->get_pending() croak instead of warn.
+
+Made bad constructor parameters in POE::Wheel::Run fatal.
+
+Added a test for Component::Server::TCP's "shutdown" event handler.
+
+Added get_one_start() and get_one() tests for Filter::Block.
+
+Added get_one_start() and get_pending() tests for Filter::Reference.
+
+Added get_one_start(), get_one(), and get_pending() tests for
+Filter::Map and Filter::Grep.
+
+Added tests for Filter::Stackable's filter stack management methods.
+
 
 0.15 2001.07.15
 ---------------
@@ -107,10 +314,10 @@ Add alarm_set, alarm_adjust, alarm_remove, and alarm_remove_all to
 POE::Kernel.  Add tests for these things in t/02_alarms.t.  Document
 them in POE::Kernel's manpage.
 
-Depreciate POE::Kernel's queue_peek_alarms() method.  The new alarm
+Deprecate POE::Kernel's queue_peek_alarms() method.  The new alarm
 functions let programmers add, remove, and track alarms by ID, so
 looking into the alarm queue is no longer necessary.  The complete
-depreciation schedule is in TODO.
+deprecation schedule is in TODO.
 
 Add POE::Kernel leak detection for alarm IDs.  Discovered a memory
 leak in alarm IDs, and removed it.
@@ -129,7 +336,7 @@ anyway, but mandrake says he needs postbacks to return 1.  I'm so
 confused!  Leave Gtk's postback return value 0 for now, but it might
 change later.
 
-(!!!) Depreciation schedules and other notices have been moved to a
+(!!!) Deprecation schedules and other notices have been moved to a
 TODO file.  Please consult that file or be surprised later.
 
 (!!!) Changes has been renamed to CHANGES to follow suit with MANIFEST
@@ -147,12 +354,12 @@ Increase dependency checking information on Solaris in case attempts
 to fix the Exporter bug aren't successful.
 
 Add XyzEvent support to wheels.  Code to support XyzEvent and XyzState
-is marked with the comment C<# STATE-EVENT>.  Hooks for depreciation
+is marked with the comment C<# STATE-EVENT>.  Hooks for deprecation
 warnings are also commented.  Changed the documentation to say
 XyvEvent instead of XyzState, so new users will not learn the
-depreciated ways.
+deprecated ways.
 
-Verified that the depreciation from State to Event does not break
+Verified that the deprecation from State to Event does not break
 existing tests.
 
 Ported the existing tests to use XyzEvent instead of XyzState, and
@@ -222,7 +429,7 @@ See the POE::Kernel documentation.
 Tk requires at least one widget to use the event loop, so POE::Kernel
 continues to create one and set $poe_main_window when Tk is in effect.
 
-(!!!) Depreciate support for coderefs in SocketFactory's SuccessState
+(!!!) Deprecate support for coderefs in SocketFactory's SuccessState
 and FailureState parameters.
 
 Applied Peter Scott's code/doc/test patches to allow Wheel::Run to
@@ -367,7 +574,7 @@ Added t/23_nfa.t to exercise bits of POE::NFA.
 Added code to prevent session IDs from colliding after integer
 increment wraps.
 
-Devolped a depreciation schedule for some iffy current features and to
+Devolped a deprecation schedule for some iffy current features and to
 make the names of things more consistent.
 
 Added TRACE_RETURNS and ASSERT_RETURNS to generate warnings and/or
@@ -447,11 +654,11 @@ at <http://sourceforge.net/projects/poe/>).  I'm really regretting it
 at the moment: SF is experiencing severe growing/moving pains, and all
 sorts of things have been broken.
 
-Documented the object layer depreciation.  The object layer will be
+Documented the object layer deprecation.  The object layer will be
 moved to a separate component after 0.13 is released.  [note: Decided
 to remove it early.]
 
-Documented the samples depreciation.  They will be moved to a separate
+Documented the samples deprecation.  They will be moved to a separate
 distribution after 0.13 is released.
 
 Moved POE::Kernel's data structures out of $self and into lexicals.
@@ -1267,7 +1474,7 @@ Overhauled POE::Kernel's manpage SYNOPSIS.  Made the formatting a
 little neater.  Made the parameter names a little clearer.  Explained
 what's going on in greater detail.
 
-(!!!) Removed the silly and long-depreciated $kernel->session_create
+(!!!) Removed the silly and long-deprecated $kernel->session_create
 method.
 
 (!!!) Split the debugging constants between assertions which die
@@ -1307,7 +1514,7 @@ Documented $kernel->fork() as experimental.
 
 Added experimental postback features to POE::Session.
 
-Un-depreciated $kernel->ID_session_to_id.  While
+Un-deprecated $kernel->ID_session_to_id.  While
 $kernel->alias_resolve does the same thing, ID_session_to_id can be
 faster when code expects to be working with session IDs.
 
@@ -1331,13 +1538,13 @@ generated.  $session->option( default => 1 ) will report the line and
 file, so you know where strange events came from.
 
 (!!!) Add session ID to reference lookup from alias_resolve.
-ID_id_to_session is depreciated.  The incompatibility here is that
+ID_id_to_session is deprecated.  The incompatibility here is that
 session IDs take precedence over aliases, so sessions shouldn't be
 aliased to numbers.
 
-(!!!) Depreciated ID_session_to_id, since alias_resolve does the same
+(!!!) Deprecated ID_session_to_id, since alias_resolve does the same
 thing.  No warnings have been set yet, to give developers time to
-react to the change.  [This depreciation is rescinded in 0.1001.]
+react to the change.  [This deprecation is rescinded in 0.1001.]
 
 Tweaked the Win32 support to eliminate some redefined sub warnings.
 
@@ -1961,7 +2168,7 @@ error messages.
 Incorrect parameters to &POE::Session::new could cause an infinite
 loop.  Fixed.
 
-Depreciated posting/calling $_[HEAP] instead of $_[SESSION].
+Deprecated posting/calling $_[HEAP] instead of $_[SESSION].
 
 Allow posting to stringified session references.
 

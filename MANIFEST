@@ -1,4 +1,4 @@
-# $Id: MANIFEST,v 1.61 2001/05/28 06:14:33 rcaputo Exp $
+# $Id: MANIFEST,v 1.62 2001/08/01 02:02:24 rcaputo Exp $
 CHANGES
 MANIFEST
 Makefile.PL
@@ -24,6 +24,7 @@ POE/Kernel/Gtk.pm
 POE/Kernel/Select.pm
 POE/Kernel/Tk.pm
 POE/NFA.pm
+POE/Pipe.pm
 POE/Pipe/OneWay.pm
 POE/Pipe/TwoWay.pm
 POE/Preprocessor.pm

@@ -1,4 +1,4 @@
-# $Id: OneWay.pm,v 1.4 2001/01/21 21:56:14 rcaputo Exp $
+# $Id: OneWay.pm,v 1.7 2001/08/03 14:51:39 rcaputo Exp $
 
 # Portable one-way pipe creation, trying as many different methods as
 # we can.
@@ -8,6 +8,9 @@ package POE::Pipe::OneWay;
 use strict;
 use Symbol qw(gensym);
 use IO::Socket;
+use POE::Pipe;
+
+@POE::Pipe::OneWay::ISA = qw( POE::Pipe );
 
 sub DEBUG () { 0 }
 sub RUNNING_IN_HELL () { $^O eq 'MSWin32' }
@@ -17,8 +20,11 @@ sub RUNNING_IN_HELL () { $^O eq 'MSWin32' }
 my $can_run_socket = undef;
 
 sub new {
-  my $type = shift;
+  my $type         = shift;
   my $conduit_type = shift;
+
+  # Dummy object used to inherit the base POE::Pipe class.
+  my $self = bless [], $type;
 
   # Generate symbols to be used as filehandles for the pipe's ends.
   my $a_read  = gensym();
@@ -26,39 +32,43 @@ sub new {
 
   # Try the pipe if no preferred conduit type is specified, or if the
   # specified conduit type is 'pipe'.
-  if ( (not defined $conduit_type) or
-       ($conduit_type eq 'pipe')
+  if ( (not RUNNING_IN_HELL) and
+       ( (not defined $conduit_type) or
+         ($conduit_type eq 'pipe')
+       ) and
+       ( not defined $can_run_socket )
      ) {
 
-    # Try using pipe, but don't bother on systems that don't support
-    # nonblocking pipes.  Even if they support pipes themselves.
-    unless (RUNNING_IN_HELL) {
+    eval {
+      pipe($a_read, $b_write) or die "pipe failed: $!";
+    };
 
-      # Try pipe.
-      eval {
-        pipe($a_read, $b_write) or die "pipe failed: $!";
+    # Pipe succeeded.
+    unless (length $@) {
+      DEBUG and do {
+        warn "using a pipe";
+        warn "ar($a_read) bw($b_write)\n";
       };
 
-      # Pipe succeeded.
-      unless (length $@) {
-        DEBUG and do {
-          warn "using a pipe\n";
-          warn "ar($a_read) bw($b_write)\n";
-        };
-
-        # Turn off buffering.  POE::Kernel does this for us, but
-        # someone might want to use the pipe class elsewhere.
-        select((select($b_write), $| = 1)[0]);
-        return($a_read, $b_write);
-      }
+      # Turn off buffering.  POE::Kernel does this for us, but
+      # someone might want to use the pipe class elsewhere.
+      select((select($b_write), $| = 1)[0]);
+      return($a_read, $b_write);
+    }
+    elsif (DEBUG) {
+      warn "pipe failed: $@";
     }
   }
 
   # Try UNIX-domain socketpair if no preferred conduit type is
   # specified, or if the specified conduit type is 'socketpair'.
-  if ( (not defined $conduit_type) or
-       ($conduit_type eq 'socketpair')
+  if ( (not RUNNING_IN_HELL) and
+       ( (not defined $conduit_type) or
+         ($conduit_type eq 'socketpair')
+       ) and
+       ( not defined $can_run_socket )
      ) {
+
     eval {
       socketpair($a_read, $b_write, AF_UNIX, SOCK_STREAM, PF_UNSPEC)
         or die "socketpair failed: $!";
@@ -67,7 +77,8 @@ sub new {
     # Socketpair succeeded.
     unless (length $@) {
       DEBUG and do {
-        warn"using a UNIX domain socketpair: ar($a_read) bw($b_write)\n";
+        warn "using a UNIX domain socketpair";
+        warn "ar($a_read) bw($b_write)\n";
       };
 
       # It's one-way, so shut down the unused directions.
@@ -79,72 +90,55 @@ sub new {
       select((select($b_write), $| = 1)[0]);
       return($a_read, $b_write);
     }
+    elsif (DEBUG) {
+      warn "socketpair failed: $@";
+    }
   }
 
   # Try a pair of plain INET sockets if no preffered conduit type is
   # specified, or if the specified conduit type is 'inet'.
-  if ( (not defined $conduit_type) or
-       ($conduit_type eq 'inet')
+  if ( ( RUNNING_IN_HELL or
+         (not defined $conduit_type) or
+         ($conduit_type eq 'inet')
+       ) and
+       ( $can_run_socket or (not defined $can_run_socket) )
      ) {
 
-    # Don't bother if we already know it won't work.
-    if ($can_run_socket or (not defined $can_run_socket)) {
+    # Try using a pair of plain INET domain sockets.
 
-      # Try using a pair of plain INET domain sockets.  Usurp SIGALRM
-      # in case it blocks.  Normally POE programs don't use SIGALRM
-      # anyway.  [fingers crossed here]
-      my $old_sig_alarm = $SIG{ALRM} || 'DEFAULT';
-      eval {
-        local $SIG{ALRM} = sub { die "deadlock" };
-        eval 'alarm(1)' unless RUNNING_IN_HELL;
+    eval {
+      ($a_read, $b_write) = $self->make_socket();
+    };
 
-        my $acceptor = IO::Socket::INET->new
-          ( LocalAddr => '127.0.0.1',
-            LocalPort => 31415,
-            Listen    => 5,
-            Reuse     => 'yes',
-          );
-
-        $a_read = IO::Socket::INET->new
-          ( PeerAddr  => '127.0.0.1',
-            PeerPort  => 31415,
-            Reuse     => 'yes',
-          );
-
-        $b_write = $acceptor->accept() or die "accept";
+    # Sockets worked.
+    unless (length $@) {
+      DEBUG and do {
+        warn "using a plain INET socket";
+        warn "ar($a_read) bw($b_write)\n";
       };
-      eval 'alarm(0)' unless RUNNING_IN_HELL;
-      $SIG{ALRM} = $old_sig_alarm;
 
-      # Sockets worked.
-      unless (length $@) {
-        DEBUG and do {
-          warn "using a plain INET socket\n";
-          warn "ar($a_read) bw($b_write)\n";
-        };
+      # Try sockets more often.
+      $can_run_socket = 1;
 
-        # Try sockets more often.
-        $can_run_socket = 1;
+      # It's one-way, so shut down the unused directions.
+      shutdown($a_read,  1);
+      shutdown($b_write, 0);
 
-        # It's one-way, so shut down the unused directions.
-        shutdown($a_read,  1);
-        shutdown($b_write, 0);
+      # Turn off buffering.  POE::Kernel does this for us, but someone
+      # might want to use the pipe class elsewhere.
+      select((select($b_write), $| = 1)[0]);
+      return($a_read, $b_write);
+    }
 
-        # Turn off buffering.  POE::Kernel does this for us, but someone
-        # might want to use the pipe class elsewhere.
-        select((select($b_write), $| = 1)[0]);
-        return($a_read, $b_write);
-      }
-
-      # Sockets failed.  Don't dry them again.
-      else {
-        $can_run_socket = 0;
-      }
+    # Sockets failed.  Don't dry them again.
+    else {
+      DEBUG and warn "make_socket failed: $@";
+      $can_run_socket = 0;
     }
   }
 
   # There's nothing left to try.
-  DEBUG and warn "nothing worked\n";
+  DEBUG and warn "nothing worked";
   return(undef, undef);
 }
 

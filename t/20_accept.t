@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 20_accept.t,v 1.3 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 20_accept.t,v 1.4 2001/07/18 18:44:32 rcaputo Exp $
 
 # Exercises the ListenAccept wheel.
 
@@ -10,6 +10,7 @@ use IO::Socket;
 use TestSetup qw(ok not_ok ok_if results test_setup many_not_ok);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Session::ASSERT_STATES () { 0 }
 use POE qw(Wheel::ListenAccept Wheel::SocketFactory);
 
 &test_setup(4);

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 03_aliases.t,v 1.5 2001/06/07 01:36:45 rcaputo Exp $
+# $Id: 03_aliases.t,v 1.6 2001/07/18 18:44:32 rcaputo Exp $
 
 # Tests basic session aliases.
 
@@ -151,6 +151,7 @@ POE::Session->create
         $sigidle_test   = 0 if $_[0] eq 'IDLE';
         $sigzombie_test = 0 if $_[0] eq 'ZOMBIE';
       },
+      _stop => sub { },
     }
   );
 

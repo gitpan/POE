@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 25_detach.t,v 1.1 2001/05/28 06:13:56 rcaputo Exp $
+# $Id: 25_detach.t,v 1.2 2001/07/18 18:44:32 rcaputo Exp $
 
 # Tests session detaching.
 
@@ -11,6 +11,7 @@ use TestSetup;
 # Turn on all asserts.  This makes the tests slower, but it also
 # ensures that internal checks are performed within POE::Kernel.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Session::ASSERT_STATES () { 0 }
 use POE;
 
 # Spawn a grandchild.

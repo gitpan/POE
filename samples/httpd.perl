@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: httpd.perl,v 1.12 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: httpd.perl,v 1.13 2001/07/28 16:41:08 rcaputo Exp $
 
 # This program tests POE::Filter::HTTPD by setting up a small server.
 # By default, it will bind to port 80 of all addresses on the local
@@ -91,6 +91,11 @@ sub receive {
   my ($heap, $request) = @_[HEAP, ARG0];
 
   DEBUG && print "Received a request from $heap->{host} : $heap->{port}\n";
+warn $request;
+  if (ref($request) eq 'HTTP::Response') {
+    $heap->{wheel}->put($request);
+    return;
+  }
 
 #  print "GOT ".$request->content()."\n";
                                         # create a response for the request

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 10_wheels_tcp.t,v 1.9 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 10_wheels_tcp.t,v 1.11 2001/07/27 20:22:05 rcaputo Exp $
 
 # Exercises the wheels commonly used with TCP sockets.
 
@@ -10,6 +10,7 @@ use Socket;
 
 # Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Session::ASSERT_STATES () { 0 }
 use POE qw( Component::Server::TCP
             Wheel::ReadWrite
             Filter::Line
@@ -113,6 +114,7 @@ sub client_tcp_stop {
   &ok_if(5, $_[HEAP]->{test_five});
   &ok(6);
   &ok_if(7, $_[HEAP]->{test_seven});
+  $_[KERNEL]->post( tcp_server => 'shutdown' );
 }
 
 sub client_tcp_connected {
@@ -177,6 +179,7 @@ sub client_tcp_got_flush {
 POE::Component::Server::TCP->new
   ( Port     => $tcp_server_port,
     Address  => '127.0.0.1',
+    Alias    => 'tcp_server',
     Acceptor => sub { &sss_new(@_[ARG0..ARG2]);
                       # This next badness is just for testing.
                       my $sockname = $_[HEAP]->{listener}->getsockname();

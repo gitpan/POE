@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 02_alarms.t,v 1.8 2001/06/08 22:03:12 rcaputo Exp $
+# $Id: 02_alarms.t,v 1.9 2001/07/29 18:37:02 rcaputo Exp $
 
 # Tests alarms.
 
@@ -453,18 +453,18 @@ POE::Session->create
 
         POE::Session->create
           ( inline_states =>
-            { _start     => \&test_start,
-              _stop      => \&test_stop,
-              path_one   => \&test_path_one,
-              path_two   => \&test_path_two,
-              path_three => \&test_path_three,
-              path_four  => \&test_path_four,
-              path_five  => \&test_path_five,
-              path_six   => \&test_path_six,
-              path_seven => \&test_path_seven,
-              path_eight => \&test_path_eight,
-              path_nine  => \&test_path_nine,
-              path_ten   => \&test_path_ten,
+            { _start      => \&test_start,
+              _stop       => \&test_stop,
+              path_one    => \&test_path_one,
+              path_two    => \&test_path_two,
+              path_three  => \&test_path_three,
+              path_four   => \&test_path_four,
+              path_five   => \&test_path_five,
+              path_six    => \&test_path_six,
+              path_seven  => \&test_path_seven,
+              path_eight  => \&test_path_eight,
+              path_nine   => \&test_path_nine,
+              path_ten    => \&test_path_ten,
             }
           );
 

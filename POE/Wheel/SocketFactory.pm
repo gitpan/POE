@@ -1,4 +1,4 @@
-# $Id: SocketFactory.pm,v 1.46 2001/04/30 20:06:11 rcaputo Exp $
+# $Id: SocketFactory.pm,v 1.48 2001/08/11 22:40:05 rcaputo Exp $
 
 package POE::Wheel::SocketFactory;
 
@@ -26,6 +26,11 @@ sub MY_SOCKET_PROTOCOL () {  9 }
 sub MY_SOCKET_TYPE     () { 10 }
 sub MY_SOCKET_SELECTED () { 11 }
 
+# Fletch has subclassed SSLSocketFactory from SocketFactory.  He's
+# added new members after MY_SOCKET_SELECTED.  Be sure, if you extend
+# this, to extend add stuff BEFORE MY_SOCKET_SELECTED or let Fletch
+# know you've broken his module.
+
 # Provide a dummy EINPROGRESS for systems that don't have one.  Give
 # it a documented value.
 BEGIN {
@@ -41,18 +46,24 @@ BEGIN {
 }
 
 #------------------------------------------------------------------------------
+# These tables customize the socketfactory.  Many protocols share the
+# same operations, it seems, and this is a way to add new ones with a
+# minimum of additional code.
 
-sub DOM_UNIX () { 'unix' }
-sub DOM_INET () { 'inet' }
+sub DOM_UNIX () { 'unix' }  # UNIX domain socket
+sub DOM_INET () { 'inet' }  # INET domain socket
 
+# AF_XYZ and PF_XYZ may be different.
 my %map_family_to_domain =
   ( AF_UNIX, DOM_UNIX, PF_UNIX, DOM_UNIX,
     AF_INET, DOM_INET, PF_INET, DOM_INET,
   );
 
-sub SVROP_LISTENS () { 'listens' }
-sub SVROP_NOTHING () { 'nothing' }
+sub SVROP_LISTENS () { 'listens' }  # connect/listen sockets
+sub SVROP_NOTHING () { 'nothing' }  # connectionless sockets
 
+# Map family/protocol pairs to connection or connectionless
+# operations.
 my %supported_protocol =
   ( DOM_UNIX, { none => SVROP_LISTENS },
     DOM_INET, { tcp  => SVROP_LISTENS,
@@ -60,6 +71,8 @@ my %supported_protocol =
               },
   );
 
+# Sane default socket types for each supported protocol.  -><- Maybe
+# this structure can be combined with %supported_protocol?
 my %default_socket_type =
   ( DOM_UNIX, { none => SOCK_STREAM },
     DOM_INET, { tcp  => SOCK_STREAM,
@@ -241,14 +254,14 @@ sub event {
 
     # STATE-EVENT
     if ($name =~ /^(.*?)State$/) {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $name = $1 . 'Event';
     }
 
     if ($name eq 'SuccessEvent') {
       if (defined $event) {
         if (ref($event) eq 'CODE') {
-          carp( "SuccessEvent coderefs are depreciated " .
+          carp( "SuccessEvent coderefs are deprecated " .
                 "(and will go away after version 0.13)"
               );
           $poe_kernel->state
@@ -272,7 +285,7 @@ sub event {
     elsif ($name eq 'FailureEvent') {
       if (defined $event) {
         if (ref($event) eq 'CODE') {
-          carp( "FailureEvent coderefs are depreciated " .
+          carp( "FailureEvent coderefs are deprecated " .
                 "(and will go away after version 0.13)"
               );
           $poe_kernel->state
@@ -330,20 +343,24 @@ sub ID {
 
 sub new {
   my $type = shift;
+
+  # Don't take responsibility for a bad parameter count.
+  croak "$type requires an even number of parameters" if @_ & 1;
+
   my %params = @_;
 
-  # The calling conventio experienced a hard depreciation.
+  # The calling conventio experienced a hard deprecation.
   croak "wheels no longer require a kernel reference as their first parameter"
     if (@_ && (ref($_[0]) eq 'POE::Kernel'));
 
   # STATE-EVENT
   if (exists $params{SuccessState}) {
     if (exists $params{SuccessEvent}) {
-      carp "SuccessEvent takes precedence over depreciated SuccessState";
+      carp "SuccessEvent takes precedence over deprecated SuccessState";
       delete $params{SuccessState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{SuccessEvent} = delete $params{SuccessState};
     }
   }
@@ -351,11 +368,11 @@ sub new {
   # STATE-EVENT
   if (exists $params{FailureState}) {
     if (exists $params{FailureEvent}) {
-      carp "FailureEvent takes precedence over depreciated FailureState";
+      carp "FailureEvent takes precedence over deprecated FailureState";
       delete $params{FailureState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{FailureEvent} = delete $params{FailureState};
     }
   }
@@ -388,9 +405,9 @@ sub new {
 
   # Default to Internet sockets.
   $self->[MY_SOCKET_DOMAIN] = ( (defined $params{SocketDomain})
-                             ? $params{SocketDomain}
-                             : AF_INET
-                           );
+                                ? $params{SocketDomain}
+                                : AF_INET
+                              );
 
   # Abstract the socket domain into something we don't have to keep
   # testing duplicates of.

@@ -1,4 +1,4 @@
-# $Id: Kernel.pm,v 1.137 2001/07/15 20:29:27 rcaputo Exp $
+# $Id: Kernel.pm,v 1.143 2001/08/29 13:45:53 rcaputo Exp $
 
 package POE::Kernel;
 
@@ -46,7 +46,7 @@ BEGIN {
   # defines EINPROGRESS as 10035.  We provide it here because some
   # Win32 users report POSIX::EINPROGRESS is not vendor-supported.
   if ($^O eq 'MSWin32') {
-    eval '*EINPROGRESS = sub { 10036 };';
+    eval '*EINPROGRESS = sub { 10036 };';  # not used here?
     eval '*EWOULDBLOCK = sub { 10035 };';
     eval '*F_GETFL     = sub {     0 };';
     eval '*F_SETFL     = sub {     0 };';
@@ -145,8 +145,11 @@ my $kr_id_index = 1;
 my $kr_active_session;
 
 # A flag determining whether the program has already run the main loop
-# once.
-my $poe_kernel_ran = 0;
+# once.  The question came up: Why does POE do this?  I hadn't
+# documented why, I no longer remember, and preliminary tests show
+# it's not harmful to run the kernel multiple times.  So this is being
+# commented out (2001-08-29) until more is known about it.
+# my $poe_kernel_ran = 0;
 
 #------------------------------------------------------------------------------
 
@@ -274,8 +277,10 @@ macro define_assert (<const>) {
 }
 
 # Debugging flags for subsystems.  They're done as double evals here
-# so that someone may define them before using POE, and the
-# pre-defined value will take precedence over the defaults here.
+# so that someone may define them before using POE::Kernel (or POE),
+# and the pre-defined value will take precedence over the defaults
+# here.
+
 BEGIN {
 
   # TRACE_DEFAULT changes the default value for other TRACE_*
@@ -1148,11 +1153,13 @@ sub _dispatch_state {
 sub run {
   my $self = shift;
 
-  croak "can't rerun POE::Kernel" if $poe_kernel_ran;
+  # See the notes near $poe_kernel_ran's definition.
+  # croak "can't rerun POE::Kernel" if $poe_kernel_ran;
 
   {% substrate_main_loop %}
 
-  $poe_kernel_ran++;
+  # See the notes near $poe_kernel_ran's definition.
+  # $poe_kernel_ran++;
 
   # Disable signal watching, since there's now no place for them to
   # go.
@@ -1180,7 +1187,7 @@ sub run {
   if (TRACE_PROFILE) {
     print STDERR ',----- State Profile ' , ('-' x 53), ",\n";
     foreach (sort keys %profile) {
-      printf STDERR "| %60.60ss %10d |\n", $_, $profile{$_};
+      printf STDERR "| %60.60s %10d |\n", $_, $profile{$_};
     }
     print STDERR '`', ('-' x 73), "'\n";
   }
@@ -1575,6 +1582,9 @@ sub _enqueue_alarm {
     # queue, and be done with it.
     unless (@kr_alarms) {
       $kr_alarms[0] = $state_to_enqueue;
+
+      # This alarm restarts the substrate's watcher.
+      {% substrate_resume_alarm_watcher %}
     }
 
     # Special case: New state belongs at the end of the queue.  Push
@@ -1587,6 +1597,9 @@ sub _enqueue_alarm {
     # it, and be done with it.
     elsif ($time < $kr_alarms[0]->[ST_TIME]) {
       unshift @kr_alarms, $state_to_enqueue;
+
+      # This alarm refreshes the substrate's watcher.
+      {% substrate_reset_alarm_watcher %}
     }
 
     # Special case: Two alarms in the queue.  The new state enters
@@ -1650,10 +1663,6 @@ sub _enqueue_alarm {
         splice @kr_alarms, $midpoint, 0, $state_to_enqueue;
         last;
       }
-    }
-
-    if (@kr_alarms == 1) {
-      {% substrate_resume_alarm_watcher %}
     }
 
     # Manage reference counts.
@@ -1763,7 +1772,7 @@ sub call {
 
 #------------------------------------------------------------------------------
 # Peek at pending alarms.  Returns a list of pending alarms.  This
-# function is depreciated; its lack of documentation is by design.
+# function is deprecated; its lack of documentation is by design.
 # Here's the old POD, in case you're interested.
 #
 # # Return the names of pending timed events.
@@ -2210,8 +2219,9 @@ sub alarm_adjust {
   return $new_time;
 }
 
-# A convenient macro for setting alarms relative to now.  It also uses
-# whichever time() POE::Kernel can find, which may be Time::HiRes'.
+# A convenient "macro" for setting alarms relative to now.  It also
+# uses whichever time() POE::Kernel can find, which may be
+# Time::HiRes'.
 
 sub delay_set {
   my ($self, $state, $seconds, @etc) = @_;
@@ -2311,8 +2321,10 @@ sub _internal_select {
       else {
         my $flags = fcntl($handle, F_GETFL, 0)
           or croak "fcntl fails with F_GETFL: $!\n";
-        fcntl($handle, F_SETFL, $flags | O_NONBLOCK)
-          or croak "fcntl fails with F_SETFL: $!\n";
+        until (fcntl($handle, F_SETFL, $flags | O_NONBLOCK)) {
+          croak "fcntl fails with F_SETFL: $!"
+            unless $! == EAGAIN or $! == EWOULDBLOCK;
+        }
       }
 
       # This depends heavily on socket.ph, or somesuch.  It's
@@ -3456,7 +3468,7 @@ session owns that alarm.
 =item alarm_remove_all
 
 alarm_remove_all() removes all alarms for the current session.  It
-obviates the need for queue_peek_alarms(), which has been depreciated.
+obviates the need for queue_peek_alarms(), which has been deprecated.
 
 This function takes no arguments.  In scalar context, it returns a
 reference to a list of alarms that were removed.  In list context, it
@@ -4141,7 +4153,7 @@ events when called, letting just about any loop's native callbacks
 work with POE.  This includes widget callbacks and event watchers POE
 never dreamt of.
 
-=head2 Using POE's Debugging Features
+=head2 Kernel's Debugging Features
 
 POE::Kernel contains a number of debugging assertions and traces.
 

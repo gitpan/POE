@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 14_wheels_ft.t,v 1.6 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 14_wheels_ft.t,v 1.7 2001/07/18 18:44:32 rcaputo Exp $
 
 # Exercises Wheel::FollowTail, Wheel::ReadWrite, and Filter::Block.
 
@@ -13,6 +13,7 @@ use TestSetup;
 # Turn on all asserts.
 # sub POE::Kernel::TRACE_DEFAULT () { 1 }
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Session::ASSERT_STATES () { 0 }
 use POE qw( Component::Server::TCP
             Wheel::FollowTail
             Wheel::ReadWrite

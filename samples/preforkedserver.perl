@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: preforkedserver.perl,v 1.11 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: preforkedserver.perl,v 1.12 2001/07/24 20:15:35 rcaputo Exp $
 
 # This is a proof of concept for pre-forking POE servers.  It
 # maintains pool of five servers (one master; four slave).  At some
@@ -126,8 +126,7 @@ sub new {
   my ($type, $processes) = @_;
   my $self = bless { }, $type;
 
-  POE::Session->new( $self,
-                     [ qw(_start _stop fork retry signal connection) ],
+  POE::Session->new( $self, [ qw(_start _stop fork retry signal connection) ],
                      # ARG0
                      [ $processes ]
                    );
@@ -283,7 +282,6 @@ sub connection {
   if ($heap->{'is a child'}) {
     if (++$heap->{connections} >= 1) {
       delete $heap->{wheel};
-      $kernel->yield('_stop');
     }
   }
 }

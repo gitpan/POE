@@ -1,4 +1,4 @@
-# $Id: FollowTail.pm,v 1.23 2001/04/30 20:06:11 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.25 2001/08/11 22:40:05 rcaputo Exp $
 
 package POE::Wheel::FollowTail;
 
@@ -51,11 +51,11 @@ sub new {
   # STATE-EVENT
   if (exists $params{InputState}) {
     if (exists $params{InputEvent}) {
-      carp "InputEvent takes precedence over depreciated InputState";
+      carp "InputEvent takes precedence over deprecated InputState";
       delete $params{InputState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{InputEvent} = delete $params{InputState};
     }
   }
@@ -63,11 +63,11 @@ sub new {
   # STATE-EVENT
   if (exists $params{ErrorState}) {
     if (exists $params{ErrorEvent}) {
-      carp "ErrorEvent takes precedence over depreciated ErrorState";
+      carp "ErrorEvent takes precedence over deprecated ErrorState";
       delete $params{ErrorState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{ErrorEvent} = delete $params{ErrorState};
     }
   }
@@ -166,9 +166,11 @@ sub _define_states {
   $poe_kernel->state
     ( $state_read,
       sub {
-                                        # prevents SEGV
+
+        # Protects against coredump on older perls.
         0 && CRIMSON_SCOPE_HACK('<');
-                                        # subroutine starts here
+
+        # The actual code starts here.
         my ($k, $ses, $hdl) = @_[KERNEL, SESSION, ARG0];
 
         $k->select_read($hdl);
@@ -228,7 +230,7 @@ sub event {
 
     # STATE-EVENT
     if ($name =~ /^(.*?)State$/) {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $name = $1 . 'Event';
     }
 

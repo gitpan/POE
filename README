@@ -1,4 +1,4 @@
-$Id: README,v 1.79 2001/07/15 19:43:28 rcaputo Exp $
+$Id: README,v 1.89 2001/08/29 13:25:31 rcaputo Exp $
 
 -----------
 What POE Is
@@ -150,20 +150,20 @@ tests themselves.  For a more accurate determination of POE's speed,
 balance the CPU seconds against the test machine's hardware and
 operating system.
 
-** POE 0.15 on FreeBSD (dngor)
+** POE 0.16 on FreeBSD (dngor)
 
 Hardware: Athlon-1000; 512MB RAM
 System  : FreeBSD 4.3-STABLE
 Perl    : 5.6.1
-Gtk     : 0.7005
-Tk      : 800.022
-Event   : 0.81
+Gtk     : 0.7008
+Tk      : 800.023
+Event   : 0.83
 IO::Pty : 0.01
 
 All tests successful.
-Files=26, Tests=494, 83 wallclock secs ( 7.78 cusr +  0.55 csys =  8.33 CPU)
+Files=26, Tests=578, 84 wallclock secs ( 7.73 cusr +  0.66 csys =  8.40 CPU)
 
-** POE 0.1401 on Solaris/SunOS 5.8 (dynweb)
+** POE 0.1502 on Solaris 8 (dynweb)
 
 Hardware: Ultra-80; 2x UltraSparc II-450; 1GB RAM
 System  : SunOS 5.8
@@ -174,7 +174,36 @@ Event   : 0.81
 IO::Pty : 0.01
 
 All tests successful, 1 test skipped.
-Files=26, Tests=468, 85 wallclock secs (13.07 cusr +  1.35 csys = 14.42 CPU)
+Files=26, Tests=570, 88 wallclock secs (17.99 cusr +  1.33 csys = 19.32 CPU)
+
+** POE 0.1501 on Mac OS X (Jotham)
+
+Hardware: G4-400
+System  : Mac OS X 10.0.4
+Perl    : 5.6.1
+Gtk     : (not installed)
+Tk      : (not installed)
+Event   : (not installed)
+IO::Pty : (not installed)
+
+(unknown test status)
+Files=26, Tests=444, 74 wallclock secs (20.47 cusr +  3.22 csys = 23.69 CPU)
+
+** POE 0.15 on Windows 4.10.2222 (also dynweb)
+
+Hardware: (unknown)
+System  : Windows 98 2nd Edition
+Perl    : v5.6.1, MSWin32-x86-multi-thread, ActiveState build 628
+Gtk     : (not installed)
+Tk      : (not installed)
+Event   : (not installed)
+IO::Pty : (not installed)
+
+7 tests skipped.
+Failed 6/26 test scripts, 76.92% okay. 45/297 subtests failed, 84.85% okay.
+
+[NB: Several of these test failures have been addressed, if not
+fixed.]
 
 ** POE 0.1401 on Linux (titanic)
 
@@ -214,41 +243,43 @@ The "Ran" and "Total" numbers are breakpoints that perl's debugger can
 step through.  The "Covered" number is the percentage of breakpoints
 that were actually stepped through during testing.
 
-These results are for version 0.15.
+These results are for version 0.1502.
 
   Source File                         =   Ran / Total = Covered
   POE.pm                              =    23 /    24 =  95.83%
   POE/Component.pm                    =     5 /     5 = 100.00%
-  POE/Component/Server/TCP.pm         =    28 /    32 =  87.50%
+  POE/Component/Server/TCP.pm         =    32 /    32 = 100.00%
   POE/Driver.pm                       =     5 /     5 = 100.00%
-  POE/Driver/SysRW.pm                 =    42 /    54 =  77.78%
+  POE/Driver/SysRW.pm                 =    47 /    54 =  87.04%
   POE/Filter.pm                       =     5 /     5 = 100.00%
-  POE/Filter/Block.pm                 =    37 /    37 = 100.00%
-  POE/Filter/Grep.pm                  =    11 /    19 =  57.89%
-  POE/Filter/HTTPD.pm                 =    11 /    88 =  12.50%
-  POE/Filter/Line.pm                  =    77 /    82 =  93.90%
-  POE/Filter/Map.pm                   =    11 /    19 =  57.89%
-  POE/Filter/RecordBlock.pm           =    22 /    41 =  53.66%
-  POE/Filter/Reference.pm             =    69 /    75 =  92.00%
-  POE/Filter/Stackable.pm             =    17 /    40 =  42.50%
-  POE/Filter/Stream.pm                =    11 /    11 = 100.00%
-  POE/Kernel.pm                       =   868 /  1119 =  77.57%
+  POE/Filter/Block.pm                 =    51 /    51 = 100.00%
+  POE/Filter/Grep.pm                  =    24 /    31 =  77.42%
+  POE/Filter/HTTPD.pm                 =    18 /    88 =  20.45%
+  POE/Filter/Line.pm                  =    86 /   114 =  75.44%
+  POE/Filter/Map.pm                   =    22 /    29 =  75.86%
+  POE/Filter/RecordBlock.pm           =    24 /    48 =  50.00%
+  POE/Filter/Reference.pm             =    81 /    84 =  96.43%
+  POE/Filter/Stackable.pm             =    31 /    40 =  77.50%
+  POE/Filter/Stream.pm                =    21 /    21 = 100.00%
+  POE/Kernel.p.pm                     =     1 /     1 = 100.00%
+  POE/Kernel.pm                       =   869 /  1121 =  77.52%
   POE/Kernel/Event.pm                 =     1 /     9 =  11.11%
   POE/Kernel/Gtk.pm                   =     2 /    17 =  11.76%
   POE/Kernel/Select.pm                =     6 /    12 =  50.00%
   POE/Kernel/Tk.pm                    =     2 /    19 =  10.53%
-  POE/NFA.pm                          =    90 /   173 =  52.02%
-  POE/Pipe/OneWay.pm                  =    20 /    39 =  51.28%
-  POE/Pipe/TwoWay.pm                  =    23 /    43 =  53.49%
-  POE/Preprocessor.pm                 =   154 /   183 =  84.15%
-  POE/Session.pm                      =   143 /   198 =  72.22%
+  POE/NFA.pm                          =   114 /   203 =  56.16%
+  POE/Pipe.pm                         =    44 /    60 =  73.33%
+  POE/Pipe/OneWay.pm                  =    18 /    37 =  48.65%
+  POE/Pipe/TwoWay.pm                  =    21 /    42 =  50.00%
+  POE/Preprocessor.pm                 =   108 /   186 =  58.06%
+  POE/Session.pm                      =   177 /   226 =  78.32%
   POE/Wheel.pm                        =    11 /    11 = 100.00%
-  POE/Wheel/FollowTail.pm             =    87 /   108 =  80.56%
+  POE/Wheel/FollowTail.pm             =    90 /   108 =  83.33%
   POE/Wheel/ListenAccept.pm           =    51 /    65 =  78.46%
-  POE/Wheel/ReadWrite.pm              =   129 /   215 =  60.00%
-  POE/Wheel/Run.pm                    =   176 /   243 =  72.43%
-  POE/Wheel/SocketFactory.pm          =   204 /   248 =  82.26%
-  All Told                            =  2341 /  3239 =  72.28%
+  POE/Wheel/ReadWrite.pm              =   152 /   228 =  66.67%
+  POE/Wheel/Run.pm                    =   176 /   250 =  70.40%
+  POE/Wheel/SocketFactory.pm          =   206 /   249 =  82.73%
+  All Told                            =  2524 /  3475 =  72.63%
 
 Thanks for reading!
 

@@ -1,4 +1,4 @@
-# $Id: Select.pm,v 1.9 2001/06/08 21:58:45 rcaputo Exp $
+# $Id: Select.pm,v 1.10 2001/08/17 03:13:48 rcaputo Exp $
 
 # Select loop substrate for POE::Kernel.
 
@@ -96,6 +96,10 @@ macro substrate_resume_idle_watcher {
 }
 
 macro substrate_resume_alarm_watcher {
+  # does nothing
+}
+
+macro substrate_reset_alarm_watcher {
   # does nothing
 }
 

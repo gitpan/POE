@@ -1,4 +1,4 @@
-# $Id: Gtk.pm,v 1.6 2001/04/03 13:28:27 rcaputo Exp $
+# $Id: Gtk.pm,v 1.7 2001/08/17 03:13:48 rcaputo Exp $
 
 # Gtk-Perl substrate for POE::Kernel.
 
@@ -101,6 +101,13 @@ macro substrate_resume_alarm_watcher {
   $next_time = 0 if $next_time < 0;
   $poe_kernel->[KR_WATCHER_TIMER] =
     Gtk->timeout_add( $next_time, \&_substrate_alarm_callback );
+}
+
+macro substrate_reset_alarm_watcher {
+  # Should always be defined, right?
+  Gtk->timeout_remove( $self->[KR_WATCHER_TIMER] );
+  $self->[KR_WATCHER_TIMER] = undef;
+  {% substrate_resume_alarm_watcher %}
 }
 
 macro substrate_pause_alarm_watcher {

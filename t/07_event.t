@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 07_event.t,v 1.10 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 07_event.t,v 1.11 2001/07/18 18:44:32 rcaputo Exp $
 
 # Tests FIFO, alarm, select and postback events using Event's event
 # loop.
@@ -23,6 +23,7 @@ BEGIN {
 
 # Turn on all asserts.
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+sub POE::Session::ASSERT_STATES () { 0 }
 use POE qw(Wheel::ReadWrite Filter::Line Driver::SysRW Pipe::OneWay);
 
 # Congratulate ourselves for getting this far.

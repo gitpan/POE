@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.11 2000/12/26 06:14:12 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.17 2001/07/31 14:31:18 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -6,12 +6,19 @@
 # get code was copied out if, unfournatly HTTP::Daemon is not easily
 # subclassed for POE because of the blocking nature.
 
+# 2001-07-27 RCC: This filter will not support the newer get_one()
+# interface.  It gets single things by default, and it does not
+# support filter switching.  If someone absolutely needs to switch to
+# and from HTTPD filters, they should say so on POE's mailing list.
+
 package POE::Filter::HTTPD;
+use strict;
+
+use Carp qw(croak);
 use HTTP::Status;
 use HTTP::Request;
 use HTTP::Date qw(time2str);
 use URI::URL qw(url);
-use strict;
 
 my $HTTP_1_0 = _http_version("HTTP/1.0");
 my $HTTP_1_1 = _http_version("HTTP/1.1");
@@ -33,49 +40,68 @@ sub new {
 sub get {
   my ($self, $stream) = @_;
 
-
   local($_);
 
+  # Sanity check.  "finish" is set when a request has completely
+  # arrived.  Subsequent get() calls on the same request should not
+  # happen.  -><- Maybe this should return [] instead of dying?
+
   if($self->{'finish'}) {
-    die "Didn't want any more data\n";
+    return [ $self->build_error( RC_BAD_REQUEST,
+                                 "Did not want any more data"
+                               )
+           ];
   }
 
+  # Accumulate data in a framing buffer.
+
   $self->{buffer} .= join('', @$stream);
+
+  # If headers were already received, then the framing buffer is
+  # purely content.  Return nothing until content-length bytes are in
+  # the buffer, then return the entire request.
 
   if($self->{header}) {
     my $buf = $self->{buffer};
     my $r = $self->{header};
-    $buf =~s/.*(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)//s;
-    if(length($buf) >= $r->content_length()) {
+    my $cl = $r->content_length() || "0 (implicit)";
+    if (length($buf) >= $cl) {
       $r->content($buf);
       $self->{finish}++;
       return [$r];
     } else {
-      print $r->content_length()." wanted, got ".length($buf)."\n";
+      # print "$cl wanted, got " . length($buf) . "\n";
     }
     return [];
   }
 
-
-
-
+  # Headers aren't already received.  Short-circuit header parsing:
+  # don't return anything until we've received a blank line.
 
   return []
     unless($self->{buffer} =~/(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)/s);
 
+  # Copy the buffer for header parsing, and remove the header block
+  # from the content buffer.
+
   my $buf = $self->{buffer};
+  $self->{buffer} =~s/.*?(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)//s;
 
-
+  # Parse the request line.
 
   if ($buf !~ s/^(\w+)[ \t]+(\S+)(?:[ \t]+(HTTP\/\d+\.\d+))?[^\012]*\012//) {
-    $self->send_error(400);  # BAD_REQUEST
-    return [];
+    return [ $self->build_error(RC_BAD_REQUEST) ];
   }
   my $proto = $3 || "HTTP/0.9";
+
+  # Use the request line to create a request object.
 
   my $r = HTTP::Request->new($1, url($2));
   $r->protocol($proto);
   $self->{'httpd_client_proto'} = $proto = _http_version($proto);
+
+  # Add the raw request's headers to the request object we'll be
+  # returning.
 
   if($proto >= $HTTP_1_0) {
     my ($key,$val);
@@ -95,21 +121,31 @@ sub get {
     $r->push_header($key,$val) if($key);
   }
 
-
   $self->{header} = $r;
 
-  if($r->method() eq 'GET') {
+  # If this is a GET or HEAD request, we won't be expecting a message
+  # body.  Finish up.
+
+  my $method = $r->method();
+  if ($method eq 'GET' or $method eq 'HEAD') {
     $self->{finish}++;
     return [$r];
   }
 
+  # However, if it's a POST request, check whether the entire content
+  # has already been received!  If so, add that to the request and
+  # we're done.  Otherwise we'll expect a subsequent get() call to
+  # finish things up.
 
-
-  if($r->method() eq 'POST') {
+  if($method eq 'POST') {
 
 #    print "post:$buf:\END BUFFER\n";
 #    print length($buf)."-".$r->content_length()."\n";
-    if(length($buf) >= $r->content_length()) {
+
+    my $cl = $r->content_length();
+    return [ $self->build_error(RC_LENGTH_REQUIRED) ] unless defined $cl;
+    return [ $self->build_error(RC_BAD_REQUEST    ) ] unless $cl =~ /^\d+$/;
+    if (length($buf) >= $cl) {
       $r->content($buf);
       $self->{finish}++;
       return [$r];
@@ -134,7 +170,7 @@ sub put {
   foreach (@$responses) {
     my @result;
     my $code           = $_->code;
-    my $status_message = HTTP::Status::status_message($code) || "Unknown code";
+    my $status_message = status_message($code) || "Unknown Error";
     my $message        = $_->message || "";
     my $status_line    = "$code";
     my $proto          = $_->protocol;
@@ -153,23 +189,18 @@ sub put {
 
 #------------------------------------------------------------------------------
 
-sub get_pending
-{
-    my($self)=@_;
-    warn ref($self)." does not support the get_pending() method\n";
-    return;
-}
-
-
-#------------------------------------------------------------------------------
-#function specific to HTTPD;
-#------------------------------------------------------------------------------
-
-sub send_basic_header {
+sub get_pending {
   my $self = shift;
-  $self->send_status_line(@_);
-  $self->put("Date: ", time2str(time));
+  croak ref($self)." does not support the get_pending() method\n";
+  return;
 }
+
+#------------------------------------------------------------------------------
+# function specific to HTTPD;
+#------------------------------------------------------------------------------
+
+# Internal function to parse an HTTP status line and return the HTTP
+# protocol version.
 
 sub _http_version {
   local($_) = shift;
@@ -177,27 +208,46 @@ sub _http_version {
   $1 * 1000 + $2;
 }
 
-sub send_status_line {
-    my($self, $status, $message, $proto) = @_;
-    $status  ||= RC_OK;
-    $message ||= status_message($status) || "";
-    $proto   ||= "HTTP/1.1";
-    $self->put("$proto $status $message");
+# Build a basic response, given a status, a content type, and some
+# content.
+
+sub build_basic_response {
+  my ($self, $content, $content_type, $status) = @_;
+
+  $content_type ||= 'text/html';
+  $status       ||= RC_OK;
+
+  my $response = HTTP::Response->new($status);
+
+  $response->push_header( 'Content-Type', $content_type );
+  $response->push_header( 'Content-Length', length($content) );
+  $response->content($content);
+
+  return $response;
 }
 
+sub build_error {
+  my($self, $status, $details) = @_;
 
-sub send_error {
-    my($self, $status, $error) = @_;
-    $status ||= RC_BAD_REQUEST;
-    my $mess = status_message($status);
-    $error  ||= "";
-    $mess = "<title>$status $mess</title><h1>$status $mess</h1>$error";
-    $self->send_basic_header($status);
-    $self->put("Content-Type: text/html");
-    $self->put("Content-Length: " . length($mess));
-    $self->put("");
-    $self->put("$mess");
-    $status;
+  $status  ||= RC_BAD_REQUEST;
+  $details ||= '';
+  my $message = status_message($status) || "Unknown Error";
+
+  return
+    $self->build_basic_response
+      ( ( "<html>" .
+          "<head>" .
+          "<title>Error $status: $message</title>" .
+          "</head>" .
+          "<body>" .
+          "<h1>Error $status: $message</h1>" .
+          "<p>$details</p>" .
+          "</body>" .
+          "</html>"
+        ),
+        "text/html",
+        $status
+      );
 }
 
 
@@ -221,8 +271,30 @@ POE::Filter::HTTPD - convert stream to HTTP::Request; HTTP::Response to stream
 =head1 DESCRIPTION
 
 The HTTPD filter parses the first HTTP 1.0 request from an incoming
-stream into an HTTP::Request object.  To send a response, give its
-put() method a HTTP::Response object.
+stream into an HTTP::Request object (if the request is good) or an
+HTTP::Response object (if the request was malformed).  To send a
+response, give its put() method a HTTP::Response object.
+
+Here is a sample input handler:
+
+  sub got_request {
+    my ($heap, $request) = @_[HEAP, ARG0];
+
+    # The Filter::HTTPD generated a response instead of a request.
+    # There must have been some kind of error.  You could also check
+    # (ref($request) eq 'HTTP::Response').
+    if ($request->isa('HTTP::Response')) {
+      $heap->{wheel}->put($request);
+      return;
+    }
+
+    # Process the request here.
+    my $response = HTTP::Response->new(200);
+    $response->push_header( 'Content-Type', 'text/html' );
+    $response->content( $request->as_string() );
+
+    $heap->{wheel}->put($response);
+  }
 
 Please see the documentation for HTTP::Request and HTTP::Response.
 

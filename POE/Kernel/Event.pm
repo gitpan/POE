@@ -1,4 +1,4 @@
-# $Id: Event.pm,v 1.7 2001/04/03 23:09:27 rcaputo Exp $
+# $Id: Event.pm,v 1.8 2001/08/17 03:13:48 rcaputo Exp $
 
 # Event.pm substrate for POE::Kernel.
 
@@ -96,6 +96,11 @@ macro substrate_resume_idle_watcher {
 macro substrate_resume_alarm_watcher {
   $self->[KR_WATCHER_TIMER]->at($kr_alarms[0]->[ST_TIME]);
   $self->[KR_WATCHER_TIMER]->start();
+}
+
+macro substrate_reset_alarm_watcher {
+  {% substrate_pause_alarm_watcher %}
+  {% substrate_resume_alarm_watcher %}
 }
 
 macro substrate_pause_alarm_watcher {

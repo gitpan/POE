@@ -1,4 +1,4 @@
-# $Id: ReadWrite.pm,v 1.48 2001/05/07 12:21:01 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.51 2001/08/12 01:58:03 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
@@ -77,11 +77,11 @@ sub new {
   # STATE-EVENT
   if (exists $params{HighState}) {
     if (exists $params{HighEvent}) {
-      carp "HighEvent parameter takes precedence over depreciated HighState";
+      carp "HighEvent parameter takes precedence over deprecated HighState";
       delete $params{HighState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{HighEvent} = delete $params{HighState};
     }
   }
@@ -89,11 +89,11 @@ sub new {
   # STATE-EVENT
   if (exists $params{LowState}) {
     if (exists $params{LowEvent}) {
-      carp "LowEvent parameter takes precedence over depreciated LowState";
+      carp "LowEvent parameter takes precedence over deprecated LowState";
       delete $params{LowState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{LowEvent} = delete $params{LowState};
     }
   }
@@ -101,11 +101,11 @@ sub new {
   # STATE-EVENT
   if (exists $params{InputState}) {
     if (exists $params{InputEvent}) {
-      carp "InputEvent takes precedence over depreciated InputState";
+      carp "InputEvent takes precedence over deprecated InputState";
       delete $params{InputState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{InputEvent} = delete $params{InputState};
     }
   }
@@ -113,11 +113,11 @@ sub new {
   # STATE-EVENT
   if (exists $params{ErrorState}) {
     if (exists $params{ErrorEvent}) {
-      carp "ErrorEvent takes precedence over depreciated ErrorState";
+      carp "ErrorEvent takes precedence over deprecated ErrorState";
       delete $params{ErrorState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{ErrorEvent} = delete $params{ErrorState};
     }
   }
@@ -125,11 +125,11 @@ sub new {
   # STATE-EVENT
   if (exists $params{FlushedState}) {
     if (exists $params{FlushedEvent}) {
-      carp "FlushedEvent takes precedence over depreciated FlushedState";
+      carp "FlushedEvent takes precedence over deprecated FlushedState";
       delete $params{FlushedState};
     }
     else {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $params{FlushedEvent} = delete $params{FlushedState};
     }
   }
@@ -299,31 +299,73 @@ sub _define_read_state {
 
     # If any of these change, then the read state is invalidated and
     # needs to be redefined.
-    my $driver       = $self->[DRIVER_BOTH];
-    my $input_filter = $self->[FILTER_INPUT];
+
+    my $driver       = \$self->[DRIVER_BOTH];
+    my $input_filter = \$self->[FILTER_INPUT];
     my $event_input  = \$self->[EVENT_INPUT];
     my $event_error  = \$self->[EVENT_ERROR];
     my $unique_id    = $self->[UNIQUE_ID];
 
-    $poe_kernel->state
-      ( $self->[STATE_READ] = $self . ' select read',
-        sub {
-                                        # prevents SEGV
-          0 && CRIMSON_SCOPE_HACK('<');
-                                        # subroutine starts here
-          my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-          if (defined(my $raw_input = $driver->get($handle))) {
-            foreach my $cooked_input (@{$input_filter->get($raw_input)}) {
-              $k->call($me, $$event_input, $cooked_input, $unique_id);
+    # If the filter can get_one, then define the input state in terms
+    # of get_one_start() and get_one().
+
+    if ( $$input_filter->can('get_one') and
+         $$input_filter->can('get_one_start')
+       ) {
+      $poe_kernel->state
+        ( $self->[STATE_READ] = $self . ' select read',
+          sub {
+
+            # Protects against coredump on older perls.
+            0 && CRIMSON_SCOPE_HACK('<');
+
+            # The actual code starts here.
+            my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+            if (defined(my $raw_input = $$driver->get($handle))) {
+              $$input_filter->get_one_start($raw_input);
+              while (1) {
+                my $next_rec = $$input_filter->get_one();
+                last unless @$next_rec;
+                foreach my $cooked_input (@$next_rec) {
+                  $k->call($me, $$event_input, $cooked_input, $unique_id);
+                }
+              }
+            }
+            else {
+              $$event_error and
+                $k->call( $me, $$event_error, 'read', ($!+0), $!, $unique_id );
+              $k->select_read($handle);
             }
           }
-          else {
-            $$event_error and
-              $k->call( $me, $$event_error, 'read', ($!+0), $!, $unique_id );
-            $k->select_read($handle);
+        );
+    }
+
+    # Otherwise define the input state in terms of the older, less
+    # robust, yet faster get().
+
+    else {
+      $poe_kernel->state
+        ( $self->[STATE_READ] = $self . ' select read',
+          sub {
+
+            # Protects against coredump on older perls.
+            0 && CRIMSON_SCOPE_HACK('<');
+
+            # The actual code starts here.
+            my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+            if (defined(my $raw_input = $$driver->get($handle))) {
+              foreach my $cooked_input (@{$$input_filter->get($raw_input)}) {
+                $k->call($me, $$event_input, $cooked_input, $unique_id);
+              }
+            }
+            else {
+              $$event_error and
+                $k->call( $me, $$event_error, 'read', ($!+0), $!, $unique_id );
+              $k->select_read($handle);
+            }
           }
-        }
-      );
+        );
+    }
                                         # register the state's select
     $poe_kernel->select_read($self->[HANDLE_INPUT], $self->[STATE_READ]);
   }
@@ -347,7 +389,7 @@ sub event {
 
     # STATE-EVENT
     if ($name =~ /^(.*?)State$/) {
-      # depreciation warning goes here
+      # deprecation warning goes here
       $name = $1 . 'Event';
     }
 
@@ -435,22 +477,52 @@ sub put {
 # one input and one output, make this set both of them at the same
 # time. -RC
 
+sub _transfer_input_buffer {
+  my ($self, $buf) = @_;
+
+  my $old_input_filter = $self->[FILTER_INPUT];
+
+  # If the new filter implements "get_one", use that.
+  if ( $old_input_filter->can('get_one') and
+       $old_input_filter->can('get_one_start')
+     ) {
+    if (defined $buf) {
+      $self->[FILTER_INPUT]->get_one_start($buf);
+      while ($self->[FILTER_INPUT] == $old_input_filter) {
+        my $next_rec = $self->[FILTER_INPUT]->get_one();
+        last unless @$next_rec;
+        foreach my $cooked_input (@$next_rec) {
+          $poe_kernel->call( $poe_kernel->get_active_session(),
+                             $self->[EVENT_INPUT],
+                             $cooked_input, $self->[UNIQUE_ID]
+                           );
+        }
+      }
+    }
+  }
+
+  # Otherwise use the old behavior.
+  else {
+    if (defined $buf) {
+      foreach my $cooked_input (@{$self->[FILTER_INPUT]->get($buf)}) {
+        $poe_kernel->call( $poe_kernel->get_active_session(),
+                           $self->[EVENT_INPUT],
+                           $cooked_input, $self->[UNIQUE_ID]
+                         );
+      }
+    }
+  }
+}
+
+# Set input and output filters.
+
 sub set_filter {
   my ($self, $new_filter) = @_;
   my $buf = $self->[FILTER_INPUT]->get_pending();
   $self->[FILTER_INPUT] = $self->[FILTER_OUTPUT] = $new_filter;
 
-  # Updates a closure dealing with the input filter.
   $self->_define_read_state();
-
-  # Push pending data from the old filter into the new one.
-  if (defined $buf) {
-    foreach my $cooked_input (@{$new_filter->get($buf)}) {
-      $poe_kernel->yield( $self->[EVENT_INPUT],
-                          $cooked_input, $self->[UNIQUE_ID]
-                        );
-    }
-  }
+  $self->_transfer_input_buffer($buf);
 }
 
 # Redefine input and/or output filters separately.
@@ -459,16 +531,8 @@ sub set_input_filter {
   my $buf = $self->[FILTER_INPUT]->get_pending();
   $self->[FILTER_INPUT] = $new_filter;
 
-  # Updates a closure dealing with the input filter.
   $self->_define_read_state();
-
-  if (defined $buf) {
-    foreach my $cooked_input (@{$new_filter->get($buf)}) {
-      $poe_kernel->yield( $self->[EVENT_INPUT],
-                          $cooked_input, $self->[UNIQUE_ID]
-                        );
-    }
-  }
+  $self->_transfer_input_buffer($buf);
 }
 
 # No closures need to be redefined or anything.  All the previously

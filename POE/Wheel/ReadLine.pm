@@ -1,4 +1,4 @@
-# $Id: ReadLine.pm,v 1.7 2001/06/07 05:43:43 rcaputo Exp $
+# $Id: ReadLine.pm,v 1.10 2001/08/29 13:29:22 rcaputo Exp $
 
 package POE::Wheel::ReadLine;
 
@@ -41,6 +41,7 @@ sub SELF_IDLE_TIME      () { 13 }
 sub SELF_STATE_IDLE     () { 14 }
 sub SELF_HAS_TIMER      () { 15 }
 sub SELF_CURSOR_DISPLAY () { 16 }
+sub SELF_UNIQUE_ID      () { 17 }
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 
@@ -213,6 +214,7 @@ sub new {
       undef,        # SELF_STATE_IDLE
       0,            # SELF_HAS_TIMER
       0,            # SELF_CURSOR_DISPLAY
+      &POE::Wheel::allocate_wheel_id(),  # SELF_UNIQUE_ID
     ], $type;
 
   if (scalar keys %params) {
@@ -241,7 +243,7 @@ sub DESTROY {
   my $self = shift;
 
   # Stop selecting on the handle.
-  $poe_kernel->select( *STDIN );
+  $poe_kernel->select( \*STDIN );
 
   # Detach our tentacles from the parent session.
   if ($self->[SELF_STATE_READ]) {
@@ -257,6 +259,8 @@ sub DESTROY {
 
   # Restore the console.
   ReadMode('restore');
+
+  &POE::Wheel::free_wheel_id($self->[SELF_UNIQUE_ID]);
 }
 
 #------------------------------------------------------------------------------
@@ -323,6 +327,7 @@ sub _define_read_state {
     my $has_timer      = \$self->[SELF_HAS_TIMER];
     my $put_buffer     = $self->[SELF_PUT_BUFFER];
     my $put_mode       = $self->[SELF_PUT_MODE];
+    my $unique_id      = $self->[SELF_UNIQUE_ID];
 
     $poe_kernel->state
       ( $self->[SELF_STATE_READ] = $self . ' select read',
@@ -387,12 +392,14 @@ sub _define_read_state {
               # Interrupt.
               if ($key eq '^C') {
                 print $key, "\x0D\x0A";
-                $poe_kernel->select_read( *STDIN );
+                $poe_kernel->select_read( \*STDIN );
                 if ($$has_timer) {
                   $k->delay( $state_idle );
                   $$has_timer = 0;
                 }
-                $poe_kernel->yield( $$event_input, undef, 'interrupt' );
+                $poe_kernel->yield( $$event_input, undef, 'interrupt',
+                                    $unique_id
+                                  );
                 $$reading = 0;
                 $$hist_index = @$hist_list;
                 $self->_flush_output_buffer();
@@ -449,12 +456,14 @@ sub _define_read_state {
               # Cancel.
               if ($key eq '^G') {
                 print $key, "\x0D\x0A";
-                $poe_kernel->select_read( *STDIN );
+                $poe_kernel->select_read( \*STDIN );
                 if ($$has_timer) {
                   $k->delay( $state_idle );
                   $$has_timer = 0;
                 }
-                $poe_kernel->yield( $$event_input, undef, 'cancel' );
+                $poe_kernel->yield( $$event_input, undef, 'cancel',
+                                    $unique_id
+                                  );
                 $$reading = 0;
                 $$hist_index = @$hist_list;
                 $self->_flush_output_buffer();
@@ -487,12 +496,12 @@ sub _define_read_state {
               # Accept line.
               if ($key eq '^J') {
                 print "\x0D\x0A";
-                $poe_kernel->select_read( *STDIN );
+                $poe_kernel->select_read( \*STDIN );
                 if ($$has_timer) {
                   $k->delay( $state_idle );
                   $$has_timer = 0;
                 }
-                $poe_kernel->yield( $$event_input, $$input );
+                $poe_kernel->yield( $$event_input, $$input, $unique_id );
                 $$reading = 0;
                 $$hist_index = @$hist_list;
                 $self->_flush_output_buffer();
@@ -527,12 +536,12 @@ sub _define_read_state {
               # Accept line.
               if ($key eq '^M') {
                 print "\x0D\x0A";
-                $poe_kernel->select_read( *STDIN );
+                $poe_kernel->select_read( \*STDIN );
                 if ($$has_timer) {
                   $k->delay( $state_idle );
                   $$has_timer = 0;
                 }
-                $poe_kernel->yield( $$event_input, $$input );
+                $poe_kernel->yield( $$event_input, $$input, $unique_id );
                 $$reading = 0;
                 $$hist_index = @$hist_list;
                 $self->_flush_output_buffer();
@@ -1053,12 +1062,12 @@ sub _define_read_state {
       );
 
     # Now select on it.
-    $poe_kernel->select_read( *STDIN, $self->[SELF_STATE_READ] );
+    $poe_kernel->select_read( \*STDIN, $self->[SELF_STATE_READ] );
   }
 
   # Otherwise we're undefining it.
   else {
-    $poe_kernel->select_read( *STDIN );
+    $poe_kernel->select_read( \*STDIN );
   }
 
 }
@@ -1080,7 +1089,7 @@ sub get {
   $self->[SELF_INSERT_MODE]    = 1;
 
   # Watch the filehandle.
-  $poe_kernel->select( *STDIN, $self->[SELF_STATE_READ] );
+  $poe_kernel->select( \*STDIN, $self->[SELF_STATE_READ] );
 
   print $prompt;
 }
@@ -1178,11 +1187,21 @@ sub put {
   }
 }
 
+# Clear the screen.
+sub clear {
+  my $self = shift;
+  $termcap->Tputs( cl => 1, *STDOUT );
+}
 
 # Add things to the edit history.
 sub addhistory {
   my $self = shift;
   push @{$self->[SELF_HIST_LIST]}, @_;
+}
+
+# Get the wheel's ID.
+sub ID {
+  return $_[0]->[SELF_UNIQUE_ID];
 }
 
 ###############################################################################
@@ -1219,6 +1238,9 @@ POE::Wheel::ReadLine - prompted terminal input with basic editing keys
       print "\tException: $exception\n";
     }
   }
+
+  # Clear the terminal.
+  $wheel->clear();
 
 =head1 DESCRIPTION
 
@@ -1453,6 +1475,16 @@ cursor before and after M-u are pressed.
 
 =over 2
 
+=item addhistory LIST_OF_LINES
+
+Adds a list of lines, presumably from previous input, into the
+ReadLine wheel's input history.  They will be available with C-p, C-n,
+and/or the up- and down arrow keys.
+
+=item clear
+
+Clears the terminal.
+
 =item get PROMPT
 
 Provide a prompt and enable input.  The wheel will display the prompt
@@ -1462,8 +1494,6 @@ resume its quiescent state wherein it ignores keystrokes.
 
 The quiet period between input events gives a program the opportunity
 to change the prompt or process lines before the next one arrives.
-
-=item addhistory LIST_OF_LINES
 
 =back
 
@@ -1486,6 +1516,8 @@ do next.
 
 The 'cancel' exception means a user pressed C-g (^G) to cancel a line
 of input.
+
+Finally, C<ARG2> contains the ReadLine wheel's unique ID.
 
 =item PutMode
 
@@ -1575,6 +1607,16 @@ History searching:
   C-v     forward search history
 
 =back
+
+=head1 GOTCHAS / FAQ
+
+Q: Why do I lose my ReadLine prompt every time I send output to the
+   screen?
+
+A: You probably are using print or printf to write screen output.
+   ReadLine doesn't track STDOUT itself, so it doesn't know when to
+   refresh the prompt after you do this.  Use ReadLine's put() method
+   to write lines to the console.
 
 =head1 AUTHORS & COPYRIGHTS
 

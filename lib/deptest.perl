@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: deptest.perl,v 1.15 2001/06/07 13:36:32 rcaputo Exp $
+# $Id: deptest.perl,v 1.17 2001/07/28 16:57:39 rcaputo Exp $
 
 use strict;
 use Config qw(%Config);
@@ -280,6 +280,10 @@ sub build_dependency_tree {
       my $inc_key = $file_key . '.pm';
       $inc_key = File::Spec->catdir( split /\:\:/, $inc_key );
 
+      # Flip the slashes around in case File::Spec->catdir() disagrees
+      # with %INC about the nature of path separators.
+      $inc_key =~ tr[\\\/][\/\\] unless exists $INC{$inc_key};
+
       if (exists $INC{$inc_key}) {
 
         my $inc_file = $INC{$inc_key};
@@ -325,7 +329,9 @@ sub build_dependency_tree {
           ];
       }
       else {
-        die "$file_key was used ok, but it didn't appear in \%INC";
+        die( "$file_key was used ok, but it didn't appear "
+             . "(as $inc_key) in \%INC (" . join( ' --- ', keys(%INC) ) . ")"
+           );
       }
     }
     else {

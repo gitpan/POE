@@ -1,4 +1,4 @@
-# $Id: Tk.pm,v 1.9 2001/04/23 23:08:53 rcaputo Exp $
+# $Id: Tk.pm,v 1.10 2001/08/17 03:13:48 rcaputo Exp $
 
 # Tk-Perl substrate for POE::Kernel.
 
@@ -116,6 +116,10 @@ macro substrate_resume_alarm_watcher {
   $next_time = 0 if $next_time < 0;
   $self->[KR_WATCHER_TIMER] =
     $poe_main_window->after( $next_time * 1000, \&_substrate_alarm_callback );
+}
+
+macro substrate_reset_alarm_watcher {
+  {% substrate_resume_alarm_watcher %}
 }
 
 macro substrate_pause_alarm_watcher {

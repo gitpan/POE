@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 04_selects.t,v 1.10 2000/12/29 05:28:33 rcaputo Exp $
+# $Id: 04_selects.t,v 1.11 2001/07/18 18:44:32 rcaputo Exp $
 
 # Tests basic select operations.
 
@@ -217,6 +217,7 @@ for (my $index = 0; $index < $pair_count; $index++) {
     ( inline_states =>
       { _start => \&master_start,
         _stop  => \&master_stop,
+        _child => sub { },
         input  => \&master_got_input,
         output => \&master_put_output,
       },

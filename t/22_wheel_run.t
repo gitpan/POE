@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 22_wheel_run.t,v 1.14 2001/05/07 12:23:04 rcaputo Exp $
+# $Id: 22_wheel_run.t,v 1.17 2001/08/03 03:44:32 rcaputo Exp $
 
 # Test the portable pipe classes and Wheel::Run, which uses them.
 
@@ -122,7 +122,8 @@ use POE qw( Wheel::Run Filter::Line Pipe::TwoWay Pipe::OneWay );
 }
 
 ### Test Wheel::Run with filehandles.  Uses "!" as a newline to avoid
-### having to deal with whatever the system uses.
+### having to deal with whatever the system uses.  Use double quotes
+### if we're running on Windows.
 
 my $tty_flush_count = 0;
 
@@ -136,6 +137,8 @@ my $program =
     '} ' .
     'exit 0;\''
   );
+
+$program =~ tr[\'][\"] if $^O eq "MSWin32";
 
 { POE::Session->create
     ( inline_states =>
@@ -163,6 +166,9 @@ my $program =
           $heap->{wheel}->put( 'out test-out' );
         },
 
+        # Error! Ow!
+        error => sub { },
+
         # Catch SIGCHLD.  Stop the wheel if the exited child is ours.
         _signal => sub {
           my $signame = $_[ARG0];
@@ -172,6 +178,9 @@ my $program =
           }
           return 0;
         },
+
+        # Dummy _stop to prevent runtime errors.
+        _stop => sub { },
 
         # Count every line that's flushed to the child.
         stdin  => sub { $tty_flush_count++; },
@@ -233,6 +242,9 @@ my $coderef_flush_count = 0;
           $heap->{wheel}->put( 'out test-out' );
         },
 
+        # Error! Ow!
+        error => sub { },
+
         # Catch SIGCHLD.  Stop the wheel if the exited child is ours.
         _signal => sub {
           my $signame = $_[ARG0];
@@ -242,6 +254,9 @@ my $coderef_flush_count = 0;
           }
           return 0;
         },
+
+        # Dummy _stop to prevent runtime errors.
+        _stop => sub { },
 
         # Count every line that's flushed to the child.
         stdin  => sub { $coderef_flush_count++; },
@@ -290,6 +305,9 @@ if (POE::Wheel::Run::PTY_AVAILABLE) {
           $heap->{wheel}->put( 'out test-out' );
         },
 
+        # Error!  Ow!
+        error => sub { },
+
         # Catch SIGCHLD.  Stop the wheel if the exited child is ours.
         _signal => sub {
           my $signame = $_[ARG0];
@@ -299,6 +317,9 @@ if (POE::Wheel::Run::PTY_AVAILABLE) {
           }
           return 0;
         },
+
+        # Dummy _stop to prevent runtime errors.
+        _stop => sub { },
 
         # Count every line that's flushed to the child.
         stdin  => sub { $pty_flush_count++; },
@@ -327,6 +348,7 @@ else {
 $poe_kernel->run();
 
 ### Post-run tests.
+
 &ok_if( 16, $tty_flush_count == 3 );
 &ok_if( 19, $pty_flush_count == 3 ) if POE::Wheel::Run::PTY_AVAILABLE;
 &ok_if( 22, $coderef_flush_count == 3 );
