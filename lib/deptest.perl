@@ -1,11 +1,13 @@
 #!/usr/bin/perl -w
-# $Id: deptest.perl,v 1.17 2001/07/28 16:57:39 rcaputo Exp $
+# $Id: deptest.perl,v 1.18 2002/03/26 00:20:37 rcaputo Exp $
 
 use strict;
 use Config qw(%Config);
 use ExtUtils::Manifest qw(maniread);
 use File::Spec;
 use Text::Wrap;
+
+use lib qw(blib blib/lib);
 
 # Enable verbose testing if this is running on solaris, because
 # solaris' CPAN tester's machine has trouble finding some modules

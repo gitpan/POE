@@ -1,4 +1,4 @@
-<$Id: CHANGES,v 1.83 2002/01/20 17:55:33 rcaputo Exp $
+<$Id: CHANGES,v 1.90 2002/03/26 00:23:45 rcaputo Exp $
 
 Revision history for POE
 ========================
@@ -22,6 +22,62 @@ Version numbers have four fields: X.YYZZAAB
 | cvs tag -Rc v0_11   .
 | cvs tag -Rc v0_1009 .
 `------------------------------------------------------------------------------
+
+---------------
+0.19 2002.03.25
+---------------
+
+Rocco fixed where Client::TCP did not always call its Disconnected
+callback when the client requested a disconnect.
+
+Rocco revised the order of operations in Wheel::Curses'
+initialization, but it didn't fix the bug he was looking for.
+
+Rocco made missing termcap warnings less ugly in t/00_coverage.t.
+
+Rocco rewrote POE::Kernel's internal data structure documentation.
+
+Sungo found a buglet (because it was harmless... this time) in
+POE::Kernel's dispatch function.  It was breaking Session
+encapsulation because of a typo.  Rocco applied the fix.
+
+Bline found out that POE::NFA's goto_state() was not going to the very
+first state before his session was needed by other startup sessions.
+Rocco made goto_state() be synchronous the first time, so that the
+equivalent of a synchronous _start would happen.
+
+Rocco updated POE::NFA to use CALLER_FILE_NAME and CALLER_FILE_LINE so
+that ARG0 is in the same offset as the other sessions.
+
+Rocco added a get_runstate() method to POE::NFA.  This is equivalent
+to get_heap() in POE::Session.
+
+Rocco patched Wheel::ReadLine to use a private copy of STDIN and
+STDOUT so that other code could redirect them.
+
+Rocco wrapped binmode() in eval{} in Kernel and SocketFactory.  It
+turns out that binmode() is not so harmless if it's used with a tied
+filehandle class that doesn't support it.
+
+Rocco wrapped Kernel's fcntl() calls in a test for tied() since fcntl
+on tied filehandles isn't meaningful.
+
+TonyC spent considerable time beating on Win32 support and found a
+workable work-around to tests 4 and 10 failing.  Rocco applied some
+patches.
+
+Curses doesn't always update the screen properly if STDIN is not in
+blocking mode.  Rocco patched POE::Wheel::Curses to ensure STDIN
+blocks.
+
+Rocco updated the Windows and MacOS support info. in POE's man page
+based on user feedback.
+
+Rocco found and fixed a circular reference in POE::Wheel::ReadLine
+that prevented it (and thus programs) from exiting cleanly.
+
+Add blib and blib/lib to lib/deptest.perl, making it more useful for
+other modules.
 
 ---------------
 0.18 2002.01.20

@@ -1,11 +1,11 @@
-# $Id: Session.pm,v 1.73 2002/01/10 20:39:44 rcaputo Exp $
+# $Id: Session.pm,v 1.74 2002/02/05 01:31:55 rcaputo Exp $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.73 $ ))[1];
+$VERSION = (qw($Revision: 1.74 $ ))[1];
 
 use Carp qw(carp croak);
 use POSIX qw(ENOSYS);
@@ -95,7 +95,6 @@ macro verify_start_state {
 BEGIN {
   defined &DEB_DESTROY or eval 'sub DEB_DESTROY () { 0 }';
 }
-
 
 BEGIN {
 

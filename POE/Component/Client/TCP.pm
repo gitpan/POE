@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.11 2002/01/10 20:39:44 rcaputo Exp $
+# $Id: TCP.pm,v 1.12 2002/01/25 04:25:08 rcaputo Exp $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.11 $ ))[1];
+$VERSION = (qw($Revision: 1.12 $ ))[1];
 
 use Carp qw(carp croak);
 
@@ -185,6 +185,7 @@ sub new {
             if (defined $heap->{server}) {
               delete $heap->{server}
                 unless $heap->{server}->get_driver_out_octets();
+              $disc_callback->(@_);
             }
           }
           else {

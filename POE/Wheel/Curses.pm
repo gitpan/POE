@@ -5,11 +5,13 @@ package POE::Wheel::Curses;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.8 $ ))[1];
+$VERSION = (qw($Revision: 1.10 $ ))[1];
 
 use Carp qw(croak);
 use Curses;
+use POSIX qw(fcntl_h);
 use POE qw(Wheel);
+
 
 sub SELF_STATE_READ  () { 0 }
 sub SELF_STATE_WRITE () { 1 }
@@ -44,20 +46,26 @@ sub new {
 
   initscr();
   start_color();
-  keypad(1);
+
   cbreak();
-  noecho();
   raw();
+  noecho();
   nonl();
-  intrflush(0);
+
+  # Both of these achieve nonblocking input.
   nodelay(1);
+  timeout(0);
+
+  keypad(1);
+  intrflush(0);
   meta(1);
+  typeahead(-1);
 
   my $old_mouse_events = 0;
   mousemask(ALL_MOUSE_EVENTS, $old_mouse_events);
 
-  noutrefresh();
-  doupdate();
+  clear();
+  refresh();
 
   # Define the input event.
   $self->_define_input_state();
@@ -95,6 +103,11 @@ sub _define_input_state {
 
     # Now start reading from it.
     $poe_kernel->select_read( \*STDIN, $self->[SELF_STATE_READ] );
+
+    # Turn blocking back on for STDIN.  Some Curses implementations
+    # don't deal well with non-blocking STDIN.
+    my $flags = fcntl(STDIN, F_GETFL, 0) or die $!;
+    fcntl(STDIN, F_SETFL, $flags & ~O_NONBLOCK) or die $!;
   }
   else {
     $poe_kernel->select_read( \*STDIN );

@@ -1,4 +1,4 @@
-# $Id: TwoWay.pm,v 1.10 2002/01/10 20:39:45 rcaputo Exp $
+# $Id: TwoWay.pm,v 1.11 2002/03/04 23:52:55 rcaputo Exp $
 
 # Portable two-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::TwoWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = (qw($Revision: 1.10 $ ))[1];
+$VERSION = (qw($Revision: 1.11 $ ))[1];
 
 use Symbol qw(gensym);
 use IO::Socket;
@@ -140,7 +140,7 @@ sub new {
       return($a_read, $a_write, $b_read, $b_write);
     }
 
-    # Sockets failed.  Don't dry them again.
+    # Sockets failed.  Don't try them again.
     else {
       DEBUG and warn "make_socket failed: $@";
       $can_run_socket = 0;
