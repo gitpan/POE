@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 11_assert_usage.t,v 1.1 2004/09/04 22:50:37 rcaputo Exp $
+# $Id: 11_assert_usage.t,v 1.2 2005/02/02 04:44:36 rcaputo Exp $
 
 # Test the ASSERT_USAGE code in POE::Kernel.  This involves a lot of
 # dying.
@@ -12,6 +12,7 @@ use Test::More tests => 54;
 use Symbol qw(gensym);
 
 sub POE::Kernel::ASSERT_USAGE   () { 1 }
+sub POE::Kernel::TRACE_REFCNT   () { 1 }
 sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
 BEGIN { use_ok("POE") }

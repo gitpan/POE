@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: selects.perl,v 1.13 2004/01/31 06:58:30 rcaputo Exp $
+# $Id: selects.perl,v 1.14 2005/01/28 22:57:30 rcaputo Exp $
 
 # This is an early, basic test of POE's filehandle selecting
 # mechanism.  It was written before POE::Wheel classes were conceived.
@@ -155,12 +155,12 @@ sub server_start {
   $kernel->sig('INT', 'signal');
   $kernel->sig('PIPE', 'signal');
                                         # create the listening socket
-  my $listener = IO::Socket::INET->new
-    ( 'LocalPort' => $chargen_port,
-      'Listen'    => 5,
-      'Proto'     => 'tcp',
-      'Reuse'     => 'yes',
-    );
+  my $listener = IO::Socket::INET->new(
+    LocalPort => $chargen_port,
+    Listen    => 5,
+    Proto     => 'tcp',
+    Reuse     => 'yes',
+  );
                                         # move to 'accept' when read-okay
   if ($listener) {
     $kernel->select_read($listener, 'accept');
@@ -224,17 +224,19 @@ sub server_accept {
     my $peer_host = $connection->peerhost();
     my $peer_port = $connection->peerport();
                                         # create a session to handle I/O
-    my $new = POE::Session->new
-      ( _start     => \&session_start,
+    my $new = POE::Session->create(
+      inline_states => {
+        _start     => \&session_start,
         _stop      => \&session_stop,
         _default   => \&session_default,
         'read'     => \&session_read,
         'write'    => \&session_write,
         signal     => \&session_signal,
+      },
 
-        # ARG0, ARG1 and ARG2
-        [ $connection, $peer_host, $peer_port ]
-      );
+      # ARG0, ARG1 and ARG2
+      args => [ $connection, $peer_host, $peer_port ]
+    );
   }
   else {
     if ($! == EAGAIN) {
@@ -276,12 +278,12 @@ sub client_start {
                                         # so it knows when to stop
   $heap->{'lines read'} = 0;
                                         # try to make a connection
-  my $socket = IO::Socket::INET->new
-    ( 'PeerHost' => 'localhost',
-      'PeerPort' => $chargen_port,
-      'Proto'    => 'tcp',
-      'Reuse'    => 'yes',
-    );
+  my $socket = IO::Socket::INET->new(
+    PeerHost => 'localhost',
+    PeerPort => $chargen_port,
+    Proto    => 'tcp',
+    Reuse    => 'yes',
+  );
                                         # start reading if connected
   if ($socket) {
     print "The chargen client has connected to port $chargen_port.\n";

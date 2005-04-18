@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.52 2004/11/26 21:21:54 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.53 2005/04/12 01:43:22 rcaputo Exp $
 
 use strict;
 
@@ -39,6 +39,19 @@ if ($@) {
   );
   eval "require './mylib/ExtUtils/AutoInstall.pm'";
   die if $@;
+}
+
+### Some things we can do on Windows.
+
+my @windows_options;
+if ($^O eq "MSWin32") {
+  @windows_options = (
+    "Optional modules for Windows POE::Wheel::Run support." => [
+        -default => 0,
+        'Win32API::File'  => '0.05',
+        'Win32::Console'  => '0.031',
+    ],
+  );
 }
 
 ### Prompt for additional modules.
@@ -93,6 +106,7 @@ ExtUtils::AutoInstall->import(
       -default => 0,
       'Event'  => '1.00',
   ],
+  @windows_options,
 );
 
 ### Generate dynamic test files.

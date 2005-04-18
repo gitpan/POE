@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: objsessions.perl,v 1.11 2004/01/31 06:58:30 rcaputo Exp $
+# $Id: objsessions.perl,v 1.12 2005/01/28 22:57:30 rcaputo Exp $
 
 # This is another simple functionality test.  It tests sessions that
 # are composed of objects (also called "object sessions").  It is
@@ -125,9 +125,11 @@ sub runtime_state {
 package main;
 
 foreach my $name (qw(one two three four five six seven eight nine ten)) {
-  POE::Session->new( Counter->new($name) =>
-                     [ qw(_start _stop increment sigint) ]
-                   );
+  POE::Session->create(
+    object_states => [
+      Counter->new($name) => [ qw(_start _stop increment sigint) ]
+    ],
+  );
 }
 
 $poe_kernel->run();

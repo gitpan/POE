@@ -1,11 +1,11 @@
-# $Id: Events.pm,v 1.13 2004/11/16 07:54:11 teknikill Exp $
+# $Id: Events.pm,v 1.14 2005/04/12 22:17:15 rcaputo Exp $
 
 # Data and accessors to manage POE's events.
 
 package POE::Resources::Events;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.13 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -53,7 +53,7 @@ sub _data_ev_finalize {
 sub _data_ev_enqueue {
   my (
     $self, $session, $source_session, $event, $type, $etc, $file, $line,
-	$fromstate, $time
+    $fromstate, $time
   ) = @_;
 
   if (ASSERT_DATA) {

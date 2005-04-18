@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: all_errors.pm,v 1.2 2004/11/22 18:04:14 rcaputo Exp $
+# $Id: all_errors.pm,v 1.3 2005/01/28 22:55:32 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -348,7 +348,7 @@ print "1..0 # skipped: most of these should move into other tests\n";
 #print 'not ' unless defined $@ and length $@;
 #print "ok 40\n";
 #
-#eval 'POE::Session->new( 1 )';
+#eval 'POE::Session->new( 1 )';  ### DEPRECATED
 #print 'not ' unless defined $@ and length $@;
 #print "ok 41\n";
 #

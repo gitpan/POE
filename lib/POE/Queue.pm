@@ -1,9 +1,9 @@
-# $Id: Queue.pm,v 1.3 2003/11/21 05:08:25 rcaputo Exp $
+# $Id: Queue.pm,v 1.4 2005/01/28 17:54:25 rcaputo Exp $
 
 package POE::Queue;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -168,7 +168,7 @@ $new_priority, which should match $priority.
 
 =head1 SEE ALSO
 
-L<POE>, L<POE::Queue::Array>, L<ADT::PriorityQueue>
+L<POE>, L<POE::Queue::Array>
 
 =head1 BUGS
 

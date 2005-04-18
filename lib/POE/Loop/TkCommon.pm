@@ -1,4 +1,4 @@
-# $Id: TkCommon.pm,v 1.10 2004/11/16 07:12:45 rcaputo Exp $
+# $Id: TkCommon.pm,v 1.12 2005/02/09 16:26:48 rcaputo Exp $
 
 # The common bits of our system-specific Tk event loops.  This is
 # everything but file handling.
@@ -10,7 +10,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.12 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Tk 800.021;
 use 5.00503;
@@ -65,7 +65,7 @@ sub loop_reset_time_watcher {
 
 sub loop_pause_time_watcher {
   my $self = shift;
-  $_watcher_timer->stop() if defined $_watcher_timer;
+  $_watcher_timer->cancel() if defined $_watcher_timer;
 }
 
 # Tk's alarm callbacks seem to have the highest priority.  That is, if
@@ -172,7 +172,7 @@ sub _loop_event_callback {
     # vs. kernel events, and GC the kernel when the user events drop
     # to 0.
 
-    if ($poe_kernel->get_event_count() == IDLE_QUEUE_SIZE) {
+    if ($poe_kernel->get_event_count() == $poe_kernel->_idle_queue_size()) {
       $poe_kernel->_test_if_kernel_is_idle();
     }
   }

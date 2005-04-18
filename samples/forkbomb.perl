@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: forkbomb.perl,v 1.14 2004/01/31 06:58:29 rcaputo Exp $
+# $Id: forkbomb.perl,v 1.15 2005/01/28 22:57:29 rcaputo Exp $
 
 # This is another of the earlier test programs.  It creates a single
 # session whose job is to create more of itself.  There is a built-in
@@ -164,14 +164,17 @@ sub fetch_id {
 # This is a helper function that creates a new forkbomber session.
 
 sub create_new_forkbomber {
-  POE::Session->new( '_start'         => \&_start,
-                     '_stop'          => \&_stop,
-                     '_child'         => \&_child,
-                     '_parent'        => \&_parent,
-                     'signal_handler' => \&signal_handler,
-                     'fork'           => \&fork,
-                     'fetch_id'       => \&fetch_id,
-                   );
+  POE::Session->create(
+    inline_states => {
+      '_start'         => \&_start,
+      '_stop'          => \&_stop,
+      '_child'         => \&_child,
+      '_parent'        => \&_parent,
+      'signal_handler' => \&signal_handler,
+      'fork'           => \&fork,
+      'fetch_id'       => \&fetch_id,
+    }
+  );
 }
 
 #==============================================================================

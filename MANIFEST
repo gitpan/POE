@@ -1,4 +1,4 @@
-# $Id: MANIFEST,v 1.113 2004/11/27 16:52:12 rcaputo Exp $
+# $Id: MANIFEST,v 1.114 2005/01/28 07:38:32 rcaputo Exp $
 CHANGES
 HISTORY
 MANIFEST
@@ -156,6 +156,7 @@ tests/30_loops/00_base/wheel_sf_tcp.pm
 tests/30_loops/00_base/wheel_sf_udp.pm
 tests/30_loops/00_base/wheel_sf_unix.pm
 tests/30_loops/00_base/wheel_tail.pm
+tests/90_regression/ferrari-server-unix.t
 tests/90_regression/neyuki_detach.t
 tests/90_regression/rt1648-tied-stderr.t
 tests/90_regression/suzman_windows.t

@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.309 2004/12/02 00:20:55 apocal Exp $
+# $Id: Kernel.pm,v 1.314 2005/04/12 01:43:22 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.309 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.314 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(:fcntl_h :sys_wait_h);
@@ -58,10 +58,18 @@ sub import {
 #------------------------------------------------------------------------------
 # Perform some optional setup.
 
-sub RUNNING_IN_HELL () { $^O eq 'MSWin32' }
 
 BEGIN {
   local $SIG{'__DIE__'} = 'DEFAULT';
+
+  {
+    no strict 'refs';
+    if ($^O eq 'MSWin32') {
+        *{ __PACKAGE__ . '::RUNNING_IN_HELL' } = sub { 1 };
+    } else {
+        *{ __PACKAGE__ . '::RUNNING_IN_HELL' } = sub { 0 };
+    }
+  }
 
   # POE runs better with Time::HiRes, but it also runs without it.
   { no strict 'refs';
@@ -85,12 +93,6 @@ BEGIN {
 #==============================================================================
 # Globals, or at least package-scoped things.  Data structures were
 # moved into lexicals in 0.1201.
-
-# A flag determining whether there are child processes.  Starts true
-# so our waitpid() loop can run at least once.  Starts false when
-# running in an Apache handler so our SIGCHLD hijinx don't interfere
-# with the web server.
-my $kr_child_procs = exists($INC{'Apache.pm'}) ? 0 : 1;
 
 # A reference to the currently active session.  Used throughout the
 # functions that act on the current session.
@@ -195,12 +197,19 @@ sub ET_SIGNAL_EXPLICIT   () { 0x0800 }  # Explicitly requested signal.
 sub ET_SIGNAL_COMPATIBLE () { 0x1000 }  # Backward-compatible semantics.
 
 # A hash of reserved names.  It's used to test whether someone is
-# trying to use an internal event directly.  XXX - These are not fat
-# commas, otherwise the symbolic constants would be stringified.
+# trying to use an internal event directly.
 
 my %poes_own_events = (
-  EN_CHILD  , 1, EN_GC     , 1, EN_PARENT , 1, EN_SCPOLL , 1,
-  EN_SIGNAL , 1, EN_START  , 1, EN_STOP   , 1, EN_STAT,    1,
+  +EN_CHILD  => 1,
+  +EN_GC     => 1,
+  +EN_CHILD  => 1,
+  +EN_GC     => 1,
+  +EN_PARENT => 1,
+  +EN_SCPOLL => 1,
+  +EN_SIGNAL => 1,
+  +EN_START  => 1,
+  +EN_STOP   => 1,
+  +EN_STAT   => 1,
 );
 
 # These are ways a child may come or go.
@@ -302,19 +311,17 @@ BEGIN {
   define_assert qw(DATA EVENTS FILES RETVALS USAGE);
 }
 
-# This is a second BEGIN block so TRACE_STATISTICS may be defined
-# already.
+# An "idle" POE::Kernel may still have events enqueued.  These events
+# regulate polling for signals, profiling, and perhaps other aspecs of
+# POE::Kernel's internal workings.
+#
+# XXX - There must be a better mechanism.
+#
+my $idle_queue_size = TRACE_PROFILE ? 1 : 0;
 
-BEGIN {
-  # The Kernel's queue is "idle" if there is one or two events in it.
-  # One event is for the signal poller; a second event is for the
-  # profiler timer tick, if TRACE_PROFILE is enabled.
-
-  my $idle_queue_size = 1;
-  $idle_queue_size++ if TRACE_PROFILE;
-  eval "sub IDLE_QUEUE_SIZE () { $idle_queue_size }";
-  die if $@;
-};
+sub _idle_queue_grow   { $idle_queue_size++; }
+sub _idle_queue_shrink { $idle_queue_size--; }
+sub _idle_queue_size   { $idle_queue_size;   }
 
 #------------------------------------------------------------------------------
 # Helpers to carp, croak, confess, cluck, warn and die with whatever
@@ -446,11 +453,11 @@ sub load_loop {
   # handed off to takes over.
   if ($@ and $@ !~ /not really dying/) {
     die(
-	"*\n",
-	"* POE can't use $loop:\n",
-	"* $@\n",
-	"*\n",
-       );
+      "*\n",
+      "* POE can't use $loop:\n",
+      "* $@\n",
+      "*\n",
+    );
   }
 }
 sub test_loop {
@@ -558,17 +565,17 @@ sub _test_if_kernel_is_idle {
       "<rc> | Events : ", $kr_queue->get_item_count(), "\n",
       "<rc> | Files  : ", $self->_data_handle_count(), "\n",
       "<rc> | Extra  : ", $self->_data_extref_count(), "\n",
-      "<rc> | Procs  : $kr_child_procs\n",
+      "<rc> | Procs  : ", $self->_data_sig_child_procs(), "\n",
       "<rc> `---------------------------\n",
       "<rc> ..."
      );
   }
 
   unless (
-    $kr_queue->get_item_count() > IDLE_QUEUE_SIZE or
+    $kr_queue->get_item_count() > $idle_queue_size or
     $self->_data_handle_count() or
     $self->_data_extref_count() or
-    $kr_child_procs
+    $self->_data_sig_child_procs()
   ) {
     $self->_data_ev_enqueue(
       $self, $self, EN_SIGNAL, ET_SIGNAL, [ 'IDLE' ],
@@ -906,7 +913,7 @@ sub _dispatch_event {
       _warn("<ev>     signal($etc->[0])");
     }
   }
-  
+
   # Prepare to call the appropriate handler.  Push the current active
   # session on Perl's call stack.
   my $hold_active_session = $kr_active_session;
@@ -923,22 +930,23 @@ sub _dispatch_event {
   my $return;
   if (wantarray) {
     $return = [
-      $session->_invoke_state($source_session, $event, $etc, $file, $line,
-	  	$fromstate)
+      $session->_invoke_state(
+        $source_session, $event, $etc, $file, $line, $fromstate
+      )
     ];
   }
   else {
-    $return =
-      $session->_invoke_state($source_session, $event, $etc, $file, $line,
-	  	$fromstate);
+    $return = $session->_invoke_state(
+      $source_session, $event, $etc, $file, $line, $fromstate
+    );
   }
 
   if (TRACE_STATISTICS) {
       my $after = time();
       my $elapsed = $after - $before;
       if ($type & ET_MASK_USER) {
-	  $self->_data_stat_add('user_seconds', $elapsed);
-	  $self->_data_stat_add('user_events', 1);
+        $self->_data_stat_add('user_seconds', $elapsed);
+        $self->_data_stat_add('user_events', 1);
       }
   }
 
@@ -1140,100 +1148,7 @@ sub _invoke_state {
   # to catch SIGCHLD.
 
   if ($event eq EN_SCPOLL) {
-
-    if (TRACE_SIGNALS) {
-      _warn("<sg> POE::Kernel is polling for signals at " . time())
-    }
-
-    # Reap children for as long as waitpid(2) says something
-    # interesting has happened.
-    # -><- This has a strong possibility of an infinite loop, but so
-    # far it hasn't hasn't happened.
-
-    my $pid;
-    while ($pid = waitpid(-1, WNOHANG)) {
-
-      # waitpid(2) returned a process ID.  Emit an appropriate SIGCHLD
-      # event and loop around again.
-
-      if ((RUNNING_IN_HELL and $pid < -1) or ($pid > 0)) {
-        if (RUNNING_IN_HELL or WIFEXITED($?) or WIFSIGNALED($?)) {
-
-          if (TRACE_SIGNALS) {
-            _warn("<sg> POE::Kernel detected SIGCHLD (pid=$pid; exit=$?)");
-          }
-
-          $self->_data_ev_enqueue(
-            $self, $self, EN_SIGNAL, ET_SIGNAL, [ 'CHLD', $pid, $? ],
-            __FILE__, __LINE__, undef, time(),
-          );
-        }
-        elsif (TRACE_SIGNALS) {
-          _warn("<sg> POE::Kernel detected strange exit (pid=$pid; exit=$?");
-        }
-
-        if (TRACE_SIGNALS) {
-          _warn("<sg> POE::Kernel will poll again immediately");
-        }
-
-        next;
-      }
-
-      # The only other negative value waitpid(2) should return is -1.
-      # This is highly unlikely, but it's necessary to catch
-      # portability problems.
-      #
-      # TODO - Find a way to test this.
-
-      _trap "internal consistency error: waitpid returned $pid"
-        if $pid != -1;
-
-      # If the error is an interrupted syscall, poll again right away.
-
-      if ($! == EINTR) {
-        if (TRACE_SIGNALS) {
-          _warn(
-            "<sg> POE::Kernel's waitpid(2) was interrupted.\n",
-            "POE::Kernel will poll again immediately.\n"
-          );
-        }
-        next;
-      }
-
-      # No child processes exist.  -><- This is different than
-      # children being present but running.  Maybe this condition
-      # could halt polling entirely, and some UNIVERSAL::fork wrapper
-      # could restart polling when processes are forked.
-
-      if ($! == ECHILD) {
-        if (TRACE_SIGNALS) {
-          _warn("<sg> POE::Kernel has no child processes");
-        }
-        last;
-      }
-
-      # Some other error occurred.
-
-      if (TRACE_SIGNALS) {
-        _warn("<sg> POE::Kernel's waitpid(2) got error: $!");
-      }
-      last;
-    }
-
-    # If waitpid() returned 0, then we have child processes.
-
-    $kr_child_procs = !$pid;
-
-    # The poll loop is over.  Resume slowly polling for signals.
-
-    if (TRACE_SIGNALS) {
-      _warn("<sg> POE::Kernel will poll again after a delay");
-    }
-
-    $self->_data_ev_enqueue(
-      $self, $self, EN_SCPOLL, ET_SCPOLL, [ ],
-      __FILE__, __LINE__, undef, time() + 1
-    ) if $self->_data_ses_count() > 1;
+    $self->_data_sig_handle_poll_event();
   }
 
   # A signal was posted.  Because signals propagate depth-first, this
@@ -1243,7 +1158,7 @@ sub _invoke_state {
   elsif ($event eq EN_SIGNAL) {
     if ($etc->[0] eq 'IDLE') {
       unless (
-        $kr_queue->get_item_count() > IDLE_QUEUE_SIZE or
+        $kr_queue->get_item_count() > $idle_queue_size or
         $self->_data_handle_count()
       ) {
         $self->_data_ev_enqueue(
@@ -1536,33 +1451,58 @@ sub call {
   # deterministic programs, but the difficulty can be ameliorated if
   # programmers set some base rules and stick to them.
 
-  my $return_value;
   if (wantarray) {
-    $return_value = [
-      $session == $kr_active_session
-      ? $session->_invoke_state($session, $event_name, \@etc, (caller)[1,2],
-	  $kr_active_event) : $self->_dispatch_event(
-        $session, $kr_active_session,
-        $event_name, ET_CALL, \@etc,
-        (caller)[1,2], $kr_active_event, time(), -__LINE__
+    my @return_value = (
+      ($session == $kr_active_session)
+      ? $session->_invoke_state(
+        $session, $event_name, \@etc, (caller)[1,2],
+        $kr_active_event
       )
-    ];
-  }
-  else {
-    $return_value = (
-      $session == $kr_active_session
-      ? $session->_invoke_state($session, $event_name, \@etc, (caller)[1,2],
-	  $kr_active_event) : $self->_dispatch_event(
+      : $self->_dispatch_event(
         $session, $kr_active_session,
         $event_name, ET_CALL, \@etc,
         (caller)[1,2], $kr_active_event, time(), -__LINE__
       )
     );
+
+    $! = 0;
+    return @return_value;
+  }
+
+  if (defined wantarray) {
+    my $return_value = (
+      $session == $kr_active_session
+      ? $session->_invoke_state(
+        $session, $event_name, \@etc, (caller)[1,2],
+        $kr_active_event
+      )
+      : $self->_dispatch_event(
+        $session, $kr_active_session,
+        $event_name, ET_CALL, \@etc,
+        (caller)[1,2], $kr_active_event, time(), -__LINE__
+      )
+    );
+
+    $! = 0;
+    return $return_value;
+  }
+
+  if ($session == $kr_active_session) {
+    $session->_invoke_state(
+      $session, $event_name, \@etc, (caller)[1,2],
+      $kr_active_event
+    );
+  }
+  else {
+    $self->_dispatch_event(
+      $session, $kr_active_session,
+      $event_name, ET_CALL, \@etc,
+      (caller)[1,2], $kr_active_event, time(), -__LINE__
+    );
   }
 
   $! = 0;
-  return @$return_value if wantarray;
-  return $return_value;
+  return;
 }
 
 #------------------------------------------------------------------------------
@@ -2633,9 +2573,11 @@ arguments to EVENT_NAME's handler.
   $_[KERNEL]->post( $session, 'do_that', $with_this, $and_this );
   $_[KERNEL]->post( $session, 'do_that', @with_these );
 
-  POE::Session->new(
-    do_this => sub { print "do_this called with $_[ARG0] and $_[ARG1]\n" },
-    do_that => sub { print "do_that called with @_[ARG0..$#_]\n" },
+  POE::Session->create(
+    inline_states => {
+      do_this => sub { print "do_this called with $_[ARG0] and $_[ARG1]\n" },
+      do_that => sub { print "do_that called with @_[ARG0..$#_]\n" },
+    }
   );
 
 The post() method returns a boolean value indicating whether the event
@@ -2694,7 +2636,7 @@ call() returns whatever EVENT_NAME's handler does.  The call() call's
 status is returned in $!, which is 0 for success or a nonzero reason
 for failure.
 
-  $return_value = $kernel->call( 'do_this_now' );
+  $return_value = $kernel->call( $session, 'do_this_now' );
   die "could not do_this_now: $!" if $!;
 
 POE uses call() to dispatch some resource events without FIFO latency.

@@ -1,4 +1,4 @@
-# $Id: Select.pm,v 1.56 2004/01/21 17:27:01 rcaputo Exp $
+# $Id: Select.pm,v 1.58 2005/02/02 04:44:34 rcaputo Exp $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,29 +11,13 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.56 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.58 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
 
 use strict;
 use Errno qw(EINPROGRESS EWOULDBLOCK EINTR);
-
-# Linux has a bug on "polled" select() calls.  If select() is called
-# with a zero-second timeout, and a signal manages to interrupt it
-# anyway (it's happened), the select() function is restarted and will
-# block indefinitely.  Set the minimum select() timeout to 1us on
-# Linux systems.
-
-# sungo: this appears no longer necessary and speeds up events per second
-# on linux. basically, the smallest timeout possible on linux is 20ms. 
-# With no timeout, the select loop is not limited to this incredibly large
-# default timeout.
-BEGIN {
-#  my $timeout = ($^O eq 'linux') ? 0.001 : 0;
-  my $timeout = 0;
-  eval "sub MINIMUM_SELECT_TIMEOUT () { $timeout }";
-};
 
 # select() vectors.  They're stored in an array so that the MODE_*
 # offsets can refer to them.  This saves some code at the expense of
@@ -69,11 +53,11 @@ sub loop_finalize {
 
   # This is "clever" in that it relies on each symbol on the left to
   # be stringified by the => operator.
-  my %kernel_modes =
-    ( MODE_RD => MODE_RD,
-      MODE_WR => MODE_WR,
-      MODE_EX => MODE_EX,
-    );
+  my %kernel_modes = (
+    MODE_RD => MODE_RD,
+    MODE_WR => MODE_WR,
+    MODE_EX => MODE_EX,
+  );
 
   while (my ($mode_name, $mode_offset) = each(%kernel_modes)) {
     my $bits = unpack('b*', $loop_vectors[$mode_offset]);
@@ -168,7 +152,7 @@ sub loop_do_timeslice {
   my $now = time();
   if (defined $timeout) {
     $timeout -= $now;
-    $timeout = MINIMUM_SELECT_TIMEOUT if $timeout < MINIMUM_SELECT_TIMEOUT;
+    $timeout = 0 if $timeout < 0;
   }
   else {
     $timeout = 3600;
@@ -214,12 +198,13 @@ sub loop_do_timeslice {
       );
 
       if (ASSERT_FILES) {
-        if ($hits < 0) {
-          POE::Kernel::_trap("<fh> select error: $!")
-            unless ( ($! == EINPROGRESS) or
-                     ($! == EWOULDBLOCK) or
-                     ($! == EINTR)
-                   );
+        if (
+          $hits < 0 and
+          $! != EINPROGRESS and
+          $! != EWOULDBLOCK and
+          $! != EINTR
+        ) {
+          POE::Kernel::_trap("<fh> select error: $!");
         }
       }
 
@@ -303,6 +288,9 @@ sub loop_do_timeslice {
     # MSWin32 with all undef bitmasks.  Use sleep() there instead.
 
     else {
+      # Not unconditionally the Time::HiRes microsleep because
+      # Time::HiRes may not be installed.  This is only an issue until
+      # we can require versions of Perl that include Time::HiRes.
       if ($^O eq 'MSWin32') {
         sleep($timeout);
       }

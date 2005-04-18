@@ -1,23 +1,22 @@
-# $Id: Run.pm,v 1.61 2004/11/27 16:52:13 rcaputo Exp $
+# $Id: Run.pm,v 1.67 2005/04/18 05:47:34 rcaputo Exp $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.61 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.67 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use POSIX qw(
-  sysconf _SC_OPEN_MAX ECHO ICANON IEXTEN ISIG BRKINT ICRNL INPCK
-  ISTRIP IXON CSIZE PARENB OPOST TCSANOW
+  sysconf setsid _SC_OPEN_MAX ECHO ICANON IEXTEN ISIG BRKINT ICRNL
+  INPCK ISTRIP IXON CSIZE PARENB OPOST TCSANOW
 );
 
 use POE qw( Wheel Pipe::TwoWay Pipe::OneWay Driver::SysRW Filter::Line );
 
 BEGIN {
   die "$^O does not support fork()\n" if $^O eq 'MacOS';
-  die "$^O does not fully support fork+exec\n" if $^O eq 'MSWin32';
 
   local $SIG{'__DIE__'} = 'DEFAULT';
   eval    { require IO::Pty; };
@@ -25,6 +24,16 @@ BEGIN {
   else {
     IO::Pty->import();
     eval 'sub PTY_AVAILABLE () { 1 }';
+  }
+
+  if (POE::Kernel::RUNNING_IN_HELL) {
+      eval    { require Win32::Console; };
+      if ($@) { die "Win32::Console failed to load:\n$@" }
+      else    { Win32::Console->import(); };
+
+      eval    { require Win32API::File; };
+      if ($@) { die "Win32API::File but failed to load:\n$@" }
+      else    { Win32API::File->import( qw(FdGetOsFHandle) ); };
   }
 
   # How else can I get them out?!
@@ -42,9 +51,10 @@ BEGIN {
     eval 'sub CIBAUD () { undef; }';
   }
 
-  if ( eval '&IO::Tty::Constant::TIOCSWINSZ' and
-       eval '&IO::Tty::Constant::TIOCGWINSZ'
-     ) {
+  if (
+    eval '&IO::Tty::Constant::TIOCSWINSZ' and
+    eval '&IO::Tty::Constant::TIOCGWINSZ'
+  ) {
     *TIOCSWINSZ = *IO::Tty::Constant::TIOCSWINSZ;
     *TIOCGWINSZ = *IO::Tty::Constant::TIOCGWINSZ;
   }
@@ -168,9 +178,10 @@ sub new {
   }
 
   croak "$type needs at least one of StdinEvent, StdoutEvent or StderrEvent"
-    unless( defined($stdin_event) or defined($stdout_event) or
-            defined($stderr_event)
-          );
+    unless(
+      defined($stdin_event) or defined($stdout_event) or
+      defined($stderr_event)
+    );
 
   my $stdio_driver  = delete $params{StdioDriver}
     || POE::Driver::SysRW->new();
@@ -219,16 +230,20 @@ sub new {
   my $error_event = delete $params{ErrorEvent};
   my $close_event = delete $params{CloseEvent};
 
+  my $no_setsid = delete $params{NoSetSid};
+
   # Make sure the user didn't pass in parameters we're not aware of.
   if (scalar keys %params) {
-    carp( "unknown parameters in $type constructor call: ",
-          join(', ', sort keys %params)
-        );
+    carp(
+      "unknown parameters in $type constructor call: ",
+      join(', ', sort keys %params)
+    );
   }
 
-  my ( $stdin_read, $stdout_write, $stdout_read, $stdin_write,
-       $stderr_read, $stderr_write,
-     );
+  my (
+    $stdin_read, $stdout_write, $stdout_read, $stdin_write,
+    $stderr_read, $stderr_write,
+  );
 
   # Create a semaphore pipe.  This is used so that the parent doesn't
   # begin listening until the child's stdio has been set up.
@@ -289,7 +304,7 @@ sub new {
 
       # Become a new unix session.
       # Program 19.3, APITUE.  W. Richard Stevens built my hot rod.
-      eval 'setsid()';
+      eval 'setsid()' unless $no_setsid;
 
       # Open the slave side of the pty.
       $stdin_read = $stdout_write = $stderr_write = $stdin_write->slave();
@@ -380,17 +395,30 @@ sub new {
     close $stdin_write;
     close $stdout_read;
     close $stderr_read if defined $stderr_read;
+    
+    # Need to close on Win32 because std handles aren't dup'ed, no
+    # harm elsewhere.  Close STDERR later to not influence possible
+    # die.
+    close STDIN;
+    close STDOUT;
 
     # Redirect STDIN from the read end of the stdin pipe.
     open( STDIN, "<&" . fileno($stdin_read) )
       or die "can't redirect STDIN in child pid $$: $!";
 
     # Redirect STDOUT to the write end of the stdout pipe.
+    # The STDOUT_FILENO check snuck in on a patch.  I'm not sure why
+    # we care what the file descriptor is.
     open( STDOUT, ">&" . fileno($stdout_write) )
       or die "can't redirect stdout in child pid $$: $!";
 
+    # Need to close on Win32 because std handles aren't dup'ed, no harm elsewhere
+    close STDERR;
+
     # Redirect STDERR to the write end of the stderr pipe.  If the
     # stderr pipe's undef, then we use STDOUT.
+    # The STDERR_FILENO check snuck in on a patch.  I'm not sure why
+    # we care what the file descriptor is.
     open( STDERR, ">&" . fileno($stderr_write) )
       or die "can't redirect stderr in child: $!";
 
@@ -399,20 +427,32 @@ sub new {
     select STDOUT;  $| = 1;
 
     # Tell the parent that the stdio has been set up.
-    close $sem_pipe_read unless $^O eq 'MSWin32';
+    close $sem_pipe_read;
     print $sem_pipe_write "go\n";
-    close $sem_pipe_write unless $^O eq 'MSWin32';
+    close $sem_pipe_write;
 
-    # Exec the program depending on its form.
-    if (ref($program) eq 'ARRAY') {
-      exec(@$program, @$prog_args)
-        or die "can't exec (@$program) in child pid $$: $!";
+    if (POE::Kernel::RUNNING_IN_HELL)  {
+	# The Win32 pseudo fork sets up the std handles in the child based on the true win32 handles
+	# For the exec these get remembered, so manipulation of STDIN/OUT/ERR is not enough. Only 
+	# necessary for the exec, as Perl CODE subroutine goes through 0/1/2 which are correct. 
+	# But ofcourse that coderef might invoke exec, so better do it regardless.
+	# HACK: Using Win32::Console as nothing else exposes SetStdHandle
+	Win32::Console::_SetStdHandle(STD_INPUT_HANDLE(),  FdGetOsFHandle(fileno($stdin_read)));
+	Win32::Console::_SetStdHandle(STD_OUTPUT_HANDLE(), FdGetOsFHandle(fileno($stdout_write)));
+	Win32::Console::_SetStdHandle(STD_ERROR_HANDLE(),  FdGetOsFHandle(fileno($stderr_write)));
     }
-    elsif (ref($program) eq 'CODE') {
+    # Exec the program depending on its form.
+    if (ref($program) eq 'CODE') {
 
-      # Close any close-on-exec file descriptors.
+      # Close any close-on-exec file descriptors.  Except STDIN,
+      # STDOUT, and STDERR, of course.
       if ($close_on_call) {
-        POSIX::close($_) for $^F+1..MAX_OPEN_FDS;
+        for (0..MAX_OPEN_FDS-1) {
+          next if fileno(STDIN) == $_;
+          next if fileno(STDOUT) == $_;
+          next if fileno(STDERR) == $_;
+          POSIX::close($_);
+        }
       }
 
       $program->(@$prog_args);
@@ -423,16 +463,23 @@ sub new {
 
       # Try to exit without triggering END or object destructors.
       # Give up with a plain exit if we must.
-      eval { POSIX::_exit(0);  };
-      eval { kill KILL => $$;  };
-      eval { exec("$^X -e 0"); };
+      # On win32 cannot _exit as it will kill *all* threads, meaning parent too
+      unless (POE::Kernel::RUNNING_IN_HELL) {
+	  eval { POSIX::_exit(0);  };
+	  eval { kill KILL => $$;  };
+	  eval { exec("$^X -e 0"); };
+      };
       exit(0);
+    } else {
+	if (ref($program) eq 'ARRAY') {
+	  exec(@$program, @$prog_args)
+	    or die "can't exec (@$program) in child pid $$: $!";
+	}
+	else {
+	  exec(join(" ", $program, @$prog_args))
+	    or die "can't exec ($program) in child pid $$: $!";
+	}
     }
-    else {
-      exec(join(" ", $program, @$prog_args))
-        or die "can't exec ($program) in child pid $$: $!";
-    }
-
     die "insanity check passed";
   }
 
@@ -445,36 +492,36 @@ sub new {
   $handle_count++ if defined $stdout_read;
   $handle_count++ if defined $stderr_read;
 
-  my $self = bless
-    [ &POE::Wheel::allocate_wheel_id(),  # UNIQUE_ID
-      $error_event,   # ERROR_EVENT
-      $close_event,   # CLOSE_EVENT
-      $program,       # PROGRAM
-      $pid,           # CHILD_PID
-      $conduit,       # CONDUIT_TYPE
-      $handle_count,  # IS_ACTIVE
-      $close_on_call, # CLOSE_ON_CALL
-      $stdio_type,    # STDIO_TYPE
-      # STDIN
-      $stdin_write,   # HANDLE_STDIN
-      $stdin_filter,  # FILTER_STDIN
-      $stdin_driver,  # DRIVER_STDIN
-      $stdin_event,   # EVENT_STDIN
-      undef,          # STATE_STDIN
-      0,              # OCTETS_STDIN
-      # STDOUT
-      $stdout_read,   # HANDLE_STDOUT
-      $stdout_filter, # FILTER_STDOUT
-      $stdout_driver, # DRIVER_STDOUT
-      $stdout_event,  # EVENT_STDOUT
-      undef,          # STATE_STDOUT
-      # STDERR
-      $stderr_read,   # HANDLE_STDERR
-      $stderr_filter, # FILTER_STDERR
-      $stderr_driver, # DRIVER_STDERR
-      $stderr_event,  # EVENT_STDERR
-      undef,          # STATE_STDERR
-    ], $type;
+  my $self = bless [
+    &POE::Wheel::allocate_wheel_id(),  # UNIQUE_ID
+    $error_event,   # ERROR_EVENT
+    $close_event,   # CLOSE_EVENT
+    $program,       # PROGRAM
+    $pid,           # CHILD_PID
+    $conduit,       # CONDUIT_TYPE
+    $handle_count,  # IS_ACTIVE
+    $close_on_call, # CLOSE_ON_CALL
+    $stdio_type,    # STDIO_TYPE
+    # STDIN
+    $stdin_write,   # HANDLE_STDIN
+    $stdin_filter,  # FILTER_STDIN
+    $stdin_driver,  # DRIVER_STDIN
+    $stdin_event,   # EVENT_STDIN
+    undef,          # STATE_STDIN
+    0,              # OCTETS_STDIN
+    # STDOUT
+    $stdout_read,   # HANDLE_STDOUT
+    $stdout_filter, # FILTER_STDOUT
+    $stdout_driver, # DRIVER_STDOUT
+    $stdout_event,  # EVENT_STDOUT
+    undef,          # STATE_STDOUT
+    # STDERR
+    $stderr_read,   # HANDLE_STDERR
+    $stderr_filter, # FILTER_STDERR
+    $stderr_driver, # DRIVER_STDERR
+    $stderr_event,  # EVENT_STDERR
+    undef,          # STATE_STDERR
+  ], $type;
 
   # Wait here while the child sets itself up.
   <$sem_pipe_read>;
@@ -511,35 +558,36 @@ sub _define_stdin_flusher {
   my $stdin_octets = \$self->[OCTETS_STDIN];
 
   # Register the select-write handler.
-  $poe_kernel->state
-    ( $self->[STATE_STDIN] = ref($self) . "($unique_id) -> select stdin",
-      sub {                             # prevents SEGV
-        0 && CRIMSON_SCOPE_HACK('<');
-                                        # subroutine starts here
-        my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+  $poe_kernel->state(
+    $self->[STATE_STDIN] = ref($self) . "($unique_id) -> select stdin",
+    sub {                             # prevents SEGV
+      0 && CRIMSON_SCOPE_HACK('<');
+                                      # subroutine starts here
+      my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
 
-        $$stdin_octets = $driver->flush($handle);
+      $$stdin_octets = $driver->flush($handle);
 
-        # When you can't write, nothing else matters.
-        if ($!) {
-          $$error_event && $k->call( $me, $$error_event,
-                                     'write', ($!+0), $!, $unique_id, "STDIN"
-                                   );
-          $k->select_write($handle);
-        }
+      # When you can't write, nothing else matters.
+      if ($!) {
+        $$error_event && $k->call(
+          $me, $$error_event,
+          'write', ($!+0), $!, $unique_id, "STDIN"
+        );
+        $k->select_write($handle);
+      }
 
-        # Could write, or perhaps couldn't but only because the
-        # filehandle's buffer is choked.
-        else {
+      # Could write, or perhaps couldn't but only because the
+      # filehandle's buffer is choked.
+      else {
 
-          # All chunks written; fire off a "flushed" event.
-          unless ($$stdin_octets) {
-            $k->select_pause_write($handle);
-            $$stdin_event && $k->call($me, $$stdin_event, $unique_id);
-          }
+        # All chunks written; fire off a "flushed" event.
+        unless ($$stdin_octets) {
+          $k->select_pause_write($handle);
+          $$stdin_event && $k->call($me, $$stdin_event, $unique_id);
         }
       }
-    );
+    }
+  );
 
   $poe_kernel->select_write($self->[HANDLE_STDIN], $self->[STATE_STDIN]);
 
@@ -570,70 +618,73 @@ sub _define_stdout_reader {
     my $stdout_event  = \$self->[EVENT_STDOUT];
     my $is_active     = \$self->[IS_ACTIVE];
 
-    if ( $stdout_filter->can("get_one") and
-         $stdout_filter->can("get_one_start")
-       ) {
-      $poe_kernel->state
-        ( $self->[STATE_STDOUT] = ref($self) . "($unique_id) -> select stdout",
-          sub {
-            # prevents SEGV
-            0 && CRIMSON_SCOPE_HACK('<');
+    if (
+      $stdout_filter->can("get_one") and
+      $stdout_filter->can("get_one_start")
+    ) {
+      $poe_kernel->state(
+        $self->[STATE_STDOUT] = ref($self) . "($unique_id) -> select stdout",
+        sub {
+          # prevents SEGV
+          0 && CRIMSON_SCOPE_HACK('<');
 
-            # subroutine starts here
-            my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-            if (defined(my $raw_input = $driver->get($handle))) {
-              $stdout_filter->get_one_start($raw_input);
-              while (1) {
-                my $next_rec = $stdout_filter->get_one();
-                last unless @$next_rec;
-                foreach my $cooked_input (@$next_rec) {
-                  $k->call($me, $$stdout_event, $cooked_input, $unique_id);
-                }
+          # subroutine starts here
+          my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+          if (defined(my $raw_input = $driver->get($handle))) {
+            $stdout_filter->get_one_start($raw_input);
+            while (1) {
+              my $next_rec = $stdout_filter->get_one();
+              last unless @$next_rec;
+              foreach my $cooked_input (@$next_rec) {
+                $k->call($me, $$stdout_event, $cooked_input, $unique_id);
               }
-            }
-            else {
-              $$error_event and
-                $k->call( $me, $$error_event,
-                          'read', ($!+0), $!, $unique_id, 'STDOUT'
-                        );
-              unless (--$$is_active) {
-                $k->call( $me, $$close_event, $unique_id )
-                  if defined $$close_event;
-              }
-              $k->select_read($handle);
             }
           }
-        );
+          else {
+            $$error_event and
+              $k->call(
+                $me, $$error_event,
+                'read', ($!+0), $!, $unique_id, 'STDOUT'
+              );
+            unless (--$$is_active) {
+              $k->call( $me, $$close_event, $unique_id )
+                if defined $$close_event;
+            }
+            $k->select_read($handle);
+          }
+        }
+      );
     }
 
     # Otherwise we can't get one.
     else {
-      $poe_kernel->state
-        ( $self->[STATE_STDOUT] = ref($self) . "($unique_id) -> select stdout",
-          sub {
-            # prevents SEGV
-            0 && CRIMSON_SCOPE_HACK('<');
+      $poe_kernel->state(
+        $self->[STATE_STDOUT] = ref($self) . "($unique_id) -> select stdout",
+        sub {
+          # prevents SEGV
+          0 && CRIMSON_SCOPE_HACK('<');
 
-            # subroutine starts here
-            my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-            if (defined(my $raw_input = $driver->get($handle))) {
-              foreach my $cooked_input (@{$stdout_filter->get($raw_input)}) {
-                $k->call($me, $$stdout_event, $cooked_input, $unique_id);
-              }
-            }
-            else {
-              $$error_event and
-                $k->call( $me, $$error_event,
-                          'read', ($!+0), $!, $unique_id, 'STDOUT'
-                        );
-              unless (--$$is_active) {
-                $k->call( $me, $$close_event, $unique_id )
-                  if defined $$close_event;
-              }
-              $k->select_read($handle);
+          # subroutine starts here
+          my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+          if (defined(my $raw_input = $driver->get($handle))) {
+            foreach my $cooked_input (@{$stdout_filter->get($raw_input)}) {
+              $k->call($me, $$stdout_event, $cooked_input, $unique_id);
             }
           }
-        );
+          else {
+            $$error_event and
+              $k->call(
+                $me, $$error_event,
+                'read', ($!+0), $!, $unique_id, 'STDOUT'
+              );
+            unless (--$$is_active) {
+              $k->call( $me, $$close_event, $unique_id )
+                if defined $$close_event;
+            }
+            $k->select_read($handle);
+          }
+        }
+      );
     }
 
     # register the state's select
@@ -666,70 +717,73 @@ sub _define_stderr_reader {
     my $stderr_event  = \$self->[EVENT_STDERR];
     my $is_active     = \$self->[IS_ACTIVE];
 
-    if ( $stderr_filter->can("get_one") and
-         $stderr_filter->can("get_one_start")
-       ) {
-      $poe_kernel->state
-        ( $self->[STATE_STDERR] = ref($self) . "($unique_id) -> select stderr",
-          sub {
-            # prevents SEGV
-            0 && CRIMSON_SCOPE_HACK('<');
+    if (
+      $stderr_filter->can("get_one") and
+      $stderr_filter->can("get_one_start")
+    ) {
+      $poe_kernel->state(
+        $self->[STATE_STDERR] = ref($self) . "($unique_id) -> select stderr",
+        sub {
+          # prevents SEGV
+          0 && CRIMSON_SCOPE_HACK('<');
 
-            # subroutine starts here
-            my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-            if (defined(my $raw_input = $driver->get($handle))) {
-              $stderr_filter->get_one_start($raw_input);
-              while (1) {
-                my $next_rec = $stderr_filter->get_one();
-                last unless @$next_rec;
-                foreach my $cooked_input (@$next_rec) {
-                  $k->call($me, $$stderr_event, $cooked_input, $unique_id);
-                }
+          # subroutine starts here
+          my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+          if (defined(my $raw_input = $driver->get($handle))) {
+            $stderr_filter->get_one_start($raw_input);
+            while (1) {
+              my $next_rec = $stderr_filter->get_one();
+              last unless @$next_rec;
+              foreach my $cooked_input (@$next_rec) {
+                $k->call($me, $$stderr_event, $cooked_input, $unique_id);
               }
-            }
-            else {
-              $$error_event and
-                $k->call( $me, $$error_event,
-                          'read', ($!+0), $!, $unique_id, 'STDERR'
-                        );
-              unless (--$$is_active) {
-                $k->call( $me, $$close_event, $unique_id )
-                  if defined $$close_event;
-              }
-              $k->select_read($handle);
             }
           }
-        );
+          else {
+            $$error_event and
+              $k->call(
+                $me, $$error_event,
+                'read', ($!+0), $!, $unique_id, 'STDERR'
+              );
+            unless (--$$is_active) {
+              $k->call( $me, $$close_event, $unique_id )
+                if defined $$close_event;
+            }
+            $k->select_read($handle);
+          }
+        }
+      );
     }
 
     # Otherwise we can't get_one().
     else {
-      $poe_kernel->state
-        ( $self->[STATE_STDERR] = ref($self) . "($unique_id) -> select stderr",
-          sub {
-            # prevents SEGV
-            0 && CRIMSON_SCOPE_HACK('<');
+      $poe_kernel->state(
+        $self->[STATE_STDERR] = ref($self) . "($unique_id) -> select stderr",
+        sub {
+          # prevents SEGV
+          0 && CRIMSON_SCOPE_HACK('<');
 
-            # subroutine starts here
-            my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
-            if (defined(my $raw_input = $driver->get($handle))) {
-              foreach my $cooked_input (@{$stderr_filter->get($raw_input)}) {
-                $k->call($me, $$stderr_event, $cooked_input, $unique_id);
-              }
-            }
-            else {
-              $$error_event and
-                $k->call( $me, $$error_event,
-                          'read', ($!+0), $!, $unique_id, 'STDERR'
-                        );
-              unless (--$$is_active) {
-                $k->call( $me, $$close_event, $unique_id )
-                  if defined $$close_event;
-              }
-              $k->select_read($handle);
+          # subroutine starts here
+          my ($k, $me, $handle) = @_[KERNEL, SESSION, ARG0];
+          if (defined(my $raw_input = $driver->get($handle))) {
+            foreach my $cooked_input (@{$stderr_filter->get($raw_input)}) {
+              $k->call($me, $$stderr_event, $cooked_input, $unique_id);
             }
           }
-        );
+          else {
+            $$error_event and
+              $k->call(
+                $me, $$error_event,
+                'read', ($!+0), $!, $unique_id, 'STDERR'
+              );
+            unless (--$$is_active) {
+              $k->call( $me, $$close_event, $unique_id )
+                if defined $$close_event;
+            }
+            $k->select_read($handle);
+          }
+        }
+      );
     }
 
     # register the state's select
@@ -830,8 +884,9 @@ sub DESTROY {
 
 sub put {
   my ($self, @chunks) = @_;
-  if ( $self->[OCTETS_STDIN] =
-       $self->[DRIVER_STDIN]->put($self->[FILTER_STDIN]->put(\@chunks))
+  if (
+    $self->[OCTETS_STDIN] =  # assignment on purpose
+    $self->[DRIVER_STDIN]->put($self->[FILTER_STDIN]->put(\@chunks))
   ) {
     $poe_kernel->select_resume_write($self->[HANDLE_STDIN]);
   }
@@ -892,9 +947,10 @@ sub _transfer_stdout_buffer {
 
   # Use "get_one" if the new filter implements it.
   if (defined $buf) {
-    if ( $old_output_filter->can("get_one") and
-         $old_output_filter->can("get_one_start")
-       ) {
+    if (
+      $old_output_filter->can("get_one") and
+      $old_output_filter->can("get_one_start")
+    ) {
       $old_output_filter->get_one_start($buf);
 
       # Don't bother to continue if the filter has switched out from
@@ -904,10 +960,10 @@ sub _transfer_stdout_buffer {
         my $next_rec = $old_output_filter->get_one();
         last unless @$next_rec;
         foreach my $cooked_input (@$next_rec) {
-          $poe_kernel->call( $poe_kernel->get_active_session(),
-                             $self->[EVENT_STDOUT],
-                             $cooked_input, $self->[UNIQUE_ID]
-                           );
+          $poe_kernel->call(
+            $poe_kernel->get_active_session(), $self->[EVENT_STDOUT],
+            $cooked_input, $self->[UNIQUE_ID]
+          );
         }
       }
     }
@@ -915,10 +971,10 @@ sub _transfer_stdout_buffer {
     # Otherwise use the old get() behavior.
     else {
       foreach my $cooked_input (@{$self->[FILTER_STDOUT]->get($buf)}) {
-        $poe_kernel->call( $poe_kernel->get_active_session(),
-                           $self->[EVENT_STDOUT],
-                           $cooked_input, $self->[UNIQUE_ID]
-                         );
+        $poe_kernel->call(
+          $poe_kernel->get_active_session(), $self->[EVENT_STDOUT],
+          $cooked_input, $self->[UNIQUE_ID]
+        );
       }
     }
   }
@@ -934,9 +990,10 @@ sub _transfer_stderr_buffer {
 
   # Use "get_one" if the new filter implements it.
   if (defined $buf) {
-    if ( $old_output_filter->can("get_one") and
-         $old_output_filter->can("get_one_start")
-       ) {
+    if (
+      $old_output_filter->can("get_one") and
+      $old_output_filter->can("get_one_start")
+    ) {
       $old_output_filter->get_one_start($buf);
 
       # Don't bother to continue if the filter has switched out from
@@ -946,10 +1003,10 @@ sub _transfer_stderr_buffer {
         my $next_rec = $old_output_filter->get_one();
         last unless @$next_rec;
         foreach my $cooked_input (@$next_rec) {
-          $poe_kernel->call( $poe_kernel->get_active_session(),
-                             $self->[EVENT_STDERR],
-                             $cooked_input, $self->[UNIQUE_ID]
-                           );
+          $poe_kernel->call(
+            $poe_kernel->get_active_session(), $self->[EVENT_STDERR],
+            $cooked_input, $self->[UNIQUE_ID]
+          );
         }
       }
     }
@@ -957,10 +1014,10 @@ sub _transfer_stderr_buffer {
     # Otherwise use the old get() behavior.
     else {
       foreach my $cooked_input (@{$self->[FILTER_STDERR]->get($buf)}) {
-        $poe_kernel->call( $poe_kernel->get_active_session(),
-                           $self->[EVENT_STDERR],
-                           $cooked_input, $self->[UNIQUE_ID]
-                         );
+        $poe_kernel->call(
+          $poe_kernel->get_active_session(), $self->[EVENT_STDERR],
+          $cooked_input, $self->[UNIQUE_ID]
+        );
       }
     }
   }
@@ -1229,6 +1286,12 @@ run at.  This may not be meaningful on systems that have no concept of
 group IDs.  The current process may need to run as root in order to
 change group IDs.  Mileage varies considerably.
 
+=item NoSetSid
+
+When true, C<NoSetSid> disables setsid() in the child process.  By
+default, setsid() is called to execute the child process in a separate
+Unix session.
+
 =item Priority
 
 C<Priority> contains an offset from the current process's priority.
@@ -1481,8 +1544,6 @@ names.
 
 Group must be specified by GID.  It would be nice to support group
 names.
-
-ActiveState Perl doesn't like this module one bit.
 
 =head1 AUTHORS & COPYRIGHTS
 

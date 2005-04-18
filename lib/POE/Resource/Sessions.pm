@@ -1,11 +1,11 @@
-# $Id: Sessions.pm,v 1.18 2004/07/16 01:10:16 rcaputo Exp $
+# $Id: Sessions.pm,v 1.19 2005/04/12 23:02:12 rcaputo Exp $
 
 # Manage session data structures on behalf of POE::Kernel.
 
 package POE::Resources::Sessions;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.18 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.19 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -503,6 +503,7 @@ sub _data_ses_stop {
   }
 
   # Stop the main loop if everything is gone.
+	# XXX - Under Tk this is called twice.  Why?  WHY is it called twice?
   unless (keys %kr_sessions) {
     $self->loop_halt();
   }

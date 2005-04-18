@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: names.perl,v 1.9 2004/01/31 06:58:29 rcaputo Exp $
+# $Id: names.perl,v 1.10 2005/01/28 22:57:29 rcaputo Exp $
 
 # Aliases were originally called Names.
 
@@ -37,7 +37,11 @@ sub new {
                                         # hello, world!
   print "> $self created\n";
                                         # give this object to POE
-  POE::Session->new($self, [ qw(_start _stop lock unlock sighandler) ]);
+  POE::Session->create(
+    object_states => [
+      $self, [ qw(_start _stop lock unlock sighandler) ]
+    ]
+  );
 
   # Don't let the caller have a reference.  It's not very nice, but it
   # also prevents the caller from holding onto the reference and
@@ -176,14 +180,17 @@ sub new {
                                         # hello, world!
   print "> $self created\n";
                                         # give this object to POE
-  POE::Session->new( $self,
-                     [ qw(_start _stop
-                         acquire_lock retry_acquire
-                         release_lock retry_release
-                         perform_locked_operation perform_unlocked_operation
-                        )
-                     ]
-                   );
+  POE::Session->create(
+    object_states => [
+      $self,
+      [ qw(_start _stop
+        acquire_lock retry_acquire
+        release_lock retry_release
+        perform_locked_operation perform_unlocked_operation
+        )
+      ],
+    ]
+  );
                                         # it will manage itself, thank you
   undef;
 }

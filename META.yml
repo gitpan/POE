@@ -1,7 +1,8 @@
 --- #YAML:1.0
 name: POE
-version: 0.3009
-author: Rocco Caputo <rcaputo@cpan.org>
+version: 0.31
+author:
+  - Rocco Caputo <rcaputo@cpan.org>
 abstract: A portable networking and multitasking framework.
 license: perl
 requires:
@@ -13,13 +14,13 @@ requires:
   IO: 1.2
   POSIX: 1.02
   Socket: 1.7
-  Test::More: 0.54
+  Test::Harness: 2.26
 recommends:
   Time::HiRes: 1.59
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.3009
+    version: 0.31
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.0003
@@ -34,7 +35,7 @@ provides:
     version: 1.0042
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.0049
+    version: 1.0051
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.0015
@@ -52,7 +53,7 @@ provides:
     version: 1.0006
   POE::Filter::HTTPD:
     file: lib/POE/Filter/HTTPD.pm
-    version: 1.0038
+    version: 1.0040
   POE::Filter::Line:
     file: lib/POE/Filter/Line.pm
     version: 1.0024
@@ -64,7 +65,7 @@ provides:
     version: 1.0004
   POE::Filter::Reference:
     file: lib/POE/Filter/Reference.pm
-    version: 1.0032
+    version: 1.0033
   POE::Filter::Stackable:
     file: lib/POE/Filter/Stackable.pm
     version: 1.0006
@@ -73,13 +74,13 @@ provides:
     version: 1.0012
   POE::Kernel:
     file: lib/POE/Resource/Signals.pm
-    version: 1.0012
+    version: 1.0013
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.0006
   POE::Loop::Event:
     file: lib/POE/Loop/Event.pm
-    version: 1.0041
+    version: 1.0042
   POE::Loop::Gtk:
     file: lib/POE/Loop/Gtk.pm
     version: 1.0045
@@ -88,16 +89,16 @@ provides:
     version: 1.0032
   POE::Loop::PerlSignals:
     file: lib/POE/Loop/PerlSignals.pm
-    version: 1.0008
+    version: 1.0009
   POE::Loop::Select:
     file: lib/POE/Loop/Select.pm
-    version: 1.0056
+    version: 1.0058
   POE::Loop::Tk:
     file: lib/POE/Loop/TkActiveState.pm
     version: 1.0007
   POE::Loop::TkCommon:
     file: lib/POE/Loop/TkCommon.pm
-    version: 1.0010
+    version: 1.0012
   POE::Macro::UseBytes:
     file: lib/POE/Macro/UseBytes.pm
     version: 1.0003
@@ -118,7 +119,7 @@ provides:
     version: 1.0035
   POE::Queue:
     file: lib/POE/Queue.pm
-    version: 1.0003
+    version: 1.0004
   POE::Queue::Array:
     file: lib/POE/Queue/Array.pm
     version: 1.0008
@@ -136,7 +137,7 @@ provides:
     version: 1.0004
   POE::Resources::Events:
     file: lib/POE/Resource/Events.pm
-    version: 1.0013
+    version: 1.0014
   POE::Resources::Extrefs:
     file: lib/POE/Resource/Extrefs.pm
     version: 1.0010
@@ -148,16 +149,16 @@ provides:
     version: 1.0009
   POE::Resources::Sessions:
     file: lib/POE/Resource/Sessions.pm
-    version: 1.0018
+    version: 1.0019
   POE::Resources::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.0012
+    version: 1.0013
   POE::Resources::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.0003
   POE::Session:
     file: lib/POE/Session.pm
-    version: 1.0106
+    version: 1.0110
   POE::Wheel:
     file: lib/POE/Wheel.pm
     version: 1.0019
@@ -166,7 +167,7 @@ provides:
     version: 1.0012
   POE::Wheel::FollowTail:
     file: lib/POE/Wheel/FollowTail.pm
-    version: 1.0052
+    version: 1.0054
   POE::Wheel::ListenAccept:
     file: lib/POE/Wheel/ListenAccept.pm
     version: 1.0030
@@ -178,11 +179,11 @@ provides:
     version: 1.0036
   POE::Wheel::ReadWrite:
     file: lib/POE/Wheel/ReadWrite.pm
-    version: 1.0070
+    version: 1.0071
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
-    version: 1.0061
+    version: 1.0067
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
     version: 1.0079
-generated_by: Module::Build version 0.25
+generated_by: Module::Build version 0.2604
