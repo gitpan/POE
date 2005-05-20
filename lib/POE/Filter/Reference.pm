@@ -1,4 +1,4 @@
-# $Id: Reference.pm,v 1.33 2005/03/17 04:30:31 apocal Exp $
+# $Id: Reference.pm,v 1.34 2005/04/22 20:36:31 rcaputo Exp $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -9,7 +9,7 @@ use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.33 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.34 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 
@@ -22,13 +22,13 @@ BEGIN {
   foreach my $p (qw(Storable FreezeThaw YAML)) {
     eval { require "$p.pm"; import $p (); };
     if ( $@ ) {
-    	warn $@;
-    	next;
+      warn $@;
+      next;
     } else {
-    	# Found a good freezer!
-    	$DEF_FREEZER = $p;
-    	last;
-    }    	
+      # Found a good freezer!
+      $DEF_FREEZER = $p;
+      last;
+    }      
   }
   die "Filter::Reference requires Storable, FreezeThaw, or YAML" if ! defined $DEF_FREEZER;
 }
@@ -75,32 +75,32 @@ sub _get_methods
 sub new {
   my($type, $freezer, $compression) = @_;
   
-	my( $freeze, $thaw );
-	if ( ! defined $freezer ) {
-	  	# Okay, load the default one!
-		$freezer = $DEF_FREEZER;
-		$freeze = $DEF_FREEZE;
-		$thaw = $DEF_THAW;
-	} else {
-		# What did we get?
-		if ( ref $freezer ) {
-			# It's an object, create an closure
-			my( $freezetmp, $thawtmp ) = _get_methods( $freezer );
-    			$freeze = sub { $freezetmp->( $freezer, @_ ) };
-    			$thaw = sub { $thawtmp->( $freezer, @_ ) };
-  		} else {
-  			# A package name?
-  			my $package = $freezer;
+  my( $freeze, $thaw );
+  if ( ! defined $freezer ) {
+      # Okay, load the default one!
+    $freezer = $DEF_FREEZER;
+    $freeze = $DEF_FREEZE;
+    $thaw = $DEF_THAW;
+  } else {
+    # What did we get?
+    if ( ref $freezer ) {
+      # It's an object, create an closure
+      my( $freezetmp, $thawtmp ) = _get_methods( $freezer );
+          $freeze = sub { $freezetmp->( $freezer, @_ ) };
+          $thaw = sub { $thawtmp->( $freezer, @_ ) };
+      } else {
+        # A package name?
+        my $package = $freezer;
 
-			$package =~ s(::)(\/)g;
-			delete $INC{$package . ".pm"};
+      $package =~ s(::)(\/)g;
+      delete $INC{$package . ".pm"};
 
-			eval {local $^W=0; require "$package.pm"; import $freezer ();};
-			carp $@ if $@;
+      eval {local $^W=0; require "$package.pm"; import $freezer ();};
+      carp $@ if $@;
 
-			( $freeze, $thaw )= _get_methods( $freezer );
-		}
-	}
+      ( $freeze, $thaw )= _get_methods( $freezer );
+    }
+  }
 
   # Now get the methods we want
   carp "$freezer doesn't have a freeze or nfreeze method" unless $freeze;

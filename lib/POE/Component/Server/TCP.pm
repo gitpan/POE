@@ -1,14 +1,14 @@
-# $Id: TCP.pm,v 1.51 2005/04/13 14:56:30 rcaputo Exp $
+# $Id: TCP.pm,v 1.53 2005/05/15 22:20:59 apocal Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.51 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.53 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
-use Socket qw(INADDR_ANY inet_ntoa AF_UNIX PF_UNIX);
+use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_UNIX PF_UNIX);
 use Errno qw(ECONNABORTED ECONNRESET);
 
 # Explicit use to import the parameter constants.
@@ -594,8 +594,11 @@ context), and so on.
 POE::Wheel::ReadWrite discusses the error parameters in more detail.
 
 A default error handler will be provided if ClientError is omitted.
-The default handler will log the error to STDERR and close the
-connection.
+The default handler will log most errors to STDERR.
+
+The value of ClientShutdownOnError determines whether the connection
+will be shutdown after errors are received.  It is the client
+shutdown, not the error, that invokes ClientDisconnected callbacks.
 
 =item ClientFilter => SCALAR
 

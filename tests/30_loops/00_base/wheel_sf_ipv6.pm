@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_ipv6.pm,v 1.2 2004/11/22 00:13:53 rcaputo Exp $
+# $Id: wheel_sf_ipv6.pm,v 1.3 2005/04/21 17:38:44 rcaputo Exp $
 
 # Exercises Client and Server TCP components, which exercise
 # SocketFactory in AF_INET6 mode.
@@ -15,6 +15,9 @@ BEGIN {
   eval 'use Socket6';
   if ( length($@) or not exists($INC{"Socket6.pm"}) ) {
     $error = "Socket6 is needed for IPv6 tests";
+  }
+  elsif ($^O eq "Cygwin") {
+    $error = "IPv6 is not available on Cygwin, even if Socket6 is installed";
   }
   else {
     my $addr = Socket6::inet_pton(&Socket6::AF_INET6, "::1");

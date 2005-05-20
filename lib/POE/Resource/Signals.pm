@@ -1,4 +1,4 @@
-# $Id: Signals.pm,v 1.13 2005/02/02 04:44:34 rcaputo Exp $
+# $Id: Signals.pm,v 1.14 2005/05/15 07:09:44 rcaputo Exp $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resources::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.13 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -46,7 +46,6 @@ my $polling_for_signals = 0;
 # running in an Apache handler so our SIGCHLD hijinx don't interfere
 # with the web server.
 my $kr_child_procs = exists($INC{'Apache.pm'}) ? 0 : 1;
-
 
 sub _data_sig_preload {
   $poe_kernel->[KR_SIGNALS] = \%kr_signals;
@@ -105,6 +104,11 @@ sub _data_sig_initialize {
       # Apache uses SIGCHLD and/or SIGCLD itself, so we can't.
       next if $signal =~ /^CH?LD$/ and exists $INC{'Apache.pm'};
 
+      # Reset the signal handler.  Some signal handlers are set to
+      # IGNORE, while most are kept to DEFAULT.  The event loop will
+      # know what to do.
+      $self->loop_ignore_signal($signal);
+
       $_safe_signals{$signal} = 1;
     }
   }
@@ -136,6 +140,8 @@ sub _data_sig_finalize {
       _warn "!!!\t$sig = $event\n";
     }
   }
+
+  %_safe_signals = ();
 
   return $finalized_ok;
 }
@@ -440,6 +446,16 @@ sub _data_sig_handle_poll_event {
 sub _data_sig_child_procs {
   return unless $polling_for_signals;
   return $kr_child_procs;
+}
+
+# Reap child processes.  Discard their statuses.  Used to prevent
+# zombie processes when nobody else is watching for children.  See
+# POE::Loop::Event for its use.
+
+sub _data_sig_ignore_sigchld {
+  my $pid;
+  1 while $pid = waitpid(-1, WNOHANG);
+  $kr_child_procs = !$pid;
 }
 
 1;

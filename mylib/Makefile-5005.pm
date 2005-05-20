@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm,v 1.53 2005/04/12 01:43:22 rcaputo Exp $
+# $Id: Makefile-5005.pm,v 1.54 2005/04/29 01:07:14 sungo Exp $
 
 use strict;
 
@@ -115,19 +115,22 @@ system($^X, "mylib/gen-tests.perl") and die "couldn't generate tests: $!";
 
 ### Generate Makefile.PL.
 
+# sub MY::postamble {
+#   return ExtUtils::AutoInstall::postamble() .
+#     <<EOF;
+# reportupload: poe_report.xml
+# \cI$^X mylib/reportupload.pl
+# 
+# uploadreport: poe_report.xml
+# \cI$^X mylib/reportupload.pl
+# 
+# testreport: poe_report.xml
+# 
+# poe_report.xml: Makefile
+# \cI$^X mylib/testreport.pl
 sub MY::postamble {
   return ExtUtils::AutoInstall::postamble() .
     <<EOF;
-reportupload: poe_report.xml
-\cI$^X mylib/reportupload.pl
-
-uploadreport: poe_report.xml
-\cI$^X mylib/reportupload.pl
-
-testreport: poe_report.xml
-
-poe_report.xml: Makefile
-\cI$^X mylib/testreport.pl
 
 ppmdist: pm_to_blib
 \cI\$(TAR) --exclude '*/man[13]*' -cvf \\

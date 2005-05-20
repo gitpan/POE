@@ -1,4 +1,4 @@
-# $Id: PoeBuildInfo.pm,v 1.5 2005/04/13 01:48:23 rcaputo Exp $
+# $Id: PoeBuildInfo.pm,v 1.6 2005/05/14 23:48:12 hachi Exp $
 
 # Build information for POE.  Moved into a library so it can be
 # required by Makefile.PL and gen-meta.perl.
@@ -51,12 +51,19 @@ sub CLEAN_FILES () {
     poe_report.xml
     run_network_tests
     tests/20_resources/10_perl/*
+    tests/20_resources/10_perl
     tests/20_resources/20_xs/*
+    tests/20_resources/20_xs
     tests/30_loops/10_select/*
+    tests/30_loops/10_select
     tests/30_loops/20_poll/*
+    tests/30_loops/20_poll
     tests/30_loops/30_event/*
+    tests/30_loops/30_event
     tests/30_loops/40_gtk/*
+    tests/30_loops/40_gtk
     tests/30_loops/50_tk/*
+    tests/30_loops/50_tk
     test-output.err
   );
   "@clean_files";

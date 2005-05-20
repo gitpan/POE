@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: k_detach.pm,v 1.1 2004/09/04 22:50:39 rcaputo Exp $
+# $Id: k_detach.pm,v 1.2 2005/04/29 16:42:30 rcaputo Exp $
 
 # Tests session detaching.
 
@@ -149,7 +149,7 @@ POE::Session->create
         &spawn_child( 1 );
         &spawn_child( 2 );
         &spawn_child( 3 );
-        $kernel->yield( 'run_tests' );
+        $kernel->delay( run_tests => 0.5 );
       },
       get_alias => sub {
         return 'main';

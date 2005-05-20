@@ -5,12 +5,12 @@ package POE::Wheel::Curses;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.12 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.13 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
-use Curses qw(	initscr start_color cbreak raw noecho nonl nodelay timeout keypad intrflush
-		meta typeahead mousemask ALL_MOUSE_EVENTS clear refresh endwin COLS
-	);
+use Curses qw(  initscr start_color cbreak raw noecho nonl nodelay timeout keypad intrflush
+    meta typeahead mousemask ALL_MOUSE_EVENTS clear refresh endwin COLS
+  );
 use POSIX qw(:fcntl_h);
 use POE qw( Wheel );
 

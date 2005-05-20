@@ -1,3 +1,169 @@
+===========================
+2005-05-20 04:20:08 v0_3101
+===========================
+
+  2005-05-20 04:20:08 by rcaputo; lib/POE.pm 1.193
+
+    Bump up the version. Dance! Dance! 
+
+  2005-05-18 23:08:17 by rcaputo; tests/30_loops/00_base/wheel_run.pm 1.8
+
+    Fall back to a single POE::Kernel->run() in this test because
+    multiple entries were crashing ActivePerl + Tk. 
+
+  2005-05-17 07:19:20 by rcaputo; tests/30_loops/00_base/wheel_run.pm 1.7
+
+    Fix a miscount in the number of skipped tests under Windows. Also
+    skip all tests when using Event, as it seems that Event +
+    thread-simulated fork() + re-entering the event loop = Breakage. 
+
+  2005-05-16 20:53:37 by hachi; lib/POE/Kernel.pm 1.315
+
+    Minor documentation gap, and some bad grammar. 
+
+  2005-05-16 05:28:55 by rcaputo; mylib/coverage.perl 1.15
+
+    General cleanups during a Devel::Cover debugging session. Be more
+    careful about the steps taken. Display some debugging output.
+    Explicitly specify an output directory. 
+
+  2005-05-16 04:09:37 by rcaputo; tests/30_loops/00_base/wheel_run.pm 1.6
+
+    The restructured tests cause one of the sessions to receive a SIGCHLD
+    when it doesn't have a wheel. Now we don't try to call a method on
+    that nonexistent wheel. 
+
+  2005-05-15 22:20:59 by apocal; lib/POE/Component/Server/TCP.pm 1.53
+
+    Andrew A. Chen reported on the mailinglist that inet_aton wasn't
+    imported, thanks! 
+
+  2005-05-15 07:09:44 by rcaputo; lib/POE/Loop/Event.pm 1.43;
+  lib/POE/Loop/PerlSignals.pm 1.10; lib/POE/Resource/Signals.pm 1.14
+
+    Fix SIGCHLD and SIGPIPE so they are IGNOREd by default. In SIGCHLD's
+    case, this means Perl will reap child processes so you don't need to
+    register a SIGCHLD handler if you don't care. In SIGPIPE's case, it
+    means programs won't die if they mistakenly write to a broken pipe.
+    Both situations have occurred since POE stopped setting default
+    handlers for these signals. 
+
+  2005-05-15 07:07:16 by rcaputo; lib/POE/Loop/IO_Poll.pm 1.33
+
+    Use better choices for the poll(2) flags when watching filehandles
+    for normal (non-expedited/OOB) input and output. Drop the minimum
+    poll timeout hack for certain legacy Linux builds (it was 0 anyway). 
+
+  2005-05-15 07:04:51 by rcaputo; tests/30_loops/00_base/wheel_run.pm 1.5
+
+    Skip the pty tests when IO::Poll or Event are used on Mac OS X. It
+    appears that OS X 10.4 has broken poll(2) when used with pseudo-ttys.
+    I haven't found a work-around other than to bypass the tests. 
+
+  2005-05-15 07:02:25 by rcaputo;
+  tests/10_units/02_pipes/02_oneway.t 1.3;
+  tests/10_units/02_pipes/03_twoway.t 1.3
+
+    Moved the POE::Pipe::{One,Two}Way test code out of the
+    POE::Wheel::Run tests and into their own files. This shouldn't
+    sacrifice coverage since the pipe tests don't use event loops anyway. 
+
+  2005-05-15 07:00:12 by rcaputo; lib/POE/Resource/Statistics.pm 1.5
+
+    Fix some cosmetic problems in the end-of-run statistics report. 
+
+  2005-05-15 01:44:12 by hachi
+  tests/10_units/03_base/11_assert_usage.t 1.3
+
+    Duplicated test, same test is a couple lines up verbatim. 
+
+  2005-05-14 23:48:12 by hachi; mylib/PoeBuildInfo.pm 1.6
+
+    Fix make distclean so test directories (not just the tests
+    themselves) are cleaned up. This helps to stop CVS from screaming at
+    you if you've run tests and then want to commit some changes (still
+    have to run make distclean, but at least it works.) 
+
+  2005-05-14 20:29:02 by rcaputo; lib/POE/Component/Server/TCP.pm 1.52
+
+    Clear up the purpose and activities of ClientShutdownOnError, at
+    least a little bit. 
+
+  2005-04-29 16:42:30 by rcaputo; tests/30_loops/00_base/k_detach.pm 1.2
+
+    Compensate for machines with variable CPU rates. They cause
+    hi-resolution time() to bobble backwards by a few milliseconds eveny
+    few seconds. This test requires events to run in a certain order, and
+    they don't under those circumstances. It may turn out that we need to
+    use a timeless priority queue for FIFO events rather than relying on
+    the clock to be monotonic. 
+
+  2005-04-29 01:07:14 by sungo; Makefile.PL 1.37;
+  mylib/Makefile-5004.pm 1.35; mylib/Makefile-5005.pm 1.54
+
+    comment out the testreport functionality 
+
+  2005-04-25 16:01:07 by rcaputo
+  lib/POE/Loop/Tk.pm 1.45; lib/POE/Loop/TkActiveState.pm 1.9
+
+    Put TkActiveState.pm's $VERSION in the correct package. Module::Build
+    will soon start examining version numbers more strictly. 
+
+  2005-04-24 15:58:40 by rcaputo; lib/POE/Wheel/Run.pm 1.69
+
+    Document that POE::Wheel::Run and POE do not reap child processes
+    unless an event is registered for SIGCHLD. 
+
+  2005-04-22 20:36:32 by rcaputo; lib/POE/Filter/Reference.pm 1.34;
+  lib/POE/Resource/Sessions.pm 1.20; lib/POE/Resource/Statistics.pm 1.4;
+  lib/POE/Wheel/Curses.pm 1.13; lib/POE/Wheel/ReadLine.pm 1.37;
+  tests/20_resources/00_base/caller_state.pm 1.2;
+  tests/90_regression/ferrari-server-unix.t 1.2
+
+    Remove tabs from source code. People (myself included) have been
+    introducing them with edits and patches. 
+
+  2005-04-22 20:35:21 by rcaputo; lib/POE/Loop/Tk.pm 1.44;
+  lib/POE/Loop/TkActiveState.pm 1.8; lib/POE/Loop/TkCommon.pm 1.13
+
+    Enable support for $kernel->run_one_timeslice() under Tk. I had to
+    implement loop_do_timeslice() and replace Tk's MainLoop with a custom
+    one in loop_run(). I haven't tested this against the memory leak test
+    cases in rt.cpan.org, but I'm hoping this code (which is less twisty)
+    will solve those issues as well. 
+
+  2005-04-22 20:32:11 by rcaputo
+  lib/POE/Wheel/Run.pm 1.68; tests/30_loops/00_base/wheel_run.pm 1.4
+
+    ActiveState Perl + Tk + POE::Wheel::Run + coderefs = Pain.
+    ActiveState Perl emulates fork() with iThreads. Only Perl's core
+    exit() will properly "exit" a "process". Tk overrides exit() with its
+    own XS magic. This seems to kill off the parent "process". When
+    POE::Wheel::Run is used to run subroutines (coderefs) in child
+    processes, it must somehow exit() the child process, simulating exec.
+    Under Windows, that's Perl's core exit(), which is usurped by Tk,
+    which causes ALL MANNER OF EVIL! DON'T GO THERE! WE SURE AREN'T! 
+
+  2005-04-22 20:27:23 by rcaputo; test.pl 1.3
+
+    Add some demo comments about how to focus on just one event loop's
+    tests. 
+
+  2005-04-21 17:38:44 by rcaputo
+  tests/30_loops/00_base/wheel_sf_ipv6.pm 1.3
+
+    Resolve rt.cpan.org ticket 11056: Socket6.pm can be installed under
+    Cygwin, but Cygwin doesn't support IPv6. 
+
+  2005-04-21 17:19:07 by rcaputo; lib/POE/Pipe.pm 1.14;
+  lib/POE/Resource/FileHandles.pm 1.19;
+  lib/POE/Wheel/SocketFactory.pm 1.80
+
+    Apply Ed W's advice regarding non-blocking connect() in ActiveState
+    Perl. His advice works in stand-alone (non-POE) tests, and the change
+    doesn't break anything in POE's test suite, but I haven't actually
+    tested whether non-blocking connect() works under POE now. 
+
 =========================
 2005-04-18 06:34:52 v0_31
 =========================
@@ -1414,69 +1580,6 @@
     single select_read() was turned on and off. This commit moves idle
     detection in Loop::Event's dispatcher forward a little so it's sure
     to run all the time. 
-
-  2004-04-27 01:21:19 by rcaputo; lib/POE.pm 1.174
-
-    Fix the version number so CPAN won't index it. 
-
-  2004-04-27 01:19:29 by rcaputo; mylib/coverage.perl 1.11
-
-    Turn off the debugging. 
-
-  2004-04-26 22:37:14 by rcaputo; mylib/coverage.perl 1.10
-
-    Fix the coverage reporting tool to find the source files in their new
-    locations. 
-
-===========================
-2004-04-25 17:50:19 v0_2804
-===========================
-
-  2004-04-25 17:50:19 by rcaputo; README 1.106
-
-    Tweak for the impending release. 
-
-  2004-04-25 15:05:36 by rcaputo; mylib/cvs-log.perl 1.7
-
-    Add command line switches, and normalize whitespace so the results
-    are more machine friendly. 
-
-  2004-04-25 14:58:34 by rcaputo; lib/POE.pm 1.173
-
-    Increase version number for release candidate. 
-
-  2004-04-25 14:43:48 by rcaputo; samples/README.samples 1.2
-
-    Remove the dead files. 
-
-  2004-04-20 00:52:13 by sungo; mylib/Makefile-5004.pm 1.21
-
-    find the tests in a different (less shell dependent) way so that
-    tools like testreport work as expected 
-
-  2004-04-20 00:15:55 by sungo; lib/POE/Wheel/FollowTail.pm 1.50;
-  lib/POE/Wheel/ListenAccept.pm 1.29; lib/POE/Wheel/ReadWrite.pm 1.68;
-  lib/POE/Wheel/SocketFactory.pm 1.75
-
-    (!!) complete XyzState to XyzEvent transition. This removes all
-    errors and warnings caused by use of the old State parameters in
-    Wheels. all tests pass in 5.004_005, 5.005_004, 5.6.2, and 5.8.3 
-
-  2004-04-18 22:31:22 by sungo; lib/POE/Session.pm 1.99
-
-    merge in lotr's try_alloc patch. closes rt #6045 
-
-  2004-04-18 18:56:30 by sungo
-  lib/POE/Kernel.pm 1.283; lib/POE/Session.pm 1.98
-
-    unfortunately there are really two patches in here. first, remove the
-    "no warnings" calls that were breaking poe on perls older than 5.6.
-    replace them with $^W invocations as suggested by perllexwarn.
-    second, fix the TRACE_FILE magic that was causing older perls to lose
-    their mind. the comments here explain this in detail so i wont bother
-    explaining it here. its kind of magic but works well. i have tested
-    all this on 5.004 and 5.8.3 and all is well there (at least in
-    relation to this patch - theres more to come in 5.004 land) 
 
 =============================
 Beginning of Recorded History

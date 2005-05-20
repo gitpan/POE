@@ -1,16 +1,19 @@
-# $Id: TkActiveState.pm,v 1.7 2003/12/12 04:05:06 rcaputo Exp $
+# $Id: TkActiveState.pm,v 1.9 2005/04/25 16:01:07 rcaputo Exp $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
-# Empty package to appease perl.
+# Dummy package so the version is indexed properly.
+package POE::Loop::TkActiveState;
+
+use vars qw($VERSION);
+$VERSION = do {my@r=(q$Revision: 1.9 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+
+# Merge things into POE::Loop::Tk.
 package POE::Loop::Tk;
 
 # Include common things.
 use POE::Loop::PerlSignals;
 use POE::Loop::TkCommon;
-
-use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.7 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Tk 800.021;
 use 5.00503;
@@ -60,11 +63,11 @@ sub loop_finalize {
 
   # This is "clever" in that it relies on each symbol on the left to
   # be stringified by the => operator.
-  my %kernel_modes =
-    ( MODE_RD => MODE_RD,
-      MODE_WR => MODE_WR,
-      MODE_EX => MODE_EX,
-    );
+  my %kernel_modes = (
+    MODE_RD => MODE_RD,
+    MODE_WR => MODE_WR,
+    MODE_EX => MODE_EX,
+  );
 
   while (my ($mode_name, $mode_offset) = each(%kernel_modes)) {
     my $bits = unpack('b*', $loop_vectors[$mode_offset]);
@@ -147,19 +150,20 @@ sub _poll_for_io {
 
     if (@filenos) {
       # Check filehandles, or wait for a period of time to elapse.
-      my $hits = select( my $rout = $loop_vectors[MODE_RD],
-                         my $wout = $loop_vectors[MODE_WR],
-                         my $eout = $loop_vectors[MODE_EX],
-                         0,
-                       );
+      my $hits = select(
+        my $rout = $loop_vectors[MODE_RD],
+        my $wout = $loop_vectors[MODE_WR],
+        my $eout = $loop_vectors[MODE_EX],
+        0,
+      );
 
       if (ASSERT_FILES) {
         if ($hits < 0) {
-          POE::Kernel::_trap("<fh> select error: $!")
-            unless ( ($! == EINPROGRESS) or
-                     ($! == EWOULDBLOCK) or
-                     ($! == EINTR)
-                   );
+          POE::Kernel::_trap("<fh> select error: $!") unless (
+            ($! == EINPROGRESS) or
+            ($! == EWOULDBLOCK) or
+            ($! == EINTR)
+          );
         }
       }
 

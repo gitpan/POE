@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.314 2005/04/12 01:43:22 rcaputo Exp $
+# $Id: Kernel.pm,v 1.315 2005/05/16 20:53:37 hachi Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.314 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.315 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(:fcntl_h :sys_wait_h);
@@ -2429,8 +2429,8 @@ Kernel data accessors:
   # kernel if called outside any session.
   $session = $kernel->get_active_session();
 
-  # Return a the currently active event, or to the last event if
-  # called outside any session.
+  # Return the currently active event name, or an empty string if
+  # called outside any event.
   $event = $kernel->get_active_event();
 
 Exported symbols:
@@ -3553,6 +3553,11 @@ pretends it's just another session.
 This is a convenient way for procedurally called libraries to get a
 reference to the current session.  Otherwise a programmer would
 tediously need to include C<SESSION> with every call.
+
+=item get_active_event
+
+get_active_event() returns the currently active event name or an
+empty string if called outside any event.
 
 =back
 
