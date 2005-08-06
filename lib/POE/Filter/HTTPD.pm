@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.40 2005/04/12 03:59:17 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.42 2005/06/29 04:05:43 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -15,9 +15,11 @@ package POE::Filter::HTTPD;
 use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 
 use strict;
+use POE::Filter;
 
-use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.40 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+use vars qw($VERSION @ISA);
+$VERSION = do {my@r=(q$Revision: 1.42 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+@ISA = qw(POE::Filter);
 
 use Carp qw(croak);
 use HTTP::Status qw( status_message RC_BAD_REQUEST RC_OK RC_LENGTH_REQUIRED );
@@ -43,19 +45,22 @@ sub new {
 }
 
 #------------------------------------------------------------------------------
+# Cannot inherit get() from POE::Filter since this filter doesn't have
+# a get_one() interface.
 
 sub get {
   my ($self, $stream) = @_;
 
   {% use_bytes %}
 
+  # Why?
   local($_);
 
   # Sanity check.  "finish" is set when a request has completely
   # arrived.  Subsequent get() calls on the same request should not
   # happen.  -><- Maybe this should return [] instead of dying?
 
-  if($self->{finish}) {
+  if ($self->{finish}) {
 
     # This works around a request length vs. actual content length
     # error.  Looks like some browsers (mozilla!) sometimes add on an
@@ -103,7 +108,8 @@ sub get {
       $r->content($buf);
       $self->{finish}++;
       return [$r];
-    } else {
+    }
+    else {
       #print "$cl wanted, got " . length($buf) . "\n";
     }
     return [];
@@ -112,14 +118,15 @@ sub get {
   # Headers aren't already received.  Short-circuit header parsing:
   # don't return anything until we've received a blank line.
 
-  return []
-    unless($self->{buffer} =~/(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)/s);
+  return [] unless(
+    $self->{buffer} =~ /(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)/s
+  );
 
   # Copy the buffer for header parsing, and remove the header block
   # from the content buffer.
 
   my $buf = $self->{buffer};
-  $self->{buffer} =~s/.*?(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)//s;
+  $self->{buffer} =~ s/.*?(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)//s;
 
   # Parse the request line.
 
@@ -141,8 +148,7 @@ sub get {
 
   if ($proto >= $HTTP_1_0) {
     my ($key,$val);
-  HEADER:
-    while ($buf =~ s/^([^\012]*)\012//) {
+    HEADER: while ($buf =~ s/^([^\012]*)\012//) {
       $_ = $1;
       s/\015$//;
       if (/^([\w\-~]+)\s*:\s*(.*)/) {
@@ -205,7 +211,7 @@ sub get {
         RC_BAD_REQUEST,
         "Content length contains non-digits."
       )
-    ]
+    ];
   }
 
   if (length($buf) >= $cl) {
@@ -266,7 +272,7 @@ sub get_pending {
 }
 
 #------------------------------------------------------------------------------
-# function specific to HTTPD;
+# Functions specific to HTTPD;
 #------------------------------------------------------------------------------
 
 # Internal function to parse an HTTP status line and return the HTTP

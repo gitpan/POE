@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.53 2005/05/15 22:20:59 apocal Exp $
+# $Id: TCP.pm,v 1.54 2005/06/28 22:31:11 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.53 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.54 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_UNIX PF_UNIX);
@@ -509,7 +509,10 @@ difficult.  A tutorial at http://poe.perl.org/ describes how.
 
 =head1 CONSTRUCTOR PARAMETERS
 
-The new() method can accept quite a lot of parameters.
+The new() method can accept quite a lot of parameters.  It always
+returns undef, however.  One must use callbacks to check for errors
+rather than the return value of new().
+
 POE::Component::Server::TCP supplies common defaults for most
 callbacks and handlers.
 

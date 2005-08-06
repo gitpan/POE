@@ -1,11 +1,11 @@
-# $Id: Filter.pm,v 1.14 2004/11/16 07:12:40 rcaputo Exp $
+# $Id: Filter.pm,v 1.15 2005/06/29 04:05:39 rcaputo Exp $
 
 package POE::Filter;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.15 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -14,6 +14,24 @@ use Carp qw(croak);
 sub new {
   my $type = shift;
   croak "$type is not meant to be used directly";
+}
+
+# Return all the messages possible to parse in the current input
+# buffer.  This uses the newer get_one_start() and get_one(), which is
+# implementation dependent.
+
+sub get {
+  my ($self, $stream) = @_;
+  my @return;
+
+  $self->get_one_start($stream);
+  while (1) {
+    my $next = $self->get_one();
+    last unless @$next;
+    push @return, @$next;
+  }
+
+  return \@return;
 }
 
 #------------------------------------------------------------------------------

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: k_alarms.pm,v 1.1 2004/09/04 22:50:39 rcaputo Exp $
+# $Id: k_alarms.pm,v 1.2 2005/06/30 16:39:15 rcaputo Exp $
 
 # Tests alarms.
 
@@ -162,9 +162,9 @@ sub test_stop {
   ok($heap->{test}->{path_nine}  == 11, "mixed delay APIs rang properly");
   ok($heap->{test}->{path_ten}   == 1,  "stopped delay should not ring");
 
-  # Here's where we check the overall run time.  Increased to 5s for
+  # Here's where we check the overall run time.  Increased to 10s for
   # extremely slow, overtaxed machines like my NT test platform.
-  ok(time() - $heap->{start_time} <= 5, "tests ran reasonably fast");
+  ok(time() - $heap->{start_time} <= 10, "tests ran reasonably fast");
 
   # And test alarm order.
   ok(

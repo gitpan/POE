@@ -1,11 +1,11 @@
-# $Id: Loop.pm,v 1.6 2004/12/18 04:24:56 rcaputo Exp $
+# $Id: Loop.pm,v 1.7 2005/06/29 05:44:51 rcaputo Exp $
 
 package POE::Loop;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.7 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -66,7 +66,7 @@ functions are proper POE::Kernel methods.
 Each bridge first defines its own namespace and version within it.
 This way CPAN and other things can track its version.
 
-  # $Id: Loop.pm,v 1.6 2004/12/18 04:24:56 rcaputo Exp $
+  # $Id: Loop.pm,v 1.7 2005/06/29 05:44:51 rcaputo Exp $
 
   use strict;
 
@@ -75,7 +75,7 @@ This way CPAN and other things can track its version.
   package POE::Loop::YourToolkit;
 
   use vars qw($VERSION);
-  $VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+  $VERSION = do {my@r=(q$Revision: 1.7 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
   package POE::Kernel;
 
@@ -461,6 +461,31 @@ along with loop_pause_filehandle() to temporarily toggle a a watcher's
 state for a file HANDLE in a particular mode.
 
 =back
+
+=head1 HOW POE FINDS LOOP BRIDGES
+
+The first time POE::Kernel is used, it examines the modules currently
+loaded in memory and tries to load an appropriate POE::Loop subclass
+based on what it discovers.
+
+Firstly, if a POE::Loop class is manually loaded before POE::Kernel,
+then that will be used.  End of story.
+
+If one isn't, POE::Kernel iterates through %INC to discover which
+modules are already loaded.  For each of them, it tries to load a
+similarly-named POE::XS::Loop class, then it tries a corresponding
+POE::Loop class.  For example, if IO::Poll is loaded, POE::Kernel
+tries
+
+  use POE::XS::Loop::IO_Poll;
+  use POE::Loop::IO_Poll;
+
+POE::Loop::Select is the fallback event loop.  It's loaded if none of
+the currently loaded modules has its own POE::Loop class.
+
+It can't be repeated often enough that event loops must be loaded
+before POE::Kernel.  Otherwise POE::Kernel will not detect the event
+loop you want to use, and the wrong POE::Loop class will be loaded.
 
 =head1 SEE ALSO
 

@@ -1,18 +1,19 @@
 #!/usr/bin/perl -w
-# $Id: all_errors.pm,v 1.3 2005/01/28 22:55:32 rcaputo Exp $
+# $Id: all_errors.pm,v 1.4 2005/06/28 06:18:20 rcaputo Exp $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
 
 use strict;
 use lib qw(./mylib ../mylib ../lib ./lib);
-use TestSetup;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 0 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }
 sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
-print "1..0 # skipped: most of these should move into other tests\n";
+# use Test::More;
+
+print "1..0 # most of these should move into other test files\n";
 
 #use POSIX qw(:errno_h);
 #use Socket;

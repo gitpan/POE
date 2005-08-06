@@ -1,11 +1,13 @@
-# $Id: Stream.pm,v 1.12 2003/11/21 05:08:25 rcaputo Exp $
+# $Id: Stream.pm,v 1.14 2005/06/29 04:05:44 rcaputo Exp $
 
 package POE::Filter::Stream;
 
 use strict;
+use POE::Filter;
 
-use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.12 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+use vars qw($VERSION @ISA);
+$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+@ISA = qw(POE::Filter);
 
 #------------------------------------------------------------------------------
 
@@ -17,12 +19,7 @@ sub new {
 }
 
 #------------------------------------------------------------------------------
-
-sub get {
-  my ($self, $stream) = @_;
-  my $buffer = join('', @$stream);
-  [ $buffer ];
-}
+# get() is inherited from POE::Filter.
 
 #------------------------------------------------------------------------------
 # 2001-07-27 RCC: The get_one() variant of get() allows Wheel::Xyz to

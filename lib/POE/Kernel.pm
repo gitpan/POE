@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.315 2005/05/16 20:53:37 hachi Exp $
+# $Id: Kernel.pm,v 1.321 2005/06/29 04:56:29 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.315 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.321 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(:fcntl_h :sys_wait_h);
@@ -193,8 +193,8 @@ sub ET_MASK_USER () { ~(ET_GC | ET_SCPOLL | ET_STAT) }
 # Temporary signal subtypes, used during signal dispatch semantics
 # deprecation and reformation.
 
-sub ET_SIGNAL_EXPLICIT   () { 0x0800 }  # Explicitly requested signal.
-sub ET_SIGNAL_COMPATIBLE () { 0x1000 }  # Backward-compatible semantics.
+sub ET_SIGNAL_RECURSIVE () { 0x0800 }  # Explicitly requested signal.
+sub ET_SIGNAL_ANY () { ET_SIGNAL | ET_SIGNAL_RECURSIVE }
 
 # A hash of reserved names.  It's used to test whether someone is
 # trying to use an internal event directly.
@@ -224,6 +224,7 @@ sub CHILD_CREATE () { 'create' }  # The session was created as a child of this.
 
 sub EA_SEL_HANDLE () { 0 }
 sub EA_SEL_MODE   () { 1 }
+sub EA_SEL_ARGS   () { 2 }
 
 # Queues with this many events (or more) are considered to be "large",
 # and different strategies are used to find events within them.
@@ -633,6 +634,8 @@ sub sig {
   my ($self, $signal, $event_name) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call sig() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined signal in sig()" unless defined $signal;
     _carp(
       "<us> The '$event_name' event is one of POE's own.  Its " .
@@ -768,10 +771,11 @@ sub new {
 # Dispatch an event to its session.  A lot of work goes on here.
 
 sub _dispatch_event {
-  my ( $self,
-       $session, $source_session, $event, $type, $etc, $file, $line, $fromstate,
-       $time, $seq
-     ) = @_;
+  my (
+    $self,
+    $session, $source_session, $event, $type, $etc,
+    $file, $line, $fromstate, $time, $seq
+  ) = @_;
 
   if (ASSERT_EVENTS) {
     _confess "<ev> undefined dest session" unless defined $session;
@@ -863,7 +867,7 @@ sub _dispatch_event {
 
           $self->_dispatch_event(
             $target_session, $self,
-            $target_event, ET_SIGNAL_EXPLICIT, $etc,
+            $target_event, ET_SIGNAL_RECURSIVE, [ @$etc ],
             $file, $line, $fromstate, time(), -__LINE__
           );
         }
@@ -940,6 +944,23 @@ sub _dispatch_event {
       $source_session, $event, $etc, $file, $line, $fromstate
     );
   }
+
+  # Clear out the event arguments list, in case there are POE-ish
+  # things in it. This allows them to destruct happily before we set
+  # the current session back.
+  #
+  # We must preserve $_[ARG0] if the event is a signal.  It contains
+  # the signal name, which is used by post-invoke processing to
+  # determine future actions (such as whether to terminate the
+  # session, or to promote SIGIDLE into SIGZOMBIE).
+  #
+  # TODO - @$etc contains @_[ARG0..$#_], which includes both watcher-
+  # and user-supplied elements.  A more exciting solution might be to
+  # have a table of events and their user-supplied indices, and wipe
+  # them out programmatically.  splice(@$etc, $first_user{$type});
+  # That would leave the watcher-supplied arguments alone.
+
+  @$etc = ( );
 
   if (TRACE_STATISTICS) {
       my $after = time();
@@ -1249,6 +1270,11 @@ sub session_alloc {
 sub detach_myself {
   my $self = shift;
 
+  if (ASSERT_USAGE) {
+    _confess "<us> must call detach_myself() from a running session"
+      if $kr_active_session == $self;
+  }
+
   # Can't detach from the kernel.
   if ($self->_data_ses_get_parent($kr_active_session) == $self) {
     $! = EPERM;
@@ -1289,6 +1315,11 @@ sub detach_myself {
 
 sub detach_child {
   my ($self, $child) = @_;
+
+  if (ASSERT_USAGE) {
+    _confess "<us> must call detach_child() from a running session"
+      if $kr_active_session == $self;
+  }
 
   my $child_session = $self->_resolve_session($child);
   unless (defined $child_session) {
@@ -1386,10 +1417,10 @@ sub post {
   # Enqueue the event for "now", which simulates FIFO in our
   # time-ordered queue.
 
-  $self->_data_ev_enqueue
-    ( $session, $kr_active_session, $event_name, ET_POST, \@etc,
-      (caller)[1,2], $kr_active_event, time(),
-    );
+  $self->_data_ev_enqueue(
+    $session, $kr_active_session, $event_name, ET_POST, \@etc,
+    (caller)[1,2], $kr_active_event, time(),
+  );
   return 1;
 }
 
@@ -1400,6 +1431,8 @@ sub yield {
   my ($self, $event_name, @etc) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call yield() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> event name is undefined in yield()"
       unless defined $event_name;
     _carp(
@@ -1546,6 +1579,8 @@ sub alarm {
   my ($self, $event_name, $time, @etc) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call alarm() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> event name is undefined in alarm()"
       unless defined $event_name;
     _carp(
@@ -1583,6 +1618,8 @@ sub alarm_add {
   my ($self, $event_name, $time, @etc) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call alarm_add() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined event name in alarm_add()"
       unless defined $event_name;
     _confess "<us> undefined time in alarm_add()" unless defined $time;
@@ -1611,6 +1648,8 @@ sub delay {
   my ($self, $event_name, $delay, @etc) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call delay() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined event name in delay()" unless defined $event_name;
     _carp(
       "<us> The '$event_name' event is one of POE's own.  Its " .
@@ -1638,6 +1677,8 @@ sub delay_add {
   my ($self, $event_name, $delay, @etc) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call delay_add() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined event name in delay_add()"
       unless defined $event_name;
     _confess "<us> undefined time in delay_add()" unless defined $delay;
@@ -1666,6 +1707,11 @@ sub delay_add {
 
 sub alarm_set {
   my ($self, $event_name, $time, @etc) = @_;
+
+  if (ASSERT_USAGE) {
+    _confess "<us> must call alarm_set() from a running session"
+      if $kr_active_session == $self;
+  }
 
   unless (defined $event_name) {
     $self->_explain_usage("undefined event name in alarm_set()");
@@ -1699,6 +1745,11 @@ sub alarm_set {
 sub alarm_remove {
   my ($self, $alarm_id) = @_;
 
+  if (ASSERT_USAGE) {
+    _confess "<us> must call alarm_remove() from a running session"
+      if $kr_active_session == $self;
+  }
+
   unless (defined $alarm_id) {
     $self->_explain_usage("undefined alarm id in alarm_remove()");
     $! = EINVAL;
@@ -1726,6 +1777,11 @@ sub alarm_remove {
 sub alarm_adjust {
   my ($self, $alarm_id, $delta) = @_;
 
+  if (ASSERT_USAGE) {
+    _confess "<us> must call alarm_adjust() from a running session"
+      if $kr_active_session == $self;
+  }
+
   unless (defined $alarm_id) {
     $self->_explain_usage("undefined alarm id in alarm_adjust()");
     $! = EINVAL;
@@ -1750,6 +1806,11 @@ sub alarm_adjust {
 
 sub delay_set {
   my ($self, $event_name, $seconds, @etc) = @_;
+
+  if (ASSERT_USAGE) {
+    _confess "<us> must call delay_set() from a running session"
+      if $kr_active_session == $self;
+  }
 
   unless (defined $event_name) {
     $self->_explain_usage("undefined event name in delay_set()");
@@ -1782,6 +1843,11 @@ sub delay_set {
 sub delay_adjust {
   my ($self, $alarm_id, $seconds) = @_;
 
+  if (ASSERT_USAGE) {
+    _confess "<us> must call delay_adjust() from a running session"
+      if $kr_active_session == $self;
+  }
+
   unless (defined $alarm_id) {
     $self->_explain_usage("undefined delay id in delay_adjust()");
     $! = EINVAL;
@@ -1805,6 +1871,11 @@ sub delay_adjust {
 sub alarm_remove_all {
   my $self = shift;
 
+  if (ASSERT_USAGE) {
+    _confess "<us> must call alarm_remove_all() from a running session"
+      if $kr_active_session == $self;
+  }
+
   # This should never happen, actually.
   _trap "unknown session in alarm_remove_all call"
     unless $self->_data_ses_exists($kr_active_session);
@@ -1824,12 +1895,12 @@ sub alarm_remove_all {
 #==============================================================================
 
 sub _internal_select {
-  my ($self, $session, $handle, $event_name, $mode) = @_;
+  my ($self, $session, $handle, $event_name, $mode, $args) = @_;
 
   # If an event is included, then we're defining a filehandle watcher.
 
   if ($event_name) {
-    $self->_data_handle_add($handle, $mode, $session, $event_name);
+    $self->_data_handle_add($handle, $mode, $session, $event_name, $args);
   }
   else {
     $self->_data_handle_remove($handle, $mode, $session);
@@ -1840,9 +1911,11 @@ sub _internal_select {
 # selects together.
 
 sub select {
-  my ($self, $handle, $event_r, $event_w, $event_e) = @_;
+  my ($self, $handle, $event_r, $event_w, $event_e, @args) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call select() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined filehandle in select()" unless defined $handle;
     _confess "<us> invalid filehandle in select()"
       unless defined fileno($handle);
@@ -1855,17 +1928,25 @@ sub select {
     }
   }
 
-  $self->_internal_select($kr_active_session, $handle, $event_r, MODE_RD);
-  $self->_internal_select($kr_active_session, $handle, $event_w, MODE_WR);
-  $self->_internal_select($kr_active_session, $handle, $event_e, MODE_EX);
+  $self->_internal_select(
+    $kr_active_session, $handle, $event_r, MODE_RD, \@args
+  );
+  $self->_internal_select(
+    $kr_active_session, $handle, $event_w, MODE_WR, \@args
+  );
+  $self->_internal_select(
+    $kr_active_session, $handle, $event_e, MODE_EX, \@args
+  );
   return 0;
 }
 
 # Only manipulate the read select.
 sub select_read {
-  my ($self, $handle, $event_name) = @_;
+  my ($self, $handle, $event_name, @args) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call select_read() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined filehandle in select_read()"
       unless defined $handle;
     _confess "<us> invalid filehandle in select_read()"
@@ -1876,15 +1957,19 @@ sub select_read {
     ) if defined($event_name) and exists($poes_own_events{$event_name});
   };
 
-  $self->_internal_select($kr_active_session, $handle, $event_name, MODE_RD);
+  $self->_internal_select(
+    $kr_active_session, $handle, $event_name, MODE_RD, \@args
+  );
   return 0;
 }
 
 # Only manipulate the write select.
 sub select_write {
-  my ($self, $handle, $event_name) = @_;
+  my ($self, $handle, $event_name, @args) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call select_write() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined filehandle in select_write()"
       unless defined $handle;
     _confess "<us> invalid filehandle in select_write()"
@@ -1895,15 +1980,19 @@ sub select_write {
     ) if defined($event_name) and exists($poes_own_events{$event_name});
   };
 
-  $self->_internal_select($kr_active_session, $handle, $event_name, MODE_WR);
+  $self->_internal_select(
+    $kr_active_session, $handle, $event_name, MODE_WR, \@args
+  );
   return 0;
 }
 
 # Only manipulate the expedite select.
 sub select_expedite {
-  my ($self, $handle, $event_name) = @_;
+  my ($self, $handle, $event_name, @args) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call select_expedite() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined filehandle in select_expedite()"
       unless defined $handle;
     _confess "<us> invalid filehandle in select_expedite()"
@@ -1914,7 +2003,9 @@ sub select_expedite {
     ) if defined($event_name) and exists($poes_own_events{$event_name});
   };
 
-  $self->_internal_select($kr_active_session, $handle, $event_name, MODE_EX);
+  $self->_internal_select(
+    $kr_active_session, $handle, $event_name, MODE_EX, \@args
+  );
   return 0;
 }
 
@@ -1924,6 +2015,8 @@ sub select_pause_write {
   my ($self, $handle) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call select_pause_write() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined filehandle in select_pause_write()"
       unless defined $handle;
     _confess "<us> invalid filehandle in select_pause_write()"
@@ -1943,6 +2036,8 @@ sub select_resume_write {
   my ($self, $handle) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call select_resume_write() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined filehandle in select_resume_write()"
       unless defined $handle;
     _confess "<us> invalid filehandle in select_resume_write()"
@@ -1962,6 +2057,8 @@ sub select_pause_read {
   my ($self, $handle) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call select_pause_read() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined filehandle in select_pause_read()"
       unless defined $handle;
     _confess "<us> invalid filehandle in select_pause_read()"
@@ -1981,6 +2078,8 @@ sub select_resume_read {
   my ($self, $handle) = @_;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call select_resume_read() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined filehandle in select_resume_read()"
       unless defined $handle;
     _confess "<us> invalid filehandle in select_resume_read()"
@@ -2209,11 +2308,17 @@ sub state {
   $state_alias = $event unless defined $state_alias;
 
   if (ASSERT_USAGE) {
+    _confess "<us> must call state() from a running session"
+      if $kr_active_session == $self;
     _confess "<us> undefined event name in state()" unless defined $event;
+    _confess "<us> can't call state() outside a session" if (
+      $kr_active_session == $self
+    );
   };
 
-  if ( (ref($kr_active_session) ne '') &&
-       (ref($kr_active_session) ne 'POE::Kernel')
+  if (
+    (ref($kr_active_session) ne '') &&
+    (ref($kr_active_session) ne 'POE::Kernel')
   ) {
     $kr_active_session->register_state($event, $state_code, $state_alias);
     return 0;
@@ -2350,16 +2455,22 @@ Symbolic name, or session alias methods:
 Filehandle watcher methods:
 
   # Watch for read readiness on a filehandle.
-  $kernel->select_read( $file_handle, $event );
+  $kernel->select_read( $file_handle, $event, @optional_args );
 
   # Stop watching a filehandle for read-readiness.
   $kernel->select_read( $file_handle );
 
   # Watch for write readiness on a filehandle.
-  $kernel->select_write( $file_handle, $event );
+  $kernel->select_write( $file_handle, $event, @optional_args );
 
   # Stop watching a filehandle for write-readiness.
   $kernel->select_write( $file_handle );
+
+  # Watch for out-of-bound (expedited) read readiness on a filehandle.
+  $kernel->select_expedite( $file_handle, $event, @optional_args );
+
+  # Stop watching a filehandle for out-of-bound data.
+  $kernel->select_expedite( $file_handle );
 
   # Pause and resume write readiness watching.  These have lower
   # overhead than full select_write() calls.
@@ -2371,17 +2482,12 @@ Filehandle watcher methods:
   $kernel->select_pause_read( $file_handle );
   $kernel->select_resume_read( $file_handle );
 
-  # Watch for out-of-bound (expedited) read readiness on a filehandle.
-  $kernel->select_expedite( $file_handle, $event );
-
-  # Stop watching a filehandle for out-of-bound data.
-  $kernel->select_expedite( $file_handle );
-
   # Set and/or clear a combination of selects in one call.
   $kernel->select( $file_handle,
                    $read_event,     # or undef to clear it
                    $write_event,    # or undef to clear it
                    $expedite_event, # or undef to clear it
+                   @optional_args,
                  );
 
 Signal watcher and generator methods:
@@ -3098,13 +3204,17 @@ C<ARG1> contains 0, 1, or 2 to indicate whether the filehandle is
 ready for reading, writing, or out-of-band reading (otherwise knows as
 "expedited" or "exception").
 
+C<ARG2..$#_> contain optional additional parameters passed to
+POE::Kernel's various I/O watcher methods.
+
 C<ARG0> and the other event handler parameter constants is covered in
 L<POE::Session>.
 
-Sessions will not spontaneously stop as long as they are watching at
-least one filehandle.
+Sessions will not stop if they have active filehandle watchers.
 
 =over 2
+
+=item select_read FILE_HANDLE, EVENT_NAME, ADDITIONAL_PARAMETERS
 
 =item select_read FILE_HANDLE, EVENT_NAME
 
@@ -3113,6 +3223,8 @@ least one filehandle.
 select_read() starts or stops the kernel from watching to see if a
 filehandle can be read from.  An EVENT_NAME event will be enqueued
 whenever the filehandle has data to be read.
+The optional ADDITIONAL_PARAMETERS will be passed to the input
+callback after the usual I/O parameters.
 
   # Emit 'do_a_read' event whenever $filehandle has data to be read.
   $kernel->select_read( $filehandle, 'do_a_read' );
@@ -3128,7 +3240,9 @@ select_read() does not return a meaningful value.
 
 select_write() starts or stops the kernel from watching to see if a
 filehandle can be written to.  An EVENT_NAME event will be enqueued
-whenever it is possible to write data to the filehandle.
+whenever it is possible to write data to the filehandle.  The optional
+ADDITIONAL_PARAMETERS will be passed to the input callback after the
+usual I/O parameters.
 
   # Emit 'flush_data' whenever $filehandle can be written to.
   $kernel->select_writ( $filehandle, 'flush_data' );
@@ -3146,7 +3260,9 @@ select_expedite() starts or stops the kernel from watching to see if a
 filehandle can be read from "out-of-band".  This is most useful for
 datagram sockets where an out-of-band condition is meaningful.  In
 most cases it can be ignored.  An EVENT_NAME event will be enqueued
-whatever the filehandle can be read from out-of-band.
+whatever the filehandle can be read from out-of-band.  The optional
+ADDITIONAL_PARAMETERS will be passed to the input callback after the
+usual I/O parameters.
 
 Out of band data is called "expedited" because it's often available
 ahead of a file or socket's normal data.  It's also used in socket
@@ -3178,7 +3294,9 @@ Pause and resume a filehandle's writable events:
 
 These methods don't return meaningful values.
 
-=item select FILE_HANDLE, READ_EVENT_NM, WRITE_EVENT_NM, EXPEDITE_EVENT_NM
+=item select FILE_HANDLE, READ_EVENT, WRITE_EVENT, EXPEDITE_EVENT, ARGS
+
+=item select FILE_HANDLE, READ_EVENT, WRITE_EVENT, EXPEDITE_EVENT
 
 POE::Kernel's select() method alters a filehandle's read, write, and
 expedite selects at the same time.  It's one method call more

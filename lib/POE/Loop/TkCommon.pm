@@ -1,4 +1,4 @@
-# $Id: TkCommon.pm,v 1.13 2005/04/22 20:35:21 rcaputo Exp $
+# $Id: TkCommon.pm,v 1.14 2005/06/29 21:46:20 rcaputo Exp $
 
 # The common bits of our system-specific Tk event loops.  This is
 # everything but file handling.
@@ -10,7 +10,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.13 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Tk 800.021;
 use 5.00503;
@@ -161,7 +161,7 @@ sub loop_run {
 }
 
 sub loop_halt {
-  $poe_main_window->destroy();
+  # Do nothing.
 }
 
 1;

@@ -3,9 +3,11 @@
 package POE::Filter::Grep;
 
 use strict;
+use POE::Filter;
 
-use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+use vars qw($VERSION @ISA);
+$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+@ISA = qw(POE::Filter);
 
 use Carp qw(croak);
 
@@ -28,26 +30,21 @@ sub new {
   # check CODEGET or CODEPUT (depending on the direction data is
   # headed).
 
-  croak "$type requires a Code or both Get and Put parameters"
-    unless ( defined($params{Code}) ||
-             ( defined($params{Get}) && defined($params{Put}) )
-           );
+  croak "$type requires a Code or both Get and Put parameters" unless (
+    defined($params{Code}) or
+    ( defined($params{Get}) and defined($params{Put}) )
+  );
 
-  my $self = bless
-    [ $params{Code}, # CODEBOTH
-      $params{Get},  # CODEGET
-      $params{Put},  # CODEPUT
-      [ ],           # BUFFER
-    ], $type;
+  my $self = bless [
+    $params{Code}, # CODEBOTH
+    $params{Get},  # CODEGET
+    $params{Put},  # CODEPUT
+    [ ],           # BUFFER
+  ], $type;
 }
 
 #------------------------------------------------------------------------------
-# The get() method doesn't keep state.  Right on!
-
-sub get {
-  my ($self, $data) = @_;
-  [ grep &{$self->[CODEGET] || $self->[CODEBOTH]}, @$data ];
-}
+# get() is inherited from POE::Filter.
 
 #------------------------------------------------------------------------------
 # 2001-07-27 RCC: The get_one variant of get() allows Wheel::Xyz to
@@ -66,8 +63,9 @@ sub get_one {
   # tested.
   while (@{$self->[BUFFER]}) {
     my $next_record = shift @{$self->[BUFFER]};
-    return [ $next_record ]
-      if grep &{$self->[CODEGET] || $self->[CODEBOTH]}, $next_record;
+    return [ $next_record ] if (
+      grep &{$self->[CODEGET] || $self->[CODEBOTH]}, $next_record
+    );
   }
 
   return [ ];
@@ -96,11 +94,13 @@ sub modify {
   my ($self, %params) = @_;
   for (keys %params) {
     next unless ($_ eq 'Put') || ($_ eq 'Get') || ($_ eq 'Code');
-    $self->[ {Put  => CODEPUT,
-              Get  => CODEGET,
-              Code => CODEBOTH
-             }->{$_}
-           ] = $params{$_};
+    $self->[
+      {
+        Put  => CODEPUT,
+        Get  => CODEGET,
+        Code => CODEBOTH
+       }->{$_}
+     ] = $params{$_};
   }
 }
 

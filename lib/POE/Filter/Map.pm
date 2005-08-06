@@ -3,9 +3,11 @@
 package POE::Filter::Map;
 
 use strict;
+use POE::Filter;
 
-use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+use vars qw($VERSION @ISA);
+$VERSION = do {my@r=(q$Revision: 1.7 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+@ISA = qw(POE::Filter);
 
 use Carp qw(croak);
 
@@ -28,24 +30,21 @@ sub new {
   # check CODEGET or CODEPUT (depending on the direction data is
   # headed).
 
-  croak "$type requires a Code or both Get and Put parameters" unless
-    (defined($params{Code}) ||
-     (defined($params{Get}) && defined($params{Put})));
+  croak "$type requires a Code or both Get and Put parameters" unless (
+    defined($params{Code}) or
+    (defined($params{Get}) and defined($params{Put}))
+  );
 
-  my $self = bless
-    [ $params{Code}, # CODEBOTH
-      $params{Get},  # CODEGET
-      $params{Put},  # CODEPUT
-      [ ],           # BUFFER
-    ], $type;
+  my $self = bless [
+    $params{Code}, # CODEBOTH
+    $params{Get},  # CODEGET
+    $params{Put},  # CODEPUT
+    [ ],           # BUFFER
+  ], $type;
 }
 
 #------------------------------------------------------------------------------
-
-sub get {
-  my ($self, $data) = @_;
-  [ map &{$self->[CODEGET] || $self->[CODEBOTH]}, @$data ];
-}
+# get() is inherited from POE::Filter.
 
 #------------------------------------------------------------------------------
 
@@ -89,11 +88,13 @@ sub modify {
   my ($self, %params) = @_;
   for (keys %params) {
     next unless ($_ eq 'Put') || ($_ eq 'Get') || ($_ eq 'Code');
-    $self->[ {Put  => CODEPUT,
-              Get  => CODEGET,
-              Code => CODEBOTH
-             }->{$_}
-           ] = $params{$_};
+    $self->[
+      {
+        Put  => CODEPUT,
+        Get  => CODEGET,
+        Code => CODEBOTH
+      }->{$_}
+    ] = $params{$_};
   }
 }
 

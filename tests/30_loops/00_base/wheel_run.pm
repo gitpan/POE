@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm,v 1.8 2005/05/18 23:08:17 rcaputo Exp $
+# $Id: wheel_run.pm,v 1.9 2005/06/29 21:46:21 rcaputo Exp $
 
 use strict;
 use lib qw(./mylib ../mylib ../lib ./lib);
@@ -148,8 +148,8 @@ my $program = (
 my $coderef_flush_count = 0;
 
 SKIP: {
-  skip "Wheel::Run + Tk + ActiveState Perl + CODE Program = pain", 2
-    if $^O eq "MSWin32" and exists $INC{"Tk.pm"};
+#  skip "Wheel::Run + Tk + ActiveState Perl + CODE Program = pain", 2
+#    if $^O eq "MSWin32" and exists $INC{"Tk.pm"};
 
   my $program = sub {
     $! = 1;

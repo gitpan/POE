@@ -1,4 +1,4 @@
-# $Id: MANIFEST,v 1.114 2005/01/28 07:38:32 rcaputo Exp $
+# $Id: MANIFEST,v 1.118 2005/07/25 02:12:25 rcaputo Exp $
 CHANGES
 HISTORY
 MANIFEST
@@ -73,7 +73,6 @@ mylib/Test/Harness.pm
 mylib/Test/Harness/Assert.pm
 mylib/Test/Harness/Iterator.pm
 mylib/Test/Harness/Straps.pm
-mylib/TestSetup.pm
 mylib/coverage.perl
 mylib/cpan-test.perl
 mylib/cvs-log.perl
@@ -156,8 +155,12 @@ tests/30_loops/00_base/wheel_sf_tcp.pm
 tests/30_loops/00_base/wheel_sf_udp.pm
 tests/30_loops/00_base/wheel_sf_unix.pm
 tests/30_loops/00_base/wheel_tail.pm
+tests/90_regression/averell-callback-ret.t
+tests/90_regression/broeren-win32-nbio.t
 tests/90_regression/ferrari-server-unix.t
 tests/90_regression/neyuki_detach.t
 tests/90_regression/rt1648-tied-stderr.t
+tests/90_regression/steinert-passed-wheel.t
+tests/90_regression/steinert-signal-integrity.t
 tests/90_regression/suzman_windows.t
 tests/90_regression/ton-stop-corruption.t
