@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.321 2005/06/29 04:56:29 rcaputo Exp $
+# $Id: Kernel.pm,v 1.322 2005/08/10 14:44:08 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.321 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.322 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(:fcntl_h :sys_wait_h);
@@ -929,7 +929,7 @@ sub _dispatch_event {
   # Dispatch the event, at long last.
   my $before;
   if (TRACE_STATISTICS) {
-      $before = time();
+    $before = time();
   }
   my $return;
   if (wantarray) {
@@ -939,8 +939,13 @@ sub _dispatch_event {
       )
     ];
   }
-  else {
+  elsif (defined wantarray) {
     $return = $session->_invoke_state(
+      $source_session, $event, $etc, $file, $line, $fromstate
+    );
+  }
+  else {
+    $session->_invoke_state(
       $source_session, $event, $etc, $file, $line, $fromstate
     );
   }
@@ -1441,10 +1446,10 @@ sub yield {
     ) if exists $poes_own_events{$event_name};
   };
 
-  $self->_data_ev_enqueue
-    ( $kr_active_session, $kr_active_session, $event_name, ET_POST, \@etc,
-      (caller)[1,2], $kr_active_event, time(),
-    );
+  $self->_data_ev_enqueue(
+    $kr_active_session, $kr_active_session, $event_name, ET_POST, \@etc,
+    (caller)[1,2], $kr_active_event, time(),
+  );
 
   undef;
 }

@@ -1,11 +1,11 @@
-# $Id: TCP.pm,v 1.54 2005/06/28 22:31:11 rcaputo Exp $
+# $Id: TCP.pm,v 1.55 2005/08/19 16:12:45 rcaputo Exp $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.54 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.55 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_UNIX PF_UNIX);
@@ -246,7 +246,7 @@ sub new {
               }
 
               $heap->{client} = POE::Wheel::ReadWrite->new(
-                Handle       => $socket,
+                Handle       => splice(@_, ARG0, 1),
                 Driver       => POE::Driver::SysRW->new(),
                 @filters,
                 InputEvent   => 'tcp_server_got_input',
@@ -254,17 +254,16 @@ sub new {
                 FlushedEvent => 'tcp_server_got_flush',
               );
 
-              $kernel->yield(tcp_server_client_connected => @_[ARG0 .. $#_]);
+              $client_connected->(@_);
             },
 
             # To quiet ASSERT_STATES.
             _child  => sub { },
 
-            tcp_server_client_connected => $client_connected,
-
             tcp_server_got_input => sub {
               return if $_[HEAP]->{shutdown};
               $client_input->(@_);
+              undef;
             },
             tcp_server_got_error => sub {
               unless ($_[ARG0] eq 'accept' and $_[ARG1] == ECONNABORTED) {
@@ -306,7 +305,7 @@ sub new {
           package_states => $package_states,
           object_states  => $object_states,
 
-          args => $args,
+          args => [ $socket, $args ],
         );
       };
     }

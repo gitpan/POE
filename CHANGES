@@ -1,3 +1,32 @@
+===========================
+2005-08-19 17:01:32 v0_3201
+===========================
+
+  2005-08-19 17:01:32 by rcaputo; lib/POE.pm 1.195
+
+    Bump the version for a bugfix release. 
+
+  2005-08-19 16:12:46 by rcaputo; lib/POE/Component/Server/TCP.pm 1.55;
+  lib/POE/Wheel/ReadWrite.pm 1.72; lib/POE/Wheel/Run.pm 1.70
+
+    Abhishek Jain discovered a heretofore obscure socket leakage issue in
+    POE::Component::Server::TCP. New connection sockets were passed into
+    callbacks as closures, preventing them from being closed timely on
+    shutdown unless a session also exited. This commit fixes the problem
+    by passing new connections through POE::Session's args parameter
+    rather than tying them up in closures. 
+
+  2005-08-10 14:44:08 by rcaputo; lib/POE/Kernel.pm 1.322
+
+    Invoke event handlers in void context if the dispatcher is called in
+    void context. Previously handlers would be called in scalar context,
+    causing a subtle edge case where objects wouldn't destruct properly. 
+
+  2005-08-10 14:28:16 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.38
+
+    Fix an amazing amount of tab damage. Yes, this commit is entirely to
+    fix whitespace. 
+
 =========================
 2005-08-06 13:52:35 v0_32
 =========================
