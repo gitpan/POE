@@ -1,4 +1,4 @@
-# $Id: Select.pm,v 1.58 2005/02/02 04:44:34 rcaputo Exp $
+# $Id: Select.pm,v 1.59 2005/08/22 17:34:25 rcaputo Exp $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.58 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.59 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -190,7 +190,7 @@ sub loop_do_timeslice {
 
     if (@filenos) {
       # Check filehandles, or wait for a period of time to elapse.
-      my $hits = select(
+      my $hits = CORE::select(
         my $rout = $loop_vectors[MODE_RD],
         my $wout = $loop_vectors[MODE_WR],
         my $eout = $loop_vectors[MODE_EX],
@@ -295,7 +295,7 @@ sub loop_do_timeslice {
         sleep($timeout);
       }
       else {
-        select(undef, undef, undef, $timeout);
+				CORE::select(undef, undef, undef, $timeout);
       }
     }
   }

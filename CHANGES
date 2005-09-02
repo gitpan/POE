@@ -1,4 +1,23 @@
 ===========================
+2005-09-02 16:42:27 v0_3202
+===========================
+
+  2005-09-02 16:42:27 by rcaputo; lib/POE.pm 1.196
+
+    Bump up the version slightly for a new release. 
+
+  2005-08-29 20:35:04 by rcaputo; lib/POE/Wheel/ReadWrite.pm 1.73
+
+    Remove a $kernel->select() call that was accidentally left in during
+    a prior fix. 
+
+  2005-08-22 17:34:25 by rcaputo
+  lib/POE/Kernel.pm 1.323; lib/POE/Loop/Select.pm 1.59
+
+    Joel Bernstein pointed out a few warnings when POE is run under -W
+    (rather than -w). We can't have that, and now we don't. 
+
+===========================
 2005-08-19 17:01:32 v0_3201
 ===========================
 
@@ -1513,38 +1532,6 @@
     Ignore modules within the test directory. Also allow coverage of
     individual files on the command line. Great for one-off coverage
     reports to see where a test program is deficient. 
-
-  2004-09-02 00:51:56 by sungo; Makefile.PL 1.28;
-  mylib/Makefile-5004.pm 1.24; mylib/Makefile-5005.pm 1.41
-
-    add ability to opt out of network tests 
-
-  2004-09-02 00:22:43 by rcaputo; MANIFEST 1.101; lib/POE/Kernel.pm 1.297
-
-    Renamed POE::Loop::Poll to POE::Loop::IO-Poll, to normalize the way
-    event loops are loaded. No exceptions for modules that begin with
-    IO:: now. 
-
-  2004-09-01 17:41:08 by rcaputo; lib/POE/Kernel.pm 1.296
-
-    Tweaked the POE::Loop loader to load things like Event::Lib as
-    POE::Loop::Event-Lib instead of POE::Loop::Lib. It still strips a
-    leading IO:: off the path for legacy (POE::Loop::Poll) support. At
-    some point we should probably have SourceForge move Poll.pm to
-    IO-Poll.pm and remove the IO stripping code. 
-
-  2004-09-01 16:35:08 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.33
-
-    Nick Williams fixed a bug where pressing Return (^M) from within a
-    history search would insert the ^M character into the input line
-    before returning it. 
-
-  2004-09-01 11:47:47 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.32
-
-    Nick Williams made extensive revisions to this wheel, adding most
-    (all?) of the gnu readline features. Command history search, custom
-    key bindings, .inputrc parsing, tab completion, vi and emacs modes,
-    it's all there! 
 
 =============================
 Beginning of Recorded History

@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.322 2005/08/10 14:44:08 rcaputo Exp $
+# $Id: Kernel.pm,v 1.323 2005/08/22 17:34:24 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.322 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.323 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(:fcntl_h :sys_wait_h);
@@ -485,7 +485,7 @@ sub test_loop {
 
       # Try for the XS version first.  If it fails, try the plain
       # version.  If that fails, we're up a creek.
-      my $module = "POE/XS/Loop/$module.pm";
+      $module = "POE/XS/Loop/$module.pm";
       unless (find_loop($module)) {
         $module =~ s|XS/||;
         next unless (find_loop($module));

@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm,v 1.72 2005/08/19 16:12:46 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.73 2005/08/29 20:35:04 rcaputo Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.72 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.73 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -399,8 +399,6 @@ sub DESTROY {
     $poe_kernel->state($self->[STATE_READ]);
     $self->[STATE_READ] = undef;
   }
-
-  $poe_kernel->select($self->[HANDLE_OUTPUT]);
 
   if ($self->[STATE_WRITE]) {
     $poe_kernel->state($self->[STATE_WRITE]);
