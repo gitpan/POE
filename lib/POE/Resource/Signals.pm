@@ -1,4 +1,4 @@
-# $Id: Signals.pm,v 1.14 2005/05/15 07:09:44 rcaputo Exp $
+# $Id: Signals.pm,v 1.19 2005/12/22 20:18:29 rcaputo Exp $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resources::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.19 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -34,9 +34,15 @@ my %kr_sessions_to_signals;
 
 # Bookkeeping per dispatched signal.
 
-my @kr_signaled_sessions;           # The sessions touched by a signal.
-my $kr_signal_total_handled;        # How many sessions handled a signal.
-my $kr_signal_type;                 # The type of signal being dispatched.
+use vars (
+ '@kr_signaled_sessions',            # The sessions touched by a signal.
+ '$kr_signal_total_handled',         # How many sessions handled a signal.
+ '$kr_signal_type',                  # The type of signal being dispatched.
+);
+
+#my @kr_signaled_sessions;           # The sessions touched by a signal.
+#my $kr_signal_total_handled;        # How many sessions handled a signal.
+#my $kr_signal_type;                 # The type of signal being dispatched.
 
 # A flag to tell whether we're currently polling for signals.
 my $polling_for_signals = 0;
@@ -68,6 +74,7 @@ my %_signal_types = (
   TERM => SIGTYPE_TERMINAL,
   HUP  => SIGTYPE_TERMINAL,
   IDLE => SIGTYPE_TERMINAL,
+  DIE  => SIGTYPE_TERMINAL,
   ZOMBIE    => SIGTYPE_NONMASKABLE,
   UIDESTROY => SIGTYPE_NONMASKABLE,
 );
@@ -143,13 +150,43 @@ sub _data_sig_finalize {
 
   %_safe_signals = ();
 
+  unless (RUNNING_IN_HELL) {
+    local $!;
+    until ((my $pid = waitpid( -1, WNOHANG )) == -1) {
+      _warn( "Child process PID:$pid reaped: $!\n" );
+      $finalized_ok = 0;
+    }
+  }
+
   return $finalized_ok;
+}
+
+### Count the number of refcount slots used for a particular
+### session in signal watchers.
+
+sub _data_sig_count_ses {
+  my ($self, $session) = @_;
+
+  if (exists( $kr_sessions_to_signals{$session} )) {
+    return scalar keys %{$kr_sessions_to_signals{$session}};
+  }
+  else {
+    return 0;
+  }
 }
 
 ### Add a signal to a session.
 
 sub _data_sig_add {
   my ($self, $session, $signal, $event) = @_;
+
+  unless (
+    exists($kr_sessions_to_signals{$session}) and
+    exists($kr_sessions_to_signals{$session}->{$signal})
+  ) {
+    $self->_data_ses_refcount_inc( $session );
+  }
+  
   $kr_sessions_to_signals{$session}->{$signal} = $event;
   $kr_signals{$signal}->{$session} = $event;
 
@@ -167,6 +204,13 @@ sub _data_sig_add {
 
 sub _data_sig_remove {
   my ($self, $session, $signal) = @_;
+
+  if (
+    exists($kr_sessions_to_signals{$session}) and
+    exists($kr_sessions_to_signals{$session}->{$signal})
+  ) {
+    $self->_data_ses_refcount_dec( $session );
+  }
 
   delete $kr_sessions_to_signals{$session}->{$signal};
   delete $kr_sessions_to_signals{$session}

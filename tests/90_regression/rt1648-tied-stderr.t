@@ -1,5 +1,5 @@
 #!/usr/bin/perl 
-# $Id: rt1648-tied-stderr.t,v 1.2 2005/01/17 17:46:28 rcaputo Exp $
+# $Id: rt1648-tied-stderr.t,v 1.4 2005/10/19 18:27:18 hachi Exp $
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He
 # suggested untying STDOUT and STDERR in the child process.  This test
@@ -31,12 +31,17 @@ tie *STDERR, 'Test::Tie::Handle';
 POE::Session->create(
   inline_states => {
     _start => sub {
-      my ($kernel, $heap) = @_[KERNEL, HEAP];
+      my ($kernel, $session, $heap) = @_[KERNEL, SESSION, HEAP];
+      
+      $_[KERNEL]->sig( 'CHLD', 'sigchld' );
+      $_[KERNEL]->refcount_increment( $session->ID, "teapot" );
+      diag( "Installing CHLD signal Handler" );
       my $wheel = POE::Wheel::Run->new(
         Program     => [ 'sh', '-c', 'echo "My stderr" >/dev/stderr' ],
         StderrEvent => 'stderr'
       );
       $heap->{wheel} = $wheel;
+      $heap->{pid} = $wheel->PID;
       $kernel->delay(shutdown => 3);
       $heap->{got_stderr} = 0;
     },
@@ -47,6 +52,14 @@ POE::Session->create(
     },
     shutdown => sub {
       delete $_[HEAP]->{wheel};
+    },
+    sigchld => sub {
+      diag( "Got SIGCHLD for PID $_[ARG1]" );
+      if ($_[ARG1] == $_[HEAP]->{pid}) {
+        diag( "PID Matches, removing CHLD handler" );
+        $_[KERNEL]->sig( 'CHLD' );
+	$_[KERNEL]->refcount_decrement( $_[SESSION]->ID, "teapot" );
+      }
     },
     _stop => sub {
       ok( $_[HEAP]->{got_stderr}, "received STDERR despite it being tied");
@@ -79,7 +92,7 @@ BEGIN {
 
   sub OPEN {
     $_[0]->CLOSE if defined($_[0]->FILENO);
-    @_ == 2 ? open($_[0], $_[1]) : open($_[0], $_[1], $_[2]);
+    open(@_);
   }
 
   sub READ     { read($_[0],$_[1],$_[2]) }

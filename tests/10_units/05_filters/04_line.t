@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 04_line.t,v 1.2 2005/06/28 06:18:20 rcaputo Exp $
+# $Id: 04_line.t,v 1.3 2005/09/08 16:40:18 rcaputo Exp $
 # vim: filetype=perl
 
 # Exercises Filter::Line without the rest of POE.
@@ -99,7 +99,7 @@ use_ok("POE::Filter::Line");
 SKIP: {
   skip("Perl $] doesn't support qr//", 2) if $] < 5.005;
 
-  my $compiled_regexp = qr/[xy]/;
+  my $compiled_regexp = eval "qr/[xy]/";
   my $filter = POE::Filter::Line->new(
     InputRegexp   => $compiled_regexp,
     OutputLiteral => '!',

@@ -1,11 +1,11 @@
-# $Id: Loop.pm,v 1.7 2005/06/29 05:44:51 rcaputo Exp $
+# $Id: Loop.pm,v 1.8 2005/10/05 21:58:46 rcaputo Exp $
 
 package POE::Loop;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.7 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(croak);
 
@@ -56,6 +56,14 @@ callbacks, time or alarm callbacks, and filehandle activity callbacks.
 The rest of the bridge interface is administrative trivia such as
 initializing, executing, and finalizing event loop.
 
+POE::Kernel uses POE::Loop classes internally as a result of detecting
+which event loop is loaded before POE is.  You should almost never
+need to C<use> a POE::Loop class directly, although there is some
+early support for doing so in cases where it's absolutely necessary.
+
+See L<POE::Kernel/"Using POE with Other Event Loops"> for details
+about actually using POE with other event loops.
+
 =head1 GENERAL NOTES
 
 An event loop bridge is not a proper object in itself.  Rather, it is
@@ -66,7 +74,7 @@ functions are proper POE::Kernel methods.
 Each bridge first defines its own namespace and version within it.
 This way CPAN and other things can track its version.
 
-  # $Id: Loop.pm,v 1.7 2005/06/29 05:44:51 rcaputo Exp $
+  # $Id: Loop.pm,v 1.8 2005/10/05 21:58:46 rcaputo Exp $
 
   use strict;
 
@@ -75,7 +83,7 @@ This way CPAN and other things can track its version.
   package POE::Loop::YourToolkit;
 
   use vars qw($VERSION);
-  $VERSION = do {my@r=(q$Revision: 1.7 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+  $VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
   package POE::Kernel;
 

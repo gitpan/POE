@@ -1,3 +1,254 @@
+=========================
+2005-12-22 22:31:48 v0_33
+=========================
+
+  2005-12-22 22:31:48 by rcaputo; mylib/gen-tests.perl 1.9
+
+    Add the ability to skip certain classes of tests on certain
+    platforms, then use it to skip the IO::Poll tests on MSWin32. First,
+    IO::Poll is kinda broken on MSWin32 and falls back to select()
+    anyway. Second, some of the tests break outright in the IO::Poll
+    fallback tests. 
+
+  2005-12-22 20:18:29 by rcaputo; lib/POE/Resource/Signals.pm 1.19
+
+    Use the WNOHANG constant rather than the magic 0. Skip child reaping
+    on Win32. It seems to cause problems of the "segfault" variety. 
+
+  2005-12-22 17:49:26 by rcaputo
+  tests/30_loops/00_base/comp_tcp_concurrent.pm 1.2
+
+    These tests fail under Win32, so I'm skipping them. It seems that
+    Win32 socket creation isn't as concurrent as we'd expect, and
+    deadlocks occur. 
+
+  2005-12-18 22:45:18 by rcaputo; lib/POE/Kernel.pm 1.332
+
+    Whitespace cleanup. 
+
+  2005-12-18 22:41:17 by rcaputo; lib/POE/Kernel.pm 1.331
+
+    Replace string evals with typeglob tricks to define various
+    constants. It weren't exactly broken, but I fixed it anyway. 
+
+  2005-12-12 20:51:14 by hachi; lib/POE/Kernel.pm 1.330;
+  tests/10_units/07_exceptions/03_not_handled.t 1.3
+
+    Change exceptions to propagate out and kill the whole process if they
+    are unhandled.
+    
+    All tests pass Debian Linux 2.6.12.3something with perl 5.8.7 
+
+  2005-12-11 02:31:51 by hachi
+  tests/90_regression/steinert-recursive-signal.t 1.2
+
+    Better testage for signal recursion causing corruption of the
+    bookkeeping values. 
+
+  2005-12-10 07:55:05 by hachi
+  tests/10_units/07_exceptions/03_not_handled.t 1.2
+
+    Change exceptions test to better determine if POE has shut down
+    properly when the DIE signal is not handled 
+
+  2005-12-10 07:45:08 by hachi
+  lib/POE/Kernel.pm 1.329; lib/POE/Resource/Signals.pm 1.18
+
+    This patch fixes the recursive signal testing added earlier. It uses
+    package globals instead of lexicals for the bookkeeping vars in
+    POE/Resource/Signals.pm, this should be examined for a faster way if
+    possible.
+    
+    All tests pass Linux Debian x86 
+
+  2005-12-10 07:36:17 by hachi; MANIFEST 1.122
+
+    Forgot to add new test to MANIFEST 
+
+  2005-12-10 06:25:58 by hachi
+  tests/90_regression/steinert-recursive-signal.t 1.1
+
+    Welcome to recursive signals, this test makes sure that the
+    sig_handled() flag does not affect outer signals during recursive
+    dispatch.
+    
+    This is currently only occuring when a signal handler causes an
+    exception, and the DIE signal is called in response to this. This
+    test fails on cvspoe currently, patch forthcoming to fix it. 
+
+  2005-12-09 06:12:44 by rcaputo; lib/POE.pm 1.198
+
+    This release is different enough to warrant version 0.33 even though
+    we haven't made our stated goals for this release. I'll probably
+    break up the milestones in rt.cpan.org and stop trying to adhere to
+    specific goals for specific versions. 
+
+  2005-12-05 06:41:30 by rcaputo; lib/POE.pm 1.197
+
+    Version update for release. 
+
+  2005-12-04 06:00:55 by sungo; MANIFEST 1.121; MANIFEST.SKIP 1.10
+
+    update manifest for new tests. apparently the manifest got rearranged
+    internally so the diff looks way larger than it really is. add
+    run_network_tests file to MANIFEST.SKIP. 
+
+  2005-12-04 01:30:37 by sungo;
+  tests/10_units/07_exceptions/01_normal.t 1.1;
+  tests/10_units/07_exceptions/02_turn_off.t 1.1;
+  tests/10_units/07_exceptions/03_not_handled.t 1.1
+
+    tests for new exception handling code 
+
+  2005-12-04 01:29:26 by sungo
+  lib/POE/Kernel.pm 1.328; lib/POE/Session.pm 1.114
+
+    add documentation for the new exception handling code 
+
+  2005-11-30 06:05:12 by sungo
+  lib/POE/Kernel.pm 1.327; lib/POE/Resource/Signals.pm 1.17
+
+    roll exception handling (ala POE::Exceptions) into the core. this
+    patch creates a new terminal signal called DIE. if an exception
+    occurs, this signal is sent to the session that caused the exception.
+    by the nature of signals, if the child fails to handle the excpetion,
+    the signal propogates up the session tree until either someone
+    handles the signal or the poe environment collapses. two small tweaks
+    were necessary outside of _dispatch_event. session_alloc needed to
+    cache the value of _data_alias_loggable, for later logging, and it
+    needed to check to see if the new session survived _start and _child
+    dispatches. currently this new functionality is undocumented and does
+    not have its own unit tests. this oversight will be corrected soon.
+    right now, all current tests pass without modification on gentoo
+    linux running kernel version 2.6.14 and perl 5.8.7. 
+
+  2005-11-30 02:46:57 by sungo; tests/30_loops/00_base/k_detach.pm 1.4
+
+    change a raft full of ok($string eq "string") tests to is($string,
+    "string") for easier test debugging 
+
+  2005-11-26 06:55:31 by rcaputo
+  lib/POE/Filter/HTTPD.pm 1.43; tests/10_units/05_filters/03_http.t 1.5
+
+    MSIE bites early and often. In this case, it's sending "\x0D\x0A"
+    after Content-Length octets of POST request, which is clearly in
+    violation of w3.org statute number mumble. Here we see the intrepid
+    Philip Gwyn patch Filter::HTTPD to ignore whitespace after a full
+    request. 
+
+  2005-11-21 06:50:35 by hachi; lib/POE/Resource/Signals.pm 1.16
+
+    Mandatory warning for reaped processes to pair with sigchld semantics
+    changing. This loop will block the Kernel shutdown until all
+    processes are reaped. All tests pass. 
+
+  2005-11-21 06:26:51 by hachi
+  tests/90_regression/merijn-sigchld-system.t 1.3
+
+    Probably should test after removing the signal watcher again. 
+
+  2005-11-07 06:59:07 by hachi
+  lib/POE/Resource/Sessions.pm 1.21; lib/POE/Resource/Signals.pm 1.15
+
+    Change signal watchers so they keep sessions alive.
+    
+    WARNING: This is a major semantics change in POE. It has the
+    potential to make code 'hang' in places where it formerly did not.
+    
+    This change is necessary so sessions expressing an interest in SIG
+    CH?LD do not die prematurely. (There is a planned mandatory warning
+    for reaped children that were not being watched.) This change fixes
+    RT 15215. 
+
+  2005-11-07 06:49:31 by hachi; lib/POE/Loop/PerlSignals.pm 1.11
+
+    Disable use of $SIG{CH?LD} = "IGNORE". This cannot be done in perl
+    without breaking system() and friends. This fixes a failing
+    tests/90_regression/merijn-sigchld-system.t 
+
+  2005-11-07 04:21:07 by apocal; lib/POE/Kernel.pm 1.326
+
+    Updated to check for number of sessions in run() and skip the event
+    loop if sessions == 0 
+
+  2005-10-22 08:34:44 by rcaputo; lib/POE/Kernel.pm 1.325
+
+    Resolved a conflict between two event types. The recursive signal
+    type shared a value with a statistics gathering event type. Now they
+    don't overlap. 
+
+  2005-10-19 18:27:18 by hachi
+  tests/90_regression/rt1648-tied-stderr.t 1.4
+
+    We need to watch for the child process ending in this test so we are
+    a good example for the rest of people, and to avoid a mandatory
+    warning that may be added in a near-future revision of POE. 
+
+  2005-10-14 17:47:27 by rcaputo; MANIFEST.SKIP 1.9
+
+    Toy around with the idea of auto-generating MANIFEST at distribution
+    time. I'm not satisfied with the opt-out nature of MANIFEST.SKIP.
+    It's too easy to create a temporary file and forget to add it to the
+    skip file. Next thing I know, crap's being distributed in the
+    tarball. Possibly proprietary crap. I can't have that. 
+
+  2005-10-14 17:26:19 by rcaputo; MANIFEST 1.120
+
+    Add Jonathan Steinert's test to the MANIFEST. 
+
+  2005-10-14 16:15:38 by hachi
+  tests/90_regression/merijn-sigchld-system.t 1.2
+
+    Start making this test more portable, someone please suggest
+    something I can use on Windows 
+
+  2005-10-14 15:21:16 by hachi
+  tests/90_regression/merijn-sigchld-system.t 1.1
+
+    SIGCHLD bug reported by Merijn Broeren on October 13 2005 on the
+    mailing list. This test evokes the proper results for me (failure on
+    new POE, success on old POE) on Linux 2.6, should be portable but I'm
+    not positive. 
+
+  2005-10-05 21:58:46 by rcaputo; lib/POE/Loop.pm 1.8
+
+    "Elly" in IRC suggested that the POE::Loop documentation explicitly
+    point out that POE::Loop classes aren't used directly. And that the
+    DESCRIPTION point to more detail about how the loops are actually
+    used. So here's a fix for that. 
+
+  2005-09-08 16:40:19 by rcaputo;
+  tests/10_units/05_filters/04_line.t 1.3;
+  tests/30_loops/00_base/ses_session.pm 1.11;
+  tests/90_regression/broeren-win32-nbio.t 1.2;
+  tests/90_regression/rt1648-tied-stderr.t 1.3
+
+    Applied Philip Gwyn's patch to avoid errors on old Perl versions. 
+
+  2005-09-08 16:26:45 by rcaputo
+  lib/POE/Kernel.pm 1.324; lib/POE/Loop/IO_Poll.pm 1.34
+
+    Applied Philip Gwyn's patch to skip IO::Poll if it doesn't define a
+    constant we need. 
+
+  2005-09-08 01:59:33 by rcaputo; lib/POE/Component/Server/TCP.pm 1.57
+
+    Philip Gwyn discovered a slight problem with his previous patch.
+    Increasing the concurrency limit wouldn't resume the listener. This
+    applies his fix. 
+
+  2005-09-07 20:10:39 by rcaputo; MANIFEST 1.119;
+  lib/POE/Component/Server/TCP.pm 1.56;
+  tests/30_loops/00_base/comp_tcp_concurrent.pm 1.1
+
+    Philip Gwyn added a Concurrency parameter to PoCo::Server::TCP. It
+    limits the number of concurrent connections the server can handle. 
+
+  2005-09-07 04:25:37 by rcaputo; tests/30_loops/00_base/comp_tcp.pm 1.3
+
+    Removed a delete() that was used to close a connection. Server::TCP
+    doesn't require such heavy-handed methods anymore. 
+
 ===========================
 2005-09-02 16:42:27 v0_3202
 ===========================
@@ -717,821 +968,6 @@
     tracked the problem down to a change in Test::More behavior. Once I
     knew the source of the problem, I was able to reproduce it easily
     (upgrade Test::More). Now it's fixed. Thanks! 
-
-  2004-12-18 04:24:57 by rcaputo
-  lib/POE.pm 1.187; lib/POE/Loop.pm 1.6; lib/POE/Preprocessor.pm 1.35
-
-    Mike Castle found references to the old POE::Loop::Poll in the
-    documentation. Now they are corrected to refer to POE::Loop::IO_Poll. 
-
-  2004-12-03 03:35:36 by rcaputo; lib/POE/NFA.pm 1.31
-
-    Tom Klein pointed out a typo in one of the POE::NFA error messages.
-    This commit fixes it, and also undoes the emacs-centric (also known
-    as "funky groupers") grouping and indenting in the code and
-    documentation. 
-
-  2004-12-02 16:21:20 by rcaputo; lib/POE/Session.pm 1.106
-
-    Point the user at the RT ticket 8462, which is the umbrella for all
-    the tasks in the deprecation. 
-
-  2004-12-02 07:30:27 by apocal; lib/POE/Session.pm 1.105
-
-    Actually document the new() deprecation as per RT#8469 
-
-  2004-12-02 00:20:59 by apocal; lib/POE.pm 1.186;
-  lib/POE/API/Ctl.pm 1.3; lib/POE/Filter/HTTPD.pm 1.37;
-  lib/POE/Kernel.pm 1.309; lib/POE/Pipe.pm 1.13;
-  lib/POE/Pipe/OneWay.pm 1.14; lib/POE/Pipe/TwoWay.pm 1.17;
-  lib/POE/Resource/Controls.pm 1.4; lib/POE/Wheel/Curses.pm 1.12;
-  lib/POE/Wheel/FollowTail.pm 1.52; lib/POE/Wheel/ListenAccept.pm 1.30;
-  lib/POE/Wheel/ReadLine.pm 1.36; lib/POE/Wheel/ReadWrite.pm 1.70;
-  lib/POE/Wheel/SocketFactory.pm 1.79
-
-    This patch is the beginning of RT#1692, hopefully I got them all,
-    help me test, test, test! 
-
-  2004-11-27 16:52:13 by rcaputo; MANIFEST 1.113;
-  lib/POE/Wheel/Run.pm 1.61; tests/90_regression/rt1648-tied-stderr.t 1.1
-
-    Resolve rt.cpan.org #1648. Tied STDOUT, STDERR would cause
-    POE::Wheel::Run child processes to eat output, never sending it back
-    to the parent. This change unties STDOUT, STDERR if they're tied,
-    griping at the user in the process. So to speak. 
-
-  2004-11-27 16:25:03 by rcaputo; lib/POE.pm 1.185
-
-    POE 0.3003 seems to be stable. The first couple CPAN testers' reports
-    came back PASS rather than FAIL, anyway. Bump the version te 0.3004
-    for CVS development. 
-
-===========================
-2004-11-26 22:25:25 v0_3003
-===========================
-
-  2004-11-26 22:25:25 by rcaputo; lib/POE.pm 1.184
-
-    Increase minor version for another 0.30 fix release. Hopefully the
-    installer will succeed on more CPAN testers' machines. 
-
-  2004-11-26 22:13:07 by rcaputo; MANIFEST 1.112
-
-    Oh, and we'll need to distribute PoeBuildInfo.pm, so put it in
-    MANIFEST. 
-
-  2004-11-26 21:21:54 by rcaputo; mylib/Makefile-5004.pm 1.34;
-  mylib/Makefile-5005.pm 1.52; mylib/PoeBuildInfo.pm 1.2;
-  mylib/gen-meta.perl 1.2
-
-    Switch from variables to "constant" subroutines. Just because it
-    compiles, and it looks like it's runnig, doesn't mean it works. Check
-    the messages more carefully before committing next time. 
-
-  2004-11-26 19:02:19 by rcaputo; mylib/Makefile-5004.pm 1.33
-
-    Fix a syntax error, and have "make dist" fail all the time under old
-    versions of Perl. 
-
-  2004-11-26 18:53:12 by rcaputo; Makefile.PL 1.34
-
-    Add some comments. 
-
-  2004-11-26 18:51:21 by rcaputo
-  mylib/Makefile-5004.pm 1.32; mylib/Makefile-5005.pm 1.51
-
-    Use PoeBuildInfo.pm rather than hardcode common data in both versions
-    of Makefile.pm. 
-
-  2004-11-26 18:49:55 by rcaputo; mylib/PoeBuildInfo.pm 1.1
-
-    Moved prerequisites, recommended modules, file cleanup configuration,
-    and a few other bits into a common library. The same data is used by
-    the 5.004 and 5.005 versions of Makefile.PL, and it's also needed by
-    the new gen-meta.perl utility. 
-
-  2004-11-26 18:47:57 by rcaputo; mylib/gen-meta.perl 1.1
-
-    Moved the META.yml generation to a separate utility. This lets us
-    build a proper META.yml without Build.PL fouling up installation and
-    testing. It also avoids moving the Module::Build code into
-    Makefile.PL, where it would become a mandatory prerequisite. It's
-    only used during "make dist" anyway. 
-
-  2004-11-26 18:41:00 by rcaputo; MANIFEST 1.111
-
-    Remove Build.PL. CPANPLUS spots it and tries to build POE with it,
-    which wouldn't be so bad if Module::Build didn't eat test.pl's
-    STDOUT. Hilarity (such as this CPAN testers failure) ensues:
-    
-    test....FAILED before any test output arrived FAILED--1 test script
-    could be run, alas--no output ever seen 
-
-  2004-11-26 16:41:38 by rcaputo; mylib/Makefile-5004.pm 1.31
-
-    The test reports are generated based on which perl is running. The
-    5.004 makefile would run the reports under whichever perl was caught
-    first in the user's path. This commit propagates the perl version
-    that was used to run Makefile.PL down to the test report. 
-
-===========================
-2004-11-25 21:10:41 v0_3002
-===========================
-
-  2004-11-25 21:10:41 by rcaputo; lib/POE.pm 1.183
-
-    Clean cup! Clean cup! Move down! Move down!
-    
-    In this case, move up. Move the version up for another release. 
-
-  2004-11-25 21:09:02 by rcaputo; mylib/testreport.pl 1.15
-
-    I broke the test report tool when I renamed the test directories.
-    Furthermore, the tool checked in Makefile, and the whole point of
-    renaming the directory was to get them OUT of Makefile. It should be
-    fixed now. 
-
-===========================
-2004-11-25 20:11:19 v0_3001
-===========================
-
-  2004-11-25 20:11:19 by rcaputo; lib/POE.pm 1.182
-
-    Module::Build seems to enable YAML support at install time. If you
-    don't have YAML then, then you don't get full META.yml files later
-    on.
-    
-    Bump the release to 0.3001. This distribution's built AFTER
-    reinstalling YAML then Module::Build at gunpoint. 
-
-=========================
-2004-11-25 19:44:12 v0_30
-=========================
-
-  2004-11-25 19:44:12 by rcaputo; lib/POE.pm 1.181
-
-    Bump the version to 0.30 for release. 
-
-  2004-11-25 19:37:23 by rcaputo; lib/POE/Filter/Reference.pm 1.32
-
-    POE::Filter::Reference wasn't loading Compress::Zlib due to require()
-    semantics changes somewhere between 5.6.1 and 5.7.4. Thanks to Nilson
-    Santos (nilsonsfj on the CPAN) for reporting the problem and
-    providing a suggested fix. 
-
-  2004-11-25 16:56:22 by rcaputo; mylib/Makefile-5005.pm 1.50
-
-    Combine the core requirements for ExtUtils::AutoInstall and MakeMaker
-    into one hash so they can be changed together at once. 
-
-  2004-11-25 16:47:48 by rcaputo; mylib/Makefile-5005.pm 1.49
-
-    Downgrade requirements because ActiveState's repository is behind the
-    times. 
-
-  2004-11-25 16:12:54 by rcaputo; mylib/ExtUtils/AutoInstall.pm 1.7
-
-    Upgrade to 0.61. 
-
-  2004-11-25 07:04:24 by rcaputo
-  MANIFEST 1.110; mylib/Makefile-5004.pm 1.30
-
-    Remove the old dependency checker. It was reporting all kinds of
-    bogus things and needed to be put down. 
-
-  2004-11-25 06:59:12 by rcaputo
-  tests/10_units/01_preprocessor/02_macro_usebytes.t 1.6
-
-    Put back some code that was removed in an overzealous change. 
-
-  2004-11-24 23:20:46 by rcaputo
-  tests/10_units/01_preprocessor/02_macro_usebytes.t 1.5
-
-    Add an Id tag. 
-
-  2004-11-24 22:25:25 by rcaputo
-  tests/30_loops/00_base/ses_session.pm 1.7
-
-    Skip the event loop restarting test if we're using Tk and a
-    non-threaded version of Perl 5.8 or later. Tk dumps core per
-    rt.cpan.org ticket 8588, and we can't be failing OUR tests because of
-    that. 
-
-  2004-11-24 22:23:07 by rcaputo
-  tests/10_units/01_preprocessor/02_macro_usebytes.t 1.4
-
-    The two-arg binmode() call wasn't needed. It was a vestige of
-    displaying Phi on the console, and that went away a long time ago. 
-
-  2004-11-24 21:17:40 by rcaputo; mylib/gen-tests.perl 1.7
-
-    Disable the XS tests, seeing as we don't have any XS to test yet. I
-    don't need to answer a bunch of questions about them at this time. 
-
-  2004-11-24 16:41:59 by rcaputo; mylib/gen-tests.perl 1.6
-
-    Cosmetic change to wrap a line at 80 columns. 
-
-  2004-11-24 03:48:32 by rcaputo
-  tests/30_loops/00_base/ses_session.pm 1.6
-
-    Garbage collection behaves differently under 5.005_04. 
-
-  2004-11-24 03:46:28 by rcaputo; tests/10_units/03_base/01_poe.t 1.6
-
-    Remove a vestige of debugging the issue where STDERR wouldn't come
-    back after being temporarily redirected. 
-
-  2004-11-24 02:28:05 by rcaputo
-  mylib/Makefile-5004.pm 1.29; mylib/Makefile-5005.pm 1.48
-
-    Upgrade dependencies to versions that are known to pass tests. 
-
-  2004-11-24 02:26:18 by rcaputo
-  tests/30_loops/00_base/ses_session.pm 1.5
-
-    The more versions of Perl we test on, the more new and interesting
-    (and virtually impossible to track down) garbage collection issues
-    arise. Klortho, take me now! 
-
-  2004-11-24 02:23:57 by rcaputo
-  tests/20_resources/00_base/extrefs.pm 1.2
-
-    CROM COUNT THE TESTS! Uh... add a test count to the Test::More
-    import. 
-
-  2004-11-24 02:21:02 by rcaputo; tests/10_units/05_filters/03_http.t 1.4
-
-    Data::Dumper doesn't build on---to put it nicely---"legacy" versions
-    of Perl. Thank goodness this test didn't use it. 
-
-  2004-11-24 02:18:56 by rcaputo; tests/10_units/03_base/01_poe.t 1.5;
-  tests/10_units/04_drivers/01_sysrw.t 1.4
-
-    Fix temporary STDERR redirection around tests for error and/or
-    warning conditions. Previously STDERR would go away and never come
-    back. Bad STDERR. 
-
-  2004-11-24 02:17:03 by rcaputo
-  tests/10_units/01_preprocessor/02_macro_usebytes.t 1.3
-
-    Two-argument binmode() isn't supported in very very extremely old
-    versions of Perl. A warning results when someone tries to use it.
-    This change adds a note that the warning can be disabled by upgrading
-    Perl. 
-
-  2004-11-24 02:12:51 by rcaputo; mylib/gen-tests.perl 1.5
-
-    File::Spec::Functions isn't available in Perl 5.004_05. Downgrade to
-    plain File::Spec. 
-
-  2004-11-24 02:10:40 by rcaputo; lib/POE/Queue/Array.pm 1.8
-
-    Use Carp explicitly rather than assume it's loaded by another module.
-    The stand-alone queue tests were failing because Carp wasn't loaded
-    anywhere else. 
-
-  2004-11-24 02:09:19 by rcaputo; lib/POE/Loop/IO_Poll.pm 1.32
-
-    IO::Poll went retrograde on CPAN. Back the required version down to
-    0.01, despite there being problems in older, pre-0.05 versions. 
-
-  2004-11-24 02:07:50 by rcaputo; lib/POE/Driver/SysRW.pm 1.30
-
-    Perl 5.005_04 was not properly setting $! on important sysread()
-    errors. While debugging, I discovered a simple no-op that causes $!
-    to be set properly. This commit adds the work-around, and now the
-    SysRW driver tests pass. 
-
-  2004-11-24 02:04:37 by rcaputo; Makefile.PL 1.33
-
-    5.005_04 exists, so the Makefile.PL deprecation warning has changed
-    to target versions before that. 
-
-  2004-11-22 19:28:35 by rcaputo
-  tests/30_loops/00_base/ses_session.pm 1.4
-
-    Work around an intermittent failure in Tk when starting its main loop
-    twice in one program. 
-
-  2004-11-22 18:05:19 by rcaputo; MANIFEST 1.109;
-  mylib/Makefile-5004.pm 1.28; mylib/Makefile-5005.pm 1.47;
-  mylib/gen-tests.perl 1.4; test.pl 1.2
-
-    SourceForge has moved t to tests. This commit should point everything
-    to the tests' new location. 
-
-  2004-11-22 18:04:14 by rcaputo
-  tests/30_loops/00_base/all_errors.pm 1.2
-
-    Fix the skip message so Test::Harness can report the reason. 
-
-  2004-11-22 00:24:06 by rcaputo; test.pl 1.1
-
-    Hurk burk! Why didn't I include this in the last commit? 
-
-  2004-11-22 00:22:13 by rcaputo; MANIFEST 1.108;
-  mylib/Makefile-5004.pm 1.27; mylib/Makefile-5005.pm 1.46
-
-    After expanding and refactoring POE's test suite, the command line to
-    run all the tests has become too long for some shells. Sungo
-    suggested moving the Test::Harness invocation into test.pl, which
-    seems to work swimmingly, as this commit shall attest. 
-
-  2004-11-22 00:13:53 by rcaputo;
-  tests/30_loops/00_base/k_signals.pm 1.3;
-  tests/30_loops/00_base/ses_session.pm 1.3;
-  tests/30_loops/00_base/wheel_run.pm 1.2;
-  tests/30_loops/00_base/wheel_sf_ipv6.pm 1.2;
-  tests/30_loops/00_base/wheel_sf_unix.pm 1.2
-
-    So, recent versions of Tk trap exit() when it's called from BEGIN{}
-    or eval{}. It croaks rather than exiting, which makes it a little
-    harder for tests to bail out under Tk.
-    
-    This commit uses CORE::exit() to bypass Tk's trap. It also prints the
-    skip messages manually since Test::More and POE's own TestSetup both
-    exit on their own when skipping entire test files. 
-
-  2004-11-22 00:10:21 by rcaputo; mylib/gen-tests.perl 1.3
-
-    Fixed the DISPLAY checking code so that test templates expand
-    correctly on Windows. 
-
-  2004-11-22 00:08:07 by rcaputo; lib/POE/Resource/FileHandles.pm 1.18;
-  tests/10_units/04_drivers/01_sysrw.t 1.3
-
-    In these enlightened times of ActivePerl 5.8.4, $handle->blocking()
-    seems not to do anything useful. This commit undoes the blocking()
-    calls that were introduced when ActivePerl 5.8.0 broke the original
-    ioctl() calls and actually seemed to honor blocking(). ActivePerl,
-    she is such a fickle mistress. 
-
-  2004-11-17 05:28:13 by rcaputo
-  mylib/Makefile-5004.pm 1.26; mylib/Makefile-5005.pm 1.45
-
-    Use fileglobs to shorten the list of test files passed to MakeMaker.
-    Unfortunately, this does not fix the problem that the Test::Harness
-    command line is too long for CMD.EXE (and possibly other limited
-    shells). 
-
-  2004-11-16 21:13:09 by rcaputo; Makefile.PL 1.32
-
-    Resolve rt.cpan.org ticket 6319 by asking people to "make
-    reportupload" at the end of Makefile.PL. It may be better to ask at
-    the end of "make test" but I'm not in the mood to hack Makefile
-    through Makefile.PL right now. 
-
-  2004-11-16 19:21:02 by rcaputo; lib/POE/Component/Server/TCP.pm 1.49
-
-    Applied the patch in rt.cpan.org ticket 7787. This adds a Started
-    callback (originally suggested as ServerStarted) to the component, so
-    you get a callback right away when the server is started.
-    
-    The original patch wasn't documented, so I documented it. The bulk of
-    this commit involves tidying up the documentation while I was
-    rummaging through it. 
-
-  2004-11-16 08:25:54 by teknikill
-  tests/20_resources/00_base/caller_state.pm 1.1
-
-    add CALLER_STATE test 
-
-  2004-11-16 07:58:58 by teknikill
-  tests/20_resources/00_base/events.pm 1.2
-
-    CALLER_STATE modifications 
-
-  2004-11-16 07:54:12 by teknikill; lib/POE/Loop/Event.pm 1.41;
-  lib/POE/Loop/PerlSignals.pm 1.8; lib/POE/NFA.pm 1.30;
-  lib/POE/Resource/Events.pm 1.13; lib/POE/Resource/FileHandles.pm 1.17;
-  lib/POE/Resource/Statistics.pm 1.3; lib/POE/Session.pm 1.104
-
-    CALLER_STATE added 
-
-  2004-11-16 07:50:15 by teknikill; lib/POE/Kernel.pm 1.308
-
-    CALLER_STATE and get_active_event added 
-
-  2004-11-16 07:13:04 by rcaputo; lib/POE/API/ResLoader.pm 1.4;
-  lib/POE/Driver/SysRW.pm 1.29; lib/POE/Filter.pm 1.14;
-  lib/POE/Filter/Block.pm 1.15; lib/POE/Filter/Grep.pm 1.6;
-  lib/POE/Filter/HTTPD.pm 1.36; lib/POE/Filter/Reference.pm 1.31;
-  lib/POE/Kernel.pm 1.307; lib/POE/Loop.pm 1.5;
-  lib/POE/Loop/Event.pm 1.40; lib/POE/Loop/Gtk.pm 1.45;
-  lib/POE/Loop/TkCommon.pm 1.10; lib/POE/NFA.pm 1.29;
-  lib/POE/Preprocessor.pm 1.34; lib/POE/Queue/Array.pm 1.7;
-  lib/POE/Resource/Aliases.pm 1.11; lib/POE/Resource/FileHandles.pm 1.16;
-  lib/POE/Resource/Statistics.pm 1.2; lib/POE/Session.pm 1.103;
-  lib/POE/Wheel/FollowTail.pm 1.51; lib/POE/Wheel/ReadLine.pm 1.35;
-  lib/POE/Wheel/ReadWrite.pm 1.69; lib/POE/Wheel/Run.pm 1.60
-
-    Applied LARRYSH's massive spellchecking patch. This resolves
-    rt.cpan.org ticket 8451. 
-
-  2004-11-15 23:28:01 by rcaputo; lib/POE/Session.pm 1.102
-
-    Fixed a typo in the POD, resolving rt.cpan.org ticket 8358 by Joost
-    Vunderink. He also has the greatest .sig in his bug report. You
-    should go look at it. 
-
-  2004-11-15 23:23:36 by rcaputo; lib/POE/Filter/Stackable.pm 1.6
-
-    This commit resolves rt.cpan.org ticket 8281: Attached patch brings
-    Filter::Stackable into the get_one Filter API era.
-    
-    There are no known issues with the new feature, but it remains
-    untested as of this time. Martijn van Beers contributed the patch and
-    is aware of his responsibility to fix anything it breaks. 
-
-  2004-11-15 02:57:53 by rcaputo; lib/POE/Filter/Reference.pm 1.30
-
-    Get rid of redefined subroutine warnings when POE::Filter::Reference
-    releads a partially loaded package. This uses the old school $^W
-    thing so Legacy Perl won't choke on "no warnings". 
-
-  2004-11-12 14:51:53 by rcaputo
-  tests/10_units/05_filters/07_reference.t 1.4
-
-    Scott Beck pointed out that the qq{} wasn't future proof. The eval
-    could silently fail if @_ ever became populated. I've switched to q{}
-    and thrown in C<die if $@> to make sure it never happens... or is
-    found if it does. 
-
-  2004-11-11 17:43:26 by rcaputo
-  lib/POE/Kernel.pm 1.306; lib/POE/Loop/PerlSignals.pm 1.7
-
-    Allow users to register $kernel->sig("WINCH"). POE does not register
-    all %SIG entries by default anymore, so it's up to the developer to
-    determine whether SIGWINCH is safe in her environment. We no longer
-    need to block $SIG{WINCH}. 
-
-  2004-11-11 17:21:09 by rcaputo
-  tests/10_units/05_filters/07_reference.t 1.3
-
-    Philip Gwyn said my changes to his test invalidated it. That isn't
-    surprising since I wasn't completely sure what was being tested. We
-    went over the details in IRC for a bit, and came up with a small
-    change to make it ideologically correct. This commit applies his
-    patch to fix my breakage of his earlier patch. 
-
-  2004-11-10 02:35:12 by rcaputo; lib/POE/Filter/Reference.pm 1.29;
-  tests/10_units/05_filters/07_reference.t 1.2
-
-    Rhesa Rozendaal reported a problem where XML::Simple uses a
-    serializer but not completely, resulting in the module being loaded
-    but not all methods being present. The situation fooled
-    POE::Filter::Reference.
-    
-    Philip Gwyn submitted this test and change to reload the serializer
-    in this case, pulling all its methods into existence. KTHXAPPLIED! 
-
-  2004-11-09 23:36:23 by rcaputo; lib/POE/Component/Server/TCP.pm 1.48
-
-    Removed the CAVEATS section, as the one caveat was ill thought out.
-    You can do a lot of things with POE::Component::Server::TCP,
-    including challenge/response protocols. 
-
-  2004-11-08 20:48:13 by rcaputo; lib/POE/Resource/FileHandles.pm 1.15
-
-    Ok. This time for sure. Jonathan verified it before I committed it. 
-
-  2004-11-08 17:07:13 by rcaputo; lib/POE/Resource/FileHandles.pm 1.14
-
-    We don't have tests that trigger the error I just "fixed", so the
-    "fix" had a bug in it. This fix should fix the "fix" in my last
-    commit. Unless it doesn't, in which case there'll be yet another. 
-
-  2004-11-08 16:37:24 by rcaputo; lib/POE/Resource/FileHandles.pm 1.13
-
-    Jonathan Steinert pointed out that the "can't select a handle 2+
-    times" error was vague. This commit should fix that up good, a-yep. 
-
-  2004-10-30 21:30:01 by rcaputo; lib/POE/Driver/SysRW.pm 1.28
-
-    Clear $! if syswrite() returns successfully.
-    
-    POE wheels check $! to detect driver errors. Some tied filehandle
-    classes (this time Devel::SerialPort) don't clear $! on success.
-    POE::Wheel::ReadWrite would see this as an error condition, and bad
-    things would happen. Clearing $! on success makes wheel operations
-    more robust. 
-
-  2004-10-16 17:22:00 by rcaputo; lib/POE/Kernel.pm 1.305
-
-    Ever since the experimental stop() was added, and run() was
-    resumable, it annoyed me that combining them with POE::Wheel::Run---
-    to run POE kernels in child processes--- would not recalculate the
-    child kernels' IDs. As you may know, kernel IDs are meant to be
-    globally unique. They're a hash of the machine address, process ID,
-    and creation time. So it seems to make sense that spawned off POE
-    processes should have IDs different from their parents.
-    
-    This change forces a kernel ID recalculation whenever stop() is
-    called. 
-
-  2004-10-14 04:24:20 by hachi; lib/POE/Wheel/SocketFactory.pm 1.78
-
-    In an endeavor to use SocketFactory without the POE::Kernel,
-    discovered that IO::Handle needs to be loaded to work properly. This
-    glitch never showed up before because Kernel.pm has use IO::Handle in
-    it for us. Added for completeness. 
-
-  2004-10-13 17:48:28 by rcaputo; lib/POE/Wheel/ReadLine.pm 1.34
-
-    After a lengthy study into the reasons for Term::ReadKey failing, it
-    was discovered that Perl 5.8.0 is to blame, most likely under
-    particular versions of the Linux kernel, or gcc, or a combination of
-    kernel AND gcc. Versions of Perl other than 5.8.0 work under the same
-    combinations of kernel and gcc, however. This commit documents the
-    research results, provides a test case to determine if "your" system
-    suffers from the problem, and recommends alternatives. 
-
-  2004-10-13 16:54:26 by rcaputo; MANIFEST 1.107
-
-    This sample program is covered in the "Evolution of a POE Server"
-    tutorial at http://poe.perl.org/?Tutorials 
-
-  2004-10-13 16:47:48 by rcaputo; MANIFEST 1.106
-
-    Removed the tk.perl sample program. It is superseded by the Cookbook
-    "Tk Interfaces" recipe. See http://poe.perl.org/?POE_Cookbook . 
-
-  2004-10-12 20:13:51 by lotr; lib/POE.pm 1.180; lib/POE/Kernel.pm 1.304;
-  tests/10_units/03_base/01_poe.t 1.4;
-  tests/10_units/03_base/14_kernel.t 1.1
-
-    Remove the POE::Loop modules from the modules that need to be loaded
-    seperately, as they're being passed to POE::Kernel. Also die when
-    attempting to load more than one Loop. And add some tests to make
-    sure it works like we want to. 
-
-  2004-10-12 16:49:48 by rcaputo
-  lib/POE.pm 1.179; lib/POE/Kernel.pm 1.303
-
-    Applying a patch by Martijn van Beers. This change adds syntax for
-    loading POE::Loop classes explicitly from POE::Kernel's import(). It
-    also adds code to POE.pm's import() that transfers Loop classes to
-    the new syntax. The upshot is that you can load classes explicitly
-    rather than let POE::Kernel figure things out. This is especially
-    important for event loops that identify as two or more event loops
-    (such as Glib and Gtk2). 
-
-  2004-10-12 05:18:51 by rcaputo;
-  tests/10_units/01_preprocessor/02_macro_usebytes.t 1.2;
-  tests/10_units/02_pipes/01_base.t 1.2;
-  tests/10_units/02_pipes/02_oneway.t 1.2;
-  tests/10_units/02_pipes/03_twoway.t 1.2;
-  tests/10_units/03_base/01_poe.t 1.3;
-  tests/10_units/03_base/02_api_resloader.t 1.2;
-  tests/10_units/03_base/03_component.t 1.2;
-  tests/10_units/03_base/04_driver.t 1.2;
-  tests/10_units/03_base/05_filter.t 1.2;
-  tests/10_units/03_base/06_loop.t 1.2;
-  tests/10_units/03_base/07_queue.t 1.2;
-  tests/10_units/03_base/08_resource.t 1.2;
-  tests/10_units/03_base/09_resources.t 1.2;
-  tests/10_units/03_base/10_wheel.t 1.2;
-  tests/10_units/04_drivers/01_sysrw.t 1.2;
-  tests/10_units/05_filters/02_grep.t 1.2;
-  tests/10_units/05_filters/03_http.t 1.3;
-  tests/10_units/05_filters/05_map.t 1.2;
-  tests/10_units/05_filters/06_recordblock.t 1.2;
-  tests/20_resources/00_base/statistics.pm 1.2
-
-    Remove "use warnings" throughout the tests. It's amazing what flushes
-    out when you run the tests under a really really old version of Perl. 
-
-  2004-10-12 05:06:31 by rcaputo; mylib/gen-tests.perl 1.2
-
-    Three-arg open is not supported in perl 5.005. This massages it back
-    to two-arg open. 
-
-  2004-10-11 20:10:23 by rcaputo
-  lib/POE/Kernel.pm 1.302; lib/POE/Resource/FileHandles.pm 1.12
-
-    Move some RUNNING_IN_HELL code to an appropriate file. Namely, the
-    dummy F_[GS]ETFL constants. They fit better in
-    POE::Resource::FileHandles. 
-
-  2004-10-07 22:04:46 by rcaputo; tests/10_units/03_base/01_poe.t 1.2
-
-    God kills a kitten every time someone doesn't use POE. This change
-    ensures that POE is being used, so no kittens will die on our watch.
-    We love kittens, and don't wish any harm upon them. 
-
-  2004-10-05 15:50:39 by rcaputo; mylib/Makefile-5005.pm 1.44
-
-    Removed the '-tests' parameters for each of the optional modules. The
-    tests are all in different places now, some of them don't exist, and
-    others exist multiple times... but only after they're generated from
-    templates. 
-
-  2004-10-05 15:31:59 by rcaputo; lib/POE/Driver/SysRW.pm 1.27
-
-    Fixed some awkward indenting. This change is meaningless. 
-
-  2004-10-05 15:30:42 by rcaputo; Makefile.PL 1.31
-
-    Swapped a couple words is a prompt, possibly making it easier to
-    read. 
-
-  2004-09-27 05:19:38 by rcaputo; lib/POE/Kernel.pm 1.301
-
-    Fluffle said the documentation didn't explain how sessions are reaped
-    after terminal signals are delivered. Hey, that's true! Well, now
-    they do. Take THAT! 
-
-  2004-09-23 21:49:44 by rcaputo; mylib/ExtUtils/AutoInstall.pm 1.6
-
-    17:35 <autrijus> dngor: hey. you may wish to start shipping POE with
-    EU::AI 0.60 soonish. CPANPLUS 0.050 and later had a problem with
-    EU::AI 0.5x; while I'm trying to solve it at the cpanplus end, it may
-    not be always as smooth as it can be.
-    
-    Ok. This commit upgrades ExtUtils::AutoInstall to 0.60. 
-
-  2004-09-17 07:11:04 by rcaputo
-  MANIFEST 1.105; lib/POE/Kernel.pm 1.300; lib/POE/Loop/IO_Poll.pm 1.31
-
-    In retrospect, it was rather dumb to rename Poll.pm to IO-Poll.pm.
-    While the hyphen makes a great filesystem character, it's not very
-    good for package names. Perl tends to think you're subtracting
-    barewords, and things just don't work out right. This commit renames
-    IO-Poll.pm to IO_Poll.pm. I hope this fixes it for good. 
-
-  2004-09-16 01:38:17 by rcaputo
-  tests/90_regression/ton-stop-corruption.t 1.2
-
-    Turn on ASSERT_DEFAULT, like we're supposed to in tests. 
-
-  2004-09-16 00:26:13 by rcaputo; MANIFEST 1.104;
-  lib/POE/Kernel.pm 1.299; lib/POE/Resource/FileHandles.pm 1.11;
-  tests/90_regression/ton-stop-corruption.t 1.1
-
-    Ton Hospel discovered that stop() from some event handlers causes the
-    session that called it to be reaped twice. The second reap triggers
-    an inconsistency error when ASSERT_DEFAULT is enabled. This patch
-    adds a check to see whether a session is dead by the time its handler
-    returns (and bypasses a lot of moot garbage collection in the rare
-    cases that it is). It adds a performance penalty across the board.
-    There's probably a better way, but this is more immediate. This patch
-    also includes Ton's test case as a proper regression test. 
-
-  2004-09-14 00:16:12 by rcaputo
-  lib/POE/Loop/TkCommon.pm 1.9; lib/POE/Queue/Array.pm 1.6
-
-    Ton Hospel made a couple interesting observations about POE's event
-    loop. First, the code could be tightened up. Perl assignments are
-    relatively expensive, and restructuring the code to avoid them means
-    a few percent increase in performance. His example appears as a
-    comment in POE::Queue::Array, marked with his name.
-    
-    His second observation is that the Tk loop is about twice as slow as
-    it should be. Our workaround for high-priority Tk timers is rather
-    stupid. Ton works around it by maintaining separate "immediate" and
-    timer queues, and not using Tk to drive the immediate events. I've
-    commented on his idea in POE::Loop::TkCommon. 
-
-  2004-09-08 05:59:59 by rcaputo; lib/POE/Kernel.pm 1.298;
-  lib/POE/Loop/PerlSignals.pm 1.6; lib/POE/Loop/TkCommon.pm 1.8;
-  lib/POE/Resource/Signals.pm 1.12; lib/POE/Session.pm 1.101;
-  tests/20_resources/00_base/signals.pm 1.2;
-  tests/30_loops/00_base/k_signals.pm 1.2;
-  tests/30_loops/00_base/ses_session.pm 1.2
-
-    This commit moves signal deprecations forward. It incorporates a
-    number of changes:
-    
-    POE has stopped dispatching _signal publicly. It's still used
-    internally, but programs will not receive it. Attempting to register
-    a _signal event handler will still result in a fatal error, however.
-    This has the nice benefit of pushing problems on users rather than
-    allowing them to fester quietly as bizarre runtime behavior. I'm all
-    for that since it's less support problems.
-    
-    The return values of signal handlers are not significant anymore, and
-    you will not receive errors based on them. Using sig_handled() is
-    mandatory if you want to handle signals.
-    
-    POE does not always register handlers for most of %SIG anymore.
-    Instead, it registers the handlers as needed when you call
-    $kernel->sig(). This means that Ctrl+Z (^Z) WILL suspend any program
-    that has not set a TSTP handler.
-    
-    Signal dispatch is vastly simplified. It should be significantly
-    faster, although most programs won't notice a difference. Signal
-    dispatch is not that common.
-    
-    Tests for deprecated behaviors have been removed.
-    
-    Old emacs-style indenting has been changed to more conventional
-    indenting here and there.
-    
-    The ses_session.pm test sometimes dumps core under Tk. It's not
-    consistent, and I'm not sure why. 
-
-  2004-09-05 00:32:34 by rcaputo; mylib/coverage.perl 1.14
-
-    Stop excluding tests themselves. The reports don't cover all of the
-    POE modules when they are excluded. 
-
-  2004-09-04 23:14:51 by rcaputo; tests/10_units/05_filters/03_http.t 1.2
-
-    This test contained a hardcoded path to t/19_filterchange.t, which I
-    just SO totally broke. I replaced it with $0 which seems to work
-    pretty well. 
-
-  2004-09-04 23:06:14 by rcaputo; mylib/gen-tests.perl 1.1
-
-    This utility derives tests based on templates and different
-    environments. 
-
-  2004-09-04 22:50:40 by rcaputo;
-  tests/10_units/01_preprocessor/01_preprocessor.t 1.1;
-  tests/10_units/01_preprocessor/02_macro_usebytes.t 1.1;
-  tests/10_units/02_pipes/01_base.t 1.1;
-  tests/10_units/02_pipes/02_oneway.t 1.1;
-  tests/10_units/02_pipes/03_twoway.t 1.1;
-  tests/10_units/03_base/01_poe.t 1.1;
-  tests/10_units/03_base/02_api_resloader.t 1.1;
-  tests/10_units/03_base/03_component.t 1.1;
-  tests/10_units/03_base/04_driver.t 1.1;
-  tests/10_units/03_base/05_filter.t 1.1;
-  tests/10_units/03_base/06_loop.t 1.1;
-  tests/10_units/03_base/07_queue.t 1.1;
-  tests/10_units/03_base/08_resource.t 1.1;
-  tests/10_units/03_base/09_resources.t 1.1;
-  tests/10_units/03_base/10_wheel.t 1.1;
-  tests/10_units/03_base/11_assert_usage.t 1.1;
-  tests/10_units/03_base/12_assert_retval.t 1.1;
-  tests/10_units/03_base/13_assert_data.t 1.1;
-  tests/10_units/04_drivers/01_sysrw.t 1.1;
-  tests/10_units/05_filters/01_block.t 1.1;
-  tests/10_units/05_filters/02_grep.t 1.1;
-  tests/10_units/05_filters/03_http.t 1.1;
-  tests/10_units/05_filters/04_line.t 1.1;
-  tests/10_units/05_filters/05_map.t 1.1;
-  tests/10_units/05_filters/06_recordblock.t 1.1;
-  tests/10_units/05_filters/07_reference.t 1.1;
-  tests/10_units/05_filters/08_stream.t 1.1;
-  tests/10_units/05_filters/50_stackable.t 1.1;
-  tests/10_units/05_filters/99_filterchange.t 1.1;
-  tests/10_units/06_queues/01_array.t 1.1;
-  tests/20_resources/00_base/aliases.pm 1.1;
-  tests/20_resources/00_base/controls.pm 1.1;
-  tests/20_resources/00_base/events.pm 1.1;
-  tests/20_resources/00_base/extrefs.pm 1.1;
-  tests/20_resources/00_base/filehandles.pm 1.1;
-  tests/20_resources/00_base/sessions.pm 1.1;
-  tests/20_resources/00_base/sids.pm 1.1;
-  tests/20_resources/00_base/signals.pm 1.1;
-  tests/20_resources/00_base/statistics.pm 1.1;
-  tests/30_loops/00_base/all_errors.pm 1.1;
-  tests/30_loops/00_base/comp_tcp.pm 1.1;
-  tests/30_loops/00_base/k_alarms.pm 1.1;
-  tests/30_loops/00_base/k_aliases.pm 1.1;
-  tests/30_loops/00_base/k_detach.pm 1.1;
-  tests/30_loops/00_base/k_selects.pm 1.1;
-  tests/30_loops/00_base/k_signals.pm 1.1;
-  tests/30_loops/00_base/ses_nfa.pm 1.1;
-  tests/30_loops/00_base/ses_session.pm 1.1;
-  tests/30_loops/00_base/wheel_accept.pm 1.1;
-  tests/30_loops/00_base/wheel_run.pm 1.1;
-  tests/30_loops/00_base/wheel_sf_ipv6.pm 1.1;
-  tests/30_loops/00_base/wheel_sf_tcp.pm 1.1;
-  tests/30_loops/00_base/wheel_sf_udp.pm 1.1;
-  tests/30_loops/00_base/wheel_sf_unix.pm 1.1;
-  tests/30_loops/00_base/wheel_tail.pm 1.1;
-  tests/90_regression/neyuki_detach.t 1.1;
-  tests/90_regression/suzman_windows.t 1.1
-
-    These are the wonderful tests we're adding to replace the stinky old
-    ones. Some of these are the stinky old ones in new clothes, but just
-    for a little while until we can make less stinky ones from them. 
-
-  2004-09-04 22:34:03 by rcaputo
-  Makefile.PL 1.30; mylib/Makefile-5005.pm 1.43
-
-    Migrate the prompt bypassing code out of the 5.5+ Makefile generator
-    and into the base Makefile.PL. This is the code that skips
-    interaction if STDIN isn't a terminal, or if --default is specified. 
-
-  2004-09-04 22:19:10 by rcaputo; MANIFEST 1.103; Makefile.PL 1.29;
-  mylib/Makefile-5004.pm 1.25; mylib/Makefile-5005.pm 1.42
-
-    Commit the new tests, the new utilities to support them, and
-    necessary changes to the install and distribution scripts. 
-
-  2004-09-04 22:07:06 by rcaputo; MANIFEST 1.102
-
-    Remove the existing tests to make room for the new ones. 
-
-  2004-09-04 21:49:41 by rcaputo; mylib/coverage.perl 1.13
-
-    Ignore modules within the test directory. Also allow coverage of
-    individual files on the command line. Great for one-off coverage
-    reports to see where a test program is deficient. 
 
 =============================
 Beginning of Recorded History

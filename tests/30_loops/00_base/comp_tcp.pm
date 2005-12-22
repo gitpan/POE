@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: comp_tcp.pm,v 1.2 2005/06/28 06:18:20 rcaputo Exp $
+# $Id: comp_tcp.pm,v 1.3 2005/09/07 04:25:37 rcaputo Exp $
 
 # Exercise Server::TCP and later, when it's available, Client::TCP.
 
@@ -79,7 +79,6 @@ POE::Component::Server::TCP->new(
   ClientError => sub {
     my ($heap, $operation, $errnum, $errstr) = @_[HEAP, ARG0..ARG2];
     print "callback server got $operation error $errnum: $errstr\n";
-    delete $heap->{client};
   },
   ClientFlushed => sub {
     pass("callback server flushed output");

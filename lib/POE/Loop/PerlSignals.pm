@@ -1,4 +1,4 @@
-# $Id: PerlSignals.pm,v 1.10 2005/05/15 07:09:44 rcaputo Exp $
+# $Id: PerlSignals.pm,v 1.11 2005/11/07 06:49:31 hachi Exp $
 
 # Plain Perl signal handling is something shared by several event
 # loops.  The invariant code has moved out here so that each loop may
@@ -10,7 +10,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.10 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.11 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -53,7 +53,9 @@ sub loop_watch_signal {
 
   # Child process has stopped.
   if ($signal eq 'CHLD' or $signal eq 'CLD') {
-    $SIG{$signal} = "DEFAULT";
+# We should never twiddle $SIG{CH?LD} under poe, unless we want to override
+# system() and friends. --hachi
+#    $SIG{$signal} = "DEFAULT";
     $self->_data_sig_begin_polling();
     return;
   }
@@ -73,7 +75,9 @@ sub loop_ignore_signal {
 
   if ($signal eq 'CHLD' or $signal eq 'CLD') {
     $self->_data_sig_cease_polling();
-    $SIG{$signal} = "IGNORE";
+# We should never twiddle $SIG{CH?LD} under poe, unless we want to override
+# system() and friends. --hachi
+#    $SIG{$signal} = "IGNORE";
     return;
   }
 

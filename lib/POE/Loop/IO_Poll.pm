@@ -1,4 +1,4 @@
-# $Id: IO_Poll.pm,v 1.33 2005/05/15 07:07:16 rcaputo Exp $
+# $Id: IO_Poll.pm,v 1.34 2005/09/08 16:26:45 rcaputo Exp $
 
 # IO::Poll event loop bridge for POE::Kernel.  The theory is that this
 # will be faster for large scale applications.  This file is
@@ -8,7 +8,7 @@
 package POE::Loop::IO_Poll;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.33 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.34 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # Include common signal handling.
 use POE::Loop::PerlSignals;
@@ -38,6 +38,20 @@ use Errno qw(EINPROGRESS EWOULDBLOCK EINTR);
 use IO::Poll qw(
   POLLRDNORM POLLWRNORM POLLRDBAND POLLERR POLLHUP POLLNVAL
 );
+
+# Many systems' IO::Poll don't define POLLRDNORM.
+# Usually upgrading IO::Poll helps.
+BEGIN {
+  my $x = eval { POLLRDNORM };
+  if ($@ or not defined $x) {
+    warn(
+      "Your IO::Poll doesn't define POLLRDNORM.  Falling back to IO::Select.\n"
+    );
+    require POE::Loop::Select;
+    POE::Loop::Select->import();
+    die "not really dying";
+  }
+}
 
 my %poll_fd_masks;
 

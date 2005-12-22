@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm,v 1.42 2005/06/29 04:05:43 rcaputo Exp $
+# $Id: HTTPD.pm,v 1.43 2005/11/26 06:55:31 rcaputo Exp $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -18,7 +18,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.42 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.43 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -103,15 +103,31 @@ sub get {
   if ($self->{header}) {
     my $buf = $self->{buffer};
     my $r   = $self->{header};
-    my $cl  = $r->content_length() || "0 (implicit)";
+    my $cl  = $r->content_length() || length($buf) || 0;
+
+    # Some browsers (like MSIE 5.01) send extra CRLFs after the
+    # content.  Shame on them.  Now we need a special case to drop
+    # their extra crap.
+    #
+    # We use the first $cl octets of the buffer as the request
+    # content.  It's then stripped away.  Leading whitespace in
+    # whatever is left is also stripped away.  Any nonspace data left
+    # over will throw an error.
+    #
+    # Four-argument substr() would be ideal here, but it's a
+    # relatively recent development.
+    #
+    # PG- CGI.pm only reads Content-Length: bytes from STDIN.
     if (length($buf) >= $cl) {
-      $r->content($buf);
+      $r->content(substr($buf, 0, $cl));
+      $self->{buffer} = substr($buf, $cl);
+      $self->{buffer} =~ s/^\s+//;
+
       $self->{finish}++;
       return [$r];
     }
-    else {
-      #print "$cl wanted, got " . length($buf) . "\n";
-    }
+
+    #print "$cl wanted, got " . length($buf) . "\n";
     return [];
   }
 
@@ -215,7 +231,9 @@ sub get {
   }
 
   if (length($buf) >= $cl) {
-    $r->content($buf);
+    $r->content(substr($buf, 0, $cl));
+    $self->{buffer} = substr($buf, $cl);
+    $self->{buffer} =~ s/^\s+//;
     $self->{finish}++;
     # We are sending this back, so won't need it anymore.
     delete $self->{header};

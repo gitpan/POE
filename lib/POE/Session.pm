@@ -1,11 +1,11 @@
-# $Id: Session.pm,v 1.113 2005/07/25 02:12:25 rcaputo Exp $
+# $Id: Session.pm,v 1.114 2005/12/04 01:29:26 sungo Exp $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.113 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.114 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw(carp croak);
 use Errno qw(ENOSYS);
@@ -1808,6 +1808,52 @@ session.  The existing session which created a child becomes its
 
 A session with children will not spontaneously stop.  In other words,
 the presence of child sessions will keep a parent alive.
+
+=head2 Exceptions
+
+POE traps exceptions that happen within an event. When an exception
+occurs, POE sends the C<DIE> signal to the session that caused the
+exception. This is a terminal signal and will shutdown the POE
+environment unless the session handles the signal and calls
+C<sig_handled()>. 
+
+This behavior can be turned off by setting the C<CATCH_EXCEPTIONS>
+constant subroutine in C<POE::Kernel> to 0 like so:
+
+  sub POE::Kernel::CATCH_EXCEPTIONS () { 0 }
+
+The signal handler will be passed a single argument, a hashref,
+containing the following data.
+
+=item source_session
+
+The session from which the event originated
+
+=item dest_session
+
+The session which was the destination of the event. This is also the
+session that caused the exception.
+
+=item event
+
+Name of the event that caused the exception
+
+=item file
+
+The filename of the code which called the problematic event 
+
+=item line
+
+The line number of the code which called the problematic event
+
+=item from_state
+
+The state that was called the problematci event
+
+=item error_str
+
+The value of C<$@>, which contains the error string created by the
+exception.
 
 =head2 Session's Debugging Features
 

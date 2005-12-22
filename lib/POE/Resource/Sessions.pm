@@ -1,11 +1,11 @@
-# $Id: Sessions.pm,v 1.20 2005/04/22 20:36:31 rcaputo Exp $
+# $Id: Sessions.pm,v 1.21 2005/11/07 06:59:07 hachi Exp $
 
 # Manage session data structures on behalf of POE::Kernel.
 
 package POE::Resources::Sessions;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.20 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.21 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -414,7 +414,8 @@ sub _data_ses_collect_garbage {
       scalar(keys(%{$ss->[SS_CHILDREN]})) +
       $self->_data_handle_count_ses($session) +
       $self->_data_extref_count_ses($session) +
-      $self->_data_alias_count_ses($session)
+      $self->_data_alias_count_ses($session) + 
+      $self->_data_sig_count_ses($session)
     );
 
     # The calculated reference count really ought to match the one

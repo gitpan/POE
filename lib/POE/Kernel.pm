@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.323 2005/08/22 17:34:24 rcaputo Exp $
+# $Id: Kernel.pm,v 1.332 2005/12/18 22:45:18 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.323 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.332 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(:fcntl_h :sys_wait_h);
@@ -81,13 +81,25 @@ BEGIN {
       $time_hires_default = USE_TIME_HIRES();
     }
     else {
-      eval "sub USE_TIME_HIRES () { $time_hires_default }";
+      *USE_TIME_HIRES = sub () { $time_hires_default };
     }
   }
+}
+
+# Second BEGIN block so that USE_TIME_HIRES is treated as a constant.
+BEGIN {
   eval {
     require Time::HiRes;
     Time::HiRes->import(qw(time sleep));
   } if USE_TIME_HIRES();
+
+  # Set up a "constant" sub that lets the user deactivate
+  # automatic exception handling
+  { no strict 'refs';
+    unless (defined &CATCH_EXCEPTIONS) {
+      *CATCH_EXCEPTIONS = sub () { 1 };
+    }
+  }
 }
 
 #==============================================================================
@@ -193,7 +205,7 @@ sub ET_MASK_USER () { ~(ET_GC | ET_SCPOLL | ET_STAT) }
 # Temporary signal subtypes, used during signal dispatch semantics
 # deprecation and reformation.
 
-sub ET_SIGNAL_RECURSIVE () { 0x0800 }  # Explicitly requested signal.
+sub ET_SIGNAL_RECURSIVE () { 0x1000 }  # Explicitly requested signal.
 sub ET_SIGNAL_ANY () { ET_SIGNAL | ET_SIGNAL_RECURSIVE }
 
 # A hash of reserved names.  It's used to test whether someone is
@@ -240,19 +252,8 @@ sub define_trace {
   foreach my $name (@_) {
     next if defined *{"TRACE_$name"}{CODE};
     my $trace_value = &TRACE_DEFAULT;
-    eval "sub TRACE_$name () { $trace_value }";
-    die if $@;
-  }
-}
-
-# Shorthand for defining an assert constant.
-sub define_assert {
-  no strict 'refs';
-  foreach my $name (@_) {
-    next if defined *{"ASSERT_$name"}{CODE};
-    my $assert_value = &ASSERT_DEFAULT;
-    eval "sub ASSERT_$name () { $assert_value }";
-    die if $@;
+    my $trace_name  = "TRACE_$name";
+    *$trace_name = sub () { $trace_value };
   }
 }
 
@@ -262,6 +263,16 @@ sub define_assert {
 # here.
 
 BEGIN {
+  # Shorthand for defining an assert constant.
+  sub define_assert {
+    no strict 'refs';
+    foreach my $name (@_) {
+      next if defined *{"ASSERT_$name"}{CODE};
+      my $assert_value = &ASSERT_DEFAULT;
+      my $assert_name  = "ASSERT_$name";
+      *$assert_name = sub () { $assert_value };
+    }
+  }
 
   # Assimilate POE_TRACE_* and POE_ASSERT_* environment variables.
   # Environment variables override everything else.
@@ -277,8 +288,7 @@ BEGIN {
 
     BEGIN { $^W = 0; }
 
-    eval "sub $const () { $value }";
-    die if $@;
+    *$const = sub () { $value };
   }
 
   # TRACE_FILENAME is special.
@@ -298,7 +308,7 @@ BEGIN {
   # constants.  Since define_trace() uses TRACE_DEFAULT internally, it
   # can't be used to define TRACE_DEFAULT itself.
 
-  defined &TRACE_DEFAULT or eval "sub TRACE_DEFAULT () { 0 }";
+  defined &TRACE_DEFAULT or *TRACE_DEFAULT = sub () { 0 };
 
   define_trace qw(
     EVENTS FILES PROFILE REFCNT RETVALS SESSIONS SIGNALS STATISTICS
@@ -307,7 +317,7 @@ BEGIN {
   # See the notes for TRACE_DEFAULT, except read ASSERT and assert
   # where you see TRACE and trace.
 
-  defined &ASSERT_DEFAULT or eval "sub ASSERT_DEFAULT () { 0 }";
+  defined &ASSERT_DEFAULT or *ASSERT_DEFAULT = sub () { 0 };
 
   define_assert qw(DATA EVENTS FILES RETVALS USAGE);
 }
@@ -445,13 +455,13 @@ sub find_loop {
 sub load_loop {
   my $loop = shift;
 
-  eval "sub poe_kernel_loop { return \"$loop\"; }";
-  eval "require $loop";
+  *poe_kernel_loop = sub { return "$loop" };
 
   # Modules can die with "not really dying" if they've loaded
   # something else.  This exception prevents the rest of the
   # originally used module from being parsed, so the module it's
   # handed off to takes over.
+  eval "require $loop";
   if ($@ and $@ !~ /not really dying/) {
     die(
       "*\n",
@@ -461,6 +471,7 @@ sub load_loop {
     );
   }
 }
+
 sub test_loop {
   my $used_first = shift;
   local $SIG{__DIE__} = "DEFAULT";
@@ -469,54 +480,56 @@ sub test_loop {
   # explicitly.
   if (defined $used_first) {
     load_loop($used_first);
+    return;
   }
-  else {
-    foreach my $file (keys %INC) {
-      next if (substr ($file, -3) ne '.pm');
-      my @split_dirs = File::Spec->splitdir($file);
 
-      # Create a module name by replacing the path separators with
-      # dashes and removing ".pm"
-      my $module = join("_", @split_dirs);
-      substr($module, -3) = "";
+  foreach my $file (keys %INC) {
+    next if (substr ($file, -3) ne '.pm');
+    my @split_dirs = File::Spec->splitdir($file);
 
-      # Skip the module name if it isn't legal.
-      next if $module =~ /[^\w\.]/;
+    # Create a module name by replacing the path separators with
+    # underscores and removing ".pm"
+    my $module = join("_", @split_dirs);
+    substr($module, -3) = "";
 
-      # Try for the XS version first.  If it fails, try the plain
-      # version.  If that fails, we're up a creek.
-      $module = "POE/XS/Loop/$module.pm";
-      unless (find_loop($module)) {
-        $module =~ s|XS/||;
-        next unless (find_loop($module));
-      }
+    # Skip the module name if it isn't legal.
+    next if $module =~ /[^\w\.]/;
 
-      if (defined $used_first and $used_first ne $module) {
-        die(
-          "*\n",
-          "* POE can't use multiple event loops at once.\n",
-          "* You used $used_first and $module.\n",
-          "* Specify the loop you want as an argument to POE\n",
-          "*  use POE qw(Loop::Select);\n",
-          "* or;\n",
-          "*  use POE::Kernel { loop => 'Select' };\n",
-          "*\n",
-        );
-      }
-
-      $used_first = $module;
+    # Try for the XS version first.  If it fails, try the plain
+    # version.  If that fails, we're up a creek.
+    $module = "POE/XS/Loop/$module.pm";
+    unless (find_loop($module)) {
+      $module =~ s|XS/||;
+      next unless (find_loop($module));
     }
 
-    unless (defined $used_first) {
-      $used_first = "POE/XS/Loop/Select.pm";
-      unless (find_loop($used_first)) {
-        $used_first =~ s/XS\///;
-      }
+    if (defined $used_first and $used_first ne $module) {
+      die(
+        "*\n",
+        "* POE can't use multiple event loops at once.\n",
+        "* You used $used_first and $module.\n",
+        "* Specify the loop you want as an argument to POE\n",
+        "*  use POE qw(Loop::Select);\n",
+        "* or;\n",
+        "*  use POE::Kernel { loop => 'Select' };\n",
+        "*\n",
+      );
     }
-    substr($used_first, -3) = "";
-    $used_first =~ s|/|::|g;
-    load_loop($used_first);
+
+    $used_first = $module;
   }
+
+  # No loop found.  Default to our internal select() loop.
+  unless (defined $used_first) {
+    $used_first = "POE/XS/Loop/Select.pm";
+    unless (find_loop($used_first)) {
+      $used_first =~ s/XS\///;
+    }
+  }
+
+  substr($used_first, -3) = "";
+  $used_first =~ s|/|::|g;
+  load_loop($used_first);
 }
 
 #------------------------------------------------------------------------------
@@ -835,6 +848,10 @@ sub _dispatch_event {
 
       # Step 1a: Reset the handled-signal flags.
 
+      local @POE::Kernel::kr_signaled_sessions;
+      local $POE::Kernel::kr_signal_total_handled;
+      local $POE::Kernel::kr_signal_type;
+
       $self->_data_sig_reset_handled($signal);
 
       my @touched_sessions = ($session);
@@ -891,7 +908,7 @@ sub _dispatch_event {
       $self->_data_sig_free_terminated_sessions();
 
       # Signal completely dispatched.  Thanks for flying!
-      return;
+      return (_data_sig_handled_status())[0];
     }
   }
 
@@ -931,24 +948,92 @@ sub _dispatch_event {
   if (TRACE_STATISTICS) {
     $before = time();
   }
+
   my $return;
-  if (wantarray) {
-    $return = [
+  my $wantarray = wantarray;
+  if(CATCH_EXCEPTIONS) {
+    eval {
+      if ($wantarray) {
+        $return = [
+          $session->_invoke_state(
+            $source_session, $event, $etc, $file, $line, $fromstate
+          )
+        ];
+      }
+      elsif (defined $wantarray) {
+        $return = $session->_invoke_state(
+          $source_session, $event, $etc, $file, $line, $fromstate
+        );
+      }
+      else {
+        $session->_invoke_state(
+          $source_session, $event, $etc, $file, $line, $fromstate
+        );
+      }
+    };
+
+    # local $@ doesn't work quite the way I expect, but there is a
+    # bit of a problem if an eval{} occurs here because a signal is
+    # dispatched or something.
+
+    my $exception = $@;
+
+    if($exception ne '') {
+      if(TRACE_EVENTS) {
+        _warn(
+          "<ev> exception occurred in $event when invoked on ",
+          $self->_data_alias_loggable($session)
+        );
+      }
+
+      my $handled = $self->_dispatch_event(
+        $session,
+        $source_session,
+        EN_SIGNAL,
+        ET_SIGNAL,
+        [
+          'DIE' => {
+            source_session => $source_session,
+            dest_session => $session,
+            event => $event,
+            file => $file,
+            line => $line,
+            from_state => $fromstate,
+            error_str => $exception,
+          },
+        ],
+        __FILE__,
+        __LINE__,
+        undef,
+        time(),
+        -__LINE__,
+      );
+
+      unless ($handled) {
+        die( $exception );
+      }
+    }
+
+  } else {
+    if ($wantarray) {
+      $return = [
+        $session->_invoke_state(
+          $source_session, $event, $etc, $file, $line, $fromstate
+        )
+      ];
+    }
+    elsif (defined $wantarray) {
+      $return = $session->_invoke_state(
+        $source_session, $event, $etc, $file, $line, $fromstate
+      );
+    }
+    else {
       $session->_invoke_state(
         $source_session, $event, $etc, $file, $line, $fromstate
-      )
-    ];
+      );
+    }
   }
-  elsif (defined wantarray) {
-    $return = $session->_invoke_state(
-      $source_session, $event, $etc, $file, $line, $fromstate
-    );
-  }
-  else {
-    $session->_invoke_state(
-      $source_session, $event, $etc, $file, $line, $fromstate
-    );
-  }
+
 
   # Clear out the event arguments list, in case there are POE-ish
   # things in it. This allows them to destruct happily before we set
@@ -1103,14 +1188,26 @@ sub run {
   # Flag that run() was called.
   $kr_run_warning |= KR_RUN_CALLED;
 
-  # All signals must be explicitly watched now.  We do it here because
-  # it's too early in initialize_kernel_session.
-  $self->_data_sig_add($self, "IDLE", EN_SIGNAL);
+  # Don't run the loop if we have no sessions
+  # Loop::Event will blow up, so we're doing this sanity check
+  if ( $self->_data_ses_count() == 0 ) {
+    # Emit noise only if we are under debug mode
+    if ( ASSERT_DATA ) {
+      _warn("Not running the event loop because we have no sessions!\n");
+    }
+  } else {
+    # All signals must be explicitly watched now.  We do it here because
+    # it's too early in initialize_kernel_session.
+    $self->_data_sig_add($self, "IDLE", EN_SIGNAL);
 
-  $self->loop_run();
+    # Run the loop!
+    $self->loop_run();
+
+    # Cleanup
+    $self->finalize_kernel();
+  }
 
   # Clean up afterwards.
-  $self->finalize_kernel();
   $kr_run_warning |= KR_RUN_DONE;
 }
 
@@ -1229,6 +1326,7 @@ sub session_alloc {
     }
   }
 
+
   # Register that a session was created.
   $kr_run_warning |= KR_RUN_SESSION;
 
@@ -1236,6 +1334,8 @@ sub session_alloc {
   # we dispatch anything regarding the new session.
   my $new_sid = $self->_data_sid_allocate();
   $self->_data_ses_allocate($session, $new_sid, $kr_active_session);
+
+  my $loggable = $self->_data_alias_loggable($session);
 
   # Tell the new session that it has been created.  Catch the _start
   # state's return value so we can pass it to the parent with the
@@ -1245,6 +1345,12 @@ sub session_alloc {
     EN_START, ET_START, \@args,
     __FILE__, __LINE__, undef, time(), -__LINE__
   );
+  unless($self->_data_ses_exists($session)) {
+    if(TRACE_SESSIONS) {
+      _warn("<ss> ", $loggable, " disappeared during ", EN_START);
+    }
+    return $return;
+  }
 
   # If the child has not detached itself---that is, if its parent is
   # the currently active session---then notify the parent with a
@@ -1255,6 +1361,14 @@ sub session_alloc {
     EN_CHILD, ET_CHILD, [ CHILD_CREATE, $session, $return ],
     __FILE__, __LINE__, undef, time(), -__LINE__
   );
+
+  unless($self->_data_ses_exists($session)) {
+    if(TRACE_SESSIONS) {
+      _warn("<ss> ", $loggable, " disappeared during ", EN_CHILD, " dispatch");
+    }
+    return $return;
+  }
+
 
   # Enqueue a delayed garbage-collection event so the session has time
   # to do its thing before it goes.
@@ -3397,8 +3511,15 @@ handler calls C<sig_handled()>, however, then the program will
 continue to live.
 
 The terminal system signals are: HUP, INT, KILL, QUIT and TERM.  There
-is also one terminal fictitious signal, IDLE, which is used to notify
-leftover sessions when a program has run out of things to do.
+are two terminal fictitious signals, IDLE and DIE. IDLE is used to notify
+leftover sessions when a program has run out of things to do. DIE is
+used to notify sessions that an exception has occurred.
+
+POE's automatic exception handling can be turned off by setting the
+C<CATCH_EXCEPTIONS> constant subroutine in C<POE::Kernel> to 0 like so:
+
+  sub POE::Kernel::CATCH_EXCEPTIONS () { 0 }
+
 
 =item nonmaskable
 
@@ -3950,3 +4071,5 @@ Probably lots more.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
