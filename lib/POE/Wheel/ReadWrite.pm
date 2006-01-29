@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm,v 1.73 2005/08/29 20:35:04 rcaputo Exp $
+# $Id: ReadWrite.pm,v 1.74 2006/01/25 21:15:21 lotr Exp $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.73 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.74 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -491,7 +491,6 @@ sub set_filter {
   my $buf = $self->[FILTER_INPUT]->get_pending();
   $self->[FILTER_INPUT] = $self->[FILTER_OUTPUT] = $new_filter;
 
-  $self->_define_read_state();
   $self->_transfer_input_buffer($buf);
 }
 
@@ -501,7 +500,6 @@ sub set_input_filter {
   my $buf = $self->[FILTER_INPUT]->get_pending();
   $self->[FILTER_INPUT] = $new_filter;
 
-  $self->_define_read_state();
   $self->_transfer_input_buffer($buf);
 }
 

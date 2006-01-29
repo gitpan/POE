@@ -1,11 +1,11 @@
-# $Id: ListenAccept.pm,v 1.30 2004/12/02 00:20:58 apocal Exp $
+# $Id: ListenAccept.pm,v 1.31 2006/01/25 21:15:21 lotr Exp $
 
 package POE::Wheel::ListenAccept;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.30 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.31 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -73,8 +73,6 @@ sub event {
       carp "ignoring unknown ListenAccept parameter '$name'";
     }
   }
-
-  $self->_define_accept_state();
 }
 
 #------------------------------------------------------------------------------

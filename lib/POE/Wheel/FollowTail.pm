@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm,v 1.54 2005/04/12 23:02:18 rcaputo Exp $
+# $Id: FollowTail.pm,v 1.55 2006/01/25 21:15:21 lotr Exp $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.54 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.55 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -434,16 +434,6 @@ sub event {
     else {
       carp "ignoring unknown FollowTail parameter '$name'";
     }
-  }
-
-  if ($self->[SELF_FOLLOW_MODE] & MODE_TIMER) {
-    $self->_define_timer_states();
-  }
-  elsif ($self->[SELF_FOLLOW_MODE] & MODE_SELECT) {
-    $self->_define_select_states();
-  }
-  else {
-    die;
   }
 }
 

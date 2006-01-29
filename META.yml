@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.33
+version: 0.3301
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: A portable networking and multitasking framework.
@@ -20,7 +20,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.33
+    version: 0.3301
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.0003
@@ -74,7 +74,7 @@ provides:
     version: 1.0014
   POE::Kernel:
     file: lib/POE/Resource/Signals.pm
-    version: 1.0019
+    version: 1.0020
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.0008
@@ -155,7 +155,7 @@ provides:
     version: 1.0021
   POE::Resources::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.0019
+    version: 1.0020
   POE::Resources::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.0005
@@ -170,10 +170,10 @@ provides:
     version: 1.0013
   POE::Wheel::FollowTail:
     file: lib/POE/Wheel/FollowTail.pm
-    version: 1.0054
+    version: 1.0055
   POE::Wheel::ListenAccept:
     file: lib/POE/Wheel/ListenAccept.pm
-    version: 1.0030
+    version: 1.0031
   POE::Wheel::ReadLine:
     file: lib/POE/Wheel/ReadLine.pm
     version: 1.0038
@@ -182,10 +182,10 @@ provides:
     version: 1.0038
   POE::Wheel::ReadWrite:
     file: lib/POE/Wheel/ReadWrite.pm
-    version: 1.0073
+    version: 1.0074
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
-    version: 1.0070
+    version: 1.0072
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
     version: 1.0081

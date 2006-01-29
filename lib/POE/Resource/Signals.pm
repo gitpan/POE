@@ -1,4 +1,4 @@
-# $Id: Signals.pm,v 1.19 2005/12/22 20:18:29 rcaputo Exp $
+# $Id: Signals.pm,v 1.20 2005/12/23 08:16:06 rcaputo Exp $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resources::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.19 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.20 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -152,7 +152,7 @@ sub _data_sig_finalize {
 
   unless (RUNNING_IN_HELL) {
     local $!;
-    until ((my $pid = waitpid( -1, WNOHANG )) == -1) {
+    until ((my $pid = waitpid( -1, 0 )) == -1) {
       _warn( "Child process PID:$pid reaped: $!\n" );
       $finalized_ok = 0;
     }

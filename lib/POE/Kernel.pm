@@ -1,11 +1,11 @@
-# $Id: Kernel.pm,v 1.332 2005/12/18 22:45:18 rcaputo Exp $
+# $Id: Kernel.pm,v 1.333 2005/12/29 17:55:36 rcaputo Exp $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.332 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my@r=(q$Revision: 1.333 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
 use POE::Queue::Array;
 use POSIX qw(:fcntl_h :sys_wait_h);
@@ -288,6 +288,7 @@ BEGIN {
 
     BEGIN { $^W = 0; }
 
+    no strict 'refs';
     *$const = sub () { $value };
   }
 
