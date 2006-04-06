@@ -1,11 +1,11 @@
-# $Id: Driver.pm,v 1.15 2003/11/21 05:08:25 rcaputo Exp $
+# $Id: Driver.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 package POE::Driver;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.15 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 

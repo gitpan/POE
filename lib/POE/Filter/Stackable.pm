@@ -12,7 +12,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -26,11 +26,22 @@ sub new {
   croak "$type must be given an even number of parameters" if @_ & 1;
   my %params = @_;
 
-  my $self = bless [], $type;
-
-  $self->[FILTERS] = $params{Filters};
+  my $self = bless [
+    $params{Filters}, # FILTERS
+  ], $type;
 
   $self;
+}
+
+sub clone {
+  my $self = shift;
+  my $clone = bless [
+    [ ],    # FILTERS
+  ], ref $self;
+  foreach my $filter ($self->[FILTERS]) {
+    push (@{$clone->[FILTERS]}, $filter->clone());
+  }
+  $clone;
 }
 
 #------------------------------------------------------------------------------

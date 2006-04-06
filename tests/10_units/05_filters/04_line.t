@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 04_line.t,v 1.3 2005/09/08 16:40:18 rcaputo Exp $
+# $Id: 04_line.t 1842 2005-09-08 16:40:19Z rcaputo $
 # vim: filetype=perl
 
 # Exercises Filter::Line without the rest of POE.

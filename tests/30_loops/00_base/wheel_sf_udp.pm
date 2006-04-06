@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_udp.pm,v 1.2 2005/06/28 06:18:21 rcaputo Exp $
+# $Id: wheel_sf_udp.pm 1927 2006-04-06 03:40:26Z rcaputo $
 
 # Exercises the wheels commonly used with UDP sockets.
 
@@ -88,11 +88,11 @@ sub udp_stop {
 
   ok(
     $heap->{peer_a_send_count} == $max_send_count,
-    "peer a sent $heap->{peer_a_send_count}"
+    "peer a sent $heap->{peer_a_send_count} (wanted $max_send_count)"
   );
   ok(
     $heap->{peer_b_send_count} == $max_send_count,
-    "peer b sent $heap->{peer_b_send_count}"
+    "peer b sent $heap->{peer_b_send_count} (wanted $max_send_count)"
   );
 }
 

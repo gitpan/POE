@@ -1,11 +1,11 @@
-#$Id: Ctl.pm,v 1.3 2004/12/02 00:20:56 apocal Exp $
+#$Id: Ctl.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 package POE::API::Ctl;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.3 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POE::Kernel;
 use POE::Resource::Controls;
@@ -39,7 +39,7 @@ __END__
 
 =head1 NAME
 
-POE::API::Ctl -- Switches and Knobs for POE Internals 
+POE::API::Ctl -- Switches and Knobs for POE Internals
 
 =head1 SYNOPSIS
 
@@ -59,7 +59,7 @@ into the calling namespace a function named C<poectl>.
 =head1 FUNCTIONS
 
 =head2 poectl
- 
+
     my $value = poectl('kernel.id');
     my $new_value = poectl('some.name' => 'pie');
     my $ctls = poectl();
@@ -76,7 +76,7 @@ parameters are given, an error is thrown and undef is returned.
 
 Control entries can be locked by the POE internals. If a write is
 attempted to a locked entry, the write will not succeed and the old
-value will remain. 
+value will remain.
 
 =head1 SEE ALSO
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm,v 1.9 2005/06/29 21:46:21 rcaputo Exp $
+# $Id: wheel_run.pm 1928 2006-04-06 14:57:17Z rcaputo $
 
 use strict;
 use lib qw(./mylib ../mylib ../lib ./lib);
@@ -92,7 +92,7 @@ my $program = (
         # Ask the child for something on stdout.
         $heap->{wheel}->put( 'out test-out' );
 
-        $kernel->delay(close => 5);
+        $kernel->delay(close => 10);
       },
 
       # Error! Ow!
@@ -104,6 +104,7 @@ my $program = (
       close => sub {
         DEBUG and warn "close";
         delete $_[HEAP]->{wheel};
+        $_[KERNEL]->delay(close => undef);
       },
 
       # Dummy _stop to prevent runtime errors.
@@ -197,7 +198,7 @@ SKIP: {
         $heap->{wheel}->put( 'out test-out' );
 
         # Timeout.
-        $kernel->delay(close => 5);
+        $kernel->delay(close => 10);
       },
 
       # Error! Ow!
@@ -209,6 +210,7 @@ SKIP: {
       close => sub {
         DEBUG and warn "close";
         delete $_[HEAP]->{wheel};
+        $_[KERNEL]->delay(close => undef);
       },
 
       # Dummy _stop to prevent runtime errors.
@@ -288,7 +290,7 @@ SKIP: {
 
         # Ask the child for something on stdout.
         $heap->{wheel}->put( 'out test-out' );
-        $kernel->delay(bye => 5);
+        $kernel->delay(bye => 10);
 
         DEBUG and warn "_start";
       },
@@ -298,6 +300,7 @@ SKIP: {
       bye => sub {
         DEBUG and warn "bye";
         delete $_[HEAP]->{wheel};
+        $_[KERNEL]->delay(bye => undef);
       },
 
       # Error!  Ow!
@@ -320,7 +323,7 @@ SKIP: {
 
         if ($child_pid == $heap->{wheel}->PID()) {
           DEBUG and warn "\tthe child process is ours\n";
-          delete $heap->{wheel};
+          $_[KERNEL]->yield("bye");
         }
         return 0;
       },

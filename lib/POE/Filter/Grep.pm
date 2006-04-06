@@ -6,15 +6,15 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
 
-sub CODEBOTH () { 0 }
-sub CODEGET  () { 1 }
-sub CODEPUT  () { 2 }
-sub BUFFER   () { 3 }
+sub BUFFER   () { 0 }
+sub CODEBOTH () { 1 }
+sub CODEGET  () { 2 }
+sub CODEPUT  () { 3 }
 
 #------------------------------------------------------------------------------
 
@@ -36,10 +36,10 @@ sub new {
   );
 
   my $self = bless [
+    [ ],           # BUFFER
     $params{Code}, # CODEBOTH
     $params{Get},  # CODEGET
     $params{Put},  # CODEPUT
-    [ ],           # BUFFER
   ], $type;
 }
 

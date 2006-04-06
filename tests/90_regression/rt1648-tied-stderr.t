@@ -1,5 +1,5 @@
 #!/usr/bin/perl 
-# $Id: rt1648-tied-stderr.t,v 1.4 2005/10/19 18:27:18 hachi Exp $
+# $Id: rt1648-tied-stderr.t 1848 2005-10-19 18:27:18Z hachi $
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He
 # suggested untying STDOUT and STDERR in the child process.  This test

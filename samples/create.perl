@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: create.perl,v 1.7 2004/01/31 06:58:29 rcaputo Exp $
+# $Id: create.perl 1509 2004-01-31 06:58:31Z rcaputo $
 
 # This is a version of sessions.perl that uses the &Session::create
 # constructor.

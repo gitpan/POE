@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 50_stackable.t,v 1.2 2005/06/28 06:18:20 rcaputo Exp $
+# $Id: 50_stackable.t 1813 2005-06-28 06:18:21Z rcaputo $
 # vim: filetype=perl
 
 # Exercises Filter::Stack (and friends) without the rest of POE.

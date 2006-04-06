@@ -1,11 +1,11 @@
-# $Id: NFA.pm,v 1.31 2004/12/03 03:35:36 rcaputo Exp $
+# $Id: NFA.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.31 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 

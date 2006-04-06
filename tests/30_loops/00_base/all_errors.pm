@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: all_errors.pm,v 1.4 2005/06/28 06:18:20 rcaputo Exp $
+# $Id: all_errors.pm 1813 2005-06-28 06:18:21Z rcaputo $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.

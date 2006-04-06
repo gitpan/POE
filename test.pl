@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: test.pl,v 1.3 2005/04/22 20:27:23 rcaputo Exp $
+# $Id: test.pl 1774 2005-04-22 20:27:23Z rcaputo $
 
 use strict;
 

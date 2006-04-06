@@ -1,4 +1,4 @@
-# $Id: signals.pm,v 1.3 2004/12/30 16:22:48 rcaputo Exp $
+# $Id: signals.pm 1728 2004-12-30 16:22:48Z rcaputo $
 
 use strict;
 

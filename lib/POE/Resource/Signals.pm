@@ -1,4 +1,4 @@
-# $Id: Signals.pm,v 1.20 2005/12/23 08:16:06 rcaputo Exp $
+# $Id: Signals.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resources::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.20 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;

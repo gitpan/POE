@@ -1,4 +1,4 @@
-# $Id: Line.pm,v 1.26 2005/06/29 04:05:43 rcaputo Exp $
+# $Id: Line.pm 1920 2006-04-02 07:17:33Z rcaputo $
 
 package POE::Filter::Line;
 
@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.26 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
@@ -106,6 +106,7 @@ sub new {
 
   $self;
 }
+
 
 #------------------------------------------------------------------------------
 # get() is inherited from POE::Filter.

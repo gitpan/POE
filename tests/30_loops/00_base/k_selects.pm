@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: k_selects.pm,v 1.2 2005/06/28 06:18:21 rcaputo Exp $
+# $Id: k_selects.pm 1813 2005-06-28 06:18:21Z rcaputo $
 
 # Tests basic select operations.
 

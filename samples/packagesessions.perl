@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w -I..
-# $Id: packagesessions.perl,v 1.9 2005/01/28 22:57:30 rcaputo Exp $
+# $Id: packagesessions.perl 1746 2005-01-28 22:57:30Z rcaputo $
 
 # This is a simple test of "package sessions".  These are similar to
 # object sessions, but they work with packages instead of objects.  It

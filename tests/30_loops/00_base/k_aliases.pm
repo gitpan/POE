@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: k_aliases.pm,v 1.1 2004/09/04 22:50:39 rcaputo Exp $
+# $Id: k_aliases.pm 1618 2004-09-04 22:50:40Z rcaputo $
 
 # Tests basic session aliases.
 

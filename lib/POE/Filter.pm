@@ -1,11 +1,11 @@
-# $Id: Filter.pm,v 1.15 2005/06/29 04:05:39 rcaputo Exp $
+# $Id: Filter.pm 1920 2006-04-02 07:17:33Z rcaputo $
 
 package POE::Filter;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.15 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -32,6 +32,22 @@ sub get {
   }
 
   return \@return;
+}
+
+sub clone {
+  my $self = shift;
+  if (ref ($self->[0]) eq 'ARRAY') {
+    return bless [
+      [ ],                      # BUFFER
+      $self->[1 .. $#{$self}],  # everything else
+    ], ref $self;
+  }
+  else {
+    return bless [
+      '',                       # BUFFER
+      $self->[1 .. $#{$self}],  # everything else
+    ], ref $self;
+  }
 }
 
 #------------------------------------------------------------------------------
@@ -154,6 +170,15 @@ filters yet.
 Adding a handshake protocol means the sender will wait until a filter
 change has been acknowledged before going ahead and sending data in
 the new format.
+
+=item clone
+
+clone() makes a copy of the filter, and clears the copy's buffer.
+
+3rd party modules can either implement their own clone() or inherit
+from POE::Filter.  If inheriting, the object MUST be an array-ref
+AND the first element must be the buffer.  The buffer can be either a
+string or an array-ref.
 
 =back
 

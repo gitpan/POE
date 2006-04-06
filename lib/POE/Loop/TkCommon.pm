@@ -1,4 +1,4 @@
-# $Id: TkCommon.pm,v 1.14 2005/06/29 21:46:20 rcaputo Exp $
+# $Id: TkCommon.pm 1924 2006-04-05 04:22:47Z rcaputo $
 
 # The common bits of our system-specific Tk event loops.  This is
 # everything but file handling.
@@ -10,7 +10,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1924 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Tk 800.021;
 use 5.00503;
@@ -34,11 +34,15 @@ sub loop_attach_uidestroy {
   $window->OnDestroy(
     sub {
       if ($self->_data_ses_count()) {
+
         $self->_dispatch_event(
           $self, $self,
           EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
           __FILE__, __LINE__, time(), -__LINE__
         );
+
+        # Flag the main loop as done.
+        $_do_one_running = 0;
       }
     }
   );

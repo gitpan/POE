@@ -1,16 +1,15 @@
-# $Id: SysRW.pm,v 1.30 2004/11/24 02:07:50 rcaputo Exp $
+# $Id: SysRW.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 
 package POE::Driver::SysRW;
-use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.30 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
@@ -58,7 +57,8 @@ sub put {
   my ($self, $chunks) = @_;
   my $old_queue_octets = $self->[TOTAL_OCTETS_LEFT];
 
-  {% use_bytes %}
+  # Need to check lengths in octets, not characters.
+  use bytes;
 
   foreach (grep { length } @$chunks) {
     $self->[TOTAL_OCTETS_LEFT] += length;
@@ -124,7 +124,8 @@ sub get {
 sub flush {
   my ($self, $handle) = @_;
 
-  {% use_bytes %}
+  # Need to check lengths in octets, not characters.
+  use bytes;
 
   # syswrite() it, like we're supposed to
   while (@{$self->[OUTPUT_QUEUE]}) {

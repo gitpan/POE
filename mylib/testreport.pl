@@ -6,7 +6,7 @@ testreport.pl - generate a test report in xml
 
 =head1 VERSION
 
-$Revision: 1.15 $
+$Revision: 1903 $
 
 =head1 USAGE
 
@@ -27,7 +27,7 @@ use base qw(Test::Harness::Straps);
 use Sys::Hostname;
 use vars qw($VERSION);
 
-$VERSION = (qw($Revision: 1.15 $))[1];
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 local $| = 1;
 

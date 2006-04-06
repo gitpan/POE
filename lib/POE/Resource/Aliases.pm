@@ -1,4 +1,4 @@
-# $Id: Aliases.pm,v 1.11 2004/11/16 07:12:46 rcaputo Exp $
+# $Id: Aliases.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Manage the POE::Kernel data structures necessary to keep track of
 # session aliases.
@@ -6,7 +6,7 @@
 package POE::Resources::Aliases;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.11 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;

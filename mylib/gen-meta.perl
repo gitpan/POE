@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: gen-meta.perl,v 1.2 2004/11/26 21:21:54 rcaputo Exp $
+# $Id: gen-meta.perl 1910 2006-03-28 05:10:47Z rcaputo $
 
 # Generate META.yml.
 
@@ -24,6 +24,9 @@ my $build = Module::Build->new(
     RECOMMENDED_TIME_HIRES,
   },
   requires          => { CORE_REQUIREMENTS },
+  no_index => {
+    dir => [ "mylib" ]
+  },
 );
 
 $build->dispatch("distmeta");

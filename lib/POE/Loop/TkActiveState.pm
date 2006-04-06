@@ -1,4 +1,4 @@
-# $Id: TkActiveState.pm,v 1.9 2005/04/25 16:01:07 rcaputo Exp $
+# $Id: TkActiveState.pm 1914 2006-03-28 21:37:31Z rcaputo $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
@@ -6,7 +6,7 @@
 package POE::Loop::TkActiveState;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.9 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1914 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Merge things into POE::Loop::Tk.
 package POE::Loop::Tk;
@@ -121,7 +121,7 @@ sub loop_resume_filehandle {
 sub _poll_for_io {
   if (defined $_handle_poller) {
     $_handle_poller->cancel();
-    undef $_handle_poller;
+    $_handle_poller = undef;
   }
 
   # Determine which files are being watched.
@@ -248,14 +248,7 @@ sub _poll_for_io {
   $poe_kernel->_data_ev_dispatch_due();
 
   # Reset the poller.
-  $_handle_poller = $poe_main_window->afterIdle(
-    [ sub {
-        $_handle_poller->cancel();
-        undef $_handle_poller;
-        $_handle_poller = $poe_main_window->after(100, [\&_poll_for_io]);
-      }
-    ]
-  );
+  $_handle_poller = $poe_main_window->after(100, [\&_poll_for_io]);
 }
 
 1;

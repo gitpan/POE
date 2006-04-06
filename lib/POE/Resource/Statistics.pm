@@ -1,4 +1,4 @@
-# $Id: Statistics.pm,v 1.5 2005/05/15 07:00:12 rcaputo Exp $
+# $Id: Statistics.pm 1911 2006-03-28 05:15:50Z rcaputo $
 
 # Data and methods to collect runtime statistics about POE, allowing
 # clients to look at how much work their POE server is performing.
@@ -8,7 +8,7 @@
 package POE::Resources::Statistics;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.5 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1911 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # We fold all this stuff back into POE::Kernel
 package POE::Kernel;
@@ -61,7 +61,7 @@ sub _data_stat_finalize {
       }
 
       # Division by zero sucks.
-      $average{blocked}     ||= 0;
+      $average{interval}    ||= 1;
       $average{user_events} ||= 1;
 
       POE::Kernel::_warn(

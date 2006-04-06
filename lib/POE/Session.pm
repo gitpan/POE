@@ -1,11 +1,11 @@
-# $Id: Session.pm,v 1.114 2005/12/04 01:29:26 sungo Exp $
+# $Id: Session.pm 1912 2006-03-28 05:22:55Z rcaputo $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.114 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1912 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ENOSYS);
@@ -215,9 +215,10 @@ sub new {
   croak "sessions no longer require a kernel reference as the first parameter"
     if ((@states > 1) && (ref($states[0]) eq 'POE::Kernel'));
 
-  carp(
-    "POE::Session->new() is deprecated.  Please use create() instead.\n",
-    "See http://www.nntp.perl.org/group/perl.poe/2613 for more information."
+  croak(
+		"POE::Session->new() has been deprecated for over a year.  Please\n",
+		"use create() instead.  http://www.nntp.perl.org/group/perl.poe/2613\n",
+		"discusses the deprecation.\n",
   );
 
   my $self = $type->instantiate (\@states);

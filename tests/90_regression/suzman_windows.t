@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: suzman_windows.t,v 1.2 2005/06/28 06:18:21 rcaputo Exp $
+# $Id: suzman_windows.t 1813 2005-06-28 06:18:21Z rcaputo $
 # vim: filetype=perl
 
 # Tests various signals using POE's stock signal handlers.  These are

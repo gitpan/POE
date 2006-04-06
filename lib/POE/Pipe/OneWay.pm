@@ -1,4 +1,4 @@
-# $Id: OneWay.pm,v 1.14 2004/12/02 00:20:58 apocal Exp $
+# $Id: OneWay.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Portable one-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::OneWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Symbol qw(gensym);
 use IO::Socket qw( AF_UNIX SOCK_STREAM PF_UNSPEC );

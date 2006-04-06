@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 08_stream.t,v 1.1 2004/09/04 22:50:38 rcaputo Exp $
+# $Id: 08_stream.t 1618 2004-09-04 22:50:40Z rcaputo $
 
 # Exercises Filter::Stream without the rest of POE.
 

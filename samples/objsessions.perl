@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: objsessions.perl,v 1.12 2005/01/28 22:57:30 rcaputo Exp $
+# $Id: objsessions.perl 1746 2005-01-28 22:57:30Z rcaputo $
 
 # This is another simple functionality test.  It tests sessions that
 # are composed of objects (also called "object sessions").  It is

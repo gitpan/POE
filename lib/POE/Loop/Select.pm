@@ -1,4 +1,4 @@
-# $Id: Select.pm,v 1.59 2005/08/22 17:34:25 rcaputo Exp $
+# $Id: Select.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.59 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;

@@ -1,4 +1,4 @@
-# $Id: Array.pm,v 1.8 2004/11/24 02:10:40 rcaputo Exp $
+# $Id: Array.pm 1903 2006-03-20 04:44:08Z rcaputo $
 # Copyrights and documentation are at the end.
 
 package POE::Queue::Array;
@@ -7,7 +7,7 @@ use strict;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(POE::Queue);
-$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(ESRCH EPERM);
 use Carp qw(confess);
@@ -419,7 +419,7 @@ sub _dump_splice {
 }
 
 ### Reinsert an item into the queue.  It has just been removed by
-### adjust_priority() or set_priority() and needs to be replaced. 
+### adjust_priority() or set_priority() and needs to be replaced.
 ### This tries to be clever by not doing more work than necessary.
 
 sub _reinsert_item {

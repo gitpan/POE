@@ -1,12 +1,12 @@
-# $Id: ReadLine.pm,v 1.38 2005/08/10 14:28:16 rcaputo Exp $
+# $Id: ReadLine.pm 1919 2006-04-02 00:33:21Z rcaputo $
 
 package POE::Wheel::ReadLine;
 
 use strict;
-use bytes; # don't assume UTF while reading bizarre key sequences
+use bytes;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.38 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1919 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
@@ -296,6 +296,7 @@ C-y: yank
 C-]: character-search
 C-_: undo
 del: backward-delete-char
+rubout: backward-delete-char
 
 M-C-g: abort
 M-C-h: backward-kill-word
@@ -546,7 +547,9 @@ sub repaint_input_line {
   print $stdout $sp, normalize($self->[SELF_INPUT]);
 
   if ( $self->[SELF_CURSOR_INPUT] != length( $self->[SELF_INPUT]) ) {
-    curs_left( display_width($self->[SELF_INPUT]) - $self->[SELF_CURSOR_DISPLAY] );
+    curs_left(
+      display_width($self->[SELF_INPUT]) - $self->[SELF_CURSOR_DISPLAY]
+    );
   }
 }
 
@@ -645,22 +648,28 @@ sub readable_key {
   foreach my $l (split(//, $raw_key)) {
     if (ord($l) == 0x1B) {
       push(@text, 'Meta-');
-    } elsif (ord($l) < 32) {
+      next;
+    }
+    if (ord($l) < 32) {
       push(@text, 'Control-' . chr(ord($l)+64));
-    } elsif (ord($l) > 128) {
+      next;
+    }
+    if (ord($l) > 127) {
       my $l = ord($l)-128;
       if ($l < 32) {
-        $l = "Control-" . chr(ord($l)+64);
+        $l = "Control-" . chr($l+64);
       }
       push(@text, 'Meta-' . chr($l));
-    } else {
-      push(@text, $l);
+      next;
     }
+    if (ord($l) == 127) {
+      push @text, "^?";
+      next;
+    }
+    push(@text, $l);
   }
   return join("", @text);
 }
-
-
 
 # Calculate the display width of a string.  The display width is
 # sometimes wider than the actual string because some characters are
@@ -684,15 +693,15 @@ sub global_init {
 
   # Some platforms don't define this constant.
   unless (defined \&POSIX::B38400) {
-  eval "sub POSIX::B38400 () { 0 }";
+    eval "sub POSIX::B38400 () { 0 }";
   }
 
   # Get the terminal speed for Term::Cap.
   $ospeed = POSIX::B38400();
   eval {
-  $termios = POSIX::Termios->new();
-  $termios->getattr();
-  $ospeed = $termios->getospeed() || POSIX::B38400();
+    $termios = POSIX::Termios->new();
+    $termios->getattr();
+    $ospeed = $termios->getospeed() || POSIX::B38400();
   };
 
   # Get the current terminal's capabilities.
@@ -707,21 +716,21 @@ sub global_init {
   $tc_left = "LE";
   eval { $termcap->Trequire($tc_left) };
   if ($@) {
-  $tc_left = "le";
-  eval { $termcap->Trequire($tc_left) };
-  if ($@) {
-  # try out to see if we have a better terminfo defun.
-  # it may well not work (hence eval the lot), but it's worth a shot
-  eval {
-  my @tc = `infocmp -C $term`;
-  chomp(@tc);
-  splice(@tc, 0, 1); # remove header line
-  $ENV{TERMCAP} = join("", @tc);
-  $termcap = Term::Cap->Tgetent( { TERM => $term, OSPEED => $ospeed } );
-  $termcap->Trequire($tc_left);
-  };
-  }
-  die "POE::Wheel::ReadLine requires a termcap that supports LE or le" if $@;
+    $tc_left = "le";
+    eval { $termcap->Trequire($tc_left) };
+    if ($@) {
+      # try out to see if we have a better terminfo defun.
+      # it may well not work (hence eval the lot), but it's worth a shot
+      eval {
+        my @tc = `infocmp -C $term`;
+        chomp(@tc);
+        splice(@tc, 0, 1); # remove header line
+        $ENV{TERMCAP} = join("", @tc);
+        $termcap = Term::Cap->Tgetent( { TERM => $term, OSPEED => $ospeed } );
+        $termcap->Trequire($tc_left);
+      };
+    }
+    die "POE::Wheel::ReadLine requires a termcap that supports LE or le" if $@;
   }
 
   # Terminal size.
@@ -734,6 +743,7 @@ sub global_init {
 
   # Set up console using Term::ReadKey.
   ReadMode('ultra-raw');
+
   # And tell the terminal that we want to be in 'application' mode
   print $termcap->Tputs('ks' => 1) if $termcap->Tputs('ks');
 
@@ -752,7 +762,7 @@ sub global_init {
   my $convert_meta = 1;
   for (my $ord = 0; $ord < 256; $ord++) {
     my $str = chr($ord);
-    if ($ord > 126) {
+    if ($ord > 127) {
       if ($convert_meta) {
         $str = "^[";
         if (($ord - 128) < 32) {
@@ -765,6 +775,9 @@ sub global_init {
       }
     } elsif ($ord < 32) {
       $str = '^' . lc(chr($ord+64));
+    }
+    elsif ($ord == 127) {
+      $str = "^?"; # -><- chr(127);
     }
     $normalized_character{chr($ord)} = $str;
     $normalized_extra_width[$ord] = length ( $str ) - 1;
@@ -991,10 +1004,12 @@ sub apply_key {
   my ($self, $key, $raw_key) = @_;
   my $mapping = $self->[SELF_KEYMAP];
   my $fn = $mapping->{default};
+
   if (exists $mapping->{binding}->{$raw_key}) {
     $fn = $mapping->{binding}->{$raw_key};
   }
-  #print "\r\ninvoking $fn for $key\r\n";$self->repaint_input_line;
+
+  # print "\r\ninvoking $fn for $key\r\n";$self->repaint_input_line;
   if ($self->[SELF_COUNT] && !grep { $_ eq $fn } @fns_counting) {
     $self->[SELF_COUNT] = int($self->[SELF_COUNT]);
     $self->[SELF_COUNT] ||= 1;
@@ -1218,13 +1233,11 @@ sub rl_re_read_init_file {
       $self->parse_inputrc($input);
     }
   }
+
   if (!$self->option('editing-mode')) {
-    if (exists $ENV{EDITOR} && $ENV{EDITOR} =~ /vi/) {
-      $self->[SELF_OPTIONS]->{'editing-mode'} = 'vi';
-    } else {
-      $self->[SELF_OPTIONS]->{'editing-mode'} = 'emacs';
-    }
+    $self->[SELF_OPTIONS]->{'editing-mode'} = 'emacs';
   }
+
   if ($self->option('editing-mode') eq 'vi') {
     # by default, start in insert mode already
     $self->rl_set_keymap('vi-insert');
@@ -1328,9 +1341,9 @@ sub add_defun {
   $defuns->{$name} = $fn;
 }
 
-# ====================================================
+# -----------------------------------------------------
 # Any variable assignments that we care about
-# ====================================================
+# -----------------------------------------------------
 sub rl_set_keymap {
   my ($self, $arg) = @_;
   $arg = lc($arg);
@@ -1342,11 +1355,11 @@ sub rl_set_keymap {
   $self->[SELF_INSERT_MODE] = 1;
 }
 
-# ====================================================
+# ----------------------------------------------------
 # From here on, we have the helper functions which can
 # be bound to keys. The functions are named after the
 # readline counterparts.
-# ====================================================
+# ----------------------------------------------------
 
 sub rl_self_insert {
   my ($self, $key, $raw_key) = @_;
@@ -2266,7 +2279,7 @@ sub rl_complete {
     curs_left(length($rest)-length($partial));
     $self->[SELF_CURSOR_INPUT]   += length($partial)-length($lookfor);
     $self->[SELF_CURSOR_DISPLAY] += length($partial)-length($lookfor);
-    return $self->rl_ding;
+    return $self->rl_ding if @poss == 1;
   }
 
   if ($self->[SELF_LAST] !~ /complete/ && !$self->option('show-all-if-ambiguous')) {
@@ -2914,15 +2927,15 @@ my %english_to_termcap = (
 );
 
 my %english_to_key = (
-  'space'     => ' ',
-  'esc'       => '^[',
-  'escape'    => '^[',
-  'tab'       => '^I',
-  'ret'       => '^J',
-  'return'    => '^J',
-  'newline'   => '^M',
-  'lfd'       => '^L',
-  'rubout'    => '^?',
+  'space'     => " ",
+  'esc'       => "\e",
+  'escape'    => "\e",
+  'tab'       => "\cI",
+  'ret'       => "\cJ",
+  'return'    => "\cJ",
+  'newline'   => "\cM",
+  'lfd'       => "\cL",
+  'rubout'    => chr(127),
 );
 
 sub init {
@@ -2955,7 +2968,12 @@ sub decode  {
   return $seq;
 }
 
-sub control { return chr(ord(uc($_[0]))-64) };
+sub control {
+  my $c = shift;
+  return chr(0x7F) if $c eq "?";
+  return chr(ord(uc($c))-64);
+}
+
 sub meta    { return "\x1B" . $_[0] };
 sub bind_key {
   my ($self, $inseq, $fn) = @_;
@@ -3152,9 +3170,8 @@ to modify the readline behaviour.
 Bind a function to a named key sequence. The key sequence can be in
 any of the forms defined within readline(3). The function should
 either be a pre-registered name such as 'self-insert', or it should be
-a reference to a function. The binding is made in the current
-keymap. If you wish to change keymaps, then use the
-rl_set_keymap method.
+a reference to a function. The binding is made in the current keymap.
+If you wish to change keymaps, then use the rl_set_keymap method.
 
 =item add_defun NAME FN
 
@@ -3335,12 +3352,25 @@ this.  Patches are recommended.
 =head1 GOTCHAS / FAQ
 
 Q: Why do I lose my ReadLine prompt every time I send output to the
-   screen?
+screen?
 
 A: You probably are using print or printf to write screen output.
-   ReadLine doesn't track STDOUT itself, so it doesn't know when to
-   refresh the prompt after you do this.  Use ReadLine's put() method
-   to write lines to the console.
+ReadLine doesn't track STDOUT itself, so it doesn't know when to
+refresh the prompt after you do this.  Use ReadLine's put() method to
+write lines to the console.
+
+Q: None of the editing keystrokes work.  Ctrl-C displays "^c" rather
+than generating an interrupt.  The arrow keys don't scroll through my
+input history.  It's generally a bad experience.
+
+A: You're probably a vi/vim user.  In the absence of a ~/.inputrc
+file, POE::Wheel::ReadLine checks your EDITOR environment variable for
+clues about your editing preference.  If it sees /vi/ in there, it
+starts in vi mode.  You can override this by creating a ~/.inputrc
+file containing the line "set editing-mode emacs", or adding that line
+to your existing ~/.inputrc.  While you're in there, you should
+totally get acquainted with all the other cool stuff you can do with
+.inputrc files.
 
 =head1 AUTHORS & COPYRIGHTS
 

@@ -1,19 +1,18 @@
-# $Id: Block.pm,v 1.17 2005/06/29 04:05:41 rcaputo Exp $
+# $Id: Block.pm 1920 2006-04-02 07:17:33Z rcaputo $
 
 package POE::Filter::Block;
-use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 
 use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.17 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
 
-sub BLOCK_SIZE     () { 0 }
-sub FRAMING_BUFFER () { 1 }
+sub FRAMING_BUFFER () { 0 }
+sub BLOCK_SIZE     () { 1 }
 sub EXPECTED_SIZE  () { 2 }
 sub ENCODER        () { 3 }
 sub DECODER        () { 4 }
@@ -69,8 +68,8 @@ sub new {
   }
 
   my $self = bless [
-    $block_size,  # BLOCK_SIZE
     '',           # FRAMING_BUFFER
+    $block_size,  # BLOCK_SIZE
     undef,        # EXPECTED_SIZE
     $encoder,     # ENCODER
     $decoder,     # DECODER
@@ -78,6 +77,7 @@ sub new {
 
   $self;
 }
+
 
 #------------------------------------------------------------------------------
 # get() is inherited from POE::Filter.
@@ -95,7 +95,8 @@ sub get_one_start {
 sub get_one {
   my $self = shift;
 
-  {% use_bytes %}
+  # Need to check lengths in octets, not characters.
+  use bytes;
 
   # If a block size is specified, then pull off a block of that many
   # bytes.
@@ -136,7 +137,8 @@ sub put {
   my ($self, $blocks) = @_;
   my @raw;
 
-  {% use_bytes %}
+  # Need to check lengths in octets, not characters.
+  use bytes;
 
   # If a block size is specified, then just assume the put is right.
   # This will cause quiet framing errors on the receiving side.  Then

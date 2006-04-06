@@ -1,4 +1,4 @@
-# $Id: POE.pm,v 1.199 2006/01/29 15:45:38 rcaputo Exp $
+# $Id: POE.pm 1929 2006-04-06 15:14:24Z rcaputo $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,8 +7,8 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION $REVISION);
-$VERSION = '0.3301';
-$REVISION = do {my@r=(q$Revision: 1.199 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = '0.34';
+$REVISION = do {my($r)=(q$Revision: 1929 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 sub import {
   my $self = shift;
@@ -141,7 +141,7 @@ the notion of an event driven task.
 
 POE::Wheel classes operate at a slightly higher level.  They plug into
 sessions and perform very common, general tasks.  For example,
-POE::Wheel::ReadWrite performs buffered I/O.  
+POE::Wheel::ReadWrite performs buffered I/O.
 
 Unlike cheese, wheels do not stand alone.  They are customized by
 POE::Driver and POE::Filter classes.  Using the proper filter, a
@@ -226,16 +226,7 @@ Thanks go out to the CPAN testers, who have dedicated resources to
 running new modules on a variety of platforms.  The latest POE tests
 are visible at <http://testers.cpan.org/search?request=dist&dist=POE>.
 
-We maintain our own test results at <http://eekeek.org/poe-tests/>.
-You may participate by running
-
-  perl Makefile.PL
-  make uploadreport
-
-from POE's source directory.  A set of tests will be run, and their
-results will be uploaded to our test page.
-
-We also try to cover all of POE with our test suite, although we only
+We try to cover all of POE with our test suite, although we only
 succeed in exercising about 70% of its code at any given time.  A
 coverage report is online at
 <http://poe.perl.org/?POE's_test_coverage_report>.

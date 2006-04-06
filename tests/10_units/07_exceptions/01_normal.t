@@ -1,4 +1,4 @@
-# $Id: 01_normal.t,v 1.1 2005/12/04 01:30:37 sungo Exp $
+# $Id: 01_normal.t 1859 2005-12-04 01:30:37Z sungo $
 
 use Test::More tests => 7; 
 

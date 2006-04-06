@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 07_reference.t,v 1.5 2005/06/28 06:18:20 rcaputo Exp $
+# $Id: 07_reference.t 1813 2005-06-28 06:18:21Z rcaputo $
 # vim: set filetype=perl
 
 # Exercises Filter::Reference without the rest of POE.

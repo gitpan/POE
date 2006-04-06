@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: merijn-sigchld-system.t,v 1.3 2005/11/21 06:26:51 hachi Exp $
+# $Id: merijn-sigchld-system.t 1853 2005-11-21 06:26:51Z hachi $
 # vim: filetype=perl
 
 

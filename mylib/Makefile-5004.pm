@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm,v 1.35 2005/04/29 01:07:14 sungo Exp $
+# $Id: Makefile-5004.pm 1781 2005-04-29 01:07:14Z sungo $
 
 use strict;
 

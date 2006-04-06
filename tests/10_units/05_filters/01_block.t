@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_block.t,v 1.2 2005/06/28 06:18:20 rcaputo Exp $
+# $Id: 01_block.t 1813 2005-06-28 06:18:21Z rcaputo $
 # vim: filetype=perl
 
 # Exercises Filter::Block without the rest of POE.  Suddenly things

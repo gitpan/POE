@@ -6,15 +6,15 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.7 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1921 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
 
-sub CODEBOTH () { 0 }
-sub CODEGET  () { 1 }
-sub CODEPUT  () { 2 }
-sub BUFFER   () { 3 }
+sub BUFFER   () { 0 }
+sub CODEBOTH () { 1 }
+sub CODEGET  () { 2 }
+sub CODEPUT  () { 3 }
 
 #------------------------------------------------------------------------------
 
@@ -36,15 +36,16 @@ sub new {
   );
 
   my $self = bless [
+    [ ],           # BUFFER
     $params{Code}, # CODEBOTH
     $params{Get},  # CODEGET
     $params{Put},  # CODEPUT
-    [ ],           # BUFFER
   ], $type;
 }
 
 #------------------------------------------------------------------------------
 # get() is inherited from POE::Filter.
+# clone() is inherited from POE::Filter.
 
 #------------------------------------------------------------------------------
 
@@ -110,13 +111,22 @@ POE::Filter::Map - POE Data Mapping Filter
 
 =head1 SYNOPSIS
 
-  $filter = POE::Filter::Map->new(Code => sub {...});
-  $filter = POE::Filter::Map->new(Put => sub {...}, Get => sub {...});
+  $filter = POE::Filter::Map->new(
+      Code => sub {...},
+      );
+
+  $filter = POE::Filter::Map->new(
+      Put => sub {...},
+      Get => sub {...},
+      );
+  
   $arrayref_of_transformed_data = $filter->get($arrayref_of_raw_data);
+  
   $arrayref_of_streamable_data = $filter->put($arrayref_of_data);
   $arrayref_of_streamable_data = $filter->put($single_datum);
-  $filter->modify(Code => sub {...});
-  $filter->modify(Put => sub {...}, Get => sub {...});
+  
+  $filter->modify( Code => sub {...} );
+  $filter->modify( Put  => sub {...}, Get => sub {...} );
 
 =head1 DESCRIPTION
 

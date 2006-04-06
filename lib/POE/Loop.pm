@@ -1,11 +1,11 @@
-# $Id: Loop.pm,v 1.8 2005/10/05 21:58:46 rcaputo Exp $
+# $Id: Loop.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 package POE::Loop;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -74,7 +74,7 @@ functions are proper POE::Kernel methods.
 Each bridge first defines its own namespace and version within it.
 This way CPAN and other things can track its version.
 
-  # $Id: Loop.pm,v 1.8 2005/10/05 21:58:46 rcaputo Exp $
+  # $Id: Loop.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
   use strict;
 
@@ -83,7 +83,7 @@ This way CPAN and other things can track its version.
   package POE::Loop::YourToolkit;
 
   use vars qw($VERSION);
-  $VERSION = do {my@r=(q$Revision: 1.8 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+  $VERSION = do {my@r=(q$Revision: 1903 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
   package POE::Kernel;
 

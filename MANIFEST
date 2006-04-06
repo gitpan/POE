@@ -28,12 +28,10 @@ lib/POE/Loop/Select.pm
 lib/POE/Loop/Tk.pm
 lib/POE/Loop/TkActiveState.pm
 lib/POE/Loop/TkCommon.pm
-lib/POE/Macro/UseBytes.pm
 lib/POE/NFA.pm
 lib/POE/Pipe.pm
 lib/POE/Pipe/OneWay.pm
 lib/POE/Pipe/TwoWay.pm
-lib/POE/Preprocessor.pm
 lib/POE/Queue.pm
 lib/POE/Queue/Array.pm
 lib/POE/Resource.pm
@@ -57,22 +55,22 @@ lib/POE/Wheel/ReadWrite.pm
 lib/POE/Wheel/Run.pm
 lib/POE/Wheel/SocketFactory.pm
 Makefile.PL
-MANIFEST
+MANIFEST			This list of files
 MANIFEST.SKIP
 META.yml
 mylib/coverage.perl
 mylib/cpan-test.perl
-mylib/cvs-log.perl
 mylib/Devel/Null.pm
 mylib/events_per_second.pl
-mylib/ExtUtils/AutoInstall.pm
 mylib/gen-meta.perl
 mylib/gen-tests.perl
 mylib/Makefile-5004.pm
 mylib/Makefile-5005.pm
 mylib/MyOtherFreezer.pm
 mylib/PoeBuildInfo.pm
+mylib/preprocessor.perl
 mylib/reportupload.pl
+mylib/svn-log.perl
 mylib/Test/Harness.pm
 mylib/Test/Harness/Assert.pm
 mylib/Test/Harness/Iterator.pm
@@ -96,8 +94,6 @@ samples/thrash.perl
 samples/watermarks.perl
 samples/wheels2.perl
 test.pl
-tests/10_units/01_preprocessor/01_preprocessor.t
-tests/10_units/01_preprocessor/02_macro_usebytes.t
 tests/10_units/02_pipes/01_base.t
 tests/10_units/02_pipes/02_oneway.t
 tests/10_units/02_pipes/03_twoway.t

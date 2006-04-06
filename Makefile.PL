@@ -4,47 +4,41 @@ use strict;
 use ExtUtils::MakeMaker;
 use Config;
 
-# Skip reminders and prompting if we're being run in --checkdeps or
-# --installdeps batch modes.  These are part of # ExtUtils::AutoInstall's
-# automatic install process.
+# Switch to default behavior if STDIN isn't a tty.
 
-unless (grep /^--(check|install)deps/, @ARGV) {
+unless (-t STDIN) {
+  warn(
+    "\n",
+    "====================================================================\n",
+    "\n",
+    "Assuming --default because standard input is not a terminal.\n",
+    "\n",
+    "====================================================================\n",
+    "\n",
+  );
+  push @ARGV, "--default";
+}
 
-  # Switch to default behavior if STDIN isn't a tty.
+# Remind the user she can use --default.
 
-  unless (-t STDIN) {
-    warn(
-      "\n",
-      "====================================================================\n",
-      "\n",
-      "Assuming --default because standard input is not a terminal.\n",
-      "\n",
-      "====================================================================\n",
-      "\n",
-    );
-    push @ARGV, "--default";
-  }
+unless (grep /^--default$/, @ARGV) {
+  warn(
+    "\n",
+    "====================================================================\n",
+    "\n",
+    "Prompts may be bypassed by running:\n",
+    "   $^X $0 --default\n",
+     "\n",
+    "Only necessary modules will be installed by default.\n",
+    "\n",
+    "====================================================================\n",
+    "\n",
+  );
+}
 
-  # Remind the user she can use --default.
+# Should we skip the network tests?
 
-  unless (grep /^--default$/, @ARGV) {
-    warn(
-      "\n",
-      "====================================================================\n",
-      "\n",
-      "Prompts may be bypassed by running:\n",
-      "   $^X $0 --default\n",
-       "\n",
-      "Only necessary modules will be installed by default.\n",
-      "\n",
-      "====================================================================\n",
-      "\n",
-    );
-  }
-
-  # Should we skip the network tests?
-
-  my $prompt = qq|
+my $prompt = qq|
 POE's test suite requires a functional network.
 However, we can skip those tests requiring network
 access if you would like.
@@ -53,31 +47,60 @@ Would you like to skip the network tests?
 
 |;
 
-  $prompt .= "(Any text other than Y or y will be taken as a no)";
+$prompt .= "(Any text other than Y or y will be taken as a no)";
 
-  my $ret = "n";
-  if (grep /^--default$/, @ARGV) {
-    print $prompt, " [n] n\n\n";
-  }
-  else {
-    $ret = prompt($prompt, "n");
-  }
-
-  my $marker = 'run_network_tests';
-
-  if($ret =~ /^Y$/i) {
-      unlink $marker if $marker;
-  } else {
-      open(TOUCH,"+>$marker") and close TOUCH;
-  }
-
-  print "\n";
+my $ret = "n";
+if (grep /^--default$/, @ARGV) {
+  print $prompt, " [n] n\n\n";
 }
+else {
+  $ret = prompt($prompt, "n");
+}
+
+my $marker = 'run_network_tests';
+
+if($ret =~ /^Y$/i) {
+    unlink $marker if $marker;
+} else {
+    open(TOUCH,"+>$marker") and close TOUCH;
+}
+
+print "\n";
+
+# Comment out "use bytes" if it's not supported.
+
+use File::Find;
+my $code;
+if ($] < 5.006) {
+  print "Perl $] does not support bytes.pm.  Commenting it out...\n";
+  $code = 's/^(\s*)(use bytes;).*/$1#$2 # perl version $] at install/';
+}
+else {
+  print "Perl $] supports bytes.pm.  Ensuring it's in...\n";
+  $code = 's/^(\s*)#\s*(use bytes;).*/$1$2/';
+}
+
+find(
+  sub {
+    next unless -f and /\.pm$/;
+    system($^X, "-p", "-i.pp", "-e", $code, $_) and die "System error: $!";
+  },
+  "lib"
+);
+
+find(
+  sub {
+    next unless -f and /\.pp$/;
+    unlink $_;
+  },
+  "lib"
+);
+
+print "\n";
 
 # Which kind of makefile should we build?
 
-eval "use 5.005_04";
-if ($@) {
+if ($] < 5.005004) {
   warn(
     "\n",
     "===============================================================\n",
@@ -99,6 +122,8 @@ else {
 }
 
 # And finally, ask the user to run a test report.
+#
+# NOTE: This is currently disabled.  Don't use it.
 # 
 # use Config;
 # my $make = $Config::Config{make};

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: k_detach.pm,v 1.4 2005/11/30 02:46:57 sungo Exp $
+# $Id: k_detach.pm 1856 2005-11-30 02:46:57Z sungo $
 
 # Tests session detaching.
 

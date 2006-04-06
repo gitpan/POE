@@ -1,12 +1,11 @@
-# $Id: SocketFactory.pm,v 1.81 2005/07/01 03:19:44 rcaputo Exp $
+# $Id: SocketFactory.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 package POE::Wheel::SocketFactory;
-use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.81 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -713,7 +712,8 @@ sub new {
         : INADDR_ANY
       );
 
-      {% use_bytes %}
+      # Need to check lengths in octets, not characters.
+      use bytes;
 
       # Resolve the bind address if it's not already packed.
       unless (length($bind_address) == 4) {
@@ -785,7 +785,8 @@ sub new {
         }
       }
 
-      {% use_bytes %}
+      # Need to check lengths in octets, not characters.
+      use bytes;
 
       # Resolve the bind address.
       my @info = Socket6::getaddrinfo(

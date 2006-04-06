@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: comp_tcp.pm,v 1.3 2005/09/07 04:25:37 rcaputo Exp $
+# $Id: comp_tcp.pm 1838 2005-09-07 04:25:37Z rcaputo $
 
 # Exercise Server::TCP and later, when it's available, Client::TCP.
 

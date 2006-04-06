@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: thrash.perl,v 1.14 2005/01/28 22:57:30 rcaputo Exp $
+# $Id: thrash.perl 1746 2005-01-28 22:57:30Z rcaputo $
 
 # This program creates a server session and an infinitude of clients
 # that connect to it, all in the same process.  It's mainly used to

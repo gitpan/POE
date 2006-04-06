@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: signals.perl,v 1.15 2005/01/28 22:57:30 rcaputo Exp $
+# $Id: signals.perl 1746 2005-01-28 22:57:30Z rcaputo $
 
 # This program tests signals.  It tests OS signals (such as SIGINT),
 # soft signals to sessions, and soft signals to kernels.  Soft

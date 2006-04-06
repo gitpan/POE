@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 13_assert_data.t,v 1.1 2004/09/04 22:50:37 rcaputo Exp $
+# $Id: 13_assert_data.t 1618 2004-09-04 22:50:40Z rcaputo $
 
 # Test the ASSERT_DATA code in POE::Kernel.  This involves a lot of
 # dying.

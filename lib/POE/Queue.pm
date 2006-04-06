@@ -1,9 +1,9 @@
-# $Id: Queue.pm,v 1.4 2005/01/28 17:54:25 rcaputo Exp $
+# $Id: Queue.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 package POE::Queue;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.4 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 

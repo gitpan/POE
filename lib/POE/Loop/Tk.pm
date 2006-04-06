@@ -1,11 +1,11 @@
-# $Id: Tk.pm,v 1.45 2005/04/25 16:01:07 rcaputo Exp $
+# $Id: Tk.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
 package POE::Loop::Tk;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.45 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Include common things.
 use POE::Loop::PerlSignals;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: steinert-signal-integrity.t,v 1.1 2005/05/30 02:21:53 rcaputo Exp $
+# $Id: steinert-signal-integrity.t 1806 2005-05-30 02:21:53Z rcaputo $
 # vim: filetype=perl
 
 # Jonathan Steinert produced a patch to fix POE::Wheel destruction

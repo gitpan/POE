@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: coverage.perl,v 1.15 2005/05/16 05:28:55 rcaputo Exp $
+# $Id: coverage.perl 1793 2005-05-16 05:28:55Z rcaputo $
 
 # Runs "make test" with Devel::Cover to check POE's test coverage.
 # Generates a quite fine HTML report in the db_cover directory.

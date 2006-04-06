@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: neyuki_detach.t,v 1.1 2004/09/04 22:50:40 rcaputo Exp $
+# $Id: neyuki_detach.t 1618 2004-09-04 22:50:40Z rcaputo $
 
 use strict;
 

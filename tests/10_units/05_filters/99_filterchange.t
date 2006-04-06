@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 99_filterchange.t,v 1.2 2005/06/28 06:18:20 rcaputo Exp $
+# $Id: 99_filterchange.t 1813 2005-06-28 06:18:21Z rcaputo $
 # vim: filetype=perl
 
 # Exercises filter changing.  A lot of this code comes from Philip

@@ -1,11 +1,11 @@
-# $Id: Run.pm,v 1.72 2006/01/26 05:59:50 rcaputo Exp $
+# $Id: Run.pm 1916 2006-03-29 04:41:20Z rcaputo $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.72 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1916 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -283,19 +283,19 @@ sub new {
   # Fork!  Woo-hoo!
   my $pid = fork;
 
-  # Stdio should not be tied.  Resolves rt.cpan.org ticket 1648.
-  if (tied *STDOUT) {
-    carp "Cannot redirect into tied STDOUT.  Untying it";
-    untie *STDOUT;
-  }
-  if (tied *STDERR) {
-    carp "Cannot redirect into tied STDERR.  Untying it";
-    untie *STDERR;
-  }
-
   # Child.  Parent side continues after this block.
   unless ($pid) {
     croak "couldn't fork: $!" unless defined $pid;
+
+    # Stdio should not be tied.  Resolves rt.cpan.org ticket 1648.
+    if (tied *STDOUT) {
+      carp "Cannot redirect into tied STDOUT.  Untying it";
+      untie *STDOUT;
+    }
+    if (tied *STDERR) {
+      carp "Cannot redirect into tied STDERR.  Untying it";
+      untie *STDERR;
+    }
 
     # If running pty, we delay the slave side creation 'til after
     # doing the necessary bits to become our own [unix] session.
@@ -395,30 +395,26 @@ sub new {
     close $stdout_read;
     close $stderr_read if defined $stderr_read;
 
-    # Need to close on Win32 because std handles aren't dup'ed, no
-    # harm elsewhere.  Close STDERR later to not influence possible
-    # die.
-    close STDIN;
-    close STDOUT;
+    # Win32 needs the stdio handles closed before they're reopened
+    # because the standard handles aren't dup'd.
 
     # Redirect STDIN from the read end of the stdin pipe.
+    close STDIN if POE::Kernel::RUNNING_IN_HELL;
     open( STDIN, "<&" . fileno($stdin_read) )
       or die "can't redirect STDIN in child pid $$: $!";
 
     # Redirect STDOUT to the write end of the stdout pipe.
     # The STDOUT_FILENO check snuck in on a patch.  I'm not sure why
     # we care what the file descriptor is.
+    close STDOUT if POE::Kernel::RUNNING_IN_HELL;
     open( STDOUT, ">&" . fileno($stdout_write) )
       or die "can't redirect stdout in child pid $$: $!";
-
-    # Need to close on Win32 because std handles aren't dup'ed, no
-    # harm elsewhere
-    close STDERR;
 
     # Redirect STDERR to the write end of the stderr pipe.  If the
     # stderr pipe's undef, then we use STDOUT.
     # The STDERR_FILENO check snuck in on a patch.  I'm not sure why
     # we care what the file descriptor is.
+    close STDERR if POE::Kernel::RUNNING_IN_HELL;
     open( STDERR, ">&" . fileno($stderr_write) )
       or die "can't redirect stderr in child: $!";
 
@@ -475,14 +471,16 @@ sub new {
 
       # Try to exit without triggering END or object destructors.
       # Give up with a plain exit if we must.
-      # On win32 cannot _exit as it will kill *all* threads, meaning parent too
+      # But we can't _exit on Win32 because it KILLS ALL THREADS,
+      # including the parent "process".
       unless (POE::Kernel::RUNNING_IN_HELL) {
         eval { POSIX::_exit(0);  };
         eval { kill KILL => $$;  };
         eval { exec("$^X -e 0"); };
       };
       exit(0);
-    } else {
+    }
+    else {
       if (ref($program) eq 'ARRAY') {
         exec(@$program, @$prog_args)
           or die "can't exec (@$program) in child pid $$: $!";

@@ -1,4 +1,4 @@
-# $Id: Component.pm,v 1.6 2003/11/21 05:08:25 rcaputo Exp $
+# $Id: Component.pm 1903 2006-03-20 04:44:08Z rcaputo $
 # Copyrights and documentation are after __end__.
 
 package POE::Component;
@@ -6,7 +6,7 @@ package POE::Component;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 

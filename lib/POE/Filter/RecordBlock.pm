@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.6 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -34,6 +34,17 @@ sub new {
     [],                 # PUTBUFFER
     $params{CheckPut},  # CHECKPUT
   ], $type;
+}
+
+sub clone {
+  my $self = shift;
+  my $clone = bless [
+    $self->[0], # BLOCKSIZE
+    [],         # GETBUFFER
+    [],         # PUTBUFFER
+    $self->[3], # CHECKPUT
+  ], ref $self;
+  $clone;
 }
 
 #------------------------------------------------------------------------------

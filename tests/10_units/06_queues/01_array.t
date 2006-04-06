@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_array.t,v 1.1 2004/09/04 22:50:38 rcaputo Exp $
+# $Id: 01_array.t 1618 2004-09-04 22:50:40Z rcaputo $
 
 # Tests basic queue operations.
 

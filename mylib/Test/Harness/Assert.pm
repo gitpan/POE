@@ -1,4 +1,4 @@
-# $Id: Assert.pm,v 1.1 2002/07/07 03:41:12 sungo Exp $
+# $Id: Assert.pm 1061 2002-07-07 03:41:12Z sungo $
 
 package Test::Harness::Assert;
 

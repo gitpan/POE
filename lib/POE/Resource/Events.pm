@@ -1,11 +1,11 @@
-# $Id: Events.pm,v 1.14 2005/04/12 22:17:15 rcaputo Exp $
+# $Id: Events.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Data and accessors to manage POE's events.
 
 package POE::Resources::Events;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;

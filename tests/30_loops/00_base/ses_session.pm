@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: ses_session.pm,v 1.11 2005/09/08 16:40:18 rcaputo Exp $
+# $Id: ses_session.pm 1842 2005-09-08 16:40:19Z rcaputo $
 
 # Tests basic compilation and events.
 

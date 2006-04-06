@@ -1,11 +1,11 @@
-# $Id: Sessions.pm,v 1.21 2005/11/07 06:59:07 hachi Exp $
+# $Id: Sessions.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Manage session data structures on behalf of POE::Kernel.
 
 package POE::Resources::Sessions;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.21 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;

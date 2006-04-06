@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: ses_nfa.pm,v 1.2 2005/06/28 06:18:21 rcaputo Exp $
+# $Id: ses_nfa.pm 1813 2005-06-28 06:18:21Z rcaputo $
 
 # Tests NFA sessions.
 

@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm,v 1.20 2005/05/28 22:45:02 rcaputo Exp $
+# $Id: FileHandles.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,7 +6,7 @@
 package POE::Resources::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.20 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: k_signals.pm,v 1.5 2005/04/18 06:34:52 rcaputo Exp $
+# $Id: k_signals.pm 1770 2005-04-18 06:34:52Z rcaputo $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.

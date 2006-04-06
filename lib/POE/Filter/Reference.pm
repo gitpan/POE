@@ -1,19 +1,23 @@
-# $Id: Reference.pm,v 1.38 2005/06/29 04:05:44 rcaputo Exp $
+# $Id: Reference.pm 1920 2006-04-02 07:17:33Z rcaputo $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
 
 package POE::Filter::Reference;
-use POE::Preprocessor ( isa => "POE::Macro::UseBytes" );
 
 use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.38 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
+
+sub BUFFER ()   { 0 }
+sub FREEZE ()   { 1 }
+sub THAW ()     { 2 }
+sub COMPRESS () { 3 }
 
 #------------------------------------------------------------------------------
 # Try to require one of the default freeze/thaw packages.
@@ -130,12 +134,12 @@ sub new {
     }
   }
 
-  my $self = bless {
-    buffer    => '',
-    thaw      => $thaw,
-    freeze    => $freeze,
-    compress  => $compression,
-  }, $type;
+  my $self = bless [
+    '',           # BUFFER
+    $freeze,      # FREEZE
+    $thaw,        # THAW
+    $compression, # COMPRESS
+  ], $type;
   $self;
 }
 
@@ -162,23 +166,24 @@ sub get {
 
 sub get_one_start {
   my ($self, $stream) = @_;
-  $self->{buffer} .= join('', @$stream);
+  $self->[BUFFER] .= join('', @$stream);
 }
 
 sub get_one {
   my $self = shift;
 
-  {% use_bytes %}
+  # Need to check lengths in octets, not characters.
+  use bytes;
 
   if (
-    $self->{buffer} =~ /^(\d+)\0/ and
-    length($self->{buffer}) >= $1 + length($1) + 1
+    $self->[BUFFER] =~ /^(\d+)\0/ and
+    length($self->[BUFFER]) >= $1 + length($1) + 1
   ) {
-    substr($self->{buffer}, 0, length($1) + 1) = "";
-    my $return = substr($self->{buffer}, 0, $1);
-    substr($self->{buffer}, 0, $1) = "";
-    $return = uncompress($return) if $self->{compress};
-    return [ $self->{thaw}->($return) ];
+    substr($self->[BUFFER], 0, length($1) + 1) = "";
+    my $return = substr($self->[BUFFER], 0, $1);
+    substr($self->[BUFFER], 0, $1) = "";
+    $return = uncompress($return) if $self->[COMPRESS];
+    return [ $self->[THAW]->($return) ];
   }
 
   return [ ];
@@ -190,11 +195,12 @@ sub get_one {
 sub put {
   my ($self, $references) = @_;
 
-  {% use_bytes %}
+  # Need to check lengths in octets, not characters.
+  use bytes;
 
   my @raw = map {
-    my $frozen = $self->{freeze}->($_);
-    $frozen = compress($frozen) if $self->{compress};
+    my $frozen = $self->[FREEZE]->($_);
+    $frozen = compress($frozen) if $self->[COMPRESS];
     length($frozen) . "\0" . $frozen;
   } @$references;
   \@raw;
@@ -206,8 +212,8 @@ sub put {
 
 sub get_pending {
   my $self = shift;
-  return undef unless length $self->{buffer};
-  return [ $self->{buffer} ];
+  return undef unless length $self->[BUFFER];
+  return [ $self->[BUFFER] ];
 }
 
 ###############################################################################

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_accept.pm,v 1.2 2005/06/28 06:18:21 rcaputo Exp $
+# $Id: wheel_accept.pm 1813 2005-06-28 06:18:21Z rcaputo $
 
 # Exercises the ListenAccept wheel.
 

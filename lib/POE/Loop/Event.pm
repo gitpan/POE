@@ -1,4 +1,4 @@
-# $Id: Event.pm,v 1.43 2005/05/15 07:09:44 rcaputo Exp $
+# $Id: Event.pm 1903 2006-03-20 04:44:08Z rcaputo $
 
 # Event.pm event loop bridge for POE::Kernel.
 
@@ -8,7 +8,7 @@ package POE::Loop::Event;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my@r=(q$Revision: 1.43 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;

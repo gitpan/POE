@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: steinert-recursive-signal.t,v 1.2 2005/12/11 02:31:51 hachi Exp $
+# $Id: steinert-recursive-signal.t 1867 2005-12-11 02:31:51Z hachi $
 # vim: filetype=perl
 
 # Welcome to recursive signals, this test makes sure that the signal

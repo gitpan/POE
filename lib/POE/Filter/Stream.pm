@@ -1,4 +1,4 @@
-# $Id: Stream.pm,v 1.14 2005/06/29 04:05:44 rcaputo Exp $
+# $Id: Stream.pm 1920 2006-04-02 07:17:33Z rcaputo $
 
 package POE::Filter::Stream;
 
@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my@r=(q$Revision: 1.14 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 #------------------------------------------------------------------------------
@@ -16,6 +16,12 @@ sub new {
   my $buffer = '';
   my $self = bless \$buffer, $type;
   $self;
+}
+
+sub clone {
+  my $self = shift;
+  my $buffer = '';
+  my $clone = bless \$buffer, ref $self;
 }
 
 #------------------------------------------------------------------------------

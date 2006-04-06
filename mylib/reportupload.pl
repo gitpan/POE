@@ -1,12 +1,14 @@
 #!/usr/bin/perl
 
+die "$0 is currently disabled\n";
+
 =head1 NAME
 
 reportupload.pl - upload an xml test report
 
 =head1 VERSION
 
-$Revision: 1.4 $
+$Revision: 1890 $
 
 =head1 USAGE
 
