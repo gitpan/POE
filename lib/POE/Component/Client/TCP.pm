@@ -1,11 +1,11 @@
-# $Id: TCP.pm 1922 2006-04-04 04:19:10Z rcaputo $
+# $Id: TCP.pm 1934 2006-04-10 22:38:22Z rcaputo $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1922 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1934 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -54,12 +54,14 @@ sub new {
   $args = [] unless defined $args;
   croak "Args must be an array reference" unless ref($args) eq "ARRAY";
 
-  foreach ( qw( Connected ConnectError Disconnected ServerInput
-                ServerError ServerFlushed Started
-              )
-          ) {
-    croak "$_ must be a coderef"
-      if defined($param{$_}) and ref($param{$_}) ne 'CODE';
+  foreach (
+    qw( Connected ConnectError Disconnected ServerInput
+      ServerError ServerFlushed Started
+    )
+  ) {
+    croak "$_ must be a coderef" if(
+      defined($param{$_}) and ref($param{$_}) ne 'CODE'
+    );
   }
 
   my $conn_callback       = delete $param{Connected};

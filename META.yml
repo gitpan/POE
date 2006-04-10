@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.34
+version: 0.3401
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: A portable networking and multitasking framework.
@@ -21,7 +21,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.34
+    version: 0.3401
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.1903
@@ -33,10 +33,10 @@ provides:
     version: 1.1903
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
-    version: 1.1922
+    version: 1.1934
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.1922
+    version: 1.1934
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.1903
@@ -54,7 +54,7 @@ provides:
     version: 1.1920
   POE::Filter::HTTPD:
     file: lib/POE/Filter/HTTPD.pm
-    version: 1.1920
+    version: 1.1934
   POE::Filter::Line:
     file: lib/POE/Filter/Line.pm
     version: 1.1920
@@ -186,6 +186,7 @@ provides:
 no_index:
   dir:
     - mylib
+    - tests
 generated_by: Module::Build version 0.2709
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html

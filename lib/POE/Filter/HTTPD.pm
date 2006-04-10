@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm 1920 2006-04-02 07:17:33Z rcaputo $
+# $Id: HTTPD.pm 1934 2006-04-10 22:38:22Z rcaputo $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,14 +17,14 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1934 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
-sub BUFFER () { 0 }
-sub TYPE ()   { 1 }
-sub FINISH () { 2 }
-sub HEADER () { 3 }
-sub CLIENT_PROTO () { 4 }
+sub BUFFER        () { 0 }
+sub TYPE          () { 1 }
+sub FINISH        () { 2 }
+sub HEADER        () { 3 }
+sub CLIENT_PROTO  () { 4 }
 
 use Carp qw(croak);
 use HTTP::Status qw( status_message RC_BAD_REQUEST RC_OK RC_LENGTH_REQUIRED );

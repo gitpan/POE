@@ -1,6 +1,39 @@
-==============================
-9999-99-99 99:99:99 (untagged)
-==============================
+===========================
+2006-04-10 22:54:07 v0_3401
+===========================
+
+  2006-04-10 22:53:42 (r1935) by rcaputo; poe/lib/POE.pm M
+
+    Make 0.3401 official for release. 
+
+  2006-04-10 22:38:22 (r1934) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M;
+  poe/tests/90_regression/cfedde-filter-httpd.t A;
+  poe/lib/POE/Filter/HTTPD.pm M; poe/lib/POE/Component/Server/TCP.pm M;
+  poe/MANIFEST M
+
+    Chris Fedde found a bug in the way Server::TCP creates filters. He
+    was kind enough to provide a test case, so I was able to find and fix
+    the problem easily. Thank you! 
+
+  2006-04-10 20:37:40 (r1933) by rcaputo; poe/Makefile.PL M
+
+    Fix a bug Rob Bloodgood discovered when installing on 5.5-ish
+    systems. The find() subroutines were using next rather than return. 
+
+  2006-04-06 17:58:43 (r1932) by rcaputo; poe/mylib/gen-meta.perl M
+
+    Add the tests directory to the no-index directive. This should stop
+    the CPAN indexer's squealing about missing permissions. 
+
+  2006-04-06 16:21:11 (r1931) by rcaputo; poe/lib/POE.pm M
+
+    Now at version 0.34_01 so that cpan test reports from svn aren't
+    confused with the official release. 
+
+=========================
+2006-04-06 16:06:00 v0_34
+=========================
 
   2006-04-06 15:14:24 (r1929) by rcaputo; poe/README M; poe/lib/POE.pm M
 

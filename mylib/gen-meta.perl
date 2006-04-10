@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: gen-meta.perl 1910 2006-03-28 05:10:47Z rcaputo $
+# $Id: gen-meta.perl 1932 2006-04-06 17:58:43Z rcaputo $
 
 # Generate META.yml.
 
@@ -25,7 +25,7 @@ my $build = Module::Build->new(
   },
   requires          => { CORE_REQUIREMENTS },
   no_index => {
-    dir => [ "mylib" ]
+    dir => [ "mylib", "tests" ]
   },
 );
 
