@@ -1,11 +1,11 @@
-# $Id: Filter.pm 1920 2006-04-02 07:17:33Z rcaputo $
+# $Id: Filter.pm 1955 2006-05-14 01:43:25Z immute $
 
 package POE::Filter;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1955 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -36,18 +36,12 @@ sub get {
 
 sub clone {
   my $self = shift;
-  if (ref ($self->[0]) eq 'ARRAY') {
-    return bless [
-      [ ],                      # BUFFER
-      $self->[1 .. $#{$self}],  # everything else
-    ], ref $self;
-  }
-  else {
-    return bless [
-      '',                       # BUFFER
-      $self->[1 .. $#{$self}],  # everything else
-    ], ref $self;
-  }
+  my $buf = (ref($self->[0]) eq 'ARRAY') ? [ ] : '';
+  my $nself = bless [
+    $buf,                     # BUFFER
+    @$self[1..$#$self],  # everything else
+  ], ref $self;
+  return $nself;    
 }
 
 #------------------------------------------------------------------------------

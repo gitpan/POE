@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 1926 2006-04-05 21:30:12Z adamkennedy $
+# $Id: Kernel.pm 1938 2006-04-11 10:06:53Z adamkennedy $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1926 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1938 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -1938,6 +1938,12 @@ sub alarm_adjust {
 # Time::HiRes'.
 
 sub delay_set {
+  # Always always always grab time() ASAP, so that the eventual
+  # time we set the alarm for is as close as possible to the time
+  # at which they ASKED for the delay, not when we actually set it.
+  my $t = time();
+
+  # And now continue as normal
   my ($self, $event_name, $seconds, @etc) = @_;
 
   if (ASSERT_USAGE) {
@@ -1966,7 +1972,7 @@ sub delay_set {
 
   return $self->_data_ev_enqueue
     ( $kr_active_session, $kr_active_session, $event_name, ET_ALARM, [ @etc ],
-      (caller)[1,2], $kr_active_event, time() + $seconds,
+      (caller)[1,2], $kr_active_event, $t + $seconds,
     );
 }
 

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm 1928 2006-04-06 14:57:17Z rcaputo $
+# $Id: wheel_run.pm 1945 2006-04-29 22:38:08Z rcaputo $
 
 use strict;
 use lib qw(./mylib ../mylib ../lib ./lib);
@@ -27,7 +27,7 @@ BEGIN {
   }
 }
 
-plan tests => 9;
+plan tests => 8;
 
 # Turn on extra debugging output within this test program.
 sub DEBUG () { 0 }
@@ -369,8 +369,7 @@ SKIP: {
       exists $INC{"POE/Loop/IO_Poll.pm"} or
       exists $INC{"POE/Loop/Event.pm"}
     );
-  ok($pty_flush_count == 3, "pty flushed $pty_flush_count times");
-  ok($pty_flush_count == 3, "pty flushed $pty_flush_count times");
+  ok($pty_flush_count == 3, "pty flushed $pty_flush_count times (wanted 3)");
   ok($coderef_flush_count == 3, "coderef flushed $coderef_flush_count times");
 }
 

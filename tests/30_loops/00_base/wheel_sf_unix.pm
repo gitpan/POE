@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_unix.pm 1821 2005-06-30 15:02:16Z rcaputo $
+# $Id: wheel_sf_unix.pm 1939 2006-04-15 23:56:39Z rcaputo $
 
 # Exercises the wheels commonly used with UNIX domain sockets.
 
@@ -93,7 +93,7 @@ sub sss_line {
 sub sss_error {
   my ($heap, $operation, $errnum, $errstr) = @_[HEAP, ARG0..ARG2];
 
-  ok(!$errnum, "sss error");
+  ok(!$errnum, "sss expecting errnum 0; got $errnum");
   $heap->{test_six} = 0 if $errnum;
 
   delete $heap->{wheel};

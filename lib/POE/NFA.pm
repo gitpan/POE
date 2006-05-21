@@ -1,11 +1,11 @@
-# $Id: NFA.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: NFA.pm 1946 2006-04-29 22:43:06Z rcaputo $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1946 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 
@@ -352,8 +352,9 @@ sub _invoke_state {
 
     $handler = $self->[SELF_CURRENT]->{+EN_DEFAULT};
 
-    # Fix up ARG0.. for _default.
-    $args  = [ $event, $args ];
+    # Transform the parameters for _default.  ARG1 and beyond are
+		# copied so they can't be altered at a distance.
+    $args  = [ $event, [@$args] ];
     $event = EN_DEFAULT;
   }
 

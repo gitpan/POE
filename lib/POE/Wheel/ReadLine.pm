@@ -1,4 +1,4 @@
-# $Id: ReadLine.pm 1919 2006-04-02 00:33:21Z rcaputo $
+# $Id: ReadLine.pm 1947 2006-04-29 22:58:20Z rcaputo $
 
 package POE::Wheel::ReadLine;
 
@@ -6,7 +6,7 @@ use strict;
 use bytes;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1919 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1947 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
@@ -533,7 +533,7 @@ sub flush_output_buffer {
   if ( @{ $self->[SELF_PUT_BUFFER] } ) {
     print $stdout @{ $self->[SELF_PUT_BUFFER] };
 
-    # Do not change the interior listref, or the event handlers will
+    # Do not change the interior arrayref, or the event handlers will
     # become confused.
     @{ $self->[SELF_PUT_BUFFER] } = ();
   }

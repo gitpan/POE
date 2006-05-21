@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm 1934 2006-04-10 22:38:22Z rcaputo $
+# $Id: HTTPD.pm 1958 2006-05-21 21:12:55Z rcaputo $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,7 +17,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1934 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1958 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 sub BUFFER        () { 0 }
@@ -78,7 +78,7 @@ sub get {
 
     my @dump;
     my $offset = 0;
-    $stream = join("", @$stream);
+    $stream = $self->[BUFFER].join("", @$stream);
     while (length $stream) {
       my $line = substr($stream, 0, 16);
       substr($stream, 0, 16) = '';
@@ -153,7 +153,6 @@ sub get {
   $self->[BUFFER] =~ s/.*?(\x0D\x0A?\x0D\x0A?|\x0A\x0D?\x0A\x0D?)//s;
 
   # Parse the request line.
-
   if ($buf !~ s/^(\w+)[ \t]+(\S+)(?:[ \t]+(HTTP\/\d+\.\d+))?[^\012]*\012//) {
     return [
       $self->build_error(RC_BAD_REQUEST, "Request line parse failure.")
@@ -222,6 +221,13 @@ sub get {
         )
       ];
     }
+    elsif ($method eq 'OPTIONS') {
+      $self->[FINISH]++;
+      # OPTIONS requests can have an optional content length
+      # See http://www.faqs.org/rfcs/rfc2616.html, section 9.2
+      delete $self->[HEADER];
+      return [$r];
+    }
     else {
       return [
         $self->build_error(RC_LENGTH_REQUIRED, "No content length found.")
@@ -271,7 +277,7 @@ sub put {
 
     my $status_line = "$proto $code";
     $status_line   .= " ($status_message)"  if $status_message ne $message;
-    $status_line   .= " $message";
+    $status_line   .= " $message" if length($message);
 
     # Use network newlines, and be sure not to mangle newlines in the
     # response's content.

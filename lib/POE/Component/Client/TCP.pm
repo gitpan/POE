@@ -1,11 +1,11 @@
-# $Id: TCP.pm 1934 2006-04-10 22:38:22Z rcaputo $
+# $Id: TCP.pm 1957 2006-05-15 03:17:21Z immute $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1934 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1957 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -114,19 +114,6 @@ sub new {
 
   $address = '127.0.0.1' unless defined $address;
 
-  my @filter_args;
-  if (ref $filter eq 'ARRAY') {
-    @filter_args = @$filter;
-    $filter = shift @filter_args;
-    $filter = $filter->new(@filter_args);
-  } elsif (ref $filter) {
-    $filter = $filter->clone();
-  } elsif (!defined($filter)) {
-    $filter = POE::Filter::Line->new();
-  } else {
-    $filter = $filter->new();
-  }
-
   $conn_error_callback = \&_default_error unless defined $conn_error_callback;
   $error_callback      = \&_default_io_error unless defined $error_callback;
 
@@ -198,7 +185,7 @@ sub new {
           $_[HEAP]->{server} = POE::Wheel::ReadWrite->new
             ( Handle       => $socket,
               Driver       => POE::Driver::SysRW->new(),
-              Filter       => $filter,
+              Filter       => _get_filter($filter),
               InputEvent   => 'got_server_input',
               ErrorEvent   => 'got_server_error',
               FlushedEvent => 'got_server_flush',
@@ -245,7 +232,10 @@ sub new {
         got_server_flush => sub {
           my $heap = $_[HEAP];
           $flush_callback->(@_);
-          delete $heap->{server} if $heap->{shutdown};
+          if ($heap->{shutdown}) {
+            delete $heap->{server};
+            $disc_callback->(@_);
+          }
         },
 
         shutdown => sub {
@@ -284,6 +274,21 @@ sub new {
       package_states => $package_states,
       object_states  => $object_states,
     );
+}
+
+sub _get_filter {
+  my $filter = shift;
+  if (ref $filter eq 'ARRAY') {
+    my @filter_args = @$filter;
+    $filter = shift @filter_args;
+    return $filter->new(@filter_args);
+  } elsif (ref $filter) {
+    return $filter->clone();
+  } elsif (!defined($filter)) {
+    return POE::Filter::Line->new();
+  } else {
+    return $filter->new();
+  }
 }
 
 # The default error handler logs to STDERR and shuts down the socket.
@@ -451,9 +456,9 @@ may get clobbered when defining them for your SessionHandler.  It is
 advised that you stick to defining arguments in the "options" hash such
 as trace and debug. See L<POE::Session> for an example list of options.
 
-=item Args LISTREF
+=item Args ARRAYREF
 
-Args passes the contents of a LISTREF to the Started callback via
+Args passes the contents of a ARRAYREF to the Started callback via
 @_[ARG0..$#_].  It allows a program to pass extra information to the
 session created to handle the client connection.
 

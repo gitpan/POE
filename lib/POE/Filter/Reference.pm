@@ -1,4 +1,4 @@
-# $Id: Reference.pm 1920 2006-04-02 07:17:33Z rcaputo $
+# $Id: Reference.pm 1947 2006-04-29 22:58:20Z rcaputo $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -9,7 +9,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1947 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
@@ -338,8 +338,8 @@ appropriate modules before calling their methods.
 The put() method freezes one or more REFERENCES and returns their
 serialized, streamable representations as a list reference.
 
-  $listref = $filter_reference->put([ \%thing_one, \@thing_two ]);
-  foreach (@$listref) {
+  $arrayref = $filter_reference->put([ \%thing_one, \@thing_two ]);
+  foreach (@$arrayref) {
     ...;
   }
 

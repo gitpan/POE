@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_tcp.pm 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: wheel_sf_tcp.pm 1939 2006-04-15 23:56:39Z rcaputo $
 
 # Exercises the wheels commonly used with TCP sockets.
 
@@ -80,7 +80,7 @@ sub sss_line {
 sub sss_error {
   my ($heap, $operation, $errnum, $errstr) = @_[HEAP, ARG0..ARG2];
 
-  ok(!$errnum, "sss error");
+  ok(!$errnum, "sss expecting errnum 0; got $errnum");
   $heap->{test_two} = 0 if $errnum;
 
   delete $heap->{wheel};

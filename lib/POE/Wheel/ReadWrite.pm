@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: ReadWrite.pm 1947 2006-04-29 22:58:20Z rcaputo $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1947 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -703,7 +703,7 @@ been read or flushed.
 
 =over 2
 
-=item put LISTREF_OF_RECORDS
+=item put ARRAYREF_OF_RECORDS
 
 put() queues records for transmission.  They may not be transmitted
 immediately.  ReadWrite uses its Filter to translate the records into
