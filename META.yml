@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.35
+version: 0.3501
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: A portable networking and multitasking framework.
@@ -21,7 +21,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.35
+    version: 0.3501
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.1903
@@ -69,7 +69,7 @@ provides:
     version: 1.1947
   POE::Filter::Stackable:
     file: lib/POE/Filter/Stackable.pm
-    version: 1.1943
+    version: 1.1963
   POE::Filter::Stream:
     file: lib/POE/Filter/Stream.pm
     version: 1.1920

@@ -1,12 +1,10 @@
 #!/usr/bin/perl
-# $Id: cfedde-filter-httpd.t 1934 2006-04-10 22:38:22Z rcaputo $
+# $Id: cfedde-filter-httpd.t 1961 2006-05-22 08:11:41Z teknikill $
 # vim: filetype=perl
 
 use warnings;
 use strict;
 
-use HTTP::Response;
-use Data::Dumper;
 use Test::More tests => 2;
 
 use constant PORT => 31416;

@@ -1,3 +1,26 @@
+===========================
+2006-05-23 04:42:16 v0_3501
+===========================
+
+  2006-05-23 04:41:51 (r1964) by rcaputo; poe/lib/POE.pm M
+
+    Minor release to fix bugs introduced in last major release. 
+
+  2006-05-22 17:57:36 (r1963) by immute
+  poe/lib/POE/Filter/Stackable.pm M
+
+    Fixed Stackable.pm to make Filter optional again.
+
+  2006-05-22 08:21:37 (r1962) by teknikill
+  poe/tests/30_loops/00_base/wheel_run.pm M
+
+    fixed test skip count
+
+  2006-05-22 08:11:41 (r1961) by teknikill
+  poe/tests/90_regression/cfedde-filter-httpd.t M
+
+    data dumper and http resposne aren't needed for the filter test
+
 =========================
 2006-05-21 22:17:33 v0_35
 =========================

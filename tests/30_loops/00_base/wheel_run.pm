@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm 1945 2006-04-29 22:38:08Z rcaputo $
+# $Id: wheel_run.pm 1962 2006-05-22 08:21:37Z teknikill $
 
 use strict;
 use lib qw(./mylib ../mylib ../lib ./lib);
@@ -363,8 +363,8 @@ POE::Kernel->run();
 
 
 SKIP: {
-  skip "ptys not available", 3 unless POE::Wheel::Run::PTY_AVAILABLE;
-  skip "The underlying event loop has trouble with ptys on $^O", 3
+  skip "ptys not available", 2 unless POE::Wheel::Run::PTY_AVAILABLE;
+  skip "The underlying event loop has trouble with ptys on $^O", 2
     if $^O eq "darwin" and (
       exists $INC{"POE/Loop/IO_Poll.pm"} or
       exists $INC{"POE/Loop/Event.pm"}
