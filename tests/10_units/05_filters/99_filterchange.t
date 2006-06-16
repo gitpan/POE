@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 99_filterchange.t 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: 99_filterchange.t 1971 2006-05-30 20:32:30Z bsmith $
 # vim: filetype=perl
 
 # Exercises filter changing.  A lot of this code comes from Philip
 # Gwyn's filterchange.perl sample.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 use Test::More;
 use MyOtherFreezer;

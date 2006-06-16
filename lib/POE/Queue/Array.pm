@@ -1,4 +1,4 @@
-# $Id: Array.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Array.pm 1979 2006-06-11 18:01:44Z rcaputo $
 # Copyrights and documentation are at the end.
 
 package POE::Queue::Array;
@@ -7,7 +7,7 @@ use strict;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(POE::Queue);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1979 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(ESRCH EPERM);
 use Carp qw(confess);
@@ -36,13 +36,20 @@ my %item_priority;
 # Theoretically, linear array search performance begins to suffer
 # after a queue grows large enough.  This is the largest queue size
 # before searches are performed as binary lookups.
+#
+# TODO - It might save us some runtime if we switch a method between
+# the large and small queue implementations rather than perform a
+# queue size check all the time.
+#
+# TODO - It might not be that slow to do a binary search all the time.
+# Benchmarks are needed.
 
 sub LARGE_QUEUE_SIZE () { 512 }
 
 ### A very simple constructor.
 
 sub new {
-  bless [];
+  bless [], shift();
 }
 
 ### Add an item to the queue.  Returns the new item's ID.

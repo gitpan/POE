@@ -1,8 +1,8 @@
-# $Id: controls.pm 1618 2004-09-04 22:50:40Z rcaputo $
+# $Id: controls.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 use strict;
 
-use lib qw(./mylib ./lib);
+use lib qw(./mylib ../mylib);
 use Test::More tests => 27;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

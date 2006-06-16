@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm 1781 2005-04-29 01:07:14Z sungo $
+# $Id: Makefile-5004.pm 1970 2006-05-30 19:15:22Z bsmith $
 
 use strict;
 
@@ -24,18 +24,6 @@ system($^X, "mylib/gen-tests.perl") and die "couldn't generate tests: $!";
 
 ### Generate Makefile.PL.
 
-#sub MY::postamble {
-#    return <<EOF;
-#reportupload: poe_report.xml
-#\cI$^X mylib/reportupload.pl
-#
-#uploadreport: poe_report.xml
-#\cI$^X mylib/reportupload.pl
-#
-#testreport: poe_report.xml
-#
-#poe_report.xml: Makefile
-#\cI$^X mylib/testreport.pl
 sub MY::postamble {
     return <<EOF;
 coverage: Makefile

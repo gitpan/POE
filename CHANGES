@@ -1,4 +1,199 @@
 ===========================
+2006-06-16 07:35:15 v0_3502
+===========================
+
+  2006-06-16 07:04:07 (r1990) by rcaputo
+  poe/tests/30_loops/00_base/wheel_run.pm M; poe/mylib/gen-tests.perl M
+
+    Use POSIX::_exit(0) for the event loop tests when they're run in
+    ActiveState Perl. POE::Wheel::Run (perhaps the forking) crashes Perl
+    when the wheel_run.t test is run with Tk's event loop. Using POSIX's
+    _exit() seems to avoid the problem. 
+
+  2006-06-15 20:05:27 (r1989) by rcaputo; poe/mylib/gen-tests.perl M
+
+    Detabify the test generator. More importantly, turn on autoflush for
+    the BEGIN blocks that skip all tests. These skips happen without
+    Test::More being invoked, so Test::More's autoflushing is not
+    invoked. 
+
+  2006-06-15 15:12:30 (r1988) by rcaputo; poe/lib/POE.pm M
+
+    Bump the version for release. 
+
+  2006-06-14 15:33:11 (r1987) by bsmith; poe/mylib/gen-tests.perl M
+
+    Change do back to require as require correctly rethrows any errors
+    produced by the included file. 
+
+  2006-06-13 15:52:39 (r1986) by rcaputo; poe/lib/POE/Filter/HTTPD.pm M
+
+    Apply a fix described by Eben Rauhut. He pointed out a place where we
+    return a response without clearing the filter's HTTP headers buffer.
+    This commit clears the headers buffer there and replaces a delete on
+    an arrayref with an assignment of undef in other places. 
+
+  2006-06-13 15:06:09 (r1985) by rcaputo; poe/lib/POE.pm M
+
+    Attempt to resolve a documentation incongruity, per Tim Otten's
+    report in rt.cpan.org ticket 19122. 
+
+  2006-06-13 14:55:10 (r1984) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Apply Randal Schwartz's support for pty-pipe, a POE::Wheel::Run
+    hybrid conduit that allows stdio to use a pty and stderr to report
+    out of band via a pipe. Resolves rt.cpan.org ticket 19607. 
+
+  2006-06-13 14:31:33 (r1983) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Move alarm_adjust() after alarm_set(), per the recommendation of
+    rt.cpan.org ticket 19257. 
+
+  2006-06-11 19:40:54 (r1982) by bsmith; poe/MANIFEST M
+
+    Added 02_api_ctl.t from the previous change to MANIFEST.
+
+  2006-06-11 19:32:59 (r1981) by bsmith
+  poe/tests/10_units/03_base/02_api_ctl.t A
+
+    New tests for POE::API::Ctl.
+
+  2006-06-11 19:23:12 (r1980) by rcaputo
+  poe/lib/POE/Loop/IO_Poll.pm M; poe/lib/POE/Loop/Tk.pm M;
+  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Loop/Select.pm M;
+  poe/lib/POE/Loop/Event.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Loop/Gtk.pm M;
+  poe/tests/30_loops/00_base/sbk_signal_init.pm A; poe/MANIFEST M;
+  poe/lib/POE/Session.pm M; poe/lib/POE/Loop/TkActiveState.pm M;
+  poe/lib/POE/NFA.pm M
+
+    Resolve Stuart Kendrick's bug, rt.cpan.org 19529, in which POE resets
+    all signal handlers at "use" time. This is too early for some
+    applications. Now it doesn't even DEFAULT/IGNORE signals unless it
+    really must. That's pretty much SIGCHLD and SIGPIPE. Attempt no
+    handling there. 
+
+  2006-06-11 18:01:44 (r1979) by rcaputo; poe/lib/POE/Queue/Array.pm M
+
+    Allow POE::Queue::Array to be subclassed. Resolves rt.cpan.org ticket
+    19447, reported by Randal Schwartz. 
+
+  2006-06-09 16:18:24 (r1978) by bingosnet
+  extras/poco-list.perl M; extras/smoker.perl M
+
+    smoker.perl now has commandline options for changing settings
+
+  2006-06-07 06:15:52 (r1977) by immute; poe/lib/POE/Session.pm M
+
+    Removed depreciated code from POE::Session::new()
+
+  2006-06-06 03:07:35 (r1976) by immute
+  poe/lib/POE/Component/Client/TCP.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M
+
+    Added callbacks exposing High/Low-Mark in the ReadWrite wheel of
+    PoCo-Client-TCP and PoCo-Server-TCP
+
+  2006-05-31 15:21:38 (r1975) by rcaputo; extras/commitrelay.pl M
+
+    Reflow commit messages for IRC. 
+
+  2006-05-31 14:07:46 (r1974) by rcaputo
+  poe/mylib/commitrelay.pl D; poe/mylib/smoker.perl D;
+  extras/commitrelay.pl A; extras/smoker.perl A; poe/MANIFEST M
+
+    Move the bots over to extras. Remove them from MANIFEST. They're not
+    directly part of POE development, and they don't need to be included
+    in the distribution. 
+
+  2006-05-31 09:28:16 (r1973) by bsmith
+  poe/mylib/smoker.perl A; poe/MANIFEST M
+
+    Small smoker script from BinGOs that posts results to the pastebot.
+    Also fix MANIFEST.
+
+  2006-05-30 20:51:59 (r1972) by bsmith; poe/mylib/commitrelay.pl A
+
+    Relay bot for commits (with colour removal).
+
+  2006-05-30 20:32:30 (r1971) by bsmith
+  poe/tests/30_loops/00_base/wheel_run.pm M;
+  poe/tests/10_units/05_filters/01_block.t M;
+  poe/tests/10_units/05_filters/04_line.t M;
+  poe/tests/30_loops/00_base/k_alarms.pm M;
+  poe/tests/20_resources/00_base/filehandles.pm M;
+  poe/tests/10_units/05_filters/02_grep.t M;
+  poe/tests/30_loops/00_base/ses_session.pm M;
+  poe/tests/20_resources/00_base/extrefs.pm M;
+  poe/tests/20_resources/00_base/aliases.pm M;
+  poe/tests/30_loops/00_base/k_detach.pm M;
+  poe/tests/10_units/05_filters/07_reference.t M;
+  poe/tests/30_loops/00_base/all_errors.pm M;
+  poe/tests/30_loops/00_base/wheel_sf_udp.pm M;
+  poe/tests/30_loops/00_base/k_signals.pm M;
+  poe/tests/20_resources/00_base/signals.pm M;
+  poe/tests/20_resources/00_base/controls.pm M;
+  poe/tests/30_loops/00_base/wheel_accept.pm M;
+  poe/tests/10_units/05_filters/50_stackable.t M;
+  poe/tests/90_regression/suzman_windows.t M;
+  poe/tests/30_loops/00_base/wheel_sf_unix.pm M;
+  poe/tests/10_units/05_filters/08_stream.t M;
+  poe/tests/30_loops/00_base/wheel_sf_ipv6.pm M;
+  poe/tests/30_loops/00_base/wheel_sf_tcp.pm M;
+  poe/tests/30_loops/00_base/comp_tcp.pm M;
+  poe/tests/30_loops/00_base/comp_tcp_concurrent.pm M;
+  poe/tests/20_resources/00_base/statistics.pm M;
+  poe/tests/10_units/05_filters/99_filterchange.t M;
+  poe/tests/30_loops/00_base/k_selects.pm M;
+  poe/tests/30_loops/00_base/wheel_tail.pm M;
+  poe/tests/30_loops/00_base/ses_nfa.pm M;
+  poe/tests/10_units/05_filters/03_http.t M;
+  poe/tests/20_resources/00_base/sids.pm M;
+  poe/tests/10_units/05_filters/05_map.t M;
+  poe/tests/20_resources/00_base/caller_state.pm M;
+  poe/tests/20_resources/00_base/events.pm M;
+  poe/tests/20_resources/00_base/sessions.pm M;
+  poe/tests/90_regression/neyuki_detach.t M
+
+    Removed use lib qw(lib) from tests because we should be use libraries
+    from blib.
+
+  2006-05-30 19:15:22 (r1970) by bsmith
+  poe/mylib/Makefile-5004.pm M; poe/mylib/Makefile-5005.pm M;
+  poe/mylib/Test D; poe/mylib/testreport.pl D; poe/MANIFEST M;
+  poe/mylib/reportupload.pl D
+
+    Removed the old test upload programs, and their test harness, and
+    references to them.
+
+  2006-05-30 19:10:28 (r1969) by bsmith; poe/mylib/gen-tests.perl M
+
+    Modified gen-tests to use CORE::exit instead of POSIX::_exit, and to
+    use Test::More in the outer script as this sets up handy things like
+    autoflush.
+
+  2006-05-30 18:55:43 (r1968) by bsmith; poe/mylib/coverage.perl M
+
+    Added some commandline flags to coverage.perl to allow it to run
+    prove(1) instead of make test, not clean & build before running the
+    tests, and to just print out the -MDevel::Cover option that should be
+    used.
+
+  2006-05-27 11:37:08 (r1967) by bsmith; poe/mylib/coverage.perl M
+
+    Changes to mylib/coverage.perl:
+
+    Fixes for running individual tests, and hiding modules in tests/.
+
+    Also commenting out the harness_switches code more completely. 
+
+  2006-05-25 04:10:29 (r1966) by rcaputo
+  poe/tests/90_regression/cfedde-filter-httpd.t M;
+  poe/tests/90_regression/immute-server-tcp-filter.t M
+
+    Skip these two regression tests if HTTP::Request isn't available. 
+
+===========================
 2006-05-23 04:42:16 v0_3501
 ===========================
 

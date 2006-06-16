@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: k_detach.pm 1856 2005-11-30 02:46:57Z sungo $
+# $Id: k_detach.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Tests session detaching.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 # Trace output local to this test program.
 sub DEBUG () { 0 }

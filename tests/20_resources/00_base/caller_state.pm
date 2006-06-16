@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: caller_state.pm 1777 2005-04-22 20:36:32Z rcaputo $
+# $Id: caller_state.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Test that caller_state returnes expected results
 
 use strict;
 
-use lib qw(./mylib ./lib);
+use lib qw(./mylib ../mylib);
 use Test::More tests => 6;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 03_http.t 1951 2006-05-01 18:31:32Z teknikill $
+# $Id: 03_http.t 1971 2006-05-30 20:32:30Z bsmith $
 
 # Test Filter::HTTPD by itself
 # See other (forthcoming) for more complex interactions
 
 use strict;
 
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 BEGIN {
     if (-f 'run_network_tests') {

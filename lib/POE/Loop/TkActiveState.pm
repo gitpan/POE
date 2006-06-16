@@ -1,4 +1,4 @@
-# $Id: TkActiveState.pm 1914 2006-03-28 21:37:31Z rcaputo $
+# $Id: TkActiveState.pm 1980 2006-06-11 19:23:12Z rcaputo $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
@@ -6,7 +6,7 @@
 package POE::Loop::TkActiveState;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1914 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Merge things into POE::Loop::Tk.
 package POE::Loop::Tk;
@@ -75,6 +75,8 @@ sub loop_finalize {
       POE::Kernel::_warn "<rc> LOOP VECTOR LEAK: $mode_name = $bits\a\n";
     }
   }
+
+  $self->loop_ignore_all_signals();
 }
 
 #------------------------------------------------------------------------------

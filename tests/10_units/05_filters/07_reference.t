@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 07_reference.t 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: 07_reference.t 1971 2006-05-30 20:32:30Z bsmith $
 # vim: set filetype=perl
 
 # Exercises Filter::Reference without the rest of POE.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }

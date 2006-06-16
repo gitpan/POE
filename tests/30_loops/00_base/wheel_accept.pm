@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: wheel_accept.pm 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: wheel_accept.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Exercises the ListenAccept wheel.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 use IO::Socket;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

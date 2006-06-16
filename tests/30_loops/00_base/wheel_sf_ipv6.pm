@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_ipv6.pm 1820 2005-06-30 03:37:47Z rcaputo $
+# $Id: wheel_sf_ipv6.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Exercises Client and Server TCP components, which exercise
 # SocketFactory in AF_INET6 mode.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 use Socket;
 
 BEGIN {

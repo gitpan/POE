@@ -1,9 +1,9 @@
 #!/usr/bin/perl -w
-# $Id: 02_grep.t 1953 2006-05-03 00:42:50Z immute $
+# $Id: 02_grep.t 1971 2006-05-30 20:32:30Z bsmith $
 # Exercises Filter::Grep without POE
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 use Data::Dumper; $Data::Dumper::Indent=1;
 use POE::Filter::Grep;
 use Test::More tests => 17; # FILL ME IN

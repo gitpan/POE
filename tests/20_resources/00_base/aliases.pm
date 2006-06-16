@@ -1,8 +1,8 @@
-# $Id: aliases.pm 1749 2005-02-02 04:44:37Z rcaputo $
+# $Id: aliases.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 use strict;
 
-use lib qw(./mylib ./lib);
+use lib qw(./mylib ../mylib);
 use Test::More tests => 15;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

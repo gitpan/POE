@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 01_block.t 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: 01_block.t 1971 2006-05-30 20:32:30Z bsmith $
 # vim: filetype=perl
 
 # Exercises Filter::Block without the rest of POE.  Suddenly things
 # are looking a lot easier.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 use Test::More tests => 20;
 

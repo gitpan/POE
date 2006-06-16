@@ -1,9 +1,9 @@
 #!/usr/bin/perl -w
-# $Id: neyuki_detach.t 1618 2004-09-04 22:50:40Z rcaputo $
+# $Id: neyuki_detach.t 1971 2006-05-30 20:32:30Z bsmith $
 
 use strict;
 
-use lib qw(./mylib ../mylib ./lib ../lib ../../lib);
+use lib qw(./mylib ../mylib);
 
 $| = 1;
 

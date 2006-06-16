@@ -1,4 +1,4 @@
-# $Id: Gtk.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Gtk.pm 1980 2006-06-11 19:23:12Z rcaputo $
 
 # Gtk-Perl event loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -50,6 +50,8 @@ sub loop_initialize {
 }
 
 sub loop_finalize {
+  my $self = shift;
+
   foreach my $fd (0..$#fileno_watcher) {
     next unless defined $fileno_watcher[$fd];
     foreach my $mode (MODE_RD, MODE_WR, MODE_EX) {
@@ -58,6 +60,8 @@ sub loop_finalize {
       ) if defined $fileno_watcher[$fd]->[$mode];
     }
   }
+
+  $self->loop_ignore_all_signals();
 }
 
 #------------------------------------------------------------------------------

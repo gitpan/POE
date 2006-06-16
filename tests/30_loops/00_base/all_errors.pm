@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: all_errors.pm 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: all_errors.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 0 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }

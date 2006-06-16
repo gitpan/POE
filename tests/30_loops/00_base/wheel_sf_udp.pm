@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_udp.pm 1927 2006-04-06 03:40:26Z rcaputo $
+# $Id: wheel_sf_udp.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Exercises the wheels commonly used with UDP sockets.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }

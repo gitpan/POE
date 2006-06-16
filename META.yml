@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.3501
+version: 0.3502
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: A portable networking and multitasking framework.
@@ -21,7 +21,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.3501
+    version: 0.3502
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.1903
@@ -33,10 +33,10 @@ provides:
     version: 1.1903
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
-    version: 1.1957
+    version: 1.1976
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.1956
+    version: 1.1976
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.1903
@@ -54,7 +54,7 @@ provides:
     version: 1.1953
   POE::Filter::HTTPD:
     file: lib/POE/Filter/HTTPD.pm
-    version: 1.1958
+    version: 1.1986
   POE::Filter::Line:
     file: lib/POE/Filter/Line.pm
     version: 1.1920
@@ -75,37 +75,37 @@ provides:
     version: 1.1920
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.1938
+    version: 1.1983
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.1903
   POE::Loop::Event:
     file: lib/POE/Loop/Event.pm
-    version: 1.1903
+    version: 1.1980
   POE::Loop::Gtk:
     file: lib/POE/Loop/Gtk.pm
-    version: 1.1903
+    version: 1.1980
   POE::Loop::IO_Poll:
     file: lib/POE/Loop/IO_Poll.pm
-    version: 1.1903
+    version: 1.1980
   POE::Loop::PerlSignals:
     file: lib/POE/Loop/PerlSignals.pm
-    version: 1.1903
+    version: 1.1980
   POE::Loop::Select:
     file: lib/POE/Loop/Select.pm
-    version: 1.1903
+    version: 1.1980
   POE::Loop::Tk:
     file: lib/POE/Loop/Tk.pm
-    version: 1.1903
+    version: 1.1980
   POE::Loop::TkActiveState:
     file: lib/POE/Loop/TkActiveState.pm
-    version: 1.1914
+    version: 1.1980
   POE::Loop::TkCommon:
     file: lib/POE/Loop/TkCommon.pm
     version: 1.1924
   POE::NFA:
     file: lib/POE/NFA.pm
-    version: 1.1946
+    version: 1.1980
   POE::Pipe:
     file: lib/POE/Pipe.pm
     version: 1.1903
@@ -120,7 +120,7 @@ provides:
     version: 1.1903
   POE::Queue::Array:
     file: lib/POE/Queue/Array.pm
-    version: 1.1903
+    version: 1.1979
   POE::Resource:
     file: lib/POE/Resource.pm
     version: 1.1903
@@ -150,13 +150,13 @@ provides:
     version: 1.1903
   POE::Resources::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.1954
+    version: 1.1980
   POE::Resources::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.1911
   POE::Session:
     file: lib/POE/Session.pm
-    version: 1.1947
+    version: 1.1980
   POE::Wheel:
     file: lib/POE/Wheel.pm
     version: 1.1903
@@ -179,7 +179,7 @@ provides:
     version: 1.1947
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
-    version: 1.1916
+    version: 1.1984
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
     version: 1.1903

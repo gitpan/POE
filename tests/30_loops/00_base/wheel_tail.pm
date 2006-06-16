@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: wheel_tail.pm 1925 2006-04-05 15:05:45Z rcaputo $
+# $Id: wheel_tail.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Exercises Wheel::FollowTail, Wheel::ReadWrite, and Filter::Block.
 # -><- Needs tests for Seek and SeekBack.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 use Socket;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }

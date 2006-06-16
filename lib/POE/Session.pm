@@ -1,11 +1,11 @@
-# $Id: Session.pm 1947 2006-04-29 22:58:20Z rcaputo $
+# $Id: Session.pm 1980 2006-06-11 19:23:12Z rcaputo $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1947 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ENOSYS);
@@ -216,156 +216,10 @@ sub new {
     if ((@states > 1) && (ref($states[0]) eq 'POE::Kernel'));
 
   croak(
-		"POE::Session->new() has been deprecated for over a year.  Please\n",
-		"use create() instead.  http://www.nntp.perl.org/group/perl.poe/2613\n",
-		"discusses the deprecation.\n",
+    "POE::Session->new() has been deprecated for over a year.  Please\n",
+    "use create() instead.  http://www.nntp.perl.org/group/perl.poe/2613\n",
+    "discusses the deprecation.\n",
   );
-
-  my $self = $type->instantiate (\@states);
-
-  # Scan all arguments.  It mainly expects them to be in pairs, except
-  # for some, uh, exceptions.
-
-  while (@states) {
-
-    # If the first of a hypothetical pair of arguments is an array
-    # reference, then this arrayref is the _start state's arguments.
-    # Pull them out and look for another pair.
-
-    if (ref($states[0]) eq 'ARRAY') {
-      if (@args) {
-        croak "$type must only have one block of arguments";
-      }
-      push @args, @{$states[0]};
-      shift @states;
-      next;
-    }
-
-    # If there is a pair of arguments (or more), then we can continue.
-    # Otherwise this is done.
-
-    if (@states >= 2) {
-
-      # Pull the argument pair off the constructor parameters.
-
-      my ($first, $second) = splice(@states, 0, 2);
-
-      # Check for common problems.
-
-      unless ((defined $first) && (length $first)) {
-        carp "deprecated: using an undefined event name";
-      }
-
-      if (ref($first) eq 'CODE') {
-        croak "using a code reference as an event name is not allowed";
-      }
-
-      # Try to determine what sort of state it is.  A lot of WIM is D
-      # here.  It was nifty at the time, but it's gotten a little
-      # scary as POE has evolved.
-
-      # The first parameter has no blessing, so it's either a plain
-      # inline state or a package state.
-
-      if (ref($first) eq '') {
-
-        # The second parameter is a coderef, so it's a plain old
-        # inline state.
-
-        if (ref($second) eq 'CODE') {
-          $self->register_state($first, $second);
-          next;
-        }
-
-        # If the second parameter in the pair is a list reference,
-        # then this is a package state invocation.  Explode the list
-        # reference into separate state registrations.  Each state is
-        # a package method with the same name.
-
-        elsif (ref($second) eq 'ARRAY') {
-          foreach my $method (@$second) {
-            $self->register_state($method, $first, $method);
-          }
-
-          next;
-        }
-
-        # If the second parameter in the pair is a hash reference,
-        # then this is a mapped package state invocation.  Explode the
-        # hash reference into separate state registrations.  Each
-        # state is mapped to a package method with a separate
-        # (although not guaranteed to be different) name.
-
-        elsif (ref($second) eq 'HASH') {
-          while (my ($first_name, $method_name) = each %$second) {
-            $self->register_state($first_name, $first, $method_name);
-          }
-          next;
-        }
-
-        # Something unexpected happened.
-
-        else {
-          croak( "can't determine what you're doing with '$first'; ",
-                 "perhaps you should use POE::Session->create"
-               );
-        }
-      }
-
-      # Otherwise the first parameter is a blessed something, and
-      # these will be object states.  The second parameter is a plain
-      # scalar of some sort, so we'll register the state directly.
-
-      if (ref($second) eq '') {
-        $self->register_state($second, $first, $second);
-        next;
-      }
-
-      # The second parameter is a list reference; we'll explode it
-      # into several state registrations, each mapping the state name
-      # to a similarly named object method.
-
-      if (ref($second) eq 'ARRAY') {
-        foreach my $method (@$second) {
-          $self->register_state($method, $first, $method);
-        }
-        next;
-      }
-
-      # The second parameter is a hash reference; we'll explode it
-      # into several aliased state registrations, each mapping a state
-      # name to a separately (though not guaranteed to be differently)
-      # named object method.
-
-      if (ref($second) eq 'HASH') {
-        while (my ($first_name, $method_name) = each %$second) {
-          $self->register_state($first_name, $first, $method_name);
-        }
-        next;
-      }
-
-      # Something unexpected happened.
-
-      croak( "can't determine what you're doing with '$second'; ",
-             "perhaps you should use POE::Session->create"
-           );
-    }
-
-    # There are fewer than 2 parameters left.
-
-    else {
-      last;
-    }
-  }
-
-  # If any parameters are left, then there's a syntax error in the
-  # constructor parameter list.
-
-  if (@states) {
-    croak "odd number of parameters in POE::Session->new call";
-  }
-
-  return $self->try_alloc (@args);
 }
 
 #------------------------------------------------------------------------------
@@ -615,7 +469,7 @@ sub _invoke_state {
 
     # Transmogrify the original state transition into a corresponding
     # _default invocation.  ARG1 is copied from $etc so it can't be
-		# altered from a distance.
+    # altered from a distance.
 
     $etc   = [ $state, [@$etc] ];
     $state = EN_DEFAULT;
@@ -637,7 +491,7 @@ sub _invoke_state {
         undef,                          # unused #6
         $file,                          # caller file name
         $line,                          # caller file line
-    $fromstate,            # caller state
+        $fromstate,                     # caller state
         @$etc                           # args
       );
   }

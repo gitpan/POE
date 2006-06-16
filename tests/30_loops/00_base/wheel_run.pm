@@ -1,8 +1,8 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm 1962 2006-05-22 08:21:37Z teknikill $
+# $Id: wheel_run.pm 1990 2006-06-16 07:04:07Z rcaputo $
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 use Socket;
 
 use Test::More;
@@ -360,7 +360,6 @@ SKIP: {
 POE::Kernel->run();
 
 ### Post-run tests.
-
 
 SKIP: {
   skip "ptys not available", 2 unless POE::Wheel::Run::PTY_AVAILABLE;

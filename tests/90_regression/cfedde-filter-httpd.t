@@ -1,9 +1,17 @@
 #!/usr/bin/perl
-# $Id: cfedde-filter-httpd.t 1961 2006-05-22 08:11:41Z teknikill $
+# $Id: cfedde-filter-httpd.t 1966 2006-05-25 04:10:29Z rcaputo $
 # vim: filetype=perl
 
 use warnings;
 use strict;
+
+BEGIN {
+  eval "use HTTP::Request";
+  if ($@) {
+    print "1..0 # skip - HTTP::Request needed to test POE::Filter::HTTPD\n";
+    exit;
+  }
+}
 
 use Test::More tests => 2;
 

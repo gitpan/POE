@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: comp_tcp_concurrent.pm 1871 2005-12-22 17:49:26Z rcaputo $
+# $Id: comp_tcp_concurrent.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Exercise Server::TCP and later, when it's available, Client::TCP.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 BEGIN {
   unless (-f "run_network_tests") {

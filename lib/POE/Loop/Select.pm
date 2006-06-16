@@ -1,4 +1,4 @@
-# $Id: Select.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Select.pm 1980 2006-06-11 19:23:12Z rcaputo $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -65,6 +65,8 @@ sub loop_finalize {
       POE::Kernel::_warn "<rc> LOOP VECTOR LEAK: $mode_name = $bits\a\n";
     }
   }
+
+  $self->loop_ignore_all_signals();
 }
 
 #------------------------------------------------------------------------------
@@ -295,7 +297,7 @@ sub loop_do_timeslice {
         sleep($timeout);
       }
       else {
-				CORE::select(undef, undef, undef, $timeout);
+        CORE::select(undef, undef, undef, $timeout);
       }
     }
   }

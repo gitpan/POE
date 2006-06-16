@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: k_alarms.pm 1928 2006-04-06 14:57:17Z rcaputo $
+# $Id: k_alarms.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Tests alarms.
 
 use strict;
 
-use lib qw(./mylib ./lib);
+use lib qw(./mylib ../mylib);
 
 use Test::More tests => 37;
 

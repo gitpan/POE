@@ -23,14 +23,14 @@ my $test_base = "tests";
     "# \$Id\$\n" .
     "\n" .
     "use strict;\n" .
-    "use POSIX qw(_exit);\n" .
     "use lib qw(--base_lib--);\n" .
+    "use Test::More;\n" .
     "\n" .
     "\$ENV{POE_IMPLEMENTATION} = '--implementation--';\n" .
     "\n" .
     "require '--base_file--';\n" .
     "\n" .
-    "POSIX::_exit(0);\n"
+    "CORE::exit 0;\n"
   );
 
   derive_files(
@@ -49,54 +49,55 @@ my $test_base = "tests";
 
   my %derived_conf = (
     "10_select" => {
-			module		=> "",
-			display		=> "",
-		},
+      module    => "",
+      display    => "",
+    },
     "20_poll"   => {
-			module		=> "IO::Poll",
-			display		=> "",
-			no_sys		=> [ "MSWin32" ],
-		},
+      module    => "IO::Poll",
+      display    => "",
+      no_sys    => [ "MSWin32" ],
+    },
     "30_event"  => {
-			module		=> "Event",
-			display		=> "",
-		},
+      module    => "Event",
+      display    => "",
+    },
     "40_gtk"    => {
-			module		=> "Gtk",
-			display		=> 1,
-		},
+      module    => "Gtk",
+      display    => 1,
+    },
     "50_tk"     => {
-			module		=> "Tk",
-			display		=> 1,
-		},
+      module    => "Tk",
+      display    => 1,
+    },
   );
 
-	# Expand flags into code.
+  # Expand flags into code.
 
   foreach my $variables (values %derived_conf) {
     my $module = $variables->{module};
 
-		# If platforms are to be excluded, check for them.
+    # If platforms are to be excluded, check for them.
 
-		if (
-			$variables->{no_sys} and
-			grep /^\Q$^O\E/, @{$variables->{no_sys}}
-		) {
-			$variables->{no_sys} = (
-				"\n" .
-				"BEGIN {\n" .
-				"  print qq(1..0 # Skip This test cannot be run on $^O\\n);\n" .
-				"  POSIX::_exit(0);\n" .
-				"}\n"
-			);
-		}
-		else {
-			$variables->{no_sys} = "";
-		}
+    if (
+      $variables->{no_sys} and
+      grep /^\Q$^O\E/, @{$variables->{no_sys}}
+    ) {
+      $variables->{no_sys} = (
+        "\n" .
+        "BEGIN {\n" .
+        "  \$| = 1;\n" .
+        "  print qq(1..0 # Skip This test cannot be run on $^O\\n);\n" .
+        "  CORE::exit(0);\n" .
+        "}\n"
+      );
+    }
+    else {
+      $variables->{no_sys} = "";
+    }
 
-		# Turn a specified display flag into the code that tests for a
-		# DISPLAY environment variable.  DISPLAY is not necessary for
-		# ActiveState Perl, at least not for Tk.
+    # Turn a specified display flag into the code that tests for a
+    # DISPLAY environment variable.  DISPLAY is not necessary for
+    # ActiveState Perl, at least not for Tk.
 
     if ($variables->{display}) {
       if ($^O eq "MSWin32") {
@@ -107,9 +108,10 @@ my $test_base = "tests";
           "\n" .
           "BEGIN {\n" .
           "  unless (\$ENV{DISPLAY}) {\n" .
+          "    \$| = 1;\n" .
           "    print qq(1..0 # " .
           "Skip $module needs a DISPLAY (set one today, okay?)\\n);\n" .
-          "    POSIX::_exit(0);\n" .
+          "    CORE::exit(0);\n" .
           "  }\n" .
           "}\n"
         );
@@ -125,8 +127,9 @@ my $test_base = "tests";
         "BEGIN {\n" .
         "  eval 'use $module';\n" .
         "  if (\$@) {\n" .
+        "    \$| = 1;\n" .
         "    print qq(1..0 # Skip $module could not be loaded\\n);\n" .
-        "    POSIX::_exit(0);\n" .
+        "    CORE::exit(0);\n" .
         "  }\n" .
         "}\n"
       );
@@ -138,15 +141,17 @@ my $test_base = "tests";
     "# \$Id\$\n" .
     "\n" .
     "use strict;\n" .
-    "use POSIX qw(_exit);\n" .
-		"--no_sys--" .
+    "--no_sys--" .
     "use lib qw(--base_lib--);\n" .
+    "use Test::More;\n" .
+    "use POSIX qw(_exit);\n" .
     "--display--" .
     "--module--" .
     "\n" .
     "require '--base_file--';\n" .
     "\n" .
-    "POSIX::_exit(0);\n"
+    "_exit 0 if \$^O eq 'MSWin32';\n" .
+    "CORE::exit 0;\n"
   );
 
   derive_files(

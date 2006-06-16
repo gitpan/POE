@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_unix.pm 1939 2006-04-15 23:56:39Z rcaputo $
+# $Id: wheel_sf_unix.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Exercises the wheels commonly used with UNIX domain sockets.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }

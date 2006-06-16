@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: k_selects.pm 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: k_selects.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Tests basic select operations.
 
 use strict;
 
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }

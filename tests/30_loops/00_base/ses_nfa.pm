@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: ses_nfa.pm 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: ses_nfa.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Tests NFA sessions.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }

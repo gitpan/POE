@@ -69,13 +69,7 @@ mylib/Makefile-5005.pm
 mylib/MyOtherFreezer.pm
 mylib/PoeBuildInfo.pm
 mylib/preprocessor.perl
-mylib/reportupload.pl
 mylib/svn-log.perl
-mylib/Test/Harness.pm
-mylib/Test/Harness/Assert.pm
-mylib/Test/Harness/Iterator.pm
-mylib/Test/Harness/Straps.pm
-mylib/testreport.pl
 README
 samples/create.perl
 samples/fakelogin.perl
@@ -98,6 +92,7 @@ tests/10_units/02_pipes/01_base.t
 tests/10_units/02_pipes/02_oneway.t
 tests/10_units/02_pipes/03_twoway.t
 tests/10_units/03_base/01_poe.t
+tests/10_units/03_base/02_api_ctl.t
 tests/10_units/03_base/02_api_resloader.t
 tests/10_units/03_base/03_component.t
 tests/10_units/03_base/04_driver.t
@@ -144,6 +139,7 @@ tests/30_loops/00_base/k_aliases.pm
 tests/30_loops/00_base/k_detach.pm
 tests/30_loops/00_base/k_selects.pm
 tests/30_loops/00_base/k_signals.pm
+tests/30_loops/00_base/sbk_signal_init.pm
 tests/30_loops/00_base/ses_nfa.pm
 tests/30_loops/00_base/ses_session.pm
 tests/30_loops/00_base/wheel_accept.pm

@@ -1,4 +1,4 @@
-# $Id: IO_Poll.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: IO_Poll.pm 1980 2006-06-11 19:23:12Z rcaputo $
 
 # IO::Poll event loop bridge for POE::Kernel.  The theory is that this
 # will be faster for large scale applications.  This file is
@@ -8,7 +8,7 @@
 package POE::Loop::IO_Poll;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Include common signal handling.
 use POE::Loop::PerlSignals;
@@ -67,7 +67,8 @@ sub loop_initialize {
 }
 
 sub loop_finalize {
-  # does nothing
+  my $self = shift;
+  $self->loop_ignore_all_signals();
 }
 
 #------------------------------------------------------------------------------

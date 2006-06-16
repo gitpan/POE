@@ -1,4 +1,4 @@
-# $Id: POE.pm 1964 2006-05-23 04:41:51Z rcaputo $
+# $Id: POE.pm 1988 2006-06-15 15:12:30Z rcaputo $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,8 +7,8 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION $REVISION);
-$VERSION = '0.3501';
-$REVISION = do {my($r)=(q$Revision: 1964 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '0.3502';
+$REVISION = do {my($r)=(q$Revision: 1988 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 sub import {
   my $self = shift;
@@ -132,21 +132,20 @@ multitasking and networking framework, encompassing and providing a
 consistent interface to other event loops such as Event and the Tk and
 Gtk toolkits.
 
-POE is written in layers, each building upon the previous.  It's
+POE is written in layers, each building upon previous ones.  It's
 therefore possible to use POE at varying levels of abstraction.
 
-The lowest level uses POE::Kernel and POE::Session.  The former class
-acts as POE's event watcher and dispatcher.  The latter encapsulates
-the notion of an event driven task.
+The most basic layer is comprised of POE::Kernel and POE::Session.
+The former class acts as POE's event watcher and dispatcher, while the
+latter encapsulates the notion of an event driven task.
 
 POE::Wheel classes operate at a slightly higher level.  They plug into
 sessions and perform very common, general tasks.  For example,
-POE::Wheel::ReadWrite performs buffered I/O.
-
-Unlike cheese, wheels do not stand alone.  They are customized by
-POE::Driver and POE::Filter classes.  Using the proper filter, a
-ReadWrite wheel can read and write streams, lines, fixed-length
-blocks, HTTP requests and responses, and so on.
+POE::Wheel::ReadWrite performs buffered I/O.  Unlike cheese, wheels do
+not stand alone.  They are customized by POE::Driver and POE::Filter
+classes.  Using the appropriate filter, a ReadWrite wheel can read and
+write streams, lines, fixed-length blocks, HTTP requests and
+responses, and so on.
 
 The highest level of POE programming uses components.  They may
 perform narrowly defined tasks, such as POE::Component::Child (on the

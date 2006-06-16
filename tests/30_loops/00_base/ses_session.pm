@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: ses_session.pm 1842 2005-09-08 16:40:19Z rcaputo $
+# $Id: ses_session.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Tests basic compilation and events.
 
 use strict;
 
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 BEGIN {
   sub POE::Kernel::ASSERT_DEFAULT () { 1 }

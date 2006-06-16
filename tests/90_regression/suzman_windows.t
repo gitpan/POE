@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: suzman_windows.t 1813 2005-06-28 06:18:21Z rcaputo $
+# $Id: suzman_windows.t 1971 2006-05-30 20:32:30Z bsmith $
 # vim: filetype=perl
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 use Test::More;
 

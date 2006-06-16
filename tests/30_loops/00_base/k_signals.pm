@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: k_signals.pm 1770 2005-04-18 06:34:52Z rcaputo $
+# $Id: k_signals.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
 
 use strict;
-use lib qw(./mylib);
+use lib qw(./mylib ../mylib);
 
 use Test::More;
 

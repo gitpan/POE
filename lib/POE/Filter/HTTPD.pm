@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm 1958 2006-05-21 21:12:55Z rcaputo $
+# $Id: HTTPD.pm 1986 2006-06-13 15:52:39Z rcaputo $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,7 +17,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1958 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1986 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 sub BUFFER        () { 0 }
@@ -131,6 +131,8 @@ sub get {
       $self->[BUFFER] = substr($buf, $cl);
       $self->[BUFFER] =~ s/^\s+//;
 
+      # We are sending this back, so won't need it anymore.
+      $self->[HEADER] = undef;
       $self->[FINISH]++;
       return [$r];
     }
@@ -197,7 +199,7 @@ sub get {
   if ($method eq 'GET' or $method eq 'HEAD') {
     $self->[FINISH]++;
     # We are sending this back, so won't need it anymore.
-    delete $self->[HEADER];
+    $self->[HEADER] = undef;
     return [$r];
   }
 
@@ -225,7 +227,7 @@ sub get {
       $self->[FINISH]++;
       # OPTIONS requests can have an optional content length
       # See http://www.faqs.org/rfcs/rfc2616.html, section 9.2
-      delete $self->[HEADER];
+      $self->[HEADER] = undef;
       return [$r];
     }
     else {
@@ -250,7 +252,7 @@ sub get {
     $self->[BUFFER] =~ s/^\s+//;
     $self->[FINISH]++;
     # We are sending this back, so won't need it anymore.
-    delete $self->[HEADER];
+    $self->[HEADER] = undef;
     return [$r];
   }
 

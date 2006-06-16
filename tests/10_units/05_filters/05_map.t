@@ -1,9 +1,9 @@
 #!/usr/bin/perl -w
-# $Id: 05_map.t 1953 2006-05-03 00:42:50Z immute $
+# $Id: 05_map.t 1971 2006-05-30 20:32:30Z bsmith $
 # Exercises Filter::Map without POE
 
 use strict;
-use lib qw(./mylib ../mylib ../lib ./lib);
+use lib qw(./mylib ../mylib);
 
 use POE::Filter::Map;
 use Test::More tests => 17; # FILL ME IN
