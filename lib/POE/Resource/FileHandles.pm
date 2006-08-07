@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: FileHandles.pm 2032 2006-08-07 05:15:52Z rcaputo $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,7 +6,7 @@
 package POE::Resources::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2032 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -355,7 +355,9 @@ sub _data_handle_add {
           $handle,
           0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
           \$set_it
-        ) or _trap "ioctl($handle, FIONBIO, $set_it) fails: $!\n";
+        ) or _trap(
+          "ioctl($handle, FIONBIO, $set_it) fails: errno " . ($!+0) . " = $!\n"
+        );
       }
     }
 
@@ -408,18 +410,45 @@ sub _data_handle_add {
             $why = "closed";
           }
           elsif (fileno($handle) == fileno($other_handle)) {
-            $why = "still open";
+            $why = "open";
           }
           else {
-            $why = "open as different fd";
+            $why = "open with different file descriptor";
           }
 
-          _trap(
-            $self->_data_alias_loggable($session),
-            " can't watch $handle in mode $mode: ",
-            $self->_data_alias_loggable($hdl_rec->[HSS_SESSION]),
-            " is already watching it as $other_handle ($why)"
-          );
+          if ($session eq $watch_session) {
+            _die(
+              "A session was caught watching two different file handles that\n",
+              "reference the same file descriptor in the same mode ($mode).\n",
+              "This error is usually caused by a file descriptor leak.  The\n",
+              "most common cause is explicitly closing a filehandle without\n",
+              "first unregistering it from POE.\n",
+              "\n",
+              "Some possibly helpful information:\n",
+              "  Session    : ", $self->_data_alias_loggable($session), "\n",
+              "  Old handle : $other_handle (currently $why)\n",
+              "  New handle : $handle\n",
+              "\n",
+              "Please correct the program and try again.\n",
+            );
+          }
+          else {
+            _die(
+              "Two sessions were caught watching the same file descriptor\n",
+              "in the same mode ($mode).  This error is usually caused by\n",
+              "a file descriptor leak.  The most common cause is explicitly\n",
+              "closing a filehandle without first unregistering it from POE.\n",
+              "\n",
+              "Some possibly helpful information:\n",
+              "  Old session: ",
+              $self->_data_alias_loggable($hdl_rec->[HSS_SESSION]), "\n",
+              "  Old handle : $other_handle (currently $why)\n",
+              "  New session: ", $self->_data_alias_loggable($session), "\n",
+              "  New handle : $handle\n",
+              "\n",
+              "Please correct the program and try again.\n",
+            );
+          }
         }
       }
       _trap "internal inconsistency";

@@ -1,15 +1,20 @@
 #!/usr/bin/perl -w
-# $Id: 05_map.t 1971 2006-05-30 20:32:30Z bsmith $
+# $Id: 05_map.t 2001 2006-06-25 12:39:03Z bsmith $
 # Exercises Filter::Map without POE
 
 use strict;
 use lib qw(./mylib ../mylib);
+use lib qw(tests/10_units/05_filters);
 
-use POE::Filter::Map;
-use Test::More tests => 17; # FILL ME IN
+use TestFilter;
+use Test::More tests => 19 + $COUNT_FILTER_INTERFACE;
+
+use_ok('POE::Filter::Map');
+test_filter_interface('POE::Filter::Map');
 
 # Test erroneous new() args
 test_new("No Args");
+test_new("Odd number of args", "one", "two", "odd");
 test_new("Non code CODE ref", Code => [ ]);
 test_new("Single Get ref", Get => sub { });
 test_new("Single Put ref", Put => sub { });
@@ -21,7 +26,7 @@ sub test_new {
     my @args = @_;
     my $filter;
     eval { $filter = POE::Filter::Map->new(@args); };
-    ok(defined $@, $name);
+    ok($@ ne '', $name);
 }
 
 my $filter;
@@ -38,14 +43,18 @@ is_deeply($filter->get([qw/a b c/]), [qw/A B C/], "Test Get (as Code)");
 $filter = POE::Filter::Map->new( Get => sub { 'GET' }, Put => sub { 'PUT' } );
 
 # Test erroneous modification
-test_modify("Modify Get not CODE ref",  $filter, Get => [ ]);
-test_modify("Modify Put not CODE ref",  $filter, Put => [ ]);
-test_modify("Modify Code not CODE ref", $filter, Code => [ ]);
+TODO: {
+  local $TODO = "modify() carps rather than dieing";
+  local $SIG{__WARN__} = sub { };
+  test_modify("Modify Get not CODE ref",  $filter, Get => [ ]);
+  test_modify("Modify Put not CODE ref",  $filter, Put => [ ]);
+  test_modify("Modify Code not CODE ref", $filter, Code => [ ]);
+}
 
 sub test_modify {
    my ($name, $filter, @args) = @_;
    eval { $filter->modify(@args); };
-   ok(defined $@, $name);
+   ok($@ ne '', $name);
 }
 
 $filter->modify(Get => sub { 'NGet' });

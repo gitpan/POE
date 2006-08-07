@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm 1970 2006-05-30 19:15:22Z bsmith $
+# $Id: Makefile-5004.pm 1995 2006-06-18 20:33:55Z rcaputo $
 
 use strict;
 
@@ -54,8 +54,9 @@ WriteMakefile(
     FILES => CLEAN_FILES,
   },
 
-  PL_FILES    => { },
+  PL_FILES  => { },
   PREREQ_PM => { CORE_REQUIREMENTS },
+  PM_FILTER => 'mylib/preprocessor.perl',
 );
 
 1;

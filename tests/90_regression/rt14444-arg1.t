@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id$
+# $Id: rt14444-arg1.t 2024 2006-08-06 23:16:42Z rcaputo $
 # vim: filetype=perl
 
 use warnings;

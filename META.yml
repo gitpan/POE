@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.3502
+version: 0.36
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: A portable networking and multitasking framework.
@@ -21,7 +21,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.3502
+    version: 0.36
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.1903
@@ -33,10 +33,10 @@ provides:
     version: 1.1903
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
-    version: 1.1976
+    version: 1.1994
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.1976
+    version: 1.2005
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.1903
@@ -63,10 +63,10 @@ provides:
     version: 1.1953
   POE::Filter::RecordBlock:
     file: lib/POE/Filter/RecordBlock.pm
-    version: 1.1920
+    version: 1.1999
   POE::Filter::Reference:
     file: lib/POE/Filter/Reference.pm
-    version: 1.1947
+    version: 1.2025
   POE::Filter::Stackable:
     file: lib/POE/Filter/Stackable.pm
     version: 1.1963
@@ -75,16 +75,16 @@ provides:
     version: 1.1920
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.1983
+    version: 1.2029
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.1903
   POE::Loop::Event:
     file: lib/POE/Loop/Event.pm
-    version: 1.1980
+    version: 1.2017
   POE::Loop::Gtk:
     file: lib/POE/Loop/Gtk.pm
-    version: 1.1980
+    version: 1.2004
   POE::Loop::IO_Poll:
     file: lib/POE/Loop/IO_Poll.pm
     version: 1.1980
@@ -141,13 +141,13 @@ provides:
     version: 1.1903
   POE::Resources::FileHandles:
     file: lib/POE/Resource/FileHandles.pm
-    version: 1.1903
+    version: 1.2032
   POE::Resources::SIDs:
     file: lib/POE/Resource/SIDs.pm
     version: 1.1903
   POE::Resources::Sessions:
     file: lib/POE/Resource/Sessions.pm
-    version: 1.1903
+    version: 1.2014
   POE::Resources::Signals:
     file: lib/POE/Resource/Signals.pm
     version: 1.1980
@@ -171,18 +171,18 @@ provides:
     version: 1.1903
   POE::Wheel::ReadLine:
     file: lib/POE/Wheel/ReadLine.pm
-    version: 1.1947
+    version: 1.2013
   POE::Wheel::ReadLine::Keymap:
     file: lib/POE/Wheel/ReadLine.pm
   POE::Wheel::ReadWrite:
     file: lib/POE/Wheel/ReadWrite.pm
-    version: 1.1947
+    version: 1.2007
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
-    version: 1.1984
+    version: 1.2012
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
-    version: 1.1903
+    version: 1.2008
 no_index:
   dir:
     - mylib

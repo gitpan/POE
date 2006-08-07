@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: gen-meta.perl 1932 2006-04-06 17:58:43Z rcaputo $
+# $Id: gen-meta.perl 1996 2006-06-19 14:31:05Z rcaputo $
 
 # Generate META.yml.
 

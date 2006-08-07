@@ -1,4 +1,4 @@
-# $Id: Event.pm 1980 2006-06-11 19:23:12Z rcaputo $
+# $Id: Event.pm 2017 2006-08-03 16:05:34Z rcaputo $
 
 # Event.pm event loop bridge for POE::Kernel.
 
@@ -8,7 +8,7 @@ package POE::Loop::Event;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2017 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -36,7 +36,6 @@ sub loop_initialize {
   $_watcher_timer = Event->timer(
     cb     => \&_loop_event_callback,
     after  => 0,
-    parked => 1,
   );
 }
 

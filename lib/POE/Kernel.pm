@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 1983 2006-06-13 14:31:33Z rcaputo $
+# $Id: Kernel.pm 2029 2006-08-07 02:25:50Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1983 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2029 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -297,7 +297,7 @@ BEGIN {
     # wrapped in quotes.
     my $value = $val;
     $value =~ tr['"][]d;
-    $value = qq("$value") if $value =~ /\D/;
+    $value = qq($value) if $value =~ /\D/;
 
     BEGIN { $^W = 0; }
 
@@ -965,7 +965,7 @@ sub _dispatch_event {
 
   my $return;
   my $wantarray = wantarray;
-  if(CATCH_EXCEPTIONS) {
+  if (CATCH_EXCEPTIONS) {
     eval {
       if ($wantarray) {
         $return = [
@@ -990,7 +990,7 @@ sub _dispatch_event {
     # bit of a problem if an eval{} occurs here because a signal is
     # dispatched or something.
 
-    if( $@ ne '' ) {
+    if ( $@ ne '' and !($type & ET_STOP) ) {
       my $exception = $@;
 
       if(TRACE_EVENTS) {
@@ -1024,11 +1024,16 @@ sub _dispatch_event {
       );
 
       unless ($handled) {
+        # Put our internal state back together before we throw the
+        # exception.
+        $kr_active_session = $hold_active_session;
+        $kr_active_event   = $hold_active_event;
         die( $exception );
       }
     }
 
-  } else {
+  }
+  else {
     if ($wantarray) {
       $return = [
         $session->_invoke_state(
@@ -1267,8 +1272,15 @@ sub DESTROY {
   # created but run() was never called.
 
   unless ($kr_run_warning & KR_RUN_CALLED) {
-    _warn("POE::Kernel's run() method was never called.\n")
-      if $kr_run_warning & KR_RUN_SESSION;
+    if ($kr_run_warning & KR_RUN_SESSION) {
+      _warn(
+        "Sessions were started, but POE::Kernel's run() method was never\n",
+        "called to execute them.  This usually happens because an error\n",
+        "occurred before POE::Kernel->run() could be called.  Please fix\n",
+        "any errors above this notice, and be sure that POE::Kernel->run()\n",
+        "is called.\n",
+      );
+    }
   }
 }
 

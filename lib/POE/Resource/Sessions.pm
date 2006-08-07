@@ -1,11 +1,11 @@
-# $Id: Sessions.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Sessions.pm 2014 2006-08-01 17:20:30Z rcaputo $
 
 # Manage session data structures on behalf of POE::Kernel.
 
 package POE::Resources::Sessions;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2014 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -394,6 +394,7 @@ sub _data_ses_collect_garbage {
       "<rc> | child sessions: ", scalar(keys(%{$ss->[SS_CHILDREN]})), "\n",
       "<rc> | handles in use: ", $self->_data_handle_count_ses($session), "\n",
       "<rc> | aliases in use: ", $self->_data_alias_count_ses($session), "\n",
+      "<rc> | sig watchers  : ", $self->_data_sig_count_ses($session), "\n",
       "<rc> | extra refs    : ", $self->_data_extref_count_ses($session), "\n",
       "<rc> +---------------------------------------------------\n",
     );
@@ -414,7 +415,7 @@ sub _data_ses_collect_garbage {
       scalar(keys(%{$ss->[SS_CHILDREN]})) +
       $self->_data_handle_count_ses($session) +
       $self->_data_extref_count_ses($session) +
-      $self->_data_alias_count_ses($session) + 
+      $self->_data_alias_count_ses($session) +
       $self->_data_sig_count_ses($session)
     );
 

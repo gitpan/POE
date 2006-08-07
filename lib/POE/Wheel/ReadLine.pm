@@ -1,4 +1,4 @@
-# $Id: ReadLine.pm 1947 2006-04-29 22:58:20Z rcaputo $
+# $Id: ReadLine.pm 2013 2006-07-27 06:16:55Z rcaputo $
 
 package POE::Wheel::ReadLine;
 
@@ -6,7 +6,7 @@ use strict;
 use bytes;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1947 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2013 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
@@ -1151,12 +1151,15 @@ sub history_truncate_file {
   $file ||= "$ENV{HOME}/.history";
   open(HIST, $file) or return undef;
   my @hist = <HIST>;
+  chomp(@hist);
   close(HIST);
+
   if ((scalar @hist) > $lines) {
     open(HIST, ">$file") or return undef;
     if ($lines) {
-      splice(@hist, -$lines);
-      print HIST @{$self->[SELF_HIST_LIST]} = @hist;
+      splice(@hist, 0, (scalar @hist)-$lines);
+      @{$self->[SELF_HIST_LIST]} = @hist;
+      print HIST join("\n", @hist) . "\n";
     } else {
       @{$self->[SELF_HIST_LIST]} = ();
     }

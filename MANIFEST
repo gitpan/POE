@@ -117,6 +117,7 @@ tests/10_units/05_filters/07_reference.t
 tests/10_units/05_filters/08_stream.t
 tests/10_units/05_filters/50_stackable.t
 tests/10_units/05_filters/99_filterchange.t
+tests/10_units/05_filters/TestFilter.pm
 tests/10_units/06_queues/01_array.t
 tests/10_units/07_exceptions/01_normal.t
 tests/10_units/07_exceptions/02_turn_off.t
@@ -143,6 +144,8 @@ tests/30_loops/00_base/sbk_signal_init.pm
 tests/30_loops/00_base/ses_nfa.pm
 tests/30_loops/00_base/ses_session.pm
 tests/30_loops/00_base/wheel_accept.pm
+tests/30_loops/00_base/wheel_curses.pm
+tests/30_loops/00_base/wheel_readline.pm
 tests/30_loops/00_base/wheel_run.pm
 tests/30_loops/00_base/wheel_sf_ipv6.pm
 tests/30_loops/00_base/wheel_sf_tcp.pm
@@ -158,6 +161,7 @@ tests/90_regression/merijn-sigchld-system.t
 tests/90_regression/neyuki_detach.t
 tests/90_regression/rt14444-arg1.t
 tests/90_regression/rt1648-tied-stderr.t
+tests/90_regression/rt19908-merlyn-stop.t
 tests/90_regression/steinert-passed-wheel.t
 tests/90_regression/steinert-recursive-signal.t
 tests/90_regression/steinert-signal-integrity.t

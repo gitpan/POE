@@ -1,14 +1,14 @@
-# $Id: TCP.pm 1976 2006-06-06 03:07:35Z immute $
+# $Id: TCP.pm 2005 2006-06-28 17:11:29Z rcaputo $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1976 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2005 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
-use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_UNIX PF_UNIX);
+use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
 use Errno qw(ECONNABORTED ECONNRESET);
 
 # Explicit use to import the parameter constants.
@@ -44,7 +44,7 @@ sub new {
   my $address = delete $param{Address};
   my $hname   = delete $param{Hostname};
   my $port    = delete $param{Port};
-  my $domain  = delete $param{Domain};
+  my $domain  = delete($param{Domain}) || AF_INET;
   my $concurrency = delete $param{Concurrency};
 
   foreach (
@@ -103,7 +103,7 @@ sub new {
   # Defaults.
 
   $concurrency = -1 unless defined $concurrency;
-  my $accept_session;
+  my $accept_session_id;
 
   if (!defined $address && defined $hname) {
     $address = inet_aton($hname);
@@ -181,8 +181,7 @@ sub new {
               # to pull most of this into a base class and derive
               # TCP and UNIX versions from that.
               if (
-                defined $domain and
-                ($domain == AF_UNIX or $domain == PF_UNIX)
+                $domain == AF_UNIX or $domain == PF_UNIX
               ) {
                 $heap->{remote_ip} = "LOCAL";
               }
@@ -199,7 +198,7 @@ sub new {
               $heap->{client} = POE::Wheel::ReadWrite->new(
                 Handle       => splice(@_, ARG0, 1),
                 Driver       => POE::Driver::SysRW->new(),
-                _get_filters($client_filter, $client_infilter, $client_outfilter), 
+                _get_filters($client_filter, $client_infilter, $client_outfilter),
                 InputEvent   => 'tcp_server_got_input',
                 ErrorEvent   => 'tcp_server_got_error',
                 FlushedEvent => 'tcp_server_got_flush',
@@ -266,10 +265,10 @@ sub new {
             _stop => sub {
               ## concurrency on close
               DEBUG and warn(
-                "$$: $alias _stop accept_session = $accept_session"
+                "$$: $alias _stop accept_session = $accept_session_id"
               );
-              if( defined $accept_session ) {
-                $_[KERNEL]->call( $accept_session, 'disconnected' );
+              if( defined $accept_session_id ) {
+                $_[KERNEL]->call( $accept_session_id, 'disconnected' );
               }
               else {
                 # This means that the Server::TCP was shutdown before
@@ -322,10 +321,11 @@ sub new {
     $orig_accept_callback->(@_);
   };
 
-  # Create the session, at long last.  This is done inline so that
-  # closures can customize it.
+  # Create the session, at long last.
+  # This is done inline so that closures can customize it.
+  # We save the accept session's ID to avoid self reference.
 
-  $accept_session = $session_type->create(
+  $accept_session_id = $session_type->create(
     @$session_params,
     inline_states => {
       _start => sub {
@@ -408,21 +408,17 @@ sub new {
       # Dummy states to prevent warnings.
       _stop   => sub {
         DEBUG and warn "$$: $_[HEAP]->{alias} _stop";
-        undef($accept_session);
+        undef($accept_session_id);
         return 0;
       },
       _child  => sub { },
     },
 
     args => $args,
-  );
+  )->ID;
 
-  $accept_session = $accept_session->ID;
-
-  # Return undef so nobody can use the POE::Session reference.  This
-  # isn't very friendly, but it saves grief later.
-  # Maybe we can at least return the session ID?
-  undef;
+  # Return the session ID.
+  return $accept_session_id;
 }
 
 sub _get_filters {
@@ -525,7 +521,7 @@ POE::Component::Server::TCP - a simplified TCP server
 
   ### First form just accepts connections.
 
-  POE::Component::Server::TCP->new(
+  my $acceptor_session_id = POE::Component::Server::TCP->new(
     Port     => $bind_port,
     Address  => $bind_address,    # Optional.
     Hostname => $bind_hostname,   # Optional.
@@ -537,7 +533,7 @@ POE::Component::Server::TCP - a simplified TCP server
 
   ### Second form also handles connections.
 
-  POE::Component::Server::TCP->new(
+  my $acceptor_session_id = POE::Component::Server::TCP->new(
     Port     => $bind_port,
     Address  => $bind_address,      # Optional.
     Hostname => $bind_hostname,     # Optional.
@@ -634,9 +630,9 @@ difficult.  A tutorial at http://poe.perl.org/ describes how.
 
 =head1 CONSTRUCTOR PARAMETERS
 
-The new() method can accept quite a lot of parameters.  It always
-returns undef, however.  One must use callbacks to check for errors
-rather than the return value of new().
+The new() method can accept quite a lot of parameters.  It will return
+the session ID of the accecptor session.  One must use callbacks to
+check for errors rather than the return value of new().
 
 POE::Component::Server::TCP supplies common defaults for most
 callbacks and handlers.
@@ -687,16 +683,16 @@ Later on, the 'chargen' service can be shut down with:
 
 =item Args => ARRAYREF
 
-Args passes the contents of a ARRAYREF to the ClientConnected callback
-via @_[ARG0..$#_].  It allows you to send extra information to the
-sessions that handle each client connection.
+Args passes the ARRAYREF to the ClientConnected callback as ARG0.
+It allows you to send extra information to the sessions that handle 
+each client connection.
 
 =item ClientConnected => CODEREF
 
 ClientConnected sets the callback used to notify each new client
 session that it is started.  ClientConnected callbacks receive the
 usual POE parameters, plus a copy of whatever was specified in the
-component's C<Args> constructor parameter.
+component's C<Args> constructor parameter, as ARG0.
 
 The ClientConnected callback will not be called within the same
 session context twice.
@@ -972,15 +968,19 @@ This component currently does not accept many of the options that
 POE::Wheel::SocketFactory does.
 
 This component will not bind to several addresses at once.  This may
-be a limitation in SocketFactory.
+be a limitation in SocketFactory, but it's not by design.
 
 This component needs more complex error handling which appends for
 construction errors and replaces for runtime errors, instead of
 replacing for all.
 
+Some use cases require different session classes for the listener and
+the connection handlers.  This isn't currently supported.  Please send
+patches. :)
+
 =head1 AUTHORS & COPYRIGHTS
 
-POE::Component::Server::TCP is Copyright 2000-2001 by Rocco Caputo.
+POE::Component::Server::TCP is Copyright 2000-2006 by Rocco Caputo.
 All rights are reserved.  POE::Component::Server::TCP is free
 software, and it may be redistributed and/or modified under the same
 terms as Perl itself.

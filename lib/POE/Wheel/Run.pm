@@ -1,11 +1,11 @@
-# $Id: Run.pm 1984 2006-06-13 14:55:10Z rcaputo $
+# $Id: Run.pm 2012 2006-07-24 22:16:22Z rcaputo $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1984 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2012 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -507,9 +507,9 @@ sub new {
   close $stdout_write if defined $stdout_write;
   close $stderr_write if defined $stderr_write;
 
-  my $handle_count = 0;
-  $handle_count++ if defined $stdout_read;
-  $handle_count++ if defined $stderr_read;
+	my $active_count = 0;
+	$active_count++ if $stdout_event and $stdout_read;
+	$active_count++ if $stderr_event and $stderr_read;
 
   my $self = bless [
     &POE::Wheel::allocate_wheel_id(),  # UNIQUE_ID
@@ -518,7 +518,7 @@ sub new {
     $program,       # PROGRAM
     $pid,           # CHILD_PID
     $conduit,       # CONDUIT_TYPE
-    $handle_count,  # IS_ACTIVE
+    $active_count,  # IS_ACTIVE
     $close_on_call, # CLOSE_ON_CALL
     $stdio_type,    # STDIO_TYPE
     # STDIN
@@ -857,6 +857,12 @@ sub event {
       carp "ignoring unknown Run parameter '$name'";
     }
   }
+
+	# Recalculate the active handles count.
+	my $active_count = 0;
+	$active_count++ if $self->[EVENT_STDOUT] and $self->[HANDLE_STDOUT];
+	$active_count++ if $self->[EVENT_STDERR] and $self->[HANDLE_STDERR];
+	$self->[IS_ACTIVE] = $active_count;
 }
 
 #------------------------------------------------------------------------------
@@ -1125,35 +1131,33 @@ POE::Wheel::Run - event driven fork/exec with added value
   $program = [ '/usr/bin/cat', '-' ];
 
   $wheel = POE::Wheel::Run->new(
+    # Set the program to execute, and optionally some parameters.
     Program     => $program,
-    ProgramArgs => \@program_args,     # Parameters for $program.
-    Priority    => +5,                 # Adjust priority.  May need to be root.
-    User        => getpwnam('nobody'), # Adjust UID. May need to be root.
-    Group       => getgrnam('nobody'), # Adjust GID. May need to be root.
-    ErrorEvent  => 'oops',             # Event to emit on errors.
-    CloseEvent  => 'child_closed',     # Child closed all output.
+    ProgramArgs => \@program_args,
 
-    StdinEvent  => 'stdin',  # Event to emit when stdin is flushed to child.
-    StdoutEvent => 'stdout', # Event to emit with child stdout information.
-    StderrEvent => 'stderr', # Event to emit with child stderr information.
+    # Define I/O events to emit.  Most are optional.
+    StdinEvent  => 'stdin',     # Flushed all data to the child's STDIN.
+    StdoutEvent => 'stdout',    # Received data from the child's STDOUT.
+    StderrEvent => 'stderr',    # Received data from the child's STDERR.
+    ErrorEvent  => 'oops',          # An I/O error occurred.
+    CloseEvent  => 'child_closed',  # Child closed all output handles.
 
-    # Specify different I/O formats.
+    # Optionally adjust the child process priority, user ID, and/or
+    # group ID.  You may need to be root to do this.
+    Priority    => +5,
+    User        => scalar(getpwnam 'nobody'),
+    Group       => getgrnam('nobody'),
+
+    # Optionally specify different I/O formats.
     StdinFilter  => POE::Filter::Line->new(),   # Child accepts input as lines.
     StdoutFilter => POE::Filter::Stream->new(), # Child output is a stream.
     StderrFilter => POE::Filter::Line->new(),   # Child errors are lines.
 
-    # Set StdinFilter and StdoutFilter together.
+    # Shorthand to set StdinFilter and StdoutFilter together.
     StdioFilter => POE::Filter::Line->new(),    # Or some other filter.
-
-    # Specify different I/O methods.
-    StdinDriver  => POE::Driver::SysRW->new(),  # Defaults to SysRW.
-    StdoutDriver => POE::Driver::SysRW->new(),  # Same.
-    StderrDriver => POE::Driver::SysRW->new(),  # Same.
-
-    # Set StdinDriver and StdoutDriver together.
-    StdioDriver  => POE::Driver::SysRW->new(),
   );
 
+  # Information about the wheel and its process.
   print "Unique wheel ID is  : ", $wheel->ID;
   print "Wheel's child PID is: ", $wheel->PID;
 
@@ -1161,8 +1165,7 @@ POE::Wheel::Run - event driven fork/exec with added value
   $wheel->put( 'input for the child' );
 
   # Kill the child.
-  $wheel->kill();  # TERM by default
-  $wheel->kill(9);
+  $wheel->kill(9);  # TERM by default.
 
 =head1 DESCRIPTION
 
@@ -1264,6 +1267,9 @@ same time.
 
 =item StderrEvent
 
+See L<EVENTS AND PARAMETERS> below for a more detailed description of
+these events and their parameters.
+
 C<CloseEvent> contains the name of an event to emit when the child
 process closes all its output handles.  This is a consistent
 notification that the child will not be sending any more output.  It
@@ -1272,17 +1278,13 @@ accepting input.
 
 C<ErrorEvent> contains the name of an event to emit if something
 fails.  It is optional and if omitted, the wheel will not notify its
-session if any errors occur.  The event receives 5 parameters as
-follows: ARG0 = the return value of syscall(), ARG1 = errno() - the
-numeric value of the error generated, ARG2 = error() - a descriptive
-for the given error, ARG3 = the wheel id, and ARG4 = the handle on
-which the error occurred (stdout, stderr, etc.)
+session if any errors occur.
 
 Wheel::Run requires at least one of the following three events:
 
 C<StdinEvent> contains the name of an event that Wheel::Run emits
-whenever all its output has been flushed to the child process' STDIN
-handle.
+whenever everything queued by its put() method has been flushed to the
+child's STDIN handle.
 
 C<StdoutEvent> and C<StderrEvent> contain names of events that
 Wheel::Run emits whenever the child process writes something to its
@@ -1474,8 +1476,9 @@ whenever an error occurs.  Every error event comes with four
 parameters:
 
 C<ARG0> contains the name of the operation that failed.  It may be
-'read' or 'write' or 'fork' or 'exec' or something.  The actual values
-aren't yet defined.  Note: This is not necessarily a function name.
+'read', 'write', 'fork', 'exec' or the name of some other function or
+task.  The actual values aren't yet defined.  Note: This is not
+necessarily a function name.
 
 C<ARG1> and C<ARG2> hold numeric and string values for C<$!>,
 respectively.
@@ -1508,9 +1511,9 @@ StdinEvent's C<ARG0> parameter contains its wheel's unique ID.
 =item StderrEvent
 
 StdoutEvent and StderrEvent contain names for events that Wheel::Run
-emits whenever the child process makes output.  StdoutEvent contains
-information the child wrote to its STDOUT handle, and StderrEvent
-includes whatever arrived from the child's STDERR handle.
+emits whenever the child process generates new output.  StdoutEvent
+contains information the child wrote to its STDOUT handle, and
+StderrEvent includes whatever arrived from the child's STDERR handle.
 
 Both of these events come with two parameters.  C<ARG0> contains the
 information that the child wrote.  C<ARG1> holds the wheel's unique

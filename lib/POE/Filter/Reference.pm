@@ -1,4 +1,4 @@
-# $Id: Reference.pm 1947 2006-04-29 22:58:20Z rcaputo $
+# $Id: Reference.pm 2025 2006-08-06 23:44:49Z rcaputo $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -9,7 +9,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1947 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2025 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
@@ -99,19 +99,28 @@ sub new {
     }
     else {
       # A package name?
-      my $package = $freezer;
-
-      $package =~ s(::)(\/)g;
-      delete $INC{$package . ".pm"};
-
-      eval {
-        local $^W=0;
-        require "$package.pm";
-        import $freezer ();
-      };
-      carp $@ if $@;
-
+      # First, find out if the package has the necessary methods.
       ($freeze, $thaw) = _get_methods($freezer);
+
+      # If not, try to reload the module.
+      unless ($freeze and $thaw) {
+        my $path = $freezer;
+        $path =~ s{::}{/}g;
+        $path .= '.pm';
+
+        # Force a reload if necessary.  This is naive and can leak
+        # memory, so we only do it until we get the desired methods.
+        delete $INC{$path};
+
+        eval {
+          local $^W = 0;
+          require $path;
+          $freezer->import();
+        };
+
+        carp $@ if $@;
+        ($freeze, $thaw) = _get_methods($freezer);
+      }
     }
   }
 

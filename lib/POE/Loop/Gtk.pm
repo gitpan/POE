@@ -1,4 +1,4 @@
-# $Id: Gtk.pm 1980 2006-06-11 19:23:12Z rcaputo $
+# $Id: Gtk.pm 2004 2006-06-27 08:22:05Z bsmith $
 
 # Gtk-Perl event loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2004 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -300,6 +300,9 @@ sub loop_do_timeslice {
 }
 
 sub loop_run {
+  unless (defined $_watcher_timer) {
+    $_watcher_timer = Gtk->idle_add(\&_loop_resume_timer);
+  }
   Gtk->main;
 }
 
@@ -313,7 +316,7 @@ __END__
 
 =head1 NAME
 
-POE::Loop::Event - a bridge that supports Gtk's event loop from POE
+POE::Loop::Gtk - a bridge that supports Gtk's event loop from POE
 
 =head1 SYNOPSIS
 

@@ -1,11 +1,11 @@
-# $Id: TCP.pm 1976 2006-06-06 03:07:35Z immute $
+# $Id: TCP.pm 1994 2006-06-17 22:40:25Z rcaputo $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1976 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 1994 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -140,7 +140,7 @@ sub new {
   # Spawn the session that makes the connection and then interacts
   # with what was connected to.
 
-  $session_type->create
+  return $session_type->create
     ( @$session_params,
       inline_states =>
       { _start => sub {
@@ -298,7 +298,7 @@ sub new {
       # User supplied states.
       package_states => $package_states,
       object_states  => $object_states,
-    );
+    )->ID;
 }
 
 sub _get_filter {
@@ -361,7 +361,7 @@ POE::Component::Client::TCP - a simplified TCP client
 
   # Complete usage.
 
-  POE::Component::Client::TCP->new
+  my $session_id = POE::Component::Client::TCP->new
     ( RemoteAddress  => "127.0.0.1",
       RemotePort     => "chargen",
       BindAddress    => "127.0.0.1",
@@ -449,6 +449,10 @@ callbacks and handlers.  The authors hope that clients can be created
 with as little work as possible.
 
 =head1 Constructor Parameters
+
+The new() method can accept quite a lot of parameters.  It will return
+the session ID of the accecptor session.  One must use callbacks to 
+check for errors rather than the return value of new().
 
 =over 2
 
@@ -686,16 +690,18 @@ POE::Wheel::ReadWrite, POE::Filter
 
 =head1 CAVEATS
 
-This may not be suitable for complex client tasks.
+This may not be suitable for complex client tasks.  After a point, it
+becomes easier to roll a custom client using POE::Wheel::SocketFactory
+and POE::Wheel::ReadWrite.
 
 This looks nothing like what Ann envisioned.
 
 =head1 AUTHORS & COPYRIGHTS
 
-POE::Component::Client::TCP is Copyright 2001 by Rocco Caputo.  All
-rights are reserved.  POE::Component::Client::TCP is free software,
-and it may be redistributed and/or modified under the same terms as
-Perl itself.
+POE::Component::Client::TCP is Copyright 2001-2006 by Rocco Caputo.
+All rights are reserved.  POE::Component::Client::TCP is free
+software, and it may be redistributed and/or modified under the same
+terms as Perl itself.
 
 POE::Component::Client::TCP is based on code, used with permission,
 from Ann Barcomb E<lt>kudra@domaintje.comE<gt>.

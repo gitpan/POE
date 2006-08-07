@@ -1,11 +1,11 @@
-# $Id: SocketFactory.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: SocketFactory.pm 2008 2006-07-04 06:41:42Z rcaputo $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2008 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -45,7 +45,10 @@ sub MY_SOCKET_SELECTED () { 12 }
 
 # Provide dummy constants for systems that don't have them.
 BEGIN {
-  unless (exists $INC{"Socket6.pm"}) {
+  if (eval { require Socket6 }) {
+    Socket6->import();
+  }
+  else {
     eval "*Socket6::AF_INET6 = sub () { ~0 }";
     eval "*Socket6::PF_INET6 = sub () { ~0 }";
   }

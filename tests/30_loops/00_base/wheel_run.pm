@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm 1990 2006-06-16 07:04:07Z rcaputo $
+# $Id: wheel_run.pm 2020 2006-08-06 20:55:42Z rcaputo $
 
 use strict;
 use lib qw(./mylib ../mylib);
@@ -17,8 +17,14 @@ BEGIN {
     $error = "$^O does not support fork";
   }
 
-  if ($^O eq "MSWin32" and exists $INC{"Event.pm"}) {
-    $error = "$^O\'s fork() emulation breaks Event";
+  if ($^O eq "MSWin32") {
+    eval 'use Win32::Console';
+    if ($@) {
+      $error = "$^O needs Win32::Console for this test";
+    }
+    elsif (exists $INC{"Event.pm"}) {
+      $error = "$^O\'s fork() emulation breaks Event";
+    }
   }
 
   if ($error) {

@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm 1947 2006-04-29 22:58:20Z rcaputo $
+# $Id: ReadWrite.pm 2007 2006-06-30 18:23:34Z bsmith $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1947 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2007 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -73,8 +73,10 @@ sub new {
 
     # If neither Filter, InputFilter or OutputFilter is defined, then
     # they default to POE::Filter::Line.
-    unless (defined $in_filter or defined $out_filter) {
-      $in_filter = $out_filter = POE::Filter::Line->new();
+    unless (defined $in_filter and defined $out_filter) {
+      my $new_filter = POE::Filter::Line->new();
+      $in_filter = $new_filter unless defined $in_filter;
+      $out_filter = $new_filter unless defined $out_filter;
     }
   }
 

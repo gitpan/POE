@@ -1,4 +1,5 @@
 #!/usr/bin/perl -w
+# $Id: broeren-win32-nbio.t 2028 2006-08-07 01:42:11Z rcaputo $
 # vim: filetype=perl
 
 use strict;
@@ -6,8 +7,15 @@ use strict;
 use POE;
 use Test::More;
 
-if ($^O ne "MSWin32") {
-  plan skip_all => "This test examines ActiveState Perl behavior.";
+BEGIN {
+  if ($^O ne "MSWin32") {
+    plan skip_all => "This test examines ActiveState Perl behavior.";
+  }
+
+  eval 'use Win32::Console';
+  if ($@) {
+    plan skip_all => "Win32::Console is required for this test.";
+  }
 }
 
 plan tests => 2;
