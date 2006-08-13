@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.36
+version: 0.3601
 author:
   - Rocco Caputo <rcaputo@cpan.org>
 abstract: A portable networking and multitasking framework.
@@ -21,7 +21,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.36
+    version: 0.3601
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.1903
@@ -33,10 +33,10 @@ provides:
     version: 1.1903
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
-    version: 1.1994
+    version: 1.2040
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.2005
+    version: 1.2040
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.1903
@@ -171,7 +171,7 @@ provides:
     version: 1.1903
   POE::Wheel::ReadLine:
     file: lib/POE/Wheel/ReadLine.pm
-    version: 1.2013
+    version: 1.2039
   POE::Wheel::ReadLine::Keymap:
     file: lib/POE/Wheel/ReadLine.pm
   POE::Wheel::ReadWrite:

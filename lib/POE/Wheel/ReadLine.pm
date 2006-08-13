@@ -1,4 +1,4 @@
-# $Id: ReadLine.pm 2013 2006-07-27 06:16:55Z rcaputo $
+# $Id: ReadLine.pm 2039 2006-08-09 13:02:33Z rcaputo $
 
 package POE::Wheel::ReadLine;
 
@@ -6,7 +6,7 @@ use strict;
 use bytes;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2013 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2039 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
@@ -28,10 +28,10 @@ my ($trk_rows, $trk_cols);
 
 # Private STDIN and STDOUT.
 my $stdin  = gensym();
-open($stdin, "<&0") or die "Can't open private STDIN";
+open($stdin, "<&0") or die "Can't open private STDIN: $!";
 
 my $stdout = gensym;
-open($stdout, ">&1") or die "Can't open private STDOUT";
+open($stdout, ">&1") or die "Can't open private STDOUT: $!";
 
 # Offsets into $self.
 sub SELF_INPUT          () {  0 }
@@ -741,12 +741,6 @@ sub global_init {
   # an up-to-date value).
   ($trk_cols, $trk_rows) = GetTerminalSize($stdout);
 
-  # Set up console using Term::ReadKey.
-  ReadMode('ultra-raw');
-
-  # And tell the terminal that we want to be in 'application' mode
-  print $termcap->Tputs('ks' => 1) if $termcap->Tputs('ks');
-
   # Configuration...
   # Some things are optional.
   eval { $termcap->Trequire( 'ce' ) };
@@ -1042,6 +1036,10 @@ sub get {
   # has changed
   ($trk_cols, $trk_rows) = GetTerminalSize($stdout);
 
+  ReadMode('ultra-raw');
+  # Tell the terminal that we want to be in 'application' mode.
+  print $termcap->Tputs('ks' => 1) if $termcap->Tputs('ks');
+
   # Set up for the read.
   $self->[SELF_READING_LINE]   = 1;
   $self->[SELF_PROMPT]         = $prompt;
@@ -1151,15 +1149,15 @@ sub history_truncate_file {
   $file ||= "$ENV{HOME}/.history";
   open(HIST, $file) or return undef;
   my @hist = <HIST>;
-  chomp(@hist);
   close(HIST);
+  chomp(@hist);
 
   if ((scalar @hist) > $lines) {
     open(HIST, ">$file") or return undef;
     if ($lines) {
       splice(@hist, 0, (scalar @hist)-$lines);
       @{$self->[SELF_HIST_LIST]} = @hist;
-      print HIST join("\n", @hist) . "\n";
+      print HIST "$_\n" foreach @hist;
     } else {
       @{$self->[SELF_HIST_LIST]} = ();
     }
@@ -1779,6 +1777,7 @@ sub rl_accept_line {
   $self->[SELF_READING_LINE] = 0;
   $self->[SELF_HIST_INDEX] = @{$self->[SELF_HIST_LIST]};
   $self->flush_output_buffer;
+  ReadMode('restore');
   ($trk_cols, $trk_rows) = GetTerminalSize($stdout);
   if ($self->[SELF_KEYMAP]->{name} =~ /vi/) {
     $self->rl_set_keymap('vi-insert');
