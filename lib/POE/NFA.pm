@@ -1,11 +1,11 @@
-# $Id: NFA.pm 1980 2006-06-11 19:23:12Z rcaputo $
+# $Id: NFA.pm 2116 2006-09-08 04:45:45Z rcaputo $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 
@@ -41,7 +41,8 @@ sub STACK_EVENT         () { 1 }
 #------------------------------------------------------------------------------
 
 # Shorthand for defining a trace constant.
-sub define_trace {
+
+sub _define_trace {
   no strict 'refs';
   foreach my $name (@_) {
     next if defined *{"TRACE_$name"}{CODE};
@@ -90,7 +91,7 @@ BEGIN {
     }
   };
 
-  define_trace("DESTROY");
+  _define_trace("DESTROY");
 }
 
 #------------------------------------------------------------------------------

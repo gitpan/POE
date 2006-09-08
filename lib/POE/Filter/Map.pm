@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1953 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak carp);
@@ -139,7 +139,7 @@ the C<map> builtin function.
 
 =over 4
 
-=item *
+=item modify
 
 POE::Filter::Map::modify
 

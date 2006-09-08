@@ -1,3 +1,528 @@
+=========================
+2006-09-08 04:57:21 v0_37
+=========================
+
+  2006-09-08 04:54:53 (r2118) by rcaputo; poe/lib/POE.pm M
+
+    Version 0.37! Rejoice! 
+
+  2006-09-08 04:50:08 (r2117) by rcaputo
+  poe/tests/10_units/01_pod/01_pod.t M
+
+    Fix a vim modeline. Nothing here to see, folks. 
+
+  2006-09-08 04:45:45 (r2116) by rcaputo
+  poe/tests/10_units/01_pod/01_pod.t M; poe/lib/POE/Loop.pm M;
+  poe/tests/10_units/03_base/08_resource.t M; poe/lib/POE/Kernel.pm M;
+  poe/tests/10_units/03_base/03_component.t M;
+  poe/tests/10_units/01_pod/02_pod_coverage.t M; poe/lib/POE/Session.pm
+  M; poe/lib/POE/Wheel/ReadLine.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Pipe/TwoWay.pm M; poe/tests/10_units/03_base/06_loop.t M;
+  poe/lib/POE/Pipe.pm M; poe/lib/POE/Pipe/OneWay.pm M; poe/lib/POE.pm M;
+  poe/tests/10_units/03_base/01_poe.t M; poe/lib/POE/Component.pm M;
+  poe/lib/POE/NFA.pm M
+
+    Updated Chris Williams' fine POD tests to more explicitly treat
+    certain methods as private. Also added a "strict" mode that doesn't
+    skip over the methods temporarily considered private while we figure
+    out whether they should really be so. Also removed tabs while I was
+    in there. Curse you, tabs!
+    
+    Removed new() methods from classes that are really uninstantiated
+    mixins. Calling a nonexistent method is semantically about the same
+    as calling a constructor that only exists to croak. Had to remove
+    tests for the croaks as well.
+    
+    Documented select_pause_read() and select_resume_read().
+    
+    Added leading underscores to a bunch of helper functions and methods
+    that should really have been private. There are more to come, but
+    their privacy status is less obvious. 
+
+  2006-09-08 02:56:42 (r2115) by rcaputo; poe/Makefile.PL M
+
+    Turn off executable bit. Apparently executable Makefile.PLs are bad. 
+
+  2006-09-08 02:54:35 (r2114) by rcaputo; poe/examples/queue.perl M
+
+    Make this file executable. 
+
+  2006-09-08 02:51:51 (r2113) by rcaputo; poe/examples A; poe/samples D
+
+    Rename samples to examples. 
+
+  2006-09-08 02:51:03 (r2112) by rcaputo; poe/MANIFEST M
+
+    Rename the samples files to examples files. 
+
+  2006-09-07 22:13:39 (r2111) by rcaputo
+  poe/lib/POE/Wheel/FollowTail.pm M
+
+    Remove the disclaimer about needing system's tail for robustness.
+    It's only an issue if log files are rotated incorrectly, and in that
+    case even the system's tail will fail. 
+
+  2006-09-06 17:35:20 (r2110) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M
+
+    Pedro Melo suggested on the mailing list that clearing the components
+    alias be delayed until after the disconnect callback. This revision
+    applies his patch. 
+
+  2006-09-06 15:34:03 (r2109) by rcaputo
+  poe/tests/30_loops/00_base/wheel_curses.pm M
+
+    Skip the POE::Wheel::Curses tests entirely if IO::Pty isn't
+    available. 
+
+  2006-09-05 19:06:41 (r2108) by bingosnet
+  poe/lib/POE/Wheel/ReadLine.pm M; extras/smoker.perl M;
+  poe/tests/10_units/01_pod/02_pod_coverage.t M
+
+    More pod coverage fixes. Wheel::ReadLine 
+
+  2006-09-05 15:59:17 (r2107) by rcaputo
+  poe/tests/00_pod_tests D; poe/tests/10_units/01_pod A; poe/MANIFEST M
+
+    Move the POD tests to 10_units/01_pod. 
+
+  2006-09-05 14:18:29 (r2106) by bingosnet
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Filter/HTTPD.pm M; poe/lib/POE/Resources.pm M;
+  poe/lib/POE/Filter/Stackable.pm M; poe/lib/POE/Filter/RecordBlock.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Wheel/ListenAccept.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Session.pm M; poe/lib/POE/Wheel/SocketFactory.pm M;
+  poe/tests/00_pod_tests/01_pod.t A; poe/lib/POE/Pipe/TwoWay.pm M;
+  poe/lib/POE/Wheel/ReadWrite.pm M; poe/lib/POE/Component/Server/TCP.pm
+  M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/tests/00_pod_tests/02_pod_coverage.t A; poe/tests/00_pod_tests A;
+  poe/lib/POE/Filter/Map.pm M; poe/MANIFEST M
+
+    Added pod tests, fixed pod errors and improved pod coverage. Set
+    POE_TEST_POD env var to enable tests. 
+
+  2006-09-05 06:18:46 (r2105) by rcaputo
+  poe/tests/30_loops/00_base/wheel_readline.pm M
+
+    Cover more conditions. Now with 27.5% coverage. 
+
+  2006-09-05 05:48:20 (r2104) by rcaputo
+  poe/tests/30_loops/00_base/wheel_readline.pm M
+
+    Start testing different editor commands. 
+
+  2006-09-05 05:47:42 (r2103) by rcaputo; poe/lib/POE/Wheel/ReadLine.pm M
+
+    POE::Wheel::Readline would delete twice as many characters as
+    necessary on a kill-word command. 
+
+  2006-09-05 03:19:08 (r2102) by rcaputo
+  poe/lib/POE/Wheel/Curses.pm M;
+  poe/tests/30_loops/00_base/wheel_curses.pm M
+
+    Put the intrflush() call back, and skip all my shiny new tests
+    because some Curses functions block terribly under unbuffered ptys.
+    But they only do the blocking on some platforms. Grrrr. 
+
+  2006-09-05 02:48:00 (r2101) by rcaputo
+  poe/tests/30_loops/00_base/wheel_curses.pm M
+
+    Make this into a proper test. Keystrokes are pushed down to a
+    Wheel::Curses running under a pseudo tty. 
+
+  2006-09-05 02:46:27 (r2100) by rcaputo; poe/lib/POE/Wheel/Curses.pm M
+
+    Comment out the intrflush() call. It flushes to the terminal, which
+    may be a bad thing if it's an unbuffered pipe. 
+
+  2006-09-05 01:42:03 (r2099) by rcaputo
+  poe/tests/30_loops/00_base/wheel_readline.pm M
+
+    Create proper data-driven tests for Wheel::ReadLine. You can tweak
+    various bits of Wheel::ReadLine by adding new test data to the start
+    of this program. 
+
+  2006-09-05 01:41:11 (r2098) by rcaputo; poe/lib/POE/Wheel/ReadLine.pm M
+
+    A cheezy hack to avoid destroying Wheel::ReadLine instances from
+    within POE::Kernel's space. A proper fix would be to somehow break
+    this wheel's circular references to $self so that DESTROY is
+    triggered immediately when the user destroys the objects' last
+    references. 
+
+  2006-09-04 21:17:47 (r2097) by rcaputo
+  poe/MANIFEST.SKIP M; poe/MANIFEST M
+
+    Add two new tests to the manifest. Skip more coverage databases. 
+
+  2006-09-04 21:15:33 (r2096) by rcaputo
+  poe/tests/10_units/03_base/16_explicit_loop_fail.t D;
+  poe/tests/10_units/03_base/17_explicit_loop_fail.t A;
+  poe/tests/10_units/03_base/15_explicit_loop.t D;
+  poe/tests/10_units/03_base/14_kernel_internal.t D;
+  poe/tests/10_units/03_base/16_explicit_loop.t A;
+  poe/tests/10_units/03_base/15_kernel_internal.t A
+
+    Rename some of the tests. There were two 14s. 
+
+  2006-09-04 20:50:53 (r2095) by rcaputo
+  poe/tests/10_units/03_base/16_explicit_loop_fail.t A;
+  poe/tests/10_units/03_base/15_explicit_loop.t A; poe/lib/POE.pm M
+
+    Instrument some code in POE's import, especially the code for
+    explicit loop loading and its failure. 
+
+  2006-09-04 20:08:31 (r2094) by lotr; poe/lib/POE/Session.pm M
+
+    Edited the docs for new() to reflect the deprecation status 
+
+  2006-09-03 14:43:44 (r2093) by bingosnet; extras/smoker.perl M
+
+    Switched smoker.perl to LWP::UserAgent. This way it'll work on
+    MSWin32 too.
+
+  2006-09-03 06:23:35 (r2092) by rcaputo
+  poe/tests/30_loops/00_base/wheel_run.pm M
+
+    POE::Loop::Gtk doesn't perform I/O callbacks in exactly the same
+    order as the other event loop bridges. Compensate by increasing the
+    expected fetch count here. I'm not sure how we'll be able to
+    guarantee I/O callback order, so it isn't at this time. 
+
+  2006-09-02 14:25:09 (r2091) by bingosnet; extras/smoker.perl M
+
+    Updated smoker.perl. Made decent defaults for cmd line arguments and
+    added POD. 
+
+  2006-09-02 05:59:20 (r2090) by rcaputo
+  poe/tests/30_loops/00_base/wheel_readline.pm M
+
+    Can't test Wheel::ReadLine without Term::ReadKey. Sorry... that's
+    just the way it goes. 
+
+  2006-09-02 05:53:27 (r2089) by rcaputo; poe/lib/POE/Loop/IO_Poll.pm M
+
+    IO::Poll I/O callbacks were in a slightly different order than
+    select() ones, at least on Cygwin. How did I know? Because one of
+    Benjamin Smith's tests behaved differently (failed, that is) on
+    Cygwin. Anyway, the ordering has been fixed, and the test should pass
+    now. 
+
+  2006-09-01 19:02:24 (r2088) by rcaputo
+  poe/lib/POE/Wheel/SocketFactory.pm M
+
+    Resolve rt.cpan.org ticket 20990. XS modules define stub functions
+    that throw errors when the underlying C constant is not available.
+    Merely checking for defined(\&CONSTANT) is not good enough because it
+    will always be true. One must eval { my $x = &CONSTANT } to see
+    whether using the constant is legal. That's what the new code does
+    here. Thanks to Eric Rybski for pointing out the problem. 
+
+  2006-09-01 10:24:43 (r2087) by bsmith
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Resource/Signals.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Resource/SIDs.pm M;
+  poe/lib/POE/Resource/Controls.pm M; poe/lib/POE/Resources.pm M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Resource/Sessions.pm M;
+  poe/lib/POE/Resource/Statistics.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    (#19971) Added docs for POE::Resources. Adjusted package statements,
+    and docs of POE::Resource::* to match the that name. 
+
+  2006-09-01 04:47:05 (r2086) by rcaputo
+  poe/tests/30_loops/00_base/wheel_readline.pm M
+
+    Skip Wheel::ReadLine tests in ActivePerl. ActivePerl can't multiplex
+    terminal/console filehandles. 
+
+  2006-09-01 04:04:14 (r2085) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Explain that read error 0 happens when the child closes one of its
+    standard output handles. Also explain that "$!" eq "" when $! == 0 in
+    Perl. Resolves rt.cpan.org ticket 19054. 
+
+  2006-09-01 03:31:22 (r2084) by rcaputo
+  poe/lib/POE/Loop/Event.pm M; poe/lib/POE/Resource/Events.pm M;
+  poe/lib/POE/Loop/TkCommon.pm M
+
+    Fix a Tk busy loop, reported by Michael Hartmann in rt.cpan.org
+    ticket 20978. If POE's only using timers, POE::Loop::TkCommon's main
+    loop was spinning at 100% cpu. Now it's not, although it meant
+    significant changes through some of the event loops. Gtk remains
+    untested, too. 
+
+  2006-09-01 02:48:35 (r2083) by rcaputo
+  poe/tests/30_loops/00_base/wheel_run.pm M
+
+    Increase the child process timeout. It timed out accidentially when
+    my machine was overloaded. 
+
+  2006-09-01 01:09:10 (r2082) by rcaputo; poe/lib/POE/Wheel/ReadLine.pm M
+
+    POE::Wheel::ReadLine isn't supported on Windows. ActivePerl can only
+    multiplex sockets. 
+
+  2006-08-31 15:53:27 (r2081) by rcaputo
+  poe/tests/30_loops/00_base/k_signals_rerun.pm M
+
+    It really seems that Event doesn't catch SIGCHLD, or at least not
+    while restarting the event loop. These tests are skipped for now,
+    when there's a combination of Event and MSWin32. 
+
+  2006-08-31 07:18:17 (r2080) by rcaputo
+  poe/tests/90_regression/broeren-win32-nbio.t M
+
+    Clear the SIGCHLD handler when we're done, otherwise the test never
+    exits. 
+
+  2006-08-31 04:52:58 (r2079) by rcaputo
+  poe/tests/30_loops/00_base/k_signals_rerun.pm M
+
+    Skip the signals rerun test when using a combination of Event.pm and
+    MSWin32. Apparently Event can't catch SIGCHLD in Windows. A better
+    solution would be to poll for SIGCHLD in this case, but it's a tricky
+    exception to make. 
+
+  2006-08-31 01:12:47 (r2078) by rcaputo
+  poe/lib/POE/Wheel/Run.pm M; poe/tests/30_loops/00_base/wheel_run.pm M
+
+    Disallow users calling put() on a POE::Wheel::Run instance that has
+    already had its STDIN handle closed. 
+
+  2006-08-28 19:09:00 (r2077) by rcaputo
+  poe/tests/30_loops/00_base/wheel_run.pm M
+
+    Switch from exit() to CORE::exit() for testing under Tk. Have the
+    test child program exit one of two ways: "got eof" if it truly has
+    exited its while(<STDIN>) loop for EOF reasons, or "got alarm" if the
+    child process timed out. Also increased the timeout for slow or
+    bogged down machines. Unfortunately the @shutdown_expected test times
+    out rather than receives "got eof", so now the test is broken. And
+    furthermore, it tries to put() after calling shutdown_stdin() which
+    seems wrong. Anyway, this test is still broken. 
+
+  2006-08-28 04:47:23 (r2076) by rcaputo; poe/lib/POE/Session.pm M
+
+    _default no longer needs to worry about its return value if it's
+    handling a signal. Either it calls sig_handled() or it doesn't. 
+
+  2006-08-26 16:16:27 (r2075) by bsmith
+  poe/tests/30_loops/00_base/wheel_run.pm M
+
+    Skip tests that fail on win32.
+
+  2006-08-24 13:47:37 (r2074) by bingosnet
+  poe/tests/30_loops/00_base/wheel_readline.pm M
+
+    Made wheel_readline tests skip all on MSWin32 when standard input is
+    not a terminal.
+
+  2006-08-23 07:25:27 (r2073) by rcaputo
+  poe/tests/30_loops/00_base/k_signals_rerun.pm M
+
+    Tests were failing under Tk because Tk traps exit() and throws a
+    strange error when it's called. Changed Wheel::Run to an arrayref
+    form of Program, which spawns an extra process but allows the process
+    to call its own darned exit(). 
+
+  2006-08-23 06:23:51 (r2072) by rcaputo
+  poe/tests/30_loops/00_base/wheel_run.pm M
+
+    Program => "string" may be double forking when run on some platforms,
+    in some shells, or both. I'm not sure exactly. Replace it with
+    Program => [ "stuff", "here" ] to avoid executing the command line
+    through a shell. Thanks to Charles Ayres for reporting this and
+    letting me use his machine for testing. 
+
+  2006-08-22 06:16:35 (r2071) by rcaputo
+  poe/tests/30_loops/00_base/wheel_readwrite.pm M
+
+    Disable a large chunk of tests under Tk because seek() fails. Tk
+    doesn't support seek() in its Tk::IO handles. 
+
+  2006-08-21 14:41:12 (r2070) by bsmith
+  poe/tests/30_loops/00_base/wheel_run.pm M
+
+    Reworked the test for POE::Wheel::Run->shutdown_stdin to work
+    portably. 
+
+  2006-08-21 13:07:25 (r2069) by bsmith
+  poe/tests/30_loops/00_base/ses_session.pm M
+
+    My extensions to the POE::Session tests accidentally reverted the
+    signal changes. This patch puts back the extra sig() calls. 
+
+  2006-08-21 13:01:25 (r2068) by bsmith
+  poe/tests/30_loops/00_base/wheel_readwrite.pm M
+
+    Skip some POE::Wheel::ReadWrite tests on windows.
+
+  2006-08-21 12:39:09 (r2067) by bsmith; poe/MANIFEST M
+
+    Updating the MANIFEST for the newly added test files.
+
+  2006-08-21 12:35:09 (r2066) by bsmith
+  poe/tests/30_loops/00_base/wheel_run.pm M
+
+    Rewrite of the POE::Wheel::Run tests.
+
+  2006-08-21 12:15:28 (r2065) by bsmith
+  poe/tests/30_loops/00_base/ses_session.pm M
+
+    Extend POE::Session tests to cover option().
+
+  2006-08-21 11:56:56 (r2064) by bsmith
+  poe/tests/30_loops/00_base/ses_nfa.pm M
+
+    Further POE::NFA tests (options, postbacks, callbacks, etc)
+
+  2006-08-21 11:20:35 (r2063) by bsmith
+  poe/tests/30_loops/00_base/comp_tcp.pm M
+
+    Test the POE::Component::Client::TCP constructor, and specifying the
+    filter explictly.
+
+  2006-08-21 10:19:30 (r2062) by bsmith
+  poe/tests/30_loops/00_base/wheel_readwrite.pm A
+
+    A set of tests that just examine POE::Wheel::ReadWrite (it was
+    already well tested but only in conjunction with other modules).
+
+  2006-08-21 09:52:36 (r2061) by bsmith
+  poe/tests/10_units/03_base/14_kernel_internal.t A;
+  poe/tests/10_units/03_base/14_kernel.t M
+
+    Extended the tests of POE::Kernel's public and private interfaces.
+
+  2006-08-21 09:43:46 (r2060) by bsmith
+  poe/lib/POE/Component/Client/TCP.pm M
+
+    Fixed a typo in an error message and gave the $foo variable the name
+    $using_watermarks.
+
+  2006-08-21 06:28:01 (r2059) by rcaputo
+  poe/tests/20_resources/00_base/extrefs_gc.pm A; poe/lib/POE/Kernel.pm
+  M; poe/MANIFEST M; poe/tests/30_loops/00_base/k_signals_rerun.pm M
+
+    Add a test case (and fix) for a session garbage collection timing
+    issue discoverd by Yuval Kogman. Incrementing and then decrementing
+    an extra reference count could prematurely trigger a session's
+    destruction. Now checks are in place to make sure it can't. 
+
+  2006-08-21 06:25:50 (r2058) by rcaputo
+  poe/tests/90_regression/rt14444-arg1.t M;
+  poe/tests/10_units/07_exceptions/03_not_handled.t M;
+  poe/tests/10_units/07_exceptions/02_turn_off.t M;
+  poe/tests/30_loops/00_base/sbk_signal_init.pm M;
+  poe/tests/90_regression/steinert-recursive-signal.t M
+
+    Tabs to spaces. Bleah. 
+
+  2006-08-20 21:06:21 (r2057) by lotr; docs/poesignals.pod A
+
+    beginnings of what should end up as comprehensive signal
+    documentation
+
+  2006-08-20 06:42:30 (r2056) by rcaputo; poe/lib/POE/Loop/Event.pm M
+
+    Replace POE::Loop::Event's direct use of Event's main loop with a
+    very small custom one. Also remove use of $Event::DIED. The
+    combination of these changes allows Yuval Kogman's new test program
+    to pass and minimizes the amount of extraneous noise generated by
+    Event's own exception handling. 
+
+  2006-08-20 06:36:57 (r2055) by rcaputo
+  poe/MANIFEST M; poe/tests/30_loops/00_base/k_signals_rerun.pm A
+
+    Add Yuval Kogman's test case for edge conditions in rethrowing die()
+    and restarting POE::Kernel's run() loop. 
+
+  2006-08-20 06:35:45 (r2054) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Save unhandled exceptions so they'll be rethrown from a safe place.
+    _dispatch_event() is too deep in the call stack to successfully
+    rethrow a die(). 
+
+  2006-08-20 06:34:51 (r2053) by rcaputo
+  poe/lib/POE/Resource/Events.pm M
+
+    After dispatching a timeslice, check whether an unhandled exception
+    occurred. If so, clean up the kernel and rethrow the exception from a
+    safe place. 
+
+  2006-08-20 06:33:46 (r2052) by rcaputo
+  poe/tests/90_regression/rt19908-merlyn-stop.t M
+
+    Improve the test by counting _stop invocations and making sure that
+    POE::Kernel->run() exits due to the exception in _stop. Removed some
+    DOSish carriage returns. 
+
+  2006-08-19 22:30:34 (r2051) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Kernel.pm M
+
+    Re-instate exception handling from _stop, since we need it or
+    otherwise POE::Kernel is left in a corrupt state.
+    
+    Also make signals (except IDLE and ZOMBIE) properly keep sessions
+    alive. Previously they only did it sort of half-heartedly, and there
+    were cases where sessions could go away despite handling signals.
+    
+    The IDLE and ZOMBIE signals don't keep sessions alive. Otherwise
+    merely watching for them would ensure that they never occurred. 
+
+  2006-08-19 22:28:10 (r2050) by rcaputo
+  poe/lib/POE/Resource/Aliases.pm M
+
+    Fix a method name. One was named _data_ses_... instead of
+    _data_alias_.... 
+
+  2006-08-19 22:26:34 (r2049) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Remove tabs. Curse indentation! 
+
+  2006-08-19 22:23:54 (r2048) by rcaputo
+  poe/lib/POE/Resource/Sessions.pm M
+
+    Don't allow _data_ses_stop() to stop a session currently being
+    stopped. This is needed for proper exception handling in _stop
+    handlers, otherwise infinite recursion happens. That's bad. 
+
+  2006-08-19 22:19:44 (r2047) by rcaputo
+  poe/tests/30_loops/00_base/wheel_run.pm M;
+  poe/tests/30_loops/00_base/k_signals.pm M;
+  poe/tests/90_regression/steinert-signal-integrity.t M;
+  poe/tests/30_loops/00_base/ses_session.pm M;
+  poe/tests/90_regression/suzman_windows.t M;
+  poe/tests/10_units/07_exceptions/01_normal.t M
+
+    Shut down signals in the tests that watch for them. Six tests would
+    otehrwise hang with proper sig() keep-alive semantics. 
+
+  2006-08-17 16:50:42 (r2046) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Yuval Kogman discovered two problems in exception throwing for die()
+    during _stop: Exceptions as overloaded objects would sometimes fail
+    to be detected because they stringify to "". Exceptions during _stop
+    would be handled by eval{} and never rethrown. 
+
+  2006-08-16 20:58:46 (r2045) by bsmith; poe/mylib/coverage.perl M
+
+    Change how cover, prove and make are search for to work better on
+    windows (especially where make is called dmake).
+
+  2006-08-16 20:36:04 (r2044) by bsmith
+  poe/tests/90_regression/rt19908-merlyn-stop.t M
+
+    Set $SIG{ALRM} back to IGNORE after the kernel exits so that on slow
+    systems with Devel::Cover the test doesn't fail when the alarm fires
+    later.
+
+  2006-08-14 15:09:07 (r2043) by rcaputo; poe/lib/POE/Wheel/ReadLine.pm M
+
+    Don't rely on STDIN and STDOUT being file descriptors 0 and 1,
+    respectively. 
+
 ===========================
 2006-08-13 02:33:23 v0_3601
 ===========================
@@ -1293,56 +1818,6 @@
 
     Removed a delete() that was used to close a connection. Server::TCP
     doesn't require such heavy-handed methods anymore. 
-
-===========================
-2005-09-02 16:42:27 v0_3202
-===========================
-
-  2005-09-02 16:42:27 (r1836) by rcaputo; poe/lib/POE.pm M
-
-    Bump up the version slightly for a new release. 
-
-  2005-08-29 20:35:04 (r1835) by rcaputo
-  poe/lib/POE/Wheel/ReadWrite.pm M
-
-    Remove a $kernel->select() call that was accidentally left in during
-    a prior fix. 
-
-  2005-08-22 17:34:25 (r1834) by rcaputo
-  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Kernel.pm M
-
-    Joel Bernstein pointed out a few warnings when POE is run under -W
-    (rather than -w). We can't have that, and now we don't. 
-
-===========================
-2005-08-19 17:01:32 v0_3201
-===========================
-
-  2005-08-19 17:01:32 (r1832) by rcaputo; poe/lib/POE.pm M
-
-    Bump the version for a bugfix release. 
-
-  2005-08-19 16:12:46 (r1831) by rcaputo
-  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
-  poe/lib/POE/Component/Server/TCP.pm M
-
-    Abhishek Jain discovered a heretofore obscure socket leakage issue in
-    POE::Component::Server::TCP. New connection sockets were passed into
-    callbacks as closures, preventing them from being closed timely on
-    shutdown unless a session also exited. This commit fixes the problem
-    by passing new connections through POE::Session's args parameter
-    rather than tying them up in closures. 
-
-  2005-08-10 14:44:08 (r1830) by rcaputo; poe/lib/POE/Kernel.pm M
-
-    Invoke event handlers in void context if the dispatcher is called in
-    void context. Previously handlers would be called in scalar context,
-    causing a subtle edge case where objects wouldn't destruct properly. 
-
-  2005-08-10 14:28:16 (r1829) by rcaputo; poe/lib/POE/Wheel/ReadLine.pm M
-
-    Fix an amazing amount of tab damage. Yes, this commit is entirely to
-    fix whitespace. 
 
 ==============
 End of Excerpt

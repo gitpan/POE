@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: broeren-win32-nbio.t 2028 2006-08-07 01:42:11Z rcaputo $
+# $Id: broeren-win32-nbio.t 2080 2006-08-31 07:18:17Z rcaputo $
 # vim: filetype=perl
 
 use strict;
@@ -91,6 +91,7 @@ sub reaper {
   ok(!$heap->{counter}, "child has exited when the counter ran out");
   $self->{subprocess} = undef;
   $kernel->sig_handled;
+  $kernel->sig(CHLD => undef);
 }
 
 sub next {

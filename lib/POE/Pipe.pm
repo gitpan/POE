@@ -1,4 +1,4 @@
-# $Id: Pipe.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Pipe.pm 2116 2006-09-08 04:45:45Z rcaputo $
 
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
@@ -9,7 +9,7 @@ package POE::Pipe;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Symbol qw(gensym);
 use IO::Socket qw(
@@ -50,11 +50,11 @@ else {
   @preference = qw(socketpair pipe inet);
 }
 
-sub get_next_preference {
+sub _get_next_preference {
   return $preference[0];
 }
 
-sub shift_preference {
+sub _shift_preference {
   shift @preference;
 }
 
@@ -150,7 +150,7 @@ sub _start_blocking {
 # Make a socket.  This is a homebrew socketpair() for systems that
 # don't support it.  The things I must do to make Windows happy.
 
-sub make_socket {
+sub _make_socket {
 
   ### Server side.
 

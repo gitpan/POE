@@ -1,11 +1,11 @@
-# $Id: Events.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Events.pm 2087 2006-09-01 10:24:43Z bsmith $
 
 # Data and accessors to manage POE's events.
 
-package POE::Resources::Events;
+package POE::Resource::Events;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -233,7 +233,8 @@ sub _data_ev_dispatch_due {
   }
 
   my $now = time();
-  while (defined(my $next_time = $kr_queue->get_next_priority())) {
+  my $next_time;
+  while (defined($next_time = $kr_queue->get_next_priority())) {
     last if $next_time > $now;
 
     my ($due_time, $id, $event) = $kr_queue->dequeue_next();
@@ -254,7 +255,24 @@ sub _data_ev_dispatch_due {
 
     $self->_data_ev_refcount_dec($event->[EV_SOURCE], $event->[EV_SESSION]);
     $self->_dispatch_event(@$event, $due_time, $id);
+
+    # An exception occurred.
+    if ($POE::Kernel::kr_exception) {
+
+      # Save the exception lexically, then clear it so it doesn't
+      # linger if run() is called again.
+      my $exception = $POE::Kernel::kr_exception;
+      $POE::Kernel::kr_exception = undef;
+
+      # Stop the kernel.  Cleans out all sessions.
+      POE::Kernel->stop();
+
+      # Throw the exception from way out here.
+      die $exception;
+    }
   }
+
+  $self->loop_reset_time_watcher($next_time);
 }
 
 1;
@@ -263,7 +281,7 @@ __END__
 
 =head1 NAME
 
-POE::Resources::Events - manage events for POE::Kernel
+POE::Resource::Events - manage events for POE::Kernel
 
 =head1 SYNOPSIS
 

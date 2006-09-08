@@ -1,11 +1,11 @@
-# $Id: Session.pm 1980 2006-06-11 19:23:12Z rcaputo $
+# $Id: Session.pm 2116 2006-09-08 04:45:45Z rcaputo $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ENOSYS);
@@ -36,7 +36,8 @@ sub EN_SIGNAL       () { '_signal' }
 # here.
 
 # Shorthand for defining an assert constant.
-sub define_assert {
+
+sub _define_assert {
   no strict 'refs';
   foreach my $name (@_) {
 
@@ -59,7 +60,7 @@ sub define_assert {
 }
 
 # Shorthand for defining a trace constant.
-sub define_trace {
+sub _define_trace {
   no strict 'refs';
 
   BEGIN { $^W = 0 };
@@ -109,8 +110,8 @@ BEGIN {
     }
   };
 
-  define_assert("STATES");
-  define_trace("DESTROY");
+  _define_assert("STATES");
+  _define_trace("DESTROY");
 }
 
 #------------------------------------------------------------------------------
@@ -775,27 +776,6 @@ POE::Session - an event driven abstract state machine
   # Import POE::Session constants.
   use POE::Session;
 
-  # The older, more DWIMmy constructor, which will soon be deprecated
-  # (i.e., DON'T USE THIS).
-  POE::Session->new(
-
-    # Inline or coderef states.
-    state_one => \&coderef_one,
-    state_two => sub { ... },
-
-    # Plain object and package states.
-    $object_one  => [ 'state_three', 'state_four',  'state_five'  ],
-    $package_one => [ 'state_six',   'state_seven', 'state_eight' ],
-
-    # Mapped object and package states.
-    $object_two  => { state_nine => 'method_nine', ... },
-    $package_two => { state_ten  => 'method_ten', ... },
-
-    # Parameters for the session's _start state.
-    \@start_args,
-  );
-
-  # The newer, more explicit and safer constructor.
   POE::Session->create(
 
     # Inline or coderef states.
@@ -1043,32 +1023,34 @@ C<handler_twelve()> method.
 
 =item new LOTS_OF_STUFF
 
-WARNING: C<new()> will be deprecated as per POE's roadmap.  The actual
-schedule can be seen at
-L<http://poe.perl.org/?POE_RFCs/Change_procedures>.
-You can track the deprecation by visiting
-L<http://rt.cpan.org/Ticket/Display.html?id=8462>.
+WARNING: C<new()> is deprecated as per POE's roadmap.
 
-C<new()> is Session's older constructor.  Its design was clever at the
-time, but it didn't expand well.  It's still useful for quick one-line
-hacks, but consider using C<create()> for more complex sessions.
+C<new()> was Session's older constructor.  Its design was clever at the
+time, but it didn't expand well.
 
-C<new()> returns a reference to the newly created session but B<it is
+C<new()> returned a reference to the newly created session but B<it is
 recommended not to save this>.  POE::Kernel manages sessions and will
 ensure timely destruction of them as long as extra references to them
 aren't hanging around.
 
-Inline states, object states, package states, and _start arguments are
-all inferred by their contexts.  This context sensitivity makes it
-harder for maintainers to understand what's going on, and it allows
+Inline states, object states, package states, and _start arguments were
+all inferred by their contexts.  This context sensitivity made it
+harder for maintainers to understand what's going on, and it allowed
 errors to be interpreted as different behavior.
 
-Inline states are specified as a scalar mapped to a coderef.
+Inline states were specified as a scalar mapped to a coderef.
 
   event_one => \&state_one,
   event_two => sub { ... },
 
-Object states are specified as object references mapped to list or
+The equivalent for create() is
+
+  inline_states => {
+  	event_one => \&state_one,
+	event_two => sub { ... },
+  },
+
+Object states were specified as object references mapped to list or
 hash references.  Objects that are mapped to arrayrefs will handle
 events with identically named methods.
 
@@ -1079,7 +1061,14 @@ named methods.
 
   $object_two => { event_ten => 'method_foo', event_eleven => 'method_bar' },
 
-Package states are specified as package names mapped to list or hash
+the equivalent of these for create is as follows
+
+  object_states => [
+    $object_one => [ 'event_one', 'event_two' ],
+    $object_two => { event_ten => 'method_foo', event_eleven => 'method_bar' },
+  ],
+
+Package states were specified as package names mapped to list or hash
 references.  Package names that are mapped to arrayrefs will handle
 events with identically named methods.
 
@@ -1090,30 +1079,21 @@ differently named methods.
 
   PackageTwo => { event_seven => 'method_baz', event_eight => 'method_quux' },
 
-Arguments for the C<_start> state are specified as arrayrefs.
+For these, the equivalent create() syntax is
+
+  package_states => [
+    PackageOne => [ 'event_five', 'event_six' ],
+    PackageTwo => { event_seven => 'method_baz', event_eight => 'method_quux' },
+  ],
+  
+Arguments for the C<_start> state were specified as arrayrefs.
 
   [ 'arg0', 'arg1', ... ],
 
-So, in summary, the rules for this constructor are:
 
-  If a scalar appears as the "key" field ...
-    If a coderef appears as its "value" ...
-      Then it's an inline event handler.
-    If a arrayref appears as its "value" ...
-      Then it's a set of package states with the same names.
-    If a hashref appears as its "value" ...
-      Then it's a set of package states with possibly different names.
-    Otherwise, it's an error.
-  If an object reference appears as the "key" field ...
-    If a arrayref appears as its "value" ...
-      Then it's a set of object states with the same names.
-    If a hashref appears as its "value" ...
-      Then it's a set of object states with possibly different names.
-    Otherwise, it's an error.
-  If a arrayref appears as the "key" field ...
-    Then it's a set of C<_start> arguments, and it has no "value".
+And this is how to do it for create()
 
-... which is a big part of why it's deprecated!
+  args => [ 'arg0', 'arg1', ... ],
 
 =item option OPTION_NAME
 
@@ -1510,11 +1490,6 @@ its custom parameter list is preserved as a reference in C<ARG1>.
 All the other C<_default> parameters are the same as the unhandled
 event's, with the exception of C<STATE>, which becomes C<_default>.
 
-It is highly recommended that C<_default> handlers always return
-false.  C<_default> handlers will often catch signals, so they must
-return false if the signals are expected to stop a program.  Otherwise
-only SIGKILL will work.
-
 L<POE::Kernel> discusses signal handlers in "Signal Watcher Methods".
 It also covers the pitfalls of C<_default> states in more detail
 
@@ -1673,7 +1648,7 @@ POE traps exceptions that happen within an event. When an exception
 occurs, POE sends the C<DIE> signal to the session that caused the
 exception. This is a terminal signal and will shutdown the POE
 environment unless the session handles the signal and calls
-C<sig_handled()>. 
+C<sig_handled()>.
 
 This behavior can be turned off by setting the C<CATCH_EXCEPTIONS>
 constant subroutine in C<POE::Kernel> to 0 like so:
@@ -1682,6 +1657,8 @@ constant subroutine in C<POE::Kernel> to 0 like so:
 
 The signal handler will be passed a single argument, a hashref,
 containing the following data.
+
+=over 2
 
 =item source_session
 
@@ -1698,7 +1675,7 @@ Name of the event that caused the exception
 
 =item file
 
-The filename of the code which called the problematic event 
+The filename of the code which called the problematic event
 
 =item line
 
@@ -1712,6 +1689,8 @@ The state that was called the problematci event
 
 The value of C<$@>, which contains the error string created by the
 exception.
+
+=back
 
 =head2 Session's Debugging Features
 

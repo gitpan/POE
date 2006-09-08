@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 2029 2006-08-07 02:25:50Z rcaputo $
+# $Id: Kernel.pm 2116 2006-09-08 04:45:45Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2029 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -62,7 +62,7 @@ sub import {
 
   unless (UNIVERSAL::can('POE::Kernel', 'poe_kernel_loop')) {
     $loop =~ s/^((POE::)?Loop::)?/POE::Loop::/ if defined $loop;
-    test_loop($loop);
+    _test_loop($loop);
     # Bootstrap the kernel.  This is inherited from a time when multiple
     # kernels could be present in the same Perl process.
     POE::Kernel->new() if UNIVERSAL::can('POE::Kernel', 'poe_kernel_loop');
@@ -123,6 +123,11 @@ BEGIN {
 # functions that act on the current session.
 my $kr_active_session;
 my $kr_active_event;
+
+# Needs to be lexical so that POE::Resource::Events can see it
+# change.  TODO - Something better?  Maybe we call a method in
+# POE::Resource::Events to trigger the exception there?
+use vars qw($kr_exception);
 
 # The Kernel's master queue.
 my $kr_queue;
@@ -260,7 +265,7 @@ sub LARGE_QUEUE_SIZE () { 512 }
 # Debugging and configuration constants.
 
 # Shorthand for defining a trace constant.
-sub define_trace {
+sub _define_trace {
   no strict 'refs';
   foreach my $name (@_) {
     next if defined *{"TRACE_$name"}{CODE};
@@ -277,7 +282,7 @@ sub define_trace {
 
 BEGIN {
   # Shorthand for defining an assert constant.
-  sub define_assert {
+  sub _define_assert {
     no strict 'refs';
     foreach my $name (@_) {
       next if defined *{"ASSERT_$name"}{CODE};
@@ -324,7 +329,7 @@ BEGIN {
 
   defined &TRACE_DEFAULT or *TRACE_DEFAULT = sub () { 0 };
 
-  define_trace qw(
+  _define_trace qw(
     EVENTS FILES PROFILE REFCNT RETVALS SESSIONS SIGNALS STATISTICS
   );
 
@@ -333,7 +338,7 @@ BEGIN {
 
   defined &ASSERT_DEFAULT or *ASSERT_DEFAULT = sub () { 0 };
 
-  define_assert qw(DATA EVENTS FILES RETVALS USAGE);
+  _define_assert qw(DATA EVENTS FILES RETVALS USAGE);
 }
 
 # An "idle" POE::Kernel may still have events enqueued.  These events
@@ -457,7 +462,7 @@ sub _die {
 #------------------------------------------------------------------------------
 # Adapt POE::Kernel's personality to whichever event loop is present.
 
-sub find_loop {
+sub _find_loop {
   my ($mod) = @_;
 
   foreach my $dir (@INC) {
@@ -466,7 +471,7 @@ sub find_loop {
   return 0;
 }
 
-sub load_loop {
+sub _load_loop {
   my $loop = shift;
 
   *poe_kernel_loop = sub { return "$loop" };
@@ -486,14 +491,14 @@ sub load_loop {
   }
 }
 
-sub test_loop {
+sub _test_loop {
   my $used_first = shift;
   local $SIG{__DIE__} = "DEFAULT";
 
   # First see if someone wants to load a POE::Loop or XS version
   # explicitly.
   if (defined $used_first) {
-    load_loop($used_first);
+    _load_loop($used_first);
     return;
   }
 
@@ -512,9 +517,9 @@ sub test_loop {
     # Try for the XS version first.  If it fails, try the plain
     # version.  If that fails, we're up a creek.
     $module = "POE/XS/Loop/$module.pm";
-    unless (find_loop($module)) {
+    unless (_find_loop($module)) {
       $module =~ s|XS/||;
-      next unless (find_loop($module));
+      next unless (_find_loop($module));
     }
 
     if (defined $used_first and $used_first ne $module) {
@@ -536,14 +541,14 @@ sub test_loop {
   # No loop found.  Default to our internal select() loop.
   unless (defined $used_first) {
     $used_first = "POE/XS/Loop/Select.pm";
-    unless (find_loop($used_first)) {
+    unless (_find_loop($used_first)) {
       $used_first =~ s/XS\///;
     }
   }
 
   substr($used_first, -3) = "";
   $used_first =~ s|/|::|g;
-  load_loop($used_first);
+  _load_loop($used_first);
 }
 
 #------------------------------------------------------------------------------
@@ -594,6 +599,7 @@ sub _test_if_kernel_is_idle {
       "<rc> | Files  : ", $self->_data_handle_count(), "\n",
       "<rc> | Extra  : ", $self->_data_extref_count(), "\n",
       "<rc> | Procs  : ", $self->_data_sig_child_procs(), "\n",
+      "<rc> | Signals: ", $self->_data_sig_count(), "\n",
       "<rc> `---------------------------\n",
       "<rc> ..."
      );
@@ -603,7 +609,8 @@ sub _test_if_kernel_is_idle {
     $kr_queue->get_item_count() > $idle_queue_size or
     $self->_data_handle_count() or
     $self->_data_extref_count() or
-    $self->_data_sig_child_procs()
+    $self->_data_sig_child_procs() or
+    $self->_data_sig_count()
   ) {
     $self->_data_ev_enqueue(
       $self, $self, EN_SIGNAL, ET_SIGNAL, [ 'IDLE' ],
@@ -781,6 +788,7 @@ sub new {
     $self->_data_stat_initialize() if TRACE_STATISTICS;
     $self->_data_sig_initialize();
     $self->_data_magic_initialize();
+    $self->_data_alias_initialize();
 
     # These other subsystems don't have strange interactions.
     $self->_data_handle_initialize($kr_queue);
@@ -990,7 +998,7 @@ sub _dispatch_event {
     # bit of a problem if an eval{} occurs here because a signal is
     # dispatched or something.
 
-    if ( $@ ne '' and !($type & ET_STOP) ) {
+    if (ref($@) or $@ ne '') {
       my $exception = $@;
 
       if(TRACE_EVENTS) {
@@ -1000,6 +1008,10 @@ sub _dispatch_event {
         );
       }
 
+      # While it looks like we're checking the signal handler's return
+      # value, we actually aren't.  _dispatch_event() for signals
+      # returns whether the signal was handled.  See the return at the
+      # end of "Step 3" in the signal handling procedure.
       my $handled = $self->_dispatch_event(
         $session,
         $source_session,
@@ -1023,15 +1035,12 @@ sub _dispatch_event {
         -__LINE__,
       );
 
+      # An exception has occurred.  Set a global that we can check at
+      # the uppermost level.
       unless ($handled) {
-        # Put our internal state back together before we throw the
-        # exception.
-        $kr_active_session = $hold_active_session;
-        $kr_active_event   = $hold_active_event;
-        die( $exception );
+        $kr_exception = $exception;
       }
     }
-
   }
   else {
     if ($wantarray) {
@@ -1159,6 +1168,7 @@ sub _initialize_kernel_session {
 
   $self->loop_initialize();
 
+  $kr_exception = undef;
   $kr_active_session = $self;
   $self->_data_ses_allocate($self, $self->ID(), undef);
 }
@@ -1201,7 +1211,7 @@ sub run_one_timeslice {
 
 sub run {
   # So run() can be called as a class method.
-  POE::Kernel->new unless (defined $poe_kernel);
+  POE::Kernel->new unless defined $poe_kernel;
   my $self = $poe_kernel;
 
   # Flag that run() was called.
@@ -1512,7 +1522,7 @@ sub detach_child {
   return 1;
 }
 
-### Helpful accessors.  -><- Most of these are not documented.
+### Helpful accessors.
 
 sub get_active_session {
   return $kr_active_session;
@@ -1522,10 +1532,12 @@ sub get_active_event {
   return $kr_active_event;
 }
 
+# FIXME - Should this exist?
 sub get_event_count {
   return $kr_queue->get_item_count();
 }
 
+# FIXME - Should this exist?
 sub get_next_event_time {
   return $kr_queue->get_next_priority();
 }
@@ -2443,9 +2455,17 @@ sub refcount_decrement {
   }
 
   my $refcount = $self->_data_extref_dec($session, $tag);
-  $self->_data_ses_collect_garbage($session);
 
-  # trace it here
+  # We don't need to garbage-test the decremented session if the
+  # reference count is nonzero.  Likewise, we don't need to GC it if
+  # it's the current session under the assumption that it will be GC
+  # tested when the current event dispatch is through.
+
+  if ( !$refcount and $kr_active_session->ID ne $session_id ) {
+    $self->_data_ses_collect_garbage($session);
+  }
+
+  # -><- trace it here
   return $refcount;
 }
 
@@ -3427,16 +3447,28 @@ operations such as connect() to signal an exception.
 
 select_expedite() does not return a meaningful value.
 
+=item select_pause_read FILE_HANDLE
+
+=item select_resume_read FILE_HANDLE
+
 =item select_pause_write FILE_HANDLE
 
 =item select_resume_write FILE_HANDLE
 
-select_pause_write() temporarily pauses event generation when a
-FILE_HANDLE can be written to.  select_resume_write() turns event
-generation back on.
+select_pause_read() and select_pause_write() temporarily pause events
+that are generated when a FILE_HANDLE can be read from or written to,
+respectively.
 
-These functions are more efficient than select_write() because they
-don't perform full resource management.
+select_resume_read() and select_resume_write() turn events back on.
+
+These functions are more efficient than select_read() and
+select_write() because they don't perform full resource management
+within POE::Kernel.
+
+Pause and resume a filehandle's readable events:
+
+  $kernel->select_pause_read( $filehandle );
+  $kernel->select_resume_read( $filehandle );
 
 Pause and resume a filehandle's writable events:
 
@@ -3551,7 +3583,6 @@ POE's automatic exception handling can be turned off by setting the
 C<CATCH_EXCEPTIONS> constant subroutine in C<POE::Kernel> to 0 like so:
 
   sub POE::Kernel::CATCH_EXCEPTIONS () { 0 }
-
 
 =item nonmaskable
 

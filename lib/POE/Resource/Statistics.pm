@@ -1,14 +1,14 @@
-# $Id: Statistics.pm 1911 2006-03-28 05:15:50Z rcaputo $
+# $Id: Statistics.pm 2087 2006-09-01 10:24:43Z bsmith $
 
 # Data and methods to collect runtime statistics about POE, allowing
 # clients to look at how much work their POE server is performing.
 # None of this stuff will activate unless TRACE_STATISTICS or
 # TRACE_PROFILE are enabled.
 
-package POE::Resources::Statistics;
+package POE::Resource::Statistics;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1911 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # We fold all this stuff back into POE::Kernel
 package POE::Kernel;

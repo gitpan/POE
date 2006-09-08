@@ -1,9 +1,9 @@
-# $Id: Controls.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Controls.pm 2087 2006-09-01 10:24:43Z bsmith $
 
-package POE::Resources::Controls;
+package POE::Resource::Controls;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # We fold all this stuff back into POE::Kernel
 package POE::Kernel;

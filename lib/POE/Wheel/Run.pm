@@ -1,11 +1,11 @@
-# $Id: Run.pm 2012 2006-07-24 22:16:22Z rcaputo $
+# $Id: Run.pm 2106 2006-09-05 14:18:29Z bingosnet $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2012 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -507,9 +507,9 @@ sub new {
   close $stdout_write if defined $stdout_write;
   close $stderr_write if defined $stderr_write;
 
-	my $active_count = 0;
-	$active_count++ if $stdout_event and $stdout_read;
-	$active_count++ if $stderr_event and $stderr_read;
+  my $active_count = 0;
+  $active_count++ if $stdout_event and $stdout_read;
+  $active_count++ if $stderr_event and $stderr_read;
 
   my $self = bless [
     &POE::Wheel::allocate_wheel_id(),  # UNIQUE_ID
@@ -858,11 +858,11 @@ sub event {
     }
   }
 
-	# Recalculate the active handles count.
-	my $active_count = 0;
-	$active_count++ if $self->[EVENT_STDOUT] and $self->[HANDLE_STDOUT];
-	$active_count++ if $self->[EVENT_STDERR] and $self->[HANDLE_STDERR];
-	$self->[IS_ACTIVE] = $active_count;
+  # Recalculate the active handles count.
+  my $active_count = 0;
+  $active_count++ if $self->[EVENT_STDOUT] and $self->[HANDLE_STDOUT];
+  $active_count++ if $self->[EVENT_STDERR] and $self->[HANDLE_STDERR];
+  $self->[IS_ACTIVE] = $active_count;
 }
 
 #------------------------------------------------------------------------------
@@ -907,6 +907,12 @@ sub DESTROY {
 
 sub put {
   my ($self, @chunks) = @_;
+
+  # Avoid big bada boom if someone put()s on a dead wheel.
+  croak "Called put() on a wheel without an open STDIN handle" unless (
+    $self->[HANDLE_STDIN]
+  );
+
   if (
     $self->[OCTETS_STDIN] =  # assignment on purpose
     $self->[DRIVER_STDIN]->put($self->[FILTER_STDIN]->put(\@chunks))
@@ -953,7 +959,11 @@ sub shutdown_stdin {
   $poe_kernel->select_write($self->[HANDLE_STDIN], undef);
 
   eval { local $^W = 0; shutdown($self->[HANDLE_STDIN], 1) };
-  close $self->[HANDLE_STDIN] if $@;
+  if ($@ or $self->[HANDLE_STDIN] != $self->[HANDLE_STDOUT]) {
+    close $self->[HANDLE_STDIN];
+  }
+
+  $self->[HANDLE_STDIN] = undef;
 }
 
 #------------------------------------------------------------------------------
@@ -1443,6 +1453,12 @@ tend to be reluctant to exit when their terminals are closed.
 
 The kill() method will send SIGTERM if SIGNAL is undef or omitted.
 
+=item get_driver_out_messages
+
+=item get_driver_out_octets
+
+Return driver statistics.
+
 =back
 
 =head1 EVENTS AND PARAMETERS
@@ -1481,7 +1497,8 @@ task.  The actual values aren't yet defined.  Note: This is not
 necessarily a function name.
 
 C<ARG1> and C<ARG2> hold numeric and string values for C<$!>,
-respectively.
+respectively.  C<"$!"> will eq C<""> for read error 0 (child process
+closed STDOUT or STDERR).
 
 C<ARG3> contains the wheel's unique ID.
 
@@ -1495,6 +1512,7 @@ A sample error event handler:
 
   sub error_state {
     my ($operation, $errnum, $errstr, $wheel_id) = @_[ARG0..ARG3];
+    $errstr = "remote end closed" if $operation eq "read" and !$errnum;
     warn "Wheel $wheel_id generated $operation error $errnum: $errstr\n";
   }
 

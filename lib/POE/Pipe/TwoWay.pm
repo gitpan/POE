@@ -1,4 +1,4 @@
-# $Id: TwoWay.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: TwoWay.pm 2116 2006-09-08 04:45:45Z rcaputo $
 
 # Portable two-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::TwoWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Symbol qw(gensym);
 use IO::Socket qw( AF_UNIX SOCK_STREAM PF_UNSPEC );
@@ -40,14 +40,14 @@ sub new {
       );
   }
 
-  while (my $try_type = $self->get_next_preference()) {
+  while (my $try_type = $self->_get_next_preference()) {
     return ($a_read, $a_write, $b_read, $b_write) if
       $self->_try_type(
         $try_type,
         \$a_read, \$a_write,
         \$b_read, \$b_write
       );
-    $self->shift_preference();
+    $self->_shift_preference();
   }
 
   # There's nothing left to try.
@@ -117,7 +117,7 @@ sub _try_type {
   # Try a pair of plain INET sockets.
   if ($type eq "inet") {
     eval {
-      ($$a_read, $$b_read) = $self->make_socket();
+      ($$a_read, $$b_read) = $self->_make_socket();
     };
 
     # Sockets failed.
@@ -184,6 +184,16 @@ So anyway, the syntax is pretty easy:
 And now you have an unbuffered pipe with two read/write sides, A and
 B.  Writing to C<$a_write> passes data to C<$b_read>, and writing to
 C<$b_write> passes data to C<$a_read>.
+
+=head1 CONSTRUCTOR
+
+=over
+
+=item new
+
+  my ($a_read, $a_write, $b_read, $b_write) = POE::Pipe::TwoWay->new();
+
+=back
 
 =head1 DEBUGGING
 

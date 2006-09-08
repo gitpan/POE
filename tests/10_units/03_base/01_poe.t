@@ -1,15 +1,14 @@
 #!/usr/bin/perl -w
+# $Id: 01_poe.t 2116 2006-09-08 04:45:45Z rcaputo $
+# vim: filetype=perl
 
 use strict;
 
-use Test::More tests => 5;
+use Test::More tests => 4;
 
 BEGIN { eval "use POE"; ok(!$@, "you just saved a kitten"); }
 
 # Start with errors.
-
-eval { my $x = POE->new() };
-ok($@ && $@ =~ /not meant to be used directly/, "don't instantiate POE");
 
 eval { POE->import( qw( NFA Session ) ) };
 ok(

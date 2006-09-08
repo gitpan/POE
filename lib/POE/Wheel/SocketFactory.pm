@@ -1,11 +1,11 @@
-# $Id: SocketFactory.pm 2008 2006-07-04 06:41:42Z rcaputo $
+# $Id: SocketFactory.pm 2106 2006-09-05 14:18:29Z bingosnet $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2008 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -45,12 +45,13 @@ sub MY_SOCKET_SELECTED () { 12 }
 
 # Provide dummy constants for systems that don't have them.
 BEGIN {
-  if (eval { require Socket6 }) {
-    Socket6->import();
-  }
-  else {
-    eval "*Socket6::AF_INET6 = sub () { ~0 }";
-    eval "*Socket6::PF_INET6 = sub () { ~0 }";
+  eval {
+    require Socket6;
+    my $x = &Socket6::AF_INET6;
+  };
+  if ($@) {
+    *Socket6::AF_INET6 = sub () { ~0 };
+    *Socket6::PF_INET6 = sub () { ~0 };
   }
 }
 
@@ -110,7 +111,7 @@ my %default_socket_type = (
 # Perform system-dependent translations on Unix addresses, if
 # necessary.
 
-sub condition_unix_address {
+sub _condition_unix_address {
   my ($address) = @_;
 
   # OS/2 would like sockets to use backwhacks, and please place them
@@ -826,7 +827,7 @@ sub new {
         return $self;
       }
 
-      $bind_address = &condition_unix_address($params{BindAddress});
+      $bind_address = &_condition_unix_address($params{BindAddress});
       $bind_address = pack_sockaddr_un($bind_address);
       unless ($bind_address) {
         $poe_kernel->yield(
@@ -953,7 +954,7 @@ sub new {
     # understands.
     elsif ($abstract_domain eq DOM_UNIX) {
 
-      $connect_address = condition_unix_address($params{RemoteAddress});
+      $connect_address = _condition_unix_address($params{RemoteAddress});
       $connect_address = pack_sockaddr_un($connect_address);
       unless (defined $connect_address) {
         $poe_kernel->yield(

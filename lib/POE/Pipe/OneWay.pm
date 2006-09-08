@@ -1,4 +1,4 @@
-# $Id: OneWay.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: OneWay.pm 2116 2006-09-08 04:45:45Z rcaputo $
 
 # Portable one-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::OneWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Symbol qw(gensym);
 use IO::Socket qw( AF_UNIX SOCK_STREAM PF_UNSPEC );
@@ -34,10 +34,10 @@ sub new {
       if $self->_try_type($conduit_type, \$a_read, \$b_write);
   }
 
-  while (my $try_type = $self->get_next_preference()) {
+  while (my $try_type = $self->_get_next_preference()) {
     return ($a_read, $b_write)
       if $self->_try_type($try_type, \$a_read, \$b_write);
-    $self->shift_preference();
+    $self->_shift_preference();
   }
 
   # There's nothing left to try.
@@ -103,7 +103,7 @@ sub _try_type {
   # Try a pair of plain INET sockets.
   if ($type eq "inet") {
     eval {
-      ($$a_read, $$b_write) = $self->make_socket();
+      ($$a_read, $$b_write) = $self->_make_socket();
     };
 
     if (length $@) {
@@ -164,6 +164,16 @@ So anyway, the syntax is pretty easy:
   die "couldn't create a pipe: $!" unless defined $read;
 
 And now you have a pipe with a read side and a write side.
+
+=head1 CONSTRUCTOR
+
+=over 
+
+=item new
+
+  my ($read, $write) = POE::Pipe::OneWay->new();
+
+=back
 
 =head1 DEBUGGING
 

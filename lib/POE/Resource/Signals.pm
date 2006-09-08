@@ -1,12 +1,12 @@
-# $Id: Signals.pm 1980 2006-06-11 19:23:12Z rcaputo $
+# $Id: Signals.pm 2087 2006-09-01 10:24:43Z bsmith $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
 
-package POE::Resources::Signals;
+package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -171,12 +171,28 @@ sub _data_sig_finalize {
 sub _data_sig_count_ses {
   my ($self, $session) = @_;
 
-  if (exists( $kr_sessions_to_signals{$session} )) {
-    return scalar keys %{$kr_sessions_to_signals{$session}};
+  return 0 unless exists $kr_sessions_to_signals{$session};
+  return scalar keys %{$kr_sessions_to_signals{$session}};
+}
+
+# Return a count of signals watched by sessions that aren't the
+# Kernel.  Also, don't count IDLE or ZOMBIE signals, otherwise a
+# program watching for them will never receive them.
+#
+# TODO - This is slow, and it's called relatively often.  We should
+# maintain a reference count as signals are added ard removed rather
+# than recalculate the count each time.
+
+sub _data_sig_count {
+  my $signal_count;
+  foreach my $session (keys %kr_sessions_to_signals) {
+    next if $session eq $poe_kernel;
+    foreach my $signal (keys %{$kr_sessions_to_signals{$session}}) {
+      next if $signal eq "IDLE" or $signal eq "ZOMBIE";
+      $signal_count++;
+    }
   }
-  else {
-    return 0;
-  }
+  return $signal_count;
 }
 
 ### Add a signal to a session.
@@ -190,7 +206,7 @@ sub _data_sig_add {
   ) {
     $self->_data_ses_refcount_inc( $session );
   }
-  
+
   $kr_sessions_to_signals{$session}->{$signal} = $event;
   $kr_signals{$signal}->{$session} = $event;
 
@@ -512,7 +528,7 @@ __END__
 
 =head1 NAME
 
-POE::Resources::Signals - signal management for POE::Kernel
+POE::Resource::Signals - signal management for POE::Kernel
 
 =head1 SYNOPSIS
 

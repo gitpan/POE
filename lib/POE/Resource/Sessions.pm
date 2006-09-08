@@ -1,11 +1,11 @@
-# $Id: Sessions.pm 2014 2006-08-01 17:20:30Z rcaputo $
+# $Id: Sessions.pm 2087 2006-09-01 10:24:43Z bsmith $
 
 # Manage session data structures on behalf of POE::Kernel.
 
-package POE::Resources::Sessions;
+package POE::Resource::Sessions;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2014 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -447,8 +447,16 @@ sub _data_ses_count {
 # Dispatch _stop to a session, removing it from the kernel's data
 # structures as a side effect.
 
+my %already_stopping;
+
 sub _data_ses_stop {
   my ($self, $session) = @_;
+
+  # Don't stop a session that's already in the throes of stopping.
+  # This can happen with exceptions, during die() in _stop.  It can
+  # probably be removed if exceptions are.
+  return if exists $already_stopping{$session};
+  $already_stopping{$session} = 1;
 
   if (ASSERT_DATA) {
     _trap("stopping a nonexistent session")
@@ -509,6 +517,8 @@ sub _data_ses_stop {
   unless (keys %kr_sessions) {
     $self->loop_halt();
   }
+
+  delete $already_stopping{$session};
 }
 
 1;
@@ -517,7 +527,7 @@ __END__
 
 =head1 NAME
 
-POE::Resources::Sessions - manage session data structures for POE::Kernel
+POE::Resource::Sessions - manage session data structures for POE::Kernel
 
 =head1 SYNOPSIS
 

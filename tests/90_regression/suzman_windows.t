@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: suzman_windows.t 1971 2006-05-30 20:32:30Z bsmith $
+# $Id: suzman_windows.t 2047 2006-08-19 22:19:44Z rcaputo $
 # vim: filetype=perl
 
 # Tests various signals using POE's stock signal handlers.  These are
@@ -42,10 +42,12 @@ POE::Session->create(
     child_handler => sub {
       pass("handled real SIGCHLD");
       $_[KERNEL]->delay(timeout => undef);
+      $_[KERNEL]->sig(CHLD => undef);
     },
     _stop => sub { },
     timeout => sub {
       fail("handled real SIGCHLD");
+      $_[KERNEL]->sig(CHLD => undef);
     },
   }
 );

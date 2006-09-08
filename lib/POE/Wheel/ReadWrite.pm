@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm 2007 2006-06-30 18:23:34Z bsmith $
+# $Id: ReadWrite.pm 2106 2006-09-05 14:18:29Z bingosnet $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2007 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -701,6 +701,16 @@ ReadWrite performs buffered, select-based I/O on filehandles.  It
 generates events for common file conditions, such as when data has
 been read or flushed.
 
+=head1 CONSTRUCTOR
+
+=over
+
+=item new
+
+new() creates a new wheel, returning the wheels reference.
+
+=back
+
 =head1 PUBLIC METHODS
 
 =over 2
@@ -794,6 +804,12 @@ filehandle for data.
 Some applications require the remote end to shut down a socket before
 they will continue.  These methods map directly to shutdown() for the
 wheel's input and output sockets.
+
+=item get_driver_out_octets
+
+=item get_driver_out_messages
+
+Return driver statistics.
 
 =back
 

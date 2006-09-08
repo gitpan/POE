@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: sbk_signal_init.pm 2024 2006-08-06 23:16:42Z rcaputo $
+# $Id: sbk_signal_init.pm 2058 2006-08-21 06:25:50Z rcaputo $
 
 # Tests whether POE::Kernel affects signal handlers at initialization
 # time.  Based on test code provided by Stuart Kendrick, in
@@ -11,7 +11,7 @@ use strict;
 use Test::More tests => 1;
 
 BEGIN {
-	$SIG{ALRM} = \&dispatch_normal_signal;
+  $SIG{ALRM} = \&dispatch_normal_signal;
 }
 
 my $signal_dispatched = 0;

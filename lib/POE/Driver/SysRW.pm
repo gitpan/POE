@@ -1,4 +1,4 @@
-# $Id: SysRW.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: SysRW.pm 2106 2006-09-05 14:18:29Z bingosnet $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
@@ -9,7 +9,7 @@ package POE::Driver::SysRW;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
@@ -209,6 +209,40 @@ consumption with corresponding throughput penalties.
   my $driver = POE::Driver::SysRW->new( BlockSize => $block_size );
 
   my $driver = POE::Driver::SysRW->new;
+
+=item get FILEHANDLE
+
+get() immediately tries to read information from a filehandle.  It
+returns a reference to an array containing whatever it managed to
+read, or an empty array if nothing could be read.  It returns undef on
+error, and $! will be set.
+
+The arrayref get() returns is suitable for passing to any
+POE::Filter's get() method.  This is exactly what the ReadWrite wheel
+does with it.
+
+=item put ARRAYREF
+
+put() places raw data chunks into the driver's output queue.  it
+accepts a reference to a list of raw data chunks, and it returns the
+number of octets remaining in its output queue.
+
+Some drivers may flush data immediately from their put() methods.
+
+=item flush FILEHANDLE
+
+flush() attempts to flush some data from the driver's output queue to
+the FILEHANDLE.  It returns the number of octets remaining in the
+output queue after the flush attempt.
+
+flush() does the physical write, counterpoint to get's read.  If
+flush() fails for any reason, $! will be set with the reason for its
+failure.  Otherwise $! will be zero.
+
+=item get_out_messages_buffered
+
+This data accessor returns the number of messages in the driver's
+output queue.  Partial messages are counted as whole ones.
 
 =back
 

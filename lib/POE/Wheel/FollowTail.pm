@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: FollowTail.pm 2111 2006-09-07 22:13:39Z rcaputo $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2111 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -528,6 +528,16 @@ appended to its file.
 
 This is a read-only wheel so it does not include a put() method.
 
+=head1 CONSTRUCTOR
+
+=over 
+
+=item new
+
+new() creates a new wheel, returning the wheels reference.
+
+=back
+
 =head1 PUBLIC METHODS
 
 =over 2
@@ -713,16 +723,6 @@ the entire POE distribution.
 =head1 BUGS
 
 This wheel can't tail pipes and consoles on some systems.
-
-Because this wheel is cooperatively multitasked, it may lose records
-just prior to a file reset.  For a more robust way to watch files,
-consider using POE::Wheel::Run and your operating system's native
-"tail" utility instead.
-
-  $heap->{tail} = POE::Wheel::Run->new(
-    Program     => [ "/usr/bin/tail", "-f", $file_name ],
-    StdoutEvent => "log_record",
-  );
 
 =head1 AUTHORS & COPYRIGHTS
 

@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2040 2006-08-13 00:51:32Z immute $
+# $Id: TCP.pm 2110 2006-09-06 17:35:20Z rcaputo $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2040 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2110 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -71,9 +71,10 @@ sub new {
   my $low_event       = delete $param{ServerLow};
 
   # this is ugly, but now its elegant :)  grep++
-  my $foo = grep { defined $_ } ($high_mark_level, $low_mark_level, $high_event, $low_event);
-  if ($foo > 0) {
-    croak "If you use the Mark settings, you must define all four" unless $foo == 4;
+  my $using_watermarks = grep { defined $_ }
+    ($high_mark_level, $low_mark_level, $high_event, $low_event);
+  if ($using_watermarks > 0 and $using_watermarks != 4) {
+    croak "If you use the Mark settings, you must define all four";
   }
 
   $high_event = sub { } unless defined $high_event;
@@ -105,7 +106,7 @@ sub new {
   croak "PackageStates must be a list or array reference"
     unless ref($package_states) eq 'ARRAY';
 
-  croak "ObjectsStates must be a list or array reference"
+  croak "ObjectStates must be a list or array reference"
     unless ref($object_states) eq 'ARRAY';
 
   # Errors.
@@ -205,7 +206,7 @@ sub new {
               ErrorEvent   => 'got_server_error',
               FlushedEvent => 'got_server_flush',
               do {
-                  $foo ? return (
+                  $using_watermarks ? return (
                     HighMark => $high_mark_level,
                     HighEvent => 'got_high',
                     LowMark => $low_mark_level,
@@ -270,8 +271,6 @@ sub new {
           $kernel->alarm_remove( delete $heap->{ctimeout_id} )
             if exists $heap->{ctimeout_id};
 
-          $kernel->alias_remove($alias) if defined $alias;
-
           if ($heap->{connected}) {
             if (defined $heap->{server}) {
               if (
@@ -286,6 +285,8 @@ sub new {
           else {
             delete $heap->{server};
           }
+
+          $kernel->alias_remove($alias) if defined $alias;
         },
 
         # User supplied states.
@@ -450,9 +451,15 @@ with as little work as possible.
 
 =head1 Constructor Parameters
 
+=over
+
+=item new
+
 The new() method can accept quite a lot of parameters.  It will return
 the session ID of the accecptor session.  One must use callbacks to 
 check for errors rather than the return value of new().
+
+=back
 
 =over 2
 

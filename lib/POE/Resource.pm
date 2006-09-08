@@ -1,16 +1,9 @@
-# $Id: Resource.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Resource.pm 2116 2006-09-08 04:45:45Z rcaputo $
 
 package POE::Resource;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
-
-use Carp qw(croak);
-
-sub new {
-  my $type = shift;
-  croak "$type is a virtual base class and not meant to be used directly";
-}
+$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 1;
 

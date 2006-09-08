@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: steinert-signal-integrity.t 1806 2005-05-30 02:21:53Z rcaputo $
+# $Id: steinert-signal-integrity.t 2047 2006-08-19 22:19:44Z rcaputo $
 # vim: filetype=perl
 
 # Jonathan Steinert produced a patch to fix POE::Wheel destruction
@@ -29,6 +29,7 @@ sub start_session {
       _start     => \&setup,
       got_signal => \&handle_signal,
       _stop      => sub { },
+      timed_out  => \&timed_out,
     }
   );
 }
@@ -50,4 +51,8 @@ sub handle_signal {
     ($_[ARG1] == 99),
     "signal parameters: ('$_[ARG0]' eq 'MOO', $_[ARG1] == 99)"
   );
+}
+
+sub timed_out {
+  $_[KERNEL]->sig(MOO => undef);
 }

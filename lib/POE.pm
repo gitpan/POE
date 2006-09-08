@@ -1,4 +1,4 @@
-# $Id: POE.pm 2041 2006-08-13 02:11:37Z rcaputo $
+# $Id: POE.pm 2118 2006-09-08 04:54:53Z rcaputo $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,8 +7,8 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION $REVISION);
-$VERSION = '0.3601';
-$REVISION = do {my($r)=(q$Revision: 2041 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '0.37';
+$REVISION = do {my($r)=(q$Revision: 2118 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 sub import {
   my $self = shift;
@@ -48,7 +48,7 @@ sub import {
     if ($@) {
       warn $@;
       push @failed, "Kernel"
-    };
+    }
   }
 
   # Load all the others.
@@ -66,14 +66,6 @@ sub import {
   @failed and croak "could not import qw(" . join(' ', @failed) . ")";
 }
 
-#------------------------------------------------------------------------------
-
-sub new {
-  my $type = shift;
-  croak "$type is not meant to be used directly";
-}
-
-#------------------------------------------------------------------------------
 1;
 
 __END__

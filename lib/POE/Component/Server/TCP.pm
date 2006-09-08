@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2040 2006-08-13 00:51:32Z immute $
+# $Id: TCP.pm 2106 2006-09-05 14:18:29Z bingosnet $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2040 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -630,12 +630,18 @@ difficult.  A tutorial at http://poe.perl.org/ describes how.
 
 =head1 CONSTRUCTOR PARAMETERS
 
+=over
+
+=item new
+
 The new() method can accept quite a lot of parameters.  It will return
 the session ID of the accecptor session.  One must use callbacks to
 check for errors rather than the return value of new().
 
 POE::Component::Server::TCP supplies common defaults for most
 callbacks and handlers.
+
+=back
 
 =over 2
 

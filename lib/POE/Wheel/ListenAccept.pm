@@ -1,11 +1,11 @@
-# $Id: ListenAccept.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: ListenAccept.pm 2106 2006-09-05 14:18:29Z bingosnet $
 
 package POE::Wheel::ListenAccept;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -161,6 +161,16 @@ connections.  EAGAIN is handled internally, so sessions needn't worry
 about it.
 
 This wheel neither needs nor includes a put() method.
+
+=head1 CONSTRUCTOR
+
+=over
+
+=item new
+
+new() creates a new wheel, returning the wheels reference.
+
+=back
 
 =head1 PUBLIC METHODS
 

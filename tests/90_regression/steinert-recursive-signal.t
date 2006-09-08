@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: steinert-recursive-signal.t 1867 2005-12-11 02:31:51Z hachi $
+# $Id: steinert-recursive-signal.t 2058 2006-08-21 06:25:50Z rcaputo $
 # vim: filetype=perl
 
 # Welcome to recursive signals, this test makes sure that the signal
@@ -21,30 +21,30 @@ use Test::More tests => 8;
 my $i = 0;
 
 POE::Session->create(
-	inline_states => {
-		_start => sub {
-			ok( ++$i == 1, "Session startup" );
-			$_[KERNEL]->sig( 'HUP', 'hup' );
-			$_[KERNEL]->sig( 'DIE', 'death' );
-			$_[KERNEL]->signal( $_[SESSION], 'HUP' );
-			$_[KERNEL]->yield( 'bad' );
-		},
-		bad => sub {
-			fail( "We shouldn't get here" );
-		},
-		hup => sub {
-			ok( ++$i == 2, "HUP handler" );
-			my $foo = undef;
-			$foo->put(); # oh my!
-		},
-		death => sub {
-			ok( ++$i == 3, "DIE handler" );
-			$_[KERNEL]->sig_handled();
-		},
-		_stop => sub {
-			ok( ++$i == 4, "Session shutdown" );
-		},
-	},
+  inline_states => {
+    _start => sub {
+      ok( ++$i == 1, "Session startup" );
+      $_[KERNEL]->sig( 'HUP', 'hup' );
+      $_[KERNEL]->sig( 'DIE', 'death' );
+      $_[KERNEL]->signal( $_[SESSION], 'HUP' );
+      $_[KERNEL]->yield( 'bad' );
+    },
+    bad => sub {
+      fail( "We shouldn't get here" );
+    },
+    hup => sub {
+      ok( ++$i == 2, "HUP handler" );
+      my $foo = undef;
+      $foo->put(); # oh my!
+    },
+    death => sub {
+      ok( ++$i == 3, "DIE handler" );
+      $_[KERNEL]->sig_handled();
+    },
+    _stop => sub {
+      ok( ++$i == 4, "Session shutdown" );
+    },
+  },
 );
 
 # The following session checks to make sure that a nonmaskable signal is
@@ -53,31 +53,31 @@ POE::Session->create(
 my $j = 0;
 
 POE::Session->create(
-	inline_states => {
-		_start => sub {
-			ok( ++$j == 1, "Second session startup" );
-			$_[KERNEL]->sig( 'ZOMBIE', 'zombie' );
-			$_[KERNEL]->sig( 'DIE', 'death' );
-			$_[KERNEL]->signal( $_[SESSION], 'ZOMBIE' );
-			$_[KERNEL]->yield( 'bad' );
-		},
-		bad => sub {
-			fail( "We shouldn't get here" );
-		},
-		zombie => sub {
-			ok( ++$j == 2, "Zombie handler" );
-			$_[KERNEL]->sig_handled(); # handling this should still die
-			my $foo = undef;
-			$foo->put(); # oh my!
-		},
-		death => sub {
-			ok( ++$j == 3, "DIE handler" );
-			$_[KERNEL]->sig_handled();
-		},
-		_stop => sub {
-			ok( ++$j == 4, "Second session shutdown" );
-		},
-	},
+  inline_states => {
+    _start => sub {
+      ok( ++$j == 1, "Second session startup" );
+      $_[KERNEL]->sig( 'ZOMBIE', 'zombie' );
+      $_[KERNEL]->sig( 'DIE', 'death' );
+      $_[KERNEL]->signal( $_[SESSION], 'ZOMBIE' );
+      $_[KERNEL]->yield( 'bad' );
+    },
+    bad => sub {
+      fail( "We shouldn't get here" );
+    },
+    zombie => sub {
+      ok( ++$j == 2, "Zombie handler" );
+      $_[KERNEL]->sig_handled(); # handling this should still die
+      my $foo = undef;
+      $foo->put(); # oh my!
+    },
+    death => sub {
+      ok( ++$j == 3, "DIE handler" );
+      $_[KERNEL]->sig_handled();
+    },
+    _stop => sub {
+      ok( ++$j == 4, "Second session shutdown" );
+    },
+  },
 );
 
 
