@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 03_http.t 2001 2006-06-25 12:39:03Z bsmith $
+# $Id: 03_http.t 2124 2006-09-12 15:40:22Z rcaputo $
 
 # Test Filter::HTTPD by itself
 # See other (forthcoming) for more complex interactions
@@ -11,14 +11,16 @@ use lib qw(./mylib ../mylib);
 use Test::More;
 
 BEGIN {
-    unless (-f 'run_network_tests') {
-        plan skip_all => 'Need network access (and permission) for these tests';
-    }
+  unless (-f 'run_network_tests') {
+      plan skip_all => 'Need network access (and permission) for these tests';
+  }
 
-    eval { use HTTP::Request; use HTTP::Request::Common; use HTTP::Status };
+  foreach my $req (qw(HTTP::Request HTTP::Request::Common HTTP::Status)) {
+    eval "use $req";
     if ($@) {
-        plan skip_all => 'HTTP::Request is needed for these tests.';
+      plan skip_all => "$req is needed for these tests.";
     }
+  }
 }
 
 BEGIN {

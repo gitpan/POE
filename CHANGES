@@ -1,4 +1,96 @@
 =========================
+2006-09-19 03:42:28 v0_38
+=========================
+
+  2006-09-19 03:41:59 (r2132) by rcaputo; poe/lib/POE.pm M
+
+    Time for 0.38. 
+
+  2006-09-19 03:06:46 (r2131) by rcaputo
+  poe/tests/30_loops/00_base/k_signals_rerun.pm M
+
+    Skip the signals rerun test when running under MSWin32 and Event.
+    Works around a "Bizarre SvTYPE [144]" panic under these conditions. 
+
+  2006-09-18 19:21:30 (r2130) by apocal
+  poe/tests/10_units/03_base/12_assert_retval.t M
+
+    Removed the tests that checked for the old ASSERT death behavior 
+
+  2006-09-18 19:14:08 (r2129) by apocal; poe/lib/POE/Kernel.pm M
+
+    fixed RT#18646 - finally! 
+
+  2006-09-16 21:07:56 (r2128) by bingosnet; extras/smoker.perl M
+
+    smoker script was effected by 0.37 sig handling
+
+  2006-09-16 06:25:20 (r2127) by rcaputo
+  poe/tests/30_loops/00_base/wheel_run.pm M;
+  poe/tests/90_regression/broeren-win32-nbio.t M;
+  poe/tests/90_regression/rt1648-tied-stderr.t M;
+  poe/tests/30_loops/00_base/k_signals_rerun.pm M
+
+    More workarounds for Vanilla Perl not differentiating itself from
+    ActivePerl and not including the same modules. 
+
+  2006-09-16 05:33:53 (r2126) by rcaputo
+  poe/tests/10_units/01_pod/01_pod.t M;
+  poe/tests/30_loops/00_base/wheel_readline.pm M;
+  poe/lib/POE/Resource/Signals.pm M;
+  poe/tests/30_loops/00_base/wheel_curses.pm M;
+  poe/tests/10_units/03_base/17_explicit_loop_fail.t M;
+  poe/lib/POE/Loop/Event.pm M; poe/lib/POE/Resource/Sessions.pm M;
+  poe/tests/10_units/03_base/16_explicit_loop.t M;
+  poe/tests/30_loops/00_base/k_sig_child.pm A; poe/lib/POE/Kernel.pm M;
+  poe/tests/10_units/01_pod/02_pod_coverage.t M; poe/MANIFEST M
+
+    Added sig_chlid(), test case, and documentation. Resolves rt.cpan.org
+    18392. Collateral damage: POE::Loop::Event's signal handler callbacks
+    have been replaced by POE::Loop::PerlSignals.
+    
+    Also added keyword expansion metadata to various files that need it. 
+
+  2006-09-14 00:45:24 (r2125) by immute; poe/lib/POE/Kernel.pm M
+
+    Fixed POE::Kernel::TRACE_STATISTICS documentation bug reported by
+    joel.
+
+  2006-09-12 15:40:22 (r2124) by rcaputo
+  poe/tests/10_units/05_filters/03_http.t M
+
+    Replace eval{use} with eval"use". Should resolve the test failure in
+    http://www.nntp.perl.org/group/perl.cpan.testers/348243 
+
+  2006-09-10 16:11:58 (r2123) by rcaputo
+  poe/tests/20_resources/00_base/extrefs_gc.pm M;
+  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Resource/Sessions.pm M;
+  poe/lib/POE/Kernel.pm M; poe/lib/POE/Session.pm M
+
+    Remove the sig() reference count. After this commit, registering a
+    sig() handler will not be sufficient to keep a session alive. This
+    reverses a design decision that was in place for about nine months. A
+    subsequent release will reintroduce the feature, but hopefully in a
+    way that doesn't break prior existing code. 
+
+  2006-09-08 20:28:16 (r2122) by lotr
+  poe/tests/10_units/01_pod/02_pod_coverage.t M; poe/lib/POE/Session.pm M
+
+    document instantiate and try_alloc, and thus remove them from the
+    exception list in tests/10_units/01_pod/02_pod_coverage.t 
+
+  2006-09-08 16:23:04 (r2121) by rcaputo
+  poe/tests/30_loops/00_base/wheel_readline.pm M
+
+    Skip POE::Wheel::ReadLine testing if the module can't be loaded due
+    to an inferior termcap. Resolves issues discovered by Chris Williams
+    in http://www.nntp.perl.org/group/perl.cpan.testers/347151 
+
+  2006-09-08 11:48:53 (r2120) by bingosnet; poe/mylib/gen-meta.perl M
+
+    Changed as per Adam Kennedy's suggestion. 
+
+=========================
 2006-09-08 04:57:21 v0_37
 =========================
 

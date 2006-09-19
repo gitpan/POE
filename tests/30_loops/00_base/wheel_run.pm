@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm 2092 2006-09-03 06:23:35Z rcaputo $
+# $Id: wheel_run.pm 2127 2006-09-16 06:25:20Z rcaputo $
 
 use strict;
 use lib qw(./mylib ../mylib);
@@ -21,7 +21,7 @@ BEGIN {
   if ($^O eq "MSWin32") {
     eval 'use Win32::Console';
     if ($@) {
-      $error = "$^O needs Win32::Console for this test";
+      $error = "Win32::Console is required on $^O - try ActivePerl";
     }
     elsif (exists $INC{"Event.pm"}) {
       $error = "$^O\'s fork() emulation breaks Event";

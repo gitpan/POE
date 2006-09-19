@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: k_signals.pm 2047 2006-08-19 22:19:44Z rcaputo $
+# $Id: k_sig_child.pm 2126 2006-09-16 05:33:53Z rcaputo $
 
 # Tests various signals using POE's stock signal handlers.  These are
 # plain Perl signals, so mileage may vary.
@@ -12,6 +12,14 @@ use Test::More;
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }
 sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
+
+# This is the number of processes to fork.  Increase this number if
+# your system can handle the resource use.  Also try increasing it if
+# you suspect a problem with POE's SIGCHLD handling.  Be warned
+# though: setting this too high can cause timing problems and test
+# failures on some systems.
+
+my $fork_count;
 
 BEGIN {
   # We can't "plan skip_all" because that calls exit().  And Tk will
@@ -31,18 +39,52 @@ BEGIN {
     CORE::exit();
   }
 
-  plan tests => 8;
+  $fork_count = 8;
+  plan tests => $fork_count + 7;
 }
 
 BEGIN { use_ok("POE") }
 
-# This is the number of processes to fork.  Increase this number if
-# your system can handle the resource use.  Also try increasing it if
-# you suspect a problem with POE's SIGCHLD handling.  Be warned
-# though: setting this too high can cause timing problems and test
-# failures on some systems.
+# Set up a second session that watches for child signals.  This is ot
+# test whether a session with only sig_child() stays alive because of
+# the signals.
 
-my $fork_count = 8;
+POE::Session->create(
+  inline_states => {
+    _start => sub { $_[KERNEL]->alias_set("catcher") },
+    catch  => sub {
+      my ($kernel, $heap, $pid) = @_[KERNEL, HEAP, ARG0];
+			$kernel->sig(CHLD => "got_sigchld");
+      $kernel->sig_child($pid, "got_chld");
+      $heap->{children}{$pid} = 1;
+      $heap->{watched}++;
+    },
+    remove_alias => sub { $_[KERNEL]->alias_remove("catcher") },
+    got_chld => sub {
+      my ($heap, $pid) = @_[HEAP, ARG1];
+      ok(delete($heap->{children}{$pid}), "caught SIGCHLD for watched pid $pid");
+      $heap->{caught}++;
+    },
+		got_sigchld => sub {
+			$_[HEAP]->{caught_sigchld}++;
+		},
+    _stop => sub {
+      my $heap = $_[HEAP];
+
+      ok(
+        $heap->{watched} == $heap->{caught},
+        "expected $heap->{watched} reaped children, got $heap->{caught}"
+      );
+
+			ok(
+				$heap->{watched} == $heap->{caught_sigchld},
+        "expected $heap->{watched} sig(CHLD), got $heap->{caught_sigchld}"
+			);
+
+      ok(!keys(%{$heap->{children}}), "all reaped children were watched");
+    },
+  },
+);
 
 # Set up a signal catching session.  This test uses plain fork(2) and
 # POE's $SIG{CHLD} handler.
@@ -55,7 +97,6 @@ POE::Session->create(
       # Clear the status counters, and catch SIGCHLD.
 
       $heap->{forked} = $heap->{reaped} = 0;
-      $kernel->sig( CHLD => 'catch_sigchld' );
 
       # Fork some child processes, all to exit at the same time.
 
@@ -68,7 +109,9 @@ POE::Session->create(
           if ($child_pid) {
             # Parent side keeps track of child IDs.
             $heap->{forked}++;
-            $heap->{children}->{$child_pid} = 1;
+            $heap->{children}{$child_pid} = 1;
+            $kernel->sig_child($child_pid, "catch_sigchld");
+            $kernel->post(catcher => catch => $child_pid);
           }
           else {
             # Child side sleeps. With the fishes.
@@ -81,6 +124,7 @@ POE::Session->create(
           die "fork error: $!";
         }
       }
+
 
       ok(
         $heap->{forked} == $fork_count,
@@ -156,71 +200,7 @@ POE::Session->create(
 
     # Do nothing here.  The timer exists just to keep the session
     # alive.  Once it's dispatched, the session can exit.
-    reaping_time_is_up => sub {
-      $_[KERNEL]->sig( CHLD => undef );
-    },
-  },
-);
-
-# mstevens found a subtle incompatibility between nested sessions and
-# SIGIDLE.  This should be fun to debug, but first I'll add the test
-# case here.
-
-sub spawn_server {
-  POE::Session->create(
-    inline_states => {
-      _start => sub {
-        $_[KERNEL]->alias_set("server");
-      },
-      do_thing => sub {
-        $_[KERNEL]->post($_[SENDER], thing_done => $_[ARG0]);
-      },
-      _child  => sub { 0 },
-      _stop   => sub { 0 },
-    },
-  );
-}
-
-POE::Session->create(
-  inline_states => {
-    _start => sub {
-      spawn_server();
-      $_[KERNEL]->post(server => do_thing => 1);
-    },
-    thing_done => sub { 0 },
-    _child  => sub { 0 },
-    _stop   => sub { 0 },
-  },
-);
-
-# See how SIGPIPE gets handled.
-
-POE::Session->create(
-  inline_states => {
-    _start => sub {
-      $_[KERNEL]->sig(USR1 => "got_usr1");
-      $_[KERNEL]->sig(PIPE => "got_pipe");
-      $_[KERNEL]->yield("send_signals");
-    },
-    send_signals => sub {
-      ok(kill("USR1", $$) == 1, "sent self SIGUSR1");
-      ok(kill("PIPE", $$) == 1, "sent self SIGPIPE");
-      $_[KERNEL]->delay(wait_for_signals => 1);
-    },
-    got_usr1 => sub {
-      $_[HEAP]->{usr1}++;
-    },
-    got_pipe => sub {
-      $_[HEAP]->{pipe}++;
-    },
-    wait_for_signals => sub {
-      $_[KERNEL]->sig( USR1 => undef );
-      $_[KERNEL]->sig( PIPE => undef );
-    },
-    _stop => sub {
-      ok($_[HEAP]->{usr1} == 1, "caught SIGUSR1");
-      ok($_[HEAP]->{pipe} == 1, "caught SIGPIPE");
-    },
+    reaping_time_is_up => sub { },
   },
 );
 

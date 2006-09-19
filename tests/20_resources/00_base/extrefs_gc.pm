@@ -1,4 +1,4 @@
-# $Id: extrefs_gc.pm 2059 2006-08-21 06:28:01Z rcaputo $
+# $Id: extrefs_gc.pm 2123 2006-09-10 16:11:58Z rcaputo $
 # vim: filetype=perl
 
 # Test a case that Yuval Kogman ran into.  Decrementing a reference
@@ -43,6 +43,7 @@ POE::Session->create(
   inline_states => {
     _start => sub {
       $_[KERNEL]->sig( IDLE => 'got_sigidle' );
+      $_[KERNEL]->alias_set("stayin_alive");
     },
     got_sigidle => sub {
       $sigidle++;

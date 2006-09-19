@@ -1,5 +1,5 @@
 #!/usr/bin/perl 
-# $Id: rt1648-tied-stderr.t 2018 2006-08-03 16:07:31Z rcaputo $
+# $Id: rt1648-tied-stderr.t 2127 2006-09-16 06:25:20Z rcaputo $
 # vim: filetype=perl
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He
@@ -15,7 +15,13 @@ BEGIN {
     $error = "$^O does not support fork";
   }
   elsif ($^O eq "MSWin32") {
-    $error = "$^O does not support fork/exec properly";
+    eval "use Win32::Console";
+    if ($@) {
+      $error = "Win32::Console is required on $^O - try ActivePerl";
+    }
+    else {
+      $error = "$^O does not support fork/exec properly";
+    }
   }
   if ($error) {
     print "1..0 # Skip $error\n";

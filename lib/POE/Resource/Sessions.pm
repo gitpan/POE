@@ -1,11 +1,11 @@
-# $Id: Sessions.pm 2087 2006-09-01 10:24:43Z bsmith $
+# $Id: Sessions.pm 2126 2006-09-16 05:33:53Z rcaputo $
 
 # Manage session data structures on behalf of POE::Kernel.
 
 package POE::Resource::Sessions;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2126 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -394,8 +394,8 @@ sub _data_ses_collect_garbage {
       "<rc> | child sessions: ", scalar(keys(%{$ss->[SS_CHILDREN]})), "\n",
       "<rc> | handles in use: ", $self->_data_handle_count_ses($session), "\n",
       "<rc> | aliases in use: ", $self->_data_alias_count_ses($session), "\n",
-      "<rc> | sig watchers  : ", $self->_data_sig_count_ses($session), "\n",
       "<rc> | extra refs    : ", $self->_data_extref_count_ses($session), "\n",
+      "<rc> | pid count     : ", $self->_data_sig_pids_ses($session), "\n",
       "<rc> +---------------------------------------------------\n",
     );
     unless ($ss->[SS_REFCOUNT]) {
@@ -405,6 +405,7 @@ sub _data_ses_collect_garbage {
         "<rc> +---------------------------------------------------\n",
       );
     }
+    _carp "<rc> | called";
   }
 
   if (ASSERT_DATA) {
@@ -416,7 +417,7 @@ sub _data_ses_collect_garbage {
       $self->_data_handle_count_ses($session) +
       $self->_data_extref_count_ses($session) +
       $self->_data_alias_count_ses($session) +
-      $self->_data_sig_count_ses($session)
+      $self->_data_sig_pids_ses($session)
     );
 
     # The calculated reference count really ought to match the one
@@ -508,7 +509,7 @@ sub _data_ses_stop {
   $self->_data_ses_free($session);
 
   # GC the parent, if there is one.
-  if (defined $parent) {
+  if (defined $parent and $parent != $self) {
     $self->_data_ses_collect_garbage($parent);
   }
 

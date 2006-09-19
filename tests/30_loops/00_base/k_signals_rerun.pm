@@ -1,4 +1,4 @@
-# $Id: k_signals_rerun.pm 2081 2006-08-31 15:53:27Z rcaputo $
+# $Id: k_signals_rerun.pm 2131 2006-09-19 03:06:46Z rcaputo $
 # vim: filetype=perl
 
 # Yuval Kogman's test case for edge issues with rethrowing unhandled
@@ -11,11 +11,15 @@ use strict;
 use Test::More;
 
 if ($^O eq "MSWin32") {
-  if (exists $INC{'Event.pm'}) {
-    plan skip_all => "Event can't catch SIGCHLD on $^O";
+  eval 'use Win32::Console';
+  if ($@) {
+    plan skip_all => "Win32::Console is required on $^O - try ActivePerl";
   }
   if (exists $INC{'Tk.pm'}) {
     plan skip_all => "Perl crashes in this test with Tk on $^O";
+  }
+  if (exists $INC{'Event.pm'}) {
+    plan skip_all => "Perl crashes in this test with Event on $^O";
   }
 }
 

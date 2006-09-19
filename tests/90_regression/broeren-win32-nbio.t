@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: broeren-win32-nbio.t 2080 2006-08-31 07:18:17Z rcaputo $
+# $Id: broeren-win32-nbio.t 2127 2006-09-16 06:25:20Z rcaputo $
 # vim: filetype=perl
 
 use strict;
@@ -14,7 +14,7 @@ BEGIN {
 
   eval 'use Win32::Console';
   if ($@) {
-    plan skip_all => "Win32::Console is required for this test.";
+    plan skip_all => "Win32::Console is required on $^O - try ActivePerl";
   }
 }
 

@@ -1,4 +1,4 @@
-# $Id$
+# $Id: 02_pod_coverage.t 2126 2006-09-16 05:33:53Z rcaputo $
 # vim: filetype=perl
 
 use Test::More;
@@ -46,8 +46,6 @@ my %special = (
         ? ( )
         : (
           'register_state',        # Should become _register_state.
-          'instantiate',          # Public or private?
-          'try_alloc',            # Public or private?
         )
       )
     ],
