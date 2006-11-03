@@ -1,4 +1,4 @@
-# $Id: SysRW.pm 2106 2006-09-05 14:18:29Z bingosnet $
+# $Id: SysRW.pm 2144 2006-10-17 16:49:07Z rcaputo $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
@@ -9,7 +9,7 @@ package POE::Driver::SysRW;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2144 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
@@ -111,8 +111,9 @@ sub get {
   return [ ] if $! == EAGAIN or $! == EWOULDBLOCK;
 
   # In perl 5.005_04 on FreeBSD, $! is not set properly unless this
-  # silly no-op is executed.  TODO - Make it optimizable at compile
-  # time.
+  # silly no-op is executed.  Turn off warnings in case $result isn't
+  # defined.  TODO - Make it optimizable at compile time.
+  local $^W = 0;
   $result = "$result";
 
   # fatal sysread error

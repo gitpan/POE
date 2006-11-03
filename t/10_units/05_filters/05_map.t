@@ -1,10 +1,10 @@
 #!/usr/bin/perl -w
-# $Id: 05_map.t 2001 2006-06-25 12:39:03Z bsmith $
+# $Id: 05_map.t 2147 2006-11-02 20:06:03Z bsmith $
 # Exercises Filter::Map without POE
 
 use strict;
 use lib qw(./mylib ../mylib);
-use lib qw(tests/10_units/05_filters);
+use lib qw(t/10_units/05_filters);
 
 use TestFilter;
 use Test::More tests => 19 + $COUNT_FILTER_INTERFACE;

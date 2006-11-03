@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 01_block.t 2001 2006-06-25 12:39:03Z bsmith $
+# $Id: 01_block.t 2147 2006-11-02 20:06:03Z bsmith $
 # vim: filetype=perl
 
 # Exercises Filter::Block without the rest of POE.  Suddenly things
@@ -7,7 +7,7 @@
 
 use strict;
 use lib qw(./mylib ../mylib);
-use lib qw(tests/10_units/05_filters);
+use lib qw(t/10_units/05_filters);
 
 use TestFilter;
 use Test::More tests => 20 + $COUNT_FILTER_INTERFACE;

@@ -1,3 +1,145 @@
+===========================
+2006-11-03 07:20:59 v0_9500
+===========================
+
+  2006-11-03 07:20:25 (r2151) by rcaputo; poe/lib/POE.pm M
+
+    Get ready to rumble. 
+
+  2006-11-03 07:06:36 (r2150) by rcaputo
+  poe/t/30_loops/00_base/wheel_readline.pm M
+
+    Skip Wheel::ReadLine tests when poll() is in play on MacOS X. For
+    some reason poll() returns POLLNVAL when multiplexing TTYs. 
+
+  2006-11-03 02:45:24 (r2149) by rcaputo; poe/lib/POE/Loop/IO_Poll.pm M
+
+    The IO::Poll loop would busy loop without reporting errors on handles
+    that were closed. 
+
+  2006-11-03 02:44:08 (r2148) by rcaputo; poe/Makefile.PL M
+
+    Improve the prompts for skipping network tests.
+
+  2006-11-02 20:06:03 (r2147) by bsmith
+  poe/mylib/gen-meta.perl M; poe/MANIFEST.SKIP M;
+  poe/t/10_units/05_filters/01_block.t M;
+  poe/t/10_units/05_filters/04_line.t M;
+  poe/t/10_units/05_filters/02_grep.t M;
+  poe/t/10_units/05_filters/06_recordblock.t M;
+  poe/t/10_units/05_filters/08_stream.t M; poe/mylib/gen-tests.perl M;
+  poe/t/10_units/05_filters/07_reference.t M; poe/test.pl D;
+  poe/mylib/Makefile-5004.pm M; poe/mylib/Makefile-5005.pm M; poe/tests
+  D; poe/t A; poe/t/10_units/05_filters/05_map.t M;
+  poe/mylib/PoeBuildInfo.pm M; poe/MANIFEST M; poe/mylib/coverage.perl M
+
+    * Renamed tests/ to t/
+
+    (Also altered paths in mylib/*.perl and the test files themselves to
+    match.) * Removed test.pl and setup Makefile.PL (& Makefile-500?.pm)
+    to run the tests
+
+    directly with Test::Harness.
+
+  2006-10-31 13:49:43 (r2146) by bingosnet
+  poe/mylib/Makefile-5005.pm M; poe/mylib/PoeBuildInfo.pm M
+
+    Moved the MSWin32 optional requirements to core requirements.
+    libwin32 installs correctly from CPAN as a dependency on
+    Vanilla/Strawberry now. 
+
+  2006-10-30 16:33:03 (r2145) by rcaputo
+  poe/lib/POE/Filter/Stackable.pm M; poe/lib/POE/Filter.pm M
+
+    Removed the isa("POE::Filter") check from POE::Filter::Stackable.
+    While technically correct, it catches the kind of error that arises
+    in early development and isn't all that hard to figure out.
+    
+    Amended the PUBLIC FILTER METHODS documentation in POE::Filter to
+    recommend inheriting some base methods from POE::Filter rather than
+    implementing all of them in every subclass.
+    
+    Resolves rt.cpan.org 22633, reported by Joel Bernstein. 
+
+  2006-10-17 16:49:07 (r2144) by rcaputo; poe/lib/POE/Driver/SysRW.pm M
+
+    Avoid warnings if the result of a sysread() is undefined. Resolves
+    rt.cpan.org 20918 by Joel Bernstein. 
+
+  2006-10-17 06:49:36 (r2143) by rcaputo
+  poe/tests/90_regression/rt1648-tied-stderr.t M
+
+    The text of this error has confused multiple people. Try to make it
+    less confusing. 
+
+  2006-10-17 06:39:11 (r2142) by rcaputo
+  poe/lib/POE/Kernel.pm M; poe/lib/POE/Session.pm M
+
+    Apply Florian Zumbiehl's docs patches. Resolves rt.cpan.org 21794. 
+
+  2006-10-03 03:13:53 (r2141) by rcaputo; poe/lib/POE.pm M
+
+    Matt Trout strongly suggests that version numbers should have a
+    consistent number of decimal places so that they are both lexically
+    and numerically monotonic. 
+
+  2006-10-01 17:10:40 (r2140) by rcaputo; poe/lib/POE/Loader.pm A
+
+    I found this (unused) module in a Pod::Coverage sweep. I'm committing
+    it because it looks useful, but it's not part of POE's distribution
+    yet. 
+
+  2006-10-01 17:07:59 (r2139) by rcaputo
+  poe/tests/10_units/01_pod/02_pod_coverage.t M
+
+    Skip coverage tests for modules that fail to load. They're most
+    likely failing because of missing dependencies, and other tests will
+    fail if they're actually broken. 
+
+  2006-09-28 04:36:51 (r2138) by rcaputo
+  poe/tests/10_units/05_filters/03_http.t M
+
+    Replace an unpack() containing a post-5.6 template character with a
+    regular expression that captures text. Improves test compatibility
+    with legacy versions of Perl. 
+
+  2006-09-23 16:08:30 (r2137) by rcaputo; poe/lib/POE/Wheel/ReadLine.pm M
+
+    Document why this module refuses to run on MSWin32. At least two
+    people have expressed confusion and concern about this so far. 
+
+  2006-09-19 22:00:21 (r2136) by apocal
+  poe/tests/10_units/01_pod/01_pod.t M;
+  poe/tests/10_units/01_pod/02_pod_coverage.t M
+
+    POD tests are now required! This fixes the Loop::Tk* issue too...
+    
+    POE_TEST_POD and POE_TEST_POD_STRICT is gone. 
+
+  2006-09-19 21:18:16 (r2135) by apocal
+  poe/lib/POE/Wheel/ReadLine.pm M; poe/tests/30_loops/00_base/k_alarms.pm
+  M; poe/lib/POE/Kernel.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/NFA.pm M
+
+    Patch to clean up POD for Test::Pod and Test::Pod::Coverage
+    
+    Removed one POE::Kernel method: queue_peek_alarms()
+    
+    Renamed others to internal methods:
+
+    POE::Session::register_state()
+
+    POE::NFA::register_state()
+
+    POE::Wheel::ReadLine::search()
+
+    POE::Kernel::finalize_kernel() 
+
+  2006-09-19 19:45:12 (r2134) by rcaputo; poe/lib/POE/Wheel/ReadLine.pm M
+
+    Remove the cheezy hack from r2098 that prevents terminals from being
+    restored when programs exit. 
+
 =========================
 2006-09-19 03:42:28 v0_38
 =========================

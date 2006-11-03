@@ -1,11 +1,11 @@
-# $Id: Filter.pm 1955 2006-05-14 01:43:25Z immute $
+# $Id: Filter.pm 2145 2006-10-30 16:33:03Z rcaputo $
 
 package POE::Filter;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1955 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2145 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -73,7 +73,8 @@ business of using lines.
 =head1 PUBLIC FILTER METHODS
 
 These methods are the generic Filter interface, and every filter must
-implement them.  Specific filters may have additional methods.
+implement them or inherit them from this base class.  Specific filters
+may have additional methods.
 
 =over 2
 

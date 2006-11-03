@@ -1,11 +1,11 @@
-# $Id: NFA.pm 2116 2006-09-08 04:45:45Z rcaputo $
+# $Id: NFA.pm 2135 2006-09-19 21:18:16Z apocal $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2135 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 
@@ -420,7 +420,7 @@ sub _invoke_state {
 # limited to a single state.  I think they'll go in a hidden internal
 # state, or something.
 
-sub register_state {
+sub _register_state {
   my ($self, $name, $handler, $method) = @_;
   $method = $name unless defined $method;
 

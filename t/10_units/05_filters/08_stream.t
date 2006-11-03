@@ -1,11 +1,11 @@
 #!/usr/bin/perl -w
-# $Id: 08_stream.t 2001 2006-06-25 12:39:03Z bsmith $
+# $Id: 08_stream.t 2147 2006-11-02 20:06:03Z bsmith $
 
 # Exercises Filter::Stream without the rest of POE.
 
 use strict;
 use lib qw(./mylib ../mylib);
-use lib qw(tests/10_units/05_filters);
+use lib qw(t/10_units/05_filters);
 
 use TestFilter;
 use Test::More tests => 9 + $COUNT_FILTER_INTERFACE + $COUNT_FILTER_STANDARD;

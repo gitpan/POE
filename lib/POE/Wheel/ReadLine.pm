@@ -1,4 +1,4 @@
-# $Id: ReadLine.pm 2116 2006-09-08 04:45:45Z rcaputo $
+# $Id: ReadLine.pm 2137 2006-09-23 16:08:30Z rcaputo $
 
 package POE::Wheel::ReadLine;
 
@@ -6,7 +6,7 @@ use strict;
 use bytes;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2137 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
@@ -609,7 +609,7 @@ sub _delete_chars {
   return $old;
 }
 
-sub search {
+sub _search {
   my ($self, $rebuild) = @_;
   if ($rebuild) {
     $self->_wipe_input_line;
@@ -881,12 +881,6 @@ sub new {
 
 sub DESTROY {
   my $self = shift;
-
-  # TODO - This module keeps several references to $self in anonymous
-  # subroutines.  These $self-references keep the wheel from dying
-  # until well after its parent session is gone.  The following
-  # return() statement is a cheezy workaround for this problem.
-  return if $poe_kernel->get_active_session == $poe_kernel;
 
   # Stop selecting on the handle.
   $poe_kernel->select($stdin);
@@ -2769,7 +2763,7 @@ sub rl_search_finish {
 sub rl_search_key {
   my ($self, $key) = @_;
   $self->[SELF_SEARCH] .= $key;
-  $self->search(1);
+  $self->_search(1);
 }
 
 sub rl_vi_search_key {
@@ -2801,7 +2795,7 @@ sub rl_vi_search_accept {
   $self->[SELF_CURSOR_DISPLAY] = 0;
   $self->[SELF_INPUT] =~ s{^[/?]}{};
   $self->[SELF_SEARCH] = $self->[SELF_INPUT] if $self->[SELF_INPUT];
-  $self->search(0);
+  $self->_search(0);
   $self->[SELF_KEYMAP] = $self->[SELF_SEARCH_MAP];
   $self->[SELF_SEARCH_MAP] = undef;
 }
@@ -2818,7 +2812,7 @@ sub rl_vi_search_again {
     return $self->rl_ding;
   }
   $self->_wipe_input_line;
-  $self->search(0);
+  $self->_search(0);
 }
 
 sub rl_isearch_again {
@@ -2835,7 +2829,7 @@ sub rl_isearch_again {
     $self->[SELF_HIST_INDEX] = (scalar @{$self->[SELF_HIST_LIST]}) - 1;
     return $self->rl_ding;
   }
-  $self->search(1);
+  $self->_search(1);
 }
 
 sub rl_non_incremental_forward_search_history {
@@ -2845,7 +2839,7 @@ sub rl_non_incremental_forward_search_history {
   $self->[SELF_CURSOR_DISPLAY] = 0;
   $self->[SELF_SEARCH_DIR] = +1;
   $self->[SELF_SEARCH] = substr($self->[SELF_INPUT], 0, $self->[SELF_CURSOR_INPUT]);
-  $self->search(0);
+  $self->_search(0);
 }
 
 sub rl_non_incremental_reverse_search_history {
@@ -2860,7 +2854,7 @@ sub rl_non_incremental_reverse_search_history {
   $self->[SELF_CURSOR_DISPLAY] = 0;
   $self->[SELF_SEARCH_DIR] = -1;
   $self->[SELF_SEARCH] = substr($self->[SELF_INPUT], 0, $self->[SELF_CURSOR_INPUT]);
-  $self->search(0);
+  $self->_search(0);
 }
 
 sub rl_undo {
@@ -3196,6 +3190,10 @@ If you wish to change keymaps, then use the rl_set_keymap method.
 Create a new (global) function definition which may be then bound to a
 key.
 
+=item option NAME
+
+Returns the option named NAME or an empty string.
+
 =back
 
 =head1 EVENTS AND PARAMETERS
@@ -3389,6 +3387,22 @@ file containing the line "set editing-mode emacs", or adding that line
 to your existing ~/.inputrc.  While you're in there, you should
 totally get acquainted with all the other cool stuff you can do with
 .inputrc files.
+
+Q: Why doesn't POE::Wheel::ReadLine work on Windows?  Term::ReadLine
+does.
+
+A: POE::Wheel::ReadLine requires select(), because that's what POE
+uses by default to detect keystrokes without blocking.  About half the
+flavors of Perl on Windows implement select() in terms of the same
+function in the WinSock library, which limits select() to working only
+with sockets.  Your console isn't a socket, so select() doesn't work
+with your version of Perl on Windows.
+
+Really good workarounds are possible but don't exist as of this
+writing.  They involve writing a special POE::Loop for Windows that
+either uses a Win32-specific module for better multiplexing, that
+polls for input, or that uses blocking I/O watchers in separate
+threads.
 
 =head1 AUTHORS & COPYRIGHTS
 

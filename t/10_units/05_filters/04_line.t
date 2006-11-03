@@ -1,12 +1,12 @@
 #!/usr/bin/perl -w
-# $Id: 04_line.t 2001 2006-06-25 12:39:03Z bsmith $
+# $Id: 04_line.t 2147 2006-11-02 20:06:03Z bsmith $
 # vim: filetype=perl
 
 # Exercises Filter::Line without the rest of POE.
 
 use strict;
 use lib qw(./mylib ../mylib);
-use lib qw(tests/10_units/05_filters);
+use lib qw(t/10_units/05_filters);
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 sub POE::Kernel::TRACE_DEFAULT  () { 1 }

@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm 1995 2006-06-18 20:33:55Z rcaputo $
+# $Id: Makefile-5004.pm 2147 2006-11-02 20:06:03Z bsmith $
 
 use strict;
 
@@ -7,6 +7,7 @@ use ExtUtils::MakeMaker;
 
 use lib qw(./mylib);
 use PoeBuildInfo qw(
+  TEST_FILES
   CLEAN_FILES
   CORE_REQUIREMENTS
 );
@@ -52,6 +53,10 @@ WriteMakefile(
 
   clean => {
     FILES => CLEAN_FILES,
+  },
+
+  test => {
+    TESTS => TEST_FILES,
   },
 
   PL_FILES  => { },

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: coverage.perl 2045 2006-08-16 20:58:46Z bsmith $
+# $Id: coverage.perl 2147 2006-11-02 20:06:03Z bsmith $
 
 # Runs "make test" with Devel::Cover to check POE's test coverage.
 # Generates a quite fine HTML report in the db_cover directory.
@@ -10,7 +10,7 @@ use Getopt::Long;
 use Config;
 use File::Spec;
 
-#   HARNESS_PERL_SWITCHES=$(perl mylib/coverage.perl --coverflags) prove -br tests/10_units/
+#   HARNESS_PERL_SWITCHES=$(perl mylib/coverage.perl --coverflags) prove -br t/10_units/
 
 my ($opt_coverflags, $opt_prove, $opt_noclean);
 my ($cover, $prove, $make) =
@@ -34,7 +34,7 @@ $hps =~ s/~/$ENV{HOME}/g;
 my @includes = ("mylib", $hps =~ /-I\s*(\S+)/g);
 $hps =~ s/(?<=-I)\s+//g;
 
-my $ignores = join(",", map("+inc,$_", @includes), "+ignore,^tests/");
+my $ignores = join(",", map("+inc,$_", @includes), "+ignore,^t/");
 warn "*** Ignores: $ignores";
 
 my $cover_options = "-MDevel::Cover";

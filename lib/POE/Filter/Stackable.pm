@@ -12,7 +12,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2145 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -29,13 +29,6 @@ sub new {
   $params{Filters} = [ ] unless defined $params{Filters};
   # Sanity check the filters
   if ( ref $params{Filters} eq 'ARRAY') {
-
-    # Check the elements
-    foreach my $elem ( @{ $params{Filters} } ) {
-      if ( ! defined $elem or ! UNIVERSAL::isa( $elem, 'POE::Filter' ) ) {
-        croak "Filter element is not a POE::Filter instance!";
-      }
-    }
 
     my $self = bless [
       $params{Filters}, # FILTERS

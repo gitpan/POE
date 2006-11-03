@@ -1,5 +1,5 @@
 #!/usr/bin/perl 
-# $Id: rt1648-tied-stderr.t 2127 2006-09-16 06:25:20Z rcaputo $
+# $Id: rt1648-tied-stderr.t 2143 2006-10-17 06:49:36Z rcaputo $
 # vim: filetype=perl
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He
@@ -71,7 +71,7 @@ POE::Session->create(
       }
     },
     _stop => sub {
-      ok( $_[HEAP]->{got_stderr}, "received STDERR despite it being tied");
+      ok($_[HEAP]->{got_stderr}, "should receive STDERR even when tied");
     },
   },
 );

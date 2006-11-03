@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_readline.pm 2126 2006-09-16 05:33:53Z rcaputo $
+# $Id: wheel_readline.pm 2150 2006-11-03 07:06:36Z rcaputo $
 
 # Exercises Wheel::ReadLine
 
@@ -120,7 +120,15 @@ BEGIN {
   if ($^O eq "MSWin32") {
     $error = "$^O cannot multiplex terminals";
   }
-  elsif (!-t STDIN) {
+  if ($^O eq "darwin") {
+    foreach my $bad (qw(Event.pm IO/Poll.pm)) {
+      if (exists $INC{$bad}) {
+        $error = "$bad can't work with ttys under $^O";
+        last;
+      }
+    }
+  }
+  if (!-t STDIN) {
     $error = "not running in a terminal";
   }
   else {

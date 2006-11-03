@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.38
+version: 0.9500
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -21,7 +21,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.38
+    version: 0.9500
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.1903
@@ -42,10 +42,10 @@ provides:
     version: 1.1903
   POE::Driver::SysRW:
     file: lib/POE/Driver/SysRW.pm
-    version: 1.2106
+    version: 1.2144
   POE::Filter:
     file: lib/POE/Filter.pm
-    version: 1.1955
+    version: 1.2145
   POE::Filter::Block:
     file: lib/POE/Filter/Block.pm
     version: 1.1920
@@ -69,13 +69,13 @@ provides:
     version: 1.2025
   POE::Filter::Stackable:
     file: lib/POE/Filter/Stackable.pm
-    version: 1.2106
+    version: 1.2145
   POE::Filter::Stream:
     file: lib/POE/Filter/Stream.pm
     version: 1.1920
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.2129
+    version: 1.2142
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.2116
@@ -87,7 +87,7 @@ provides:
     version: 1.2004
   POE::Loop::IO_Poll:
     file: lib/POE/Loop/IO_Poll.pm
-    version: 1.2089
+    version: 1.2149
   POE::Loop::PerlSignals:
     file: lib/POE/Loop/PerlSignals.pm
     version: 1.1980
@@ -105,7 +105,7 @@ provides:
     version: 1.2084
   POE::NFA:
     file: lib/POE/NFA.pm
-    version: 1.2116
+    version: 1.2135
   POE::Pipe:
     file: lib/POE/Pipe.pm
     version: 1.2116
@@ -156,7 +156,7 @@ provides:
     version: 1.2106
   POE::Session:
     file: lib/POE/Session.pm
-    version: 1.2123
+    version: 1.2142
   POE::Wheel:
     file: lib/POE/Wheel.pm
     version: 1.1903
@@ -171,7 +171,7 @@ provides:
     version: 1.2106
   POE::Wheel::ReadLine:
     file: lib/POE/Wheel/ReadLine.pm
-    version: 1.2116
+    version: 1.2137
   POE::Wheel::ReadLine::Keymap:
     file: lib/POE/Wheel/ReadLine.pm
   POE::Wheel::ReadWrite:
@@ -186,7 +186,7 @@ provides:
 no_index:
   directory:
     - mylib
-    - tests
+    - t
 generated_by: Module::Build version 0.2805
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html

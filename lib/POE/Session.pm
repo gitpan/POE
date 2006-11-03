@@ -1,11 +1,11 @@
-# $Id: Session.pm 2123 2006-09-10 16:11:58Z rcaputo $
+# $Id: Session.pm 2142 2006-10-17 06:39:11Z rcaputo $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2123 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2142 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ENOSYS);
@@ -281,7 +281,7 @@ sub create {
       while (my ($state, $handler) = each(%$param_value)) {
         croak "inline state for '$state' needs a CODE reference"
           unless (ref($handler) eq 'CODE');
-        $self->register_state($state, $handler);
+        $self->_register_state($state, $handler);
       }
     }
 
@@ -311,7 +311,7 @@ sub create {
 
         if (ref($handlers) eq 'ARRAY') {
           foreach my $method (@$handlers) {
-            $self->register_state($method, $package, $method);
+            $self->_register_state($method, $package, $method);
           }
         }
 
@@ -320,7 +320,7 @@ sub create {
 
         elsif (ref($handlers) eq 'HASH') {
           while (my ($state, $method) = each %$handlers) {
-            $self->register_state($state, $package, $method);
+            $self->_register_state($state, $package, $method);
           }
         }
 
@@ -359,7 +359,7 @@ sub create {
 
         if (ref($handlers) eq 'ARRAY') {
           foreach my $method (@$handlers) {
-            $self->register_state($method, $object, $method);
+            $self->_register_state($method, $object, $method);
           }
         }
 
@@ -368,7 +368,7 @@ sub create {
 
         elsif (ref($handlers) eq 'HASH') {
           while (my ($state, $method) = each %$handlers) {
-            $self->register_state($state, $object, $method);
+            $self->_register_state($state, $object, $method);
           }
         }
 
@@ -518,7 +518,7 @@ sub _invoke_state {
 #------------------------------------------------------------------------------
 # Add, remove or replace states in the session.
 
-sub register_state {
+sub _register_state {
   my ($self, $name, $handler, $method) = @_;
   $method = $name unless defined $method;
 
@@ -1421,7 +1421,7 @@ in cases where a single state handles several different events.
 
   sub some_state {
     print(
-      "some_state in session ", $_[SESSION]-ID,
+      "some_state in session ", $_[SESSION]->ID,
       " was invoked as ", $_[STATE], "\n"
     );
   }
@@ -1451,7 +1451,7 @@ The file, line number, and state from which this state was called.
 =head1 PREDEFINED EVENT NAMES
 
 POE contains helpers which, in order to help, need to emit predefined
-events.  These events all being with a single leading underscore, and
+events.  These events all begin with a single leading underscore, and
 it's recommended that sessions not post leading-underscore events
 unless they know what they're doing.
 
@@ -1670,7 +1670,7 @@ C<postback()> method was created to fill this need.
 C<postback()> creates coderefs suitable to be used in traditional
 callbacks.  When invoked as callbacks, these coderefs post their
 parameters as POE events.  This lets POE interact with nearly every
-callback currently in existing, and most future ones.
+callback currently in existence, and most future ones.
 
 =head2 Job Control and Family Values
 

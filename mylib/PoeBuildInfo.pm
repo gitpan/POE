@@ -1,4 +1,4 @@
-# $Id: PoeBuildInfo.pm 1887 2006-03-11 23:11:39Z rcaputo $
+# $Id: PoeBuildInfo.pm 2147 2006-11-02 20:06:03Z bsmith $
 
 # Build information for POE.  Moved into a library so it can be
 # required by Makefile.PL and gen-meta.perl.
@@ -12,6 +12,7 @@ use base qw(Exporter);
 use vars qw(@EXPORT_OK);
 
 @EXPORT_OK = qw(
+  TEST_FILES
   CLEAN_FILES
   CORE_REQUIREMENTS
   DIST_ABSTRACT
@@ -29,6 +30,14 @@ sub CORE_REQUIREMENTS () {
     "POSIX"              => 1.02,
     "Socket"             => 1.7,
     "Test::Harness"      => 2.26,
+    (
+      ($^O eq "MSWin32")
+      ? (
+        "Win32::Console" => 0.031,
+        "Win32API::File" => 0.05,
+      )
+      : ()
+    ),
   )
 }
 
@@ -50,22 +59,31 @@ sub CLEAN_FILES () {
     poe_report.xml
     run_network_tests
     test-output.err
-    tests/20_resources/10_perl
-    tests/20_resources/10_perl/*
-    tests/20_resources/20_xs
-    tests/20_resources/20_xs/*
-    tests/30_loops/10_select
-    tests/30_loops/10_select/*
-    tests/30_loops/20_poll
-    tests/30_loops/20_poll/*
-    tests/30_loops/30_event
-    tests/30_loops/30_event/*
-    tests/30_loops/40_gtk
-    tests/30_loops/40_gtk/*
-    tests/30_loops/50_tk
-    tests/30_loops/50_tk/*
+    t/20_resources/10_perl
+    t/20_resources/10_perl/*
+    t/20_resources/20_xs
+    t/20_resources/20_xs/*
+    t/30_loops/10_select
+    t/30_loops/10_select/*
+    t/30_loops/20_poll
+    t/30_loops/20_poll/*
+    t/30_loops/30_event
+    t/30_loops/30_event/*
+    t/30_loops/40_gtk
+    t/30_loops/40_gtk/*
+    t/30_loops/50_tk
+    t/30_loops/50_tk/*
   );
   "@clean_files";
+}
+
+sub TEST_FILES () {
+  my @test_files = qw(
+    t/*.t
+    t/*/*.t
+    t/*/*/*.t
+  );
+  "@test_files";
 }
 
 1;

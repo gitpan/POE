@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 03_http.t 2124 2006-09-12 15:40:22Z rcaputo $
+# $Id: 03_http.t 2138 2006-09-28 04:36:51Z rcaputo $
 
 # Test Filter::HTTPD by itself
 # See other (forthcoming) for more complex interactions
@@ -281,7 +281,7 @@ END
   my $req = POST 'http://localhost:1234/foobar.html',
       [ 'I' => 'like', 'honey' => 'with peas' ];
   $req->protocol('HTTP/1.1');
-  my @req_frags = unpack("(a2)*", $req->as_string);
+  my @req_frags = $req->as_string() =~ m/(..)/sg;
   my $filter = POE::Filter::HTTPD->new;
 
   #my $pending_ok = 0;

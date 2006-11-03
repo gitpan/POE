@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm 2031 2006-08-07 04:15:20Z rcaputo $
+# $Id: Makefile-5005.pm 2147 2006-11-02 20:06:03Z bsmith $
 
 use strict;
 
@@ -7,6 +7,7 @@ use ExtUtils::MakeMaker;
 
 use lib qw(./mylib);
 use PoeBuildInfo qw(
+  TEST_FILES
   CLEAN_FILES
   CORE_REQUIREMENTS
   DIST_ABSTRACT
@@ -73,14 +74,6 @@ check_for_modules(
   RECOMMENDED_TIME_HIRES,
   "Tk"              => 800.027,
   "URI"             => 1.30,
-  (
-    ($^O eq "MSWin32")
-    ? (
-      "Win32::Console" => 0.031,
-      "Win32API::File" => 0.05,
-    )
-    : ()
-  ),
 );
 
 ### Generate dynamic test files.
@@ -131,6 +124,10 @@ WriteMakefile(
 
   clean => {
     FILES => CLEAN_FILES,
+  },
+
+  test => {
+    TESTS => TEST_FILES,
   },
 
   # More for META.yml than anything.
