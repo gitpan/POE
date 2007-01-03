@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: all_errors.pm 1971 2006-05-30 20:32:30Z bsmith $
+# $Id: all_errors.pm 2153 2006-11-04 01:58:24Z rcaputo $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -38,7 +38,6 @@ print "1..0 # most of these should move into other test files\n";
 #  # Clean up after destructive tests.
 #  sub test_cleanup {
 #    # Not used in POE::Kernel now.
-#    # POE::Preprocessor->clear_package( 'POE::Kernel' );
 #
 #    delete @INC{ @files_to_unuse };
 #    use Symbol qw(delete_package);

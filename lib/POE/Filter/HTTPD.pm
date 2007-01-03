@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm 2106 2006-09-05 14:18:29Z bingosnet $
+# $Id: HTTPD.pm 2155 2006-11-12 07:01:34Z teknikill $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,7 +17,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2155 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 sub BUFFER        () { 0 }
@@ -52,8 +52,18 @@ sub new {
 }
 
 #------------------------------------------------------------------------------
-# Cannot inherit get() from POE::Filter since this filter doesn't have
-# a get_one() interface.
+
+sub get_one_start {
+    my ($self, $stream) = @_;
+    return if ( $self->[FINISH] );
+    $stream = [ $stream ] unless ( ref( $stream ) );
+    $self->[BUFFER] .= join( '', @$stream );
+}
+
+sub get_one {
+    my ($self) = @_;
+    return ( $self->[FINISH] ) ? [] : $self->get( [] );
+}
 
 sub get {
   my ($self, $stream) = @_;

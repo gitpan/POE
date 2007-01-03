@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 13_assert_data.t 1618 2004-09-04 22:50:40Z rcaputo $
+# $Id: 13_assert_data.t 2154 2006-11-06 03:33:50Z rcaputo $
 
 # Test the ASSERT_DATA code in POE::Kernel.  This involves a lot of
 # dying.
@@ -10,7 +10,7 @@ use lib qw(./mylib);
 # _explain_resolve_failure
 # session_alloc
 
-use Test::More tests => 9;
+use Test::More tests => 7;
 
 sub POE::Kernel::ASSERT_DATA    () { 1 }
 sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
@@ -45,18 +45,6 @@ eval { $poe_kernel->call(moo => "bar") };
 ok(
   $@ && $@ =~ /Cannot resolve ``moo'' into a session reference/,
   "unresolvable session in call"
-);
-
-eval { $poe_kernel->alias_resolve("moo") };
-ok(
-  $@ && $@ =~ /Cannot resolve ``moo'' into a session reference/,
-  "unresolvable session in alias_resolve"
-);
-
-eval { $poe_kernel->alias_list("moo") };
-ok(
-  $@ && $@ =~ /Cannot resolve ``moo'' into a session reference/,
-  "unresolvable session in alias_list"
 );
 
 # Double session allocation.

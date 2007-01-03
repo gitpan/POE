@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm 2111 2006-09-07 22:13:39Z rcaputo $
+# $Id: FollowTail.pm 2160 2006-12-31 21:35:35Z rcaputo $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2111 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2160 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -352,6 +352,24 @@ sub _define_timer_states {
                 warn "<stat> file size $new_stat[7] < old $last_stat->[7]\n"
                   if $new_stat[7] < $last_stat->[7];
               };
+
+              # The file may have rolled.  Try one more read before moving on.
+              if (
+                defined $$handle and
+                defined(my $raw_input = $driver->get($$handle))
+              ) {
+
+                # First read the remainder of the file.
+                # Got input.  Read a bunch of it, then poll again right away.
+                if (@$raw_input) {
+                  TRACE_POLL and warn "<poll> " . time . " raw input\n";
+                  foreach my $cooked_input (@{$filter->get($raw_input)}) {
+                    TRACE_POLL and warn "<poll> " . time . " cooked input\n";
+                    $k->call($ses, $$event_input, $cooked_input, $unique_id);
+                  }
+                }
+                $k->yield($$state_read) if defined $$state_read;
+              }
 
               @$last_stat = @new_stat;
               close $$handle if defined $$handle;

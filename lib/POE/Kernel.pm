@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 2142 2006-10-17 06:39:11Z rcaputo $
+# $Id: Kernel.pm 2157 2006-11-16 17:13:38Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2142 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2157 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -622,10 +622,10 @@ sub _test_if_kernel_is_idle {
 ### Explain why a session could not be resolved.
 
 sub _explain_resolve_failure {
-  my ($self, $whatever) = @_;
+  my ($self, $whatever, $nonfatal) = @_;
   local $Carp::CarpLevel = 2;
 
-  if (ASSERT_DATA) {
+  if (ASSERT_DATA and !$nonfatal) {
     _trap "<dt> Cannot resolve ``$whatever'' into a session reference";
   }
 
@@ -752,7 +752,7 @@ sub sig_child {
   if (defined $event_name) {
     $self->_data_sig_pid_watch($kr_active_session, $pid, $event_name);
   }
-  else {
+  elsif ($self->_data_sig_pids_is_ses_watching($kr_active_session, $pid)) {
     $self->_data_sig_pid_ignore($kr_active_session, $pid);
   }
 }
@@ -2309,7 +2309,7 @@ sub alias_resolve {
 
   my $session = $self->_resolve_session($name);
   unless (defined $session) {
-    $self->_explain_resolve_failure($name);
+    $self->_explain_resolve_failure($name, "nonfatal");
     return;
   }
 
@@ -2324,7 +2324,7 @@ sub alias_list {
     $self->_resolve_session($search_session || $kr_active_session);
 
   unless (defined $session) {
-    $self->_explain_resolve_failure($search_session);
+    $self->_explain_resolve_failure($search_session, "nonfatal");
     return;
   }
 

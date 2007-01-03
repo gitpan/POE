@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.9500
+version: 0.9917
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -21,7 +21,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.9500
+    version: 0.9917
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.1903
@@ -33,7 +33,7 @@ provides:
     version: 1.2116
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
-    version: 1.2110
+    version: 1.2162
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
     version: 1.2106
@@ -54,7 +54,7 @@ provides:
     version: 1.2106
   POE::Filter::HTTPD:
     file: lib/POE/Filter/HTTPD.pm
-    version: 1.2106
+    version: 1.2155
   POE::Filter::Line:
     file: lib/POE/Filter/Line.pm
     version: 1.1920
@@ -75,7 +75,7 @@ provides:
     version: 1.1920
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.2142
+    version: 1.2157
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.2116
@@ -102,7 +102,7 @@ provides:
     version: 1.1980
   POE::Loop::TkCommon:
     file: lib/POE/Loop/TkCommon.pm
-    version: 1.2084
+    version: 1.2163
   POE::NFA:
     file: lib/POE/NFA.pm
     version: 1.2135
@@ -147,7 +147,7 @@ provides:
     version: 1.2126
   POE::Resource::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.2126
+    version: 1.2157
   POE::Resource::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.2087
@@ -156,7 +156,7 @@ provides:
     version: 1.2106
   POE::Session:
     file: lib/POE/Session.pm
-    version: 1.2142
+    version: 1.2159
   POE::Wheel:
     file: lib/POE/Wheel.pm
     version: 1.1903
@@ -165,7 +165,7 @@ provides:
     version: 1.2102
   POE::Wheel::FollowTail:
     file: lib/POE/Wheel/FollowTail.pm
-    version: 1.2111
+    version: 1.2160
   POE::Wheel::ListenAccept:
     file: lib/POE/Wheel/ListenAccept.pm
     version: 1.2106

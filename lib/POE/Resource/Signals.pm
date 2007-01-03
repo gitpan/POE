@@ -1,4 +1,4 @@
-# $Id: Signals.pm 2126 2006-09-16 05:33:53Z rcaputo $
+# $Id: Signals.pm 2157 2006-11-16 17:13:38Z rcaputo $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2126 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2157 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -312,6 +312,14 @@ sub _data_sig_pids_ses {
   my ($self, $session) = @_;
   return 0 unless exists $kr_sessions_to_pids{$session};
   return scalar keys %{$kr_sessions_to_pids{$session}};
+}
+
+sub _data_sig_pids_is_ses_watching {
+  my ($self, $session, $pid) = @_;
+	return(
+		exists($kr_sessions_to_pids{$session}) &&
+		exists($kr_sessions_to_pids{$session}{$pid})
+	);
 }
 
 ### Return a signal's type, or SIGTYPE_BENIGN if it's not special.

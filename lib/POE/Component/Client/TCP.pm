@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2110 2006-09-06 17:35:20Z rcaputo $
+# $Id: TCP.pm 2162 2007-01-01 08:38:53Z rcaputo $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2110 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2162 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -272,6 +272,7 @@ sub new {
             if exists $heap->{ctimeout_id};
 
           if ($heap->{connected}) {
+            $heap->{connected} = 0;
             if (defined $heap->{server}) {
               if (
                 $heap->{got_an_error} or

@@ -1,4 +1,4 @@
-# $Id: TkCommon.pm 2084 2006-09-01 03:31:22Z rcaputo $
+# $Id: TkCommon.pm 2163 2007-01-03 06:13:16Z rcaputo $
 
 # The common bits of our system-specific Tk event loops.  This is
 # everything but file handling.
@@ -10,7 +10,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2084 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2163 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Tk 800.021;
 use 5.00503;
@@ -71,10 +71,10 @@ sub loop_reset_time_watcher {
 sub loop_pause_time_watcher {
   my $self = shift;
   if (defined $_watcher_time) {
-    $_watcher_time->cancel();
+    $_watcher_time->cancel() if $_watcher_time->can("cancel");
     $_watcher_time = undef;
   }
-    $_waiting_for_event = 0;
+  $_waiting_for_event = 0;
 }
 
 # TODO - Ton Hospel's Tk event loop doesn't mix alarms and immediate
