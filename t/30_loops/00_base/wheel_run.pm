@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm 2127 2006-09-16 06:25:20Z rcaputo $
+# $Id: wheel_run.pm 2167 2007-01-13 16:17:57Z bingosnet $
 
 use strict;
 use lib qw(./mylib ../mylib);
@@ -22,6 +22,9 @@ BEGIN {
     eval 'use Win32::Console';
     if ($@) {
       $error = "Win32::Console is required on $^O - try ActivePerl";
+    }
+    elsif (exists $INC{"Tk.pm"}) {
+      $error = "$^O with Tk seems to hang on this test";
     }
     elsif (exists $INC{"Event.pm"}) {
       $error = "$^O\'s fork() emulation breaks Event";

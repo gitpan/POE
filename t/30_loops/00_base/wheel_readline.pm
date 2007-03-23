@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_readline.pm 2150 2006-11-03 07:06:36Z rcaputo $
+# $Id: wheel_readline.pm 2170 2007-01-18 19:31:11Z rcaputo $
 
 # Exercises Wheel::ReadLine
 
@@ -8,6 +8,18 @@ use warnings;
 use lib qw(./mylib ../mylib);
 
 sub DEBUG () { 0 }
+
+# Set the INPUTRC environment variable to a nonexistent file.  This
+# prevents users from overriding the behaviors of keystrokes we user
+# here.
+
+BEGIN {
+  foreach my $candidate (qw(nonexistent moo deleteme please-dont-exist)) {
+    next if -f $candidate;
+    $ENV{INPUTRC} = $candidate;
+    last;
+  }
+}
 
 ### Tests to run.
 #

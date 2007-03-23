@@ -1,5 +1,5 @@
 #!/usr/bin/perl 
-# $Id: rt1648-tied-stderr.t 2143 2006-10-17 06:49:36Z rcaputo $
+# $Id: rt1648-tied-stderr.t 2174 2007-02-20 23:13:48Z teknikill $
 # vim: filetype=perl
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He
@@ -46,7 +46,7 @@ POE::Session->create(
       $_[KERNEL]->refcount_increment( $session->ID, "teapot" );
       DEBUG and diag( "Installing CHLD signal Handler" );
       my $wheel = POE::Wheel::Run->new(
-        Program     => [ 'sh', '-c', 'echo "My stderr" >/dev/stderr' ],
+        Program     => [ $^X, '-e', 'warn "OK"' ],
         StderrEvent => 'stderr'
       );
       $heap->{wheel} = $wheel;

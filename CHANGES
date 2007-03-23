@@ -1,4 +1,100 @@
 ===========================
+2007-03-23 06:16:52 v0_9989
+===========================
+
+  2007-03-23 06:16:24 (r2183) by rcaputo; poe/lib/POE.pm M
+
+    Time for a new release! 
+
+  2007-03-23 05:41:58 (r2182) by rcaputo; extras/wiki/index.cgi M
+
+    Expand the spam hosts we deny. 
+
+  2007-03-23 05:41:09 (r2181) by rcaputo; extras/wiki/purplehaze.css A
+
+    Add some evil to deal with del.icio.us tagometer issues. 
+
+  2007-03-23 05:39:06 (r2180) by rcaputo
+  extras/wiki/data/templates/footer.html M;
+  extras/wiki/data/templates/header.html M
+
+    Add del.icio.us tagometer. 
+
+  2007-03-21 07:55:15 (r2179) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Eric Busto discovered that POE::Wheel::Run depended on $/ to be the
+    default. This is not always the case, and deviations result in new()
+    hanging forever. 
+
+  2007-03-18 20:16:17 (r2178) by rcaputo; poe/Makefile.PL M
+
+    Some package tools expect Makefile.PL to return 1. And since this is
+    a return and not an exit, it makes more sense than 0. Thanks to
+    Rafael Kitover for pointing this out. 
+
+  2007-03-17 20:20:01 (r2177) by rcaputo; poe/lib/POE/Wheel/ReadLine.pm M
+
+    Lukas Mai discovered a bug in the include .inputrc directive and was
+    kind enough to submit a patch. 
+
+  2007-03-12 17:11:46 (r2176) by rcaputo
+  poe/lib/POE/Wheel/ReadWrite.pm M
+
+    An anonymous poster to POE's mailing list pointed out that put()'s
+    implementation didn't match its documentation. So I corrected the
+    documentation. 
+
+  2007-02-24 20:23:30 (r2175) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Fix a doc bug found by Randal Schwartz.
+
+  2007-02-20 23:13:48 (r2174) by teknikill
+  poe/t/90_regression/rt1648-tied-stderr.t M
+
+    switch to a more portable way of emitting STDERR in a subprocess
+
+  2007-02-18 07:47:52 (r2173) by rcaputo
+  poe/lib/POE/Loop/IO_Poll.pm M; poe/t/10_units/03_base/02_api_ctl.t M;
+  poe/lib/POE/Kernel.pm M
+
+    Stop setting $^W globally. Fix a couple warnings as a result. Thanks
+    to Ton Hospel for pointing out we were doing this. 
+
+  2007-02-03 07:16:01 (r2172) by bingosnet; poe/lib/POE/Wheel/Run.pm M
+
+    Rolled back changes to POE::Wheel::Run
+
+  2007-01-18 19:51:37 (r2171) by rcaputo
+  poe/t/10_units/01_pod/02_pod_coverage.t M
+
+    Only enable this test when Test::Pod::Coverage 1.08 or later is
+    installed. Resolves rt.cpan.org #24375, reported by Jean-Christophe
+    Zeus. 
+
+  2007-01-18 19:31:11 (r2170) by rcaputo
+  poe/t/30_loops/00_base/wheel_readline.pm M
+
+    Rafael Kitover found out that some .inputrc entries can break the
+    Wheel::ReadLine test. This change sets $ENV{INPUTRC} to a nonexistent
+    file, which effectively disables .inputrc redefines. 
+
+  2007-01-14 18:09:57 (r2169) by bingosnet; poe/lib/POE/Wheel/Run.pm M
+
+    Documented new POE::Wheel::Run MSWin32 behaviour
+
+  2007-01-14 05:59:10 (r2168) by rcaputo
+  poe/t/90_regression/whjackson-followtail.t M
+
+    Skip this test if the underlying OS can't rename open files. 
+
+  2007-01-13 16:17:57 (r2167) by bingosnet
+  poe/lib/POE/Wheel/Run.pm M; poe/t/30_loops/00_base/wheel_run.pm M
+
+    MSWin32 hacks to POE::Wheel::Run to use Win32::Process to spawn a
+    separate process. Skipped tk_wheel_run test on MSWin32, which is
+    causing hangs on AS perl
+
+===========================
 2007-01-03 17:31:29 v0_9917
 ===========================
 
@@ -1755,124 +1851,6 @@
   poe/lib/POE/Resource/FileHandles.pm M
 
     Change the VERSION strings from cvs style to subversion. 
-
-=========================
-2006-03-20 03:43:54 v0_00
-=========================
-
-  2006-03-19 09:54:01 (r1899) by rcaputo; htmldocs D
-
-    We're not maintaining html docs anymore. search.cpan.org does a good
-    enough job that we don't need to. 
-
-  2006-03-18 23:45:26 (r1891) by rcaputo
-  poe/mylib/Makefile-5005.pm M; poe/mylib/svn-log.perl A;
-  poe/mylib/cvs-log.perl D
-
-    Switch from the cvs changelog tool to the svn one. I'm also testing
-    the cia and e-mail notification hooks. 
-
-  2006-03-15 20:40:16 (r1890) by rcaputo
-  poe/README M; poe/lib/POE.pm M; poe/mylib/reportupload.pl M;
-  poe/Makefile.PL M
-
-    Remove mention of our homebrew test report system. It's been down
-    quite a long time, and I don't forsee having time to bring it back
-    soon. 
-
-  2006-03-15 20:39:13 (r1889) by rcaputo; poe/lib/POE/Queue/Array.pm M
-
-    Whitespace fix... I think. I can't actually see a difference when I
-    diff the file. 
-
-  2006-03-11 23:12:40 (r1888) by rcaputo; poe/MANIFEST M
-
-    Remove some more vestiges of POE::Preprocessor. We'll get 'em all
-    eventually! 
-
-  2006-03-11 23:11:39 (r1887) by rcaputo
-  poe/lib/POE/Preprocessor.pm D; poe/lib/POE/Macro D;
-  poe/tests/10_units/01_preprocessor D; poe/mylib/preprocessor.perl A;
-  poe/mylib/PoeBuildInfo.pm M
-
-    Remove POE::Preprocessor. Replaced it with a simple, almost one-liner
-    preprocessor that's run at Makefile.PL time. 
-
-  2006-02-26 08:37:07 (r1886) by rcaputo; poe/Makefile.PL M
-
-    Clean up the preprocessor's backup files. 
-
-  2006-02-26 07:56:34 (r1885) by rcaputo
-  poe/lib/POE/Wheel/ReadLine.pm M; poe/lib/POE/Filter/HTTPD.pm M;
-  poe/lib/POE/Filter/Block.pm M; poe/lib/POE/Driver/SysRW.pm M;
-  poe/lib/POE/Filter/Reference.pm M; poe/Makefile.PL M;
-  poe/lib/POE/Wheel/SocketFactory.pm M
-
-    Replace {% use_bytes %} with a Makefile.PL-time source filter, and
-    cross my fingers. If this works out, it'll eliminate the last use of
-    POE::Preprocessor, and I'll finally get to spin it off into a
-    separate distribution. 
-
-  2006-02-26 07:53:06 (r1884) by rcaputo; poe/lib/POE.pm M
-
-    Bump up the version and throw in an underscore. Some people like to
-    upload CPAN test reports on the cvs version, and it confuses things
-    when the results are glommed under the last CPAN release. 
-
-  2006-02-26 05:38:30 (r1883) by rcaputo; poe/mylib/ExtUtils D
-
-    ExtUtils::AutoInstall is no longer needed. 
-
-  2006-02-21 18:50:50 (r1882) by rcaputo
-  poe/lib/POE/Component/Client/TCP.pm M
-
-    Apply Dan McCormick's patch to carp on unknown constructor
-    parameters. 
-
-  2006-02-07 09:35:22 (r1881) by rcaputo
-  poe/mylib/Makefile-5005.pm M; poe/mylib/PoeBuildInfo.pm M; poe/MANIFEST
-  M; poe/Makefile.PL M
-
-    Remove ExtUtils::AutoInstall from the installer to support
-    ActiveState's PPD builder. ActiveState's builder is still trivially
-    broken months (years?) after I reported that ExtUtils::AutoInstall
-    needs a configured CPAN.pm. So I give up.
-    
-    The questionnaire is replaced by a simple list of missing or outdated
-    dependancies. ExtUtils::MakeMaker will still enforce our few hard
-    requirements. 
-
-===========================
-2006-01-29 15:45:38 v0_3301
-===========================
-
-  2006-01-29 15:45:38 (r1879) by rcaputo; poe/lib/POE.pm M
-
-    Bump up the version for a bugfix. 
-
-  2006-01-26 05:59:50 (r1878) by rcaputo; poe/lib/POE/Wheel/Run.pm M
-
-    Fixed a really dumb error... if (condition) { ... } else { do_stuff()
-    if condition } ... d'oh. 
-
-  2006-01-25 21:15:21 (r1877) by lotr
-  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
-  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Wheel/ListenAccept.pm M
-
-    remove superfluous regenerating of dynamic states when changing
-    filter. 
-
-  2005-12-29 17:55:36 (r1876) by rcaputo; poe/lib/POE/Kernel.pm M
-
-    Make TRACE_STATISTICS (and probably others) strict-safe. Thanks, Nick
-    Williams, for pointing it out. 
-
-  2005-12-23 08:16:06 (r1875) by rcaputo
-  poe/lib/POE/Resource/Signals.pm M
-
-    The end-of-run child process reaper should block if there are
-    unreaped processes out there. I mistakenly made the loop
-    non-blocking, and now it's fixed. 
 
 ==============
 End of Excerpt

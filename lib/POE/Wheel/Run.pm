@@ -1,11 +1,11 @@
-# $Id: Run.pm 2106 2006-09-05 14:18:29Z bingosnet $
+# $Id: Run.pm 2179 2007-03-21 07:55:15Z rcaputo $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2179 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -543,7 +543,10 @@ sub new {
   ], $type;
 
   # Wait here while the child sets itself up.
-  <$sem_pipe_read>;
+  {
+    local $/ = "\n";
+    <$sem_pipe_read>;
+  }
   close $sem_pipe_read;
   close $sem_pipe_write;
 
@@ -1156,7 +1159,7 @@ POE::Wheel::Run - event driven fork/exec with added value
     # group ID.  You may need to be root to do this.
     Priority    => +5,
     User        => scalar(getpwnam 'nobody'),
-    Group       => getgrnam('nobody'),
+    Group       => scalar(getgrnam 'nobody'),
 
     # Optionally specify different I/O formats.
     StdinFilter  => POE::Filter::Line->new(),   # Child accepts input as lines.

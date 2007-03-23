@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 2157 2006-11-16 17:13:38Z rcaputo $
+# $Id: Kernel.pm 2173 2007-02-18 07:47:52Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2157 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2173 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -306,9 +306,8 @@ BEGIN {
     $value =~ tr['"][]d;
     $value = qq($value) if $value =~ /\D/;
 
-    BEGIN { $^W = 0; }
-
     no strict 'refs';
+    local $^W = 0;
     *$const = sub () { $value };
   }
 
