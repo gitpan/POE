@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm 2167 2007-01-13 16:17:57Z bingosnet $
+# $Id: wheel_run.pm 2198 2007-07-22 06:15:17Z rcaputo $
 
 use strict;
 use lib qw(./mylib ../mylib);
@@ -87,10 +87,8 @@ END
   $text =~ s/\n/ /g;
 
   my $os_quote = ($^O eq 'MSWin32') ? q(") : q(');
-  $chld_program_string = [ $^X, "-we", "$text CORE::exit 0" ];
-
-  $chld_program_coderef = eval
-    "sub { \$! = 1; " . $text . " }";
+  $chld_program_string  = [ $^X, "-we", "$text CORE::exit 0" ];
+  $chld_program_coderef = eval "sub { \$! = 1; " . $text . " }";
   die $@ if $@;
 }
 
@@ -117,6 +115,7 @@ my $shutdown_program = sub {
   else {
     print STDOUT "$out: got eof $flag";
   }
+  sleep 1;
 };
 # }}}
 

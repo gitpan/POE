@@ -1,11 +1,11 @@
-# $Id: Events.pm 2087 2006-09-01 10:24:43Z bsmith $
+# $Id: Events.pm 2201 2007-07-23 07:22:57Z rcaputo $
 
 # Data and accessors to manage POE's events.
 
 package POE::Resource::Events;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2201 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -272,7 +272,14 @@ sub _data_ev_dispatch_due {
     }
   }
 
-  $self->loop_reset_time_watcher($next_time);
+  # Tell the event loop to wait for the next event, if there is one.
+  # Otherwise we're going to wait indefinitely for some other event.
+  if (defined $next_time) {
+    $self->loop_reset_time_watcher($next_time);
+  }
+  else {
+    $self->loop_pause_time_watcher();
+  }
 }
 
 1;

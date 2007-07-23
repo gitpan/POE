@@ -1,4 +1,4 @@
-# $Id: Block.pm 1920 2006-04-02 07:17:33Z rcaputo $
+# $Id: Block.pm 2187 2007-04-19 21:35:33Z rcaputo $
 
 package POE::Filter::Block;
 
@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2187 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -96,7 +96,7 @@ sub get_one {
   my $self = shift;
 
   # Need to check lengths in octets, not characters.
-  use bytes;
+  BEGIN { eval { require bytes } and bytes->import; }
 
   # If a block size is specified, then pull off a block of that many
   # bytes.
@@ -138,7 +138,7 @@ sub put {
   my @raw;
 
   # Need to check lengths in octets, not characters.
-  use bytes;
+  BEGIN { eval { require bytes } and bytes->import; }
 
   # If a block size is specified, then just assume the put is right.
   # This will cause quiet framing errors on the receiving side.  Then

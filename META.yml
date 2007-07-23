@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.9989
+version: 0.9999
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -12,7 +12,7 @@ requires:
   Errno: 1.09
   Exporter: 0
   File::Spec: 0.87
-  IO: 1.2
+  IO::Handle: 1.27
   POSIX: 1.02
   Socket: 1.7
   Test::Harness: 2.26
@@ -21,7 +21,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.9989
+    version: 0.9999
   POE::API::Ctl:
     file: lib/POE/API/Ctl.pm
     version: 1.1903
@@ -36,25 +36,25 @@ provides:
     version: 1.2162
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.2106
+    version: 1.2196
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.1903
   POE::Driver::SysRW:
     file: lib/POE/Driver/SysRW.pm
-    version: 1.2144
+    version: 1.2187
   POE::Filter:
     file: lib/POE/Filter.pm
     version: 1.2145
   POE::Filter::Block:
     file: lib/POE/Filter/Block.pm
-    version: 1.1920
+    version: 1.2187
   POE::Filter::Grep:
     file: lib/POE/Filter/Grep.pm
     version: 1.2106
   POE::Filter::HTTPD:
     file: lib/POE/Filter/HTTPD.pm
-    version: 1.2155
+    version: 1.2188
   POE::Filter::Line:
     file: lib/POE/Filter/Line.pm
     version: 1.1920
@@ -66,7 +66,7 @@ provides:
     version: 1.2106
   POE::Filter::Reference:
     file: lib/POE/Filter/Reference.pm
-    version: 1.2025
+    version: 1.2187
   POE::Filter::Stackable:
     file: lib/POE/Filter/Stackable.pm
     version: 1.2145
@@ -99,10 +99,10 @@ provides:
     version: 1.1980
   POE::Loop::TkActiveState:
     file: lib/POE/Loop/TkActiveState.pm
-    version: 1.1980
+    version: 1.2200
   POE::Loop::TkCommon:
     file: lib/POE/Loop/TkCommon.pm
-    version: 1.2163
+    version: 1.2201
   POE::NFA:
     file: lib/POE/NFA.pm
     version: 1.2135
@@ -120,7 +120,7 @@ provides:
     version: 1.1903
   POE::Queue::Array:
     file: lib/POE/Queue/Array.pm
-    version: 1.1979
+    version: 1.2197
   POE::Resource:
     file: lib/POE/Resource.pm
     version: 1.2116
@@ -132,7 +132,7 @@ provides:
     version: 1.2087
   POE::Resource::Events:
     file: lib/POE/Resource/Events.pm
-    version: 1.2087
+    version: 1.2201
   POE::Resource::Extrefs:
     file: lib/POE/Resource/Extrefs.pm
     version: 1.2087
@@ -147,7 +147,7 @@ provides:
     version: 1.2126
   POE::Resource::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.2157
+    version: 1.2192
   POE::Resource::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.2087
@@ -171,18 +171,18 @@ provides:
     version: 1.2106
   POE::Wheel::ReadLine:
     file: lib/POE/Wheel/ReadLine.pm
-    version: 1.2177
+    version: 1.2187
   POE::Wheel::ReadLine::Keymap:
     file: lib/POE/Wheel/ReadLine.pm
   POE::Wheel::ReadWrite:
     file: lib/POE/Wheel/ReadWrite.pm
-    version: 1.2176
+    version: 1.2199
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
     version: 1.2179
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
-    version: 1.2106
+    version: 1.2194
 no_index:
   directory:
     - mylib

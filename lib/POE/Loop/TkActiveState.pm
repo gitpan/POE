@@ -1,4 +1,4 @@
-# $Id: TkActiveState.pm 1980 2006-06-11 19:23:12Z rcaputo $
+# $Id: TkActiveState.pm 2200 2007-07-23 01:37:08Z rcaputo $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
@@ -6,7 +6,7 @@
 package POE::Loop::TkActiveState;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2200 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Merge things into POE::Loop::Tk.
 package POE::Loop::Tk;
@@ -152,7 +152,7 @@ sub _poll_for_io {
 
     if (@filenos) {
       # Check filehandles, or wait for a period of time to elapse.
-      my $hits = select(
+      my $hits = CORE::select(
         my $rout = $loop_vectors[MODE_RD],
         my $wout = $loop_vectors[MODE_WR],
         my $eout = $loop_vectors[MODE_EX],

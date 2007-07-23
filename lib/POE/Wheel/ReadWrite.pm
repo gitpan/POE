@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm 2176 2007-03-12 17:11:46Z rcaputo $
+# $Id: ReadWrite.pm 2199 2007-07-22 08:37:07Z rcaputo $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2176 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2199 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -28,6 +28,7 @@ sub DRIVER_BUFFERED_OUT_OCTETS () { 13 }
 sub STATE_WRITE                () { 14 }
 sub STATE_READ                 () { 15 }
 sub UNIQUE_ID                  () { 16 }
+sub AUTOFLUSH                  () { 17 }
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 
@@ -132,6 +133,7 @@ sub new {
     undef,                            # STATE_READ
     # Unique ID.
     &POE::Wheel::allocate_wheel_id(), # UNIQUE_ID
+    delete $params{AutoFlush},         # AUTOFLUSH
   ], $type;
 
   if (scalar keys %params) {
@@ -423,6 +425,15 @@ sub put {
     $self->[DRIVER_BUFFERED_OUT_OCTETS] =
     $self->[DRIVER_BOTH]->put($self->[FILTER_OUTPUT]->put(\@chunks));
 
+  if (
+    $self->[AUTOFLUSH] &&
+    $new_buffered_out_octets and !$old_buffered_out_octets
+  ) {
+    $old_buffered_out_octets = $new_buffered_out_octets;
+    $self->flush();
+    $new_buffered_out_octets = $self->[DRIVER_BUFFERED_OUT_OCTETS];
+  }
+
   # Resume write-ok if the output buffer gets data.  This avoids
   # redundant calls to select_resume_write(), which is probably a good
   # thing.
@@ -605,6 +616,18 @@ sub resume_input {
   $poe_kernel->select_resume_read( $self->[HANDLE_INPUT] );
 }
 
+# Return the wheel's input handle
+sub get_input_handle {
+  my $self = shift;
+  return $self->[HANDLE_INPUT];
+}
+
+# Return the wheel's output handle
+sub get_output_handle {
+  my $self = shift;
+  return $self->[HANDLE_OUTPUT];
+}
+
 # Shutdown the socket for reading.
 sub shutdown_input {
   my $self = shift;
@@ -619,6 +642,14 @@ sub shutdown_output {
   return unless defined $self->[HANDLE_OUTPUT];
   eval { local $^W=0; shutdown($self->[HANDLE_OUTPUT], 1) };
   $poe_kernel->select_write($self->[HANDLE_OUTPUT], undef);
+}
+
+# Flush the output handle
+sub flush {
+  my $self = shift;
+  return unless defined $self->[HANDLE_OUTPUT];
+  $poe_kernel->call($poe_kernel->get_active_session(),
+        $self->[STATE_WRITE], $self->[HANDLE_OUTPUT]);
 }
 
 ###############################################################################
@@ -664,6 +695,9 @@ POE::Wheel::ReadWrite - buffered non-blocking I/O
     HighEvent => $high_mark_event,  # Event to emit when high-water reached
     LowMark   => $low_mark_octets,  # Outgoing low-water mark
     LowEvent  => $low_mark_event,   # Event to emit when low-water reached
+
+    # Experimental: If true, flush output synchronously during put()
+    AutoFlush => $boolean,
   );
 
   $wheel->put( $something );
@@ -694,6 +728,9 @@ POE::Wheel::ReadWrite - buffered non-blocking I/O
   # To shutdown a wheel's socket(s).
   $wheel->shutdown_input();
   $wheel->shutdown_output();
+
+  # Experimental: Flush a wheel's output on command.
+  $wheel->flush();
 
 =head1 DESCRIPTION
 
@@ -799,6 +836,14 @@ corresponding output buffer) from being overwhelmed.
 resume_input() instructs the wheel to resume checking its input
 filehandle for data.
 
+=item get_input_handle
+
+=item get_output_handle
+
+These methods return the input and output handles (usually the same
+thing, but sometimes not).  Please use sparingly.  Remember odd 
+references will screw with POE's internals.
+
 =item shutdown_input
 
 =item shutdown_output
@@ -812,6 +857,15 @@ wheel's input and output sockets.
 =item get_driver_out_messages
 
 Return driver statistics.
+
+=item flush
+
+Though the watermarks affect how often a wheel is flushed, in some
+cases you might want to manually flush a smaller output, such as
+before shutdown_output.
+
+This method is experimental.  Its behavior may change or it may
+disappear outright.  Please let us know whether it's useful.
 
 =back
 

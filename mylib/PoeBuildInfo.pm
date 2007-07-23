@@ -1,4 +1,4 @@
-# $Id: PoeBuildInfo.pm 2147 2006-11-02 20:06:03Z bsmith $
+# $Id: PoeBuildInfo.pm 2191 2007-06-14 01:26:41Z rcaputo $
 
 # Build information for POE.  Moved into a library so it can be
 # required by Makefile.PL and gen-meta.perl.
@@ -26,7 +26,7 @@ sub CORE_REQUIREMENTS () {
     "Errno"              => 1.09,
     "Exporter"           => 0,
     "File::Spec"         => 0.87,
-    "IO"                 => 1.20,
+    "IO::Handle"         => 1.27,
     "POSIX"              => 1.02,
     "Socket"             => 1.7,
     "Test::Harness"      => 2.26,

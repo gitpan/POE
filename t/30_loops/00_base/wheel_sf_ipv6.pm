@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_ipv6.pm 1971 2006-05-30 20:32:30Z bsmith $
+# $Id: wheel_sf_ipv6.pm 2195 2007-07-21 06:52:55Z rcaputo $
 
 # Exercises Client and Server TCP components, which exercise
 # SocketFactory in AF_INET6 mode.
@@ -19,14 +19,16 @@ BEGIN {
     $error = "IPv6 is not available on Cygwin, even if Socket6 is installed";
   }
   else {
-    my $addr = Socket6::inet_pton(&Socket6::AF_INET6, "::1");
-    unless (defined $addr) {
+    my $addr;
+    eval { $addr = Socket6::inet_pton(&Socket6::AF_INET6, "::1") };
+    if ($@) {
+      $error = "AF_INET6 not provided by Socket6.pm ... can't test this";
+    }
+    elsif (!defined $addr) {
       $error = "IPv6 tests require a configured localhost address ('::1')";
     }
-    else {
-      unless (-f 'run_network_tests') {
-        $error = "Network access (and permission) required to run this test";
-      }
+    elsif (!-f 'run_network_tests') {
+      $error = "Network access (and permission) required to run this test";
     }
   }
 

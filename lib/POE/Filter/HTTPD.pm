@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm 2155 2006-11-12 07:01:34Z teknikill $
+# $Id: HTTPD.pm 2188 2007-04-29 06:38:11Z rcaputo $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,7 +17,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2155 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2188 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 sub BUFFER        () { 0 }
@@ -69,7 +69,7 @@ sub get {
   my ($self, $stream) = @_;
 
   # Need to check lengths in octets, not characters.
-  use bytes;
+  BEGIN { eval { require bytes } and bytes->import; }
 
   # Why?
   local($_);
@@ -205,7 +205,7 @@ sub get {
   # If this is a GET or HEAD request, we won't be expecting a message
   # body.  Finish up.
 
-  my $method = $r->method();
+  my $method = uc $r->method();
   if ($method eq 'GET' or $method eq 'HEAD') {
     $self->[FINISH]++;
     # We are sending this back, so won't need it anymore.
@@ -335,7 +335,7 @@ sub _build_basic_response {
   my ($self, $content, $content_type, $status) = @_;
 
   # Need to check lengths in octets, not characters.
-  use bytes;
+  BEGIN { eval { require bytes } and bytes->import; }
 
   $content_type ||= 'text/html';
   $status       ||= RC_OK;

@@ -1,16 +1,17 @@
-# $Id: SocketFactory.pm 2106 2006-09-05 14:18:29Z bingosnet $
+# $Id: SocketFactory.pm 2194 2007-07-21 06:51:26Z rcaputo $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2194 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
 
 use POSIX qw(:fcntl_h);
+use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
 use Errno qw(EWOULDBLOCK EADDRNOTAVAIL EINPROGRESS EADDRINUSE);
 use Socket qw(
   AF_INET SOCK_STREAM SOL_SOCKET AF_UNIX PF_UNIX 
@@ -19,6 +20,7 @@ use Socket qw(
   pack_sockaddr_in pack_sockaddr_un inet_aton SOMAXCONN
 );
 use IO::Handle ();
+use FileHandle ();
 use POE qw( Wheel );
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
@@ -44,15 +46,21 @@ sub MY_SOCKET_SELECTED () { 12 }
 # know you've broken his module.
 
 # Provide dummy constants for systems that don't have them.
+# Test and provide for each constant separately, per suggestion in
+# rt.cpan.org 27250.
 BEGIN {
   eval {
     require Socket6;
     my $x = &Socket6::AF_INET6;
   };
-  if ($@) {
-    *Socket6::AF_INET6 = sub () { ~0 };
-    *Socket6::PF_INET6 = sub () { ~0 };
-  }
+  *Socket6::AF_INET6 = sub () { ~0 } if $@;
+
+  eval {
+    require Socket6;
+    my $x = &Socket6::PF_INET6;
+  };
+
+  *Socket6::PF_INET6 = sub () { ~0 } if $@;
 }
 
 #------------------------------------------------------------------------------
@@ -717,7 +725,7 @@ sub new {
       );
 
       # Need to check lengths in octets, not characters.
-      use bytes;
+      BEGIN { eval { require bytes } and bytes->import; }
 
       # Resolve the bind address if it's not already packed.
       unless (length($bind_address) == 4) {
@@ -790,7 +798,7 @@ sub new {
       }
 
       # Need to check lengths in octets, not characters.
-      use bytes;
+      BEGIN { eval { require bytes } and bytes->import; }
 
       # Resolve the bind address.
       my @info = Socket6::getaddrinfo(

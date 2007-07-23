@@ -1,12 +1,12 @@
-# $Id: ReadLine.pm 2177 2007-03-17 20:20:01Z rcaputo $
+# $Id: ReadLine.pm 2187 2007-04-19 21:35:33Z rcaputo $
 
 package POE::Wheel::ReadLine;
 
 use strict;
-use bytes;
+BEGIN { eval { require bytes } and bytes->import; }
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2177 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2187 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);

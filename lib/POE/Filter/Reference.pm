@@ -1,4 +1,4 @@
-# $Id: Reference.pm 2025 2006-08-06 23:44:49Z rcaputo $
+# $Id: Reference.pm 2187 2007-04-19 21:35:33Z rcaputo $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -9,7 +9,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2025 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2187 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
@@ -182,7 +182,7 @@ sub get_one {
   my $self = shift;
 
   # Need to check lengths in octets, not characters.
-  use bytes;
+  BEGIN { eval { require bytes } and bytes->import; }
 
   if (
     $self->[BUFFER] =~ /^(\d+)\0/ and
@@ -205,7 +205,7 @@ sub put {
   my ($self, $references) = @_;
 
   # Need to check lengths in octets, not characters.
-  use bytes;
+  BEGIN { eval { require bytes } and bytes->import; }
 
   my @raw = map {
     my $frozen = $self->[FREEZE]->($_);
