@@ -1,4 +1,4 @@
-# $Id: Array.pm 2197 2007-07-22 02:21:32Z rcaputo $
+# $Id: Array.pm 2222 2007-08-19 05:02:19Z rcaputo $
 # Copyrights and documentation are at the end.
 
 package POE::Queue::Array;
@@ -7,7 +7,7 @@ use strict;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(POE::Queue);
-$VERSION = do {my($r)=(q$Revision: 2197 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(ESRCH EPERM);
 use Carp qw(confess);
@@ -279,7 +279,7 @@ sub adjust_priority {
   }
 
   # Nothing to do if the delta is zero.
-  # -><- Actually we may need to ensure that the item is moved to the
+  # TODO Actually we may need to ensure that the item is moved to the
   # end of its current priority bucket, since it should have "moved".
   return $self->[$item_index]->[ITEM_PRIORITY] unless $delta;
 
@@ -305,7 +305,7 @@ sub set_priority {
   }
 
   # Nothing to do if the old and new priorities match.
-  # -><- Actually we may need to ensure that the item is moved to the
+  # TODO Actually we may need to ensure that the item is moved to the
   # end of its current priority bucket, since it should have "moved".
   return $new_priority if $new_priority == $old_priority;
 
@@ -463,3 +463,6 @@ Please see L<POE> for more information about authors, contributors,
 and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

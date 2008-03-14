@@ -1,4 +1,4 @@
-# $Id: Line.pm 1920 2006-04-02 07:17:33Z rcaputo $
+# $Id: Line.pm 2222 2007-08-19 05:02:19Z rcaputo $
 
 package POE::Filter::Line;
 
@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
@@ -127,7 +127,7 @@ sub get_one_start {
   $self->[FRAMING_BUFFER] .= join '', @$stream;
 }
 
-# -><- There is a lot of code duplicated here.  What can be done?
+# TODO There is a lot of code duplicated here.  What can be done?
 
 sub get_one {
   my $self = shift;
@@ -320,3 +320,6 @@ newlines can generate spurious blank input lines.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

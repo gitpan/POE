@@ -3,7 +3,7 @@ package POE::Resources;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2106 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2244 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 my @resources = qw(
   POE::XS::Resource::Aliases
@@ -14,7 +14,6 @@ my @resources = qw(
   POE::XS::Resource::Sessions
   POE::XS::Resource::Signals
   POE::XS::Resource::Statistics
-  POE::XS::Resource::Controls
 );
 
 sub initialize {
@@ -73,3 +72,6 @@ Please see L<POE> for more information about its authors,
 contributors, and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

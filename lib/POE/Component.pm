@@ -1,4 +1,4 @@
-# $Id: Component.pm 2116 2006-09-08 04:45:45Z rcaputo $
+# $Id: Component.pm 2220 2007-08-19 00:59:33Z rcaputo $
 # Copyrights and documentation are after __end__.
 
 package POE::Component;
@@ -6,7 +6,7 @@ package POE::Component;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 1;
 
@@ -51,3 +51,6 @@ Each component is written and copyrighted by its author.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

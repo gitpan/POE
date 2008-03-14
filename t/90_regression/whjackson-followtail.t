@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id$
+# $Id: whjackson-followtail.t 2271 2008-02-19 20:21:48Z rcaputo $
 # vim: filetype=perl
 
 use strict;

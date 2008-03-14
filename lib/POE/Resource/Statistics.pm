@@ -1,4 +1,4 @@
-# $Id: Statistics.pm 2087 2006-09-01 10:24:43Z bsmith $
+# $Id: Statistics.pm 2220 2007-08-19 00:59:33Z rcaputo $
 
 # Data and methods to collect runtime statistics about POE, allowing
 # clients to look at how much work their POE server is performing.
@@ -8,7 +8,7 @@
 package POE::Resource::Statistics;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # We fold all this stuff back into POE::Kernel
 package POE::Kernel;
@@ -289,3 +289,6 @@ Contributed by Nick Williams <Nick.Williams@morganstanley.com>.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

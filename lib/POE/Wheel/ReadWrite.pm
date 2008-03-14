@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm 2199 2007-07-22 08:37:07Z rcaputo $
+# $Id: ReadWrite.pm 2232 2007-09-27 17:36:26Z bingosnet $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2199 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2232 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -945,7 +945,7 @@ A sample ErrorEvent handler:
   sub error_state {
     my ($operation, $errnum, $errstr, $wheel_id) = @_[ARG0..ARG3];
     warn "Wheel $wheel_id generated $operation error $errnum: $errstr\n";
-    delete $heap->{wheels}->{$wheel_id}; # shut down that wheel
+    delete $_[HEAP]->{wheels}->{$wheel_id}; # shut down that wheel
   }
 
 =item HighEvent
@@ -984,3 +984,6 @@ Oh, probably some.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

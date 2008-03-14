@@ -1,11 +1,11 @@
-# $Id: Events.pm 2201 2007-07-23 07:22:57Z rcaputo $
+# $Id: Events.pm 2284 2008-03-10 08:04:27Z rcaputo $
 
 # Data and accessors to manage POE's events.
 
 package POE::Resource::Events;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2201 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2284 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -123,7 +123,7 @@ sub _data_ev_clear_session {
   croak if delete $post_count{$session};
 }
 
-# -><- Alarm maintenance functions may move out to a separate
+# TODO Alarm maintenance functions may move out to a separate
 # POE::Resource module in the future.  Why?  Because alarms may
 # eventually be managed by something other than the event queue.
 # Especially if we incorporate a proper Session scheduler.  Be sure to
@@ -150,7 +150,7 @@ sub _data_ev_clear_alarm_by_name {
 
 ### Remove a specific alarm by its ID.  This is in the events section
 ### because alarms are currently implemented as events with future due
-### times.  -><- It's possible to remove non-alarms; is that wrong?
+### times.  TODO It's possible to remove non-alarms; is that wrong?
 
 sub _data_ev_clear_alarm_by_id {
   my ($self, $session, $alarm_id) = @_;
@@ -161,6 +161,13 @@ sub _data_ev_clear_alarm_by_id {
 
   my ($time, $id, $event) = $kr_queue->remove_item($alarm_id, $my_alarm);
   return unless defined $time;
+
+  if (TRACE_EVENTS) {
+    _warn(
+      "<ev> removed event $id ``", $event->[EV_NAME], "'' to ",
+      $self->_data_alias_loggable($session), " at $time"
+    );
+  }
 
   $self->_data_ev_refcount_dec( @$event[EV_SOURCE, EV_SESSION] );
   return ($time, $event);
@@ -314,3 +321,6 @@ Probably.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

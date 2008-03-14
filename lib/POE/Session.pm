@@ -1,14 +1,14 @@
-# $Id: Session.pm 2159 2006-11-30 01:53:55Z immute $
+# $Id: Session.pm 2262 2007-12-12 03:18:11Z gwyn17 $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2159 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2262 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
-use Errno qw(ENOSYS);
+use Errno;
 
 sub SE_NAMESPACE    () { 0 }
 sub SE_OPTIONS      () { 1 }
@@ -119,16 +119,16 @@ BEGIN {
 # EXPORT_OK instead?  The parameters NFA has in common with SESSION
 # (and other sessions) must be kept at the same offsets as each-other.
 
-sub OBJECT  () {  0 }
+sub OBJECT  () {  0 } # TODO - deprecate and replace with SELF
 sub SESSION () {  1 }
 sub KERNEL  () {  2 }
 sub HEAP    () {  3 }
-sub STATE   () {  4 }
+sub STATE   () {  4 } # TODO - deprecate and replace with EVENT
 sub SENDER  () {  5 }
 # NFA keeps its state in 6.  unused in session so that args match up.
 sub CALLER_FILE () { 7 }
 sub CALLER_LINE () { 8 }
-sub CALLER_STATE () { 9 }
+sub CALLER_STATE () { 9 } # TODO - deprecate and replace with CALLER_EVENT
 sub ARG0    () { 10 }
 sub ARG1    () { 11 }
 sub ARG2    () { 12 }
@@ -281,7 +281,7 @@ sub create {
       my @param_value = @$param_value;
       while (my ($package, $handlers) = splice(@param_value, 0, 2)) {
 
-        # -><- What do we do if the package name has some sort of
+        # TODO What do we do if the package name has some sort of
         # blessing?  Do we use the blessed thingy's package, or do we
         # maybe complain because the user might have wanted to make
         # object states instead?
@@ -371,7 +371,7 @@ sub create {
     }
   }
 
-  return $self->try_alloc (@args);
+  return $self->try_alloc(@args);
 }
 
 #------------------------------------------------------------------------------
@@ -425,7 +425,7 @@ sub _invoke_state {
     # make some noise about it.
 
     unless (exists $self->[SE_STATES]->{+EN_DEFAULT}) {
-      $! = ENOSYS;
+      $! = exists &Errno::ENOSYS ? &Errno::ENOSYS : &Errno::EIO;
       if ($self->[SE_OPTIONS]->{+OPT_DEFAULT} and $state ne EN_SIGNAL) {
         my $loggable_self =
           $POE::Kernel::poe_kernel->_data_alias_loggable($self);
@@ -749,926 +749,870 @@ __END__
 
 =head1 NAME
 
-POE::Session - an event driven abstract state machine
+POE::Session - a generic event-driven task
 
 =head1 SYNOPSIS
 
-  # Import POE::Session constants.
-  use POE::Session;
+  use POE; # auto-includes POE::Kernel and POE::Session
 
   POE::Session->create(
-
-    # Inline or coderef states.
     inline_states => {
-      state_one => \&coderef_one,
-      state_two => sub { ... },
+      _start => sub { $_[KERNEL]->yield("next") },
+      next   => sub {
+        print "tick...\n";
+        $_[KERNEL]->delay(next => 1);
+      },
     },
-
-    # Plain and mapped object states.
-    object_states => [
-      $object_one => [ 'state_three', 'state_four', 'state_five' ],
-      $object_two => { state_nine => 'method_nine' },
-    ],
-
-    # Plain and mapped package states.
-    package_states => [
-      $package_one => [ 'state_six', 'state_seven', 'state_eight' ],
-      $package_two => { state_ten => 'method_ten' },
-    ],
-
-    # Parameters for the session's _start state.
-    args => [ argument_zero, argument_one, ... ],
-
-    # Initial options.  See the option() method.
-    options => \%options,
-
-    # Change the session's heap representation.
-    heap => [ ],
   );
 
-Other methods:
+  POE::Kernel->run();
+  exit;
 
-  # Retrieve a session's unique identifier.
-  $session_id = $session->ID;
-
-  # Retrieve a reference to the session's heap.
-  $session_heap = $session->get_heap();
-
-  # Set or clear session options.
-  $session->option( trace => 1, default => 1 );
-  $session->option( trace );
-
-  # Create a postback, then invoke it and pass back additional
-  # information.
-  $postback_coderef = $session->postback( $state_name, @state_args );
-  $postback_coderef->( @additional_args );
-
-  # Or do the same thing synchronously
-  $callback_coderef = $session->callback( $state_name, @state_args );
-  $retval = $callback_coderef->( @additional_args );
+POE::Session can also dispatch to object and class methods through
+L</object_states> and L</package_states> callbacks.
 
 =head1 DESCRIPTION
 
-POE::Session combines a runtime context with an event driven state
-machine.  Together they implement a simple cooperatively timesliced
-thread.
-
-Sessions receive their timeslices as events from POE::Kernel.  Each
-event has two fields, a state name and a session identifier.  These
-fields describe the code to run and the context to run it in,
-respectively.  Events carry several other fields which will be
-discussed in the "Predefined Event Fields" section.
-
-States are re-entrant since they are invoked with their runtime
-contexts.  Although it's not usually necessary, this re-entrancy
-allows a single function to be bound to several different sessions,
-under several different state names.
-
-As sessions run, they post new events through the Kernel.  These
-events may be for themselves or other sessions, in which case they act
-as a form of inter-session communications.  The Kernel can also
-generate events based on external conditions such as file activity or
-the passage of time.
-
-POE provides some convenient built-in states with special meanings.
-They will be covered later on in the "Predefined States" section.
-
-=head1 PUBLIC METHODS
-
-=over 2
-
-=item ID
-
-ID() returns the session instance's unique identifier.  This is a
-number that starts with 1 and counts up forever, or until something
-causes the number to wrap.  It's theoretically possible that session
-IDs may collide after about 4.29 billion sessions have been created.
-
-=item create LOTS_OF_STUFF
-
-create() is the recommended Session constructor.  It binds states to
-their corresponding event names, initializes other parts of the
-session, and then fires off its C<_start> state, possibly with some
-parameters.
-
-create's parameters look like a hash of name/value pairs, but it's
-really just a list.  This is so the the constructor can unambiguously
-recognize and validate parameters and the programmer/maintainers know
-what events is being dispatched to what.
-
-C<create()> returns a reference to the newly created session but B<it
-is recommended not to save this>.  POE::Kernel manages sessions and
-will ensure timely destruction of them as long as extra references to
-them aren't hanging around.
-
-=over 2
-
-=item args => ARRAYREF
-
-The C<args> parameter accepts a reference to a list of parameters that
-will be passed to the machine's C<_start> state.  They are passed in
-the C<_start> event's C<ARG0..$#_> fields.
-
-  args => [ 'arg0', 'arg1', 'etc.' ],
-
-  sub _start {
-    my @args = @_[ARG0..#$_];
-    print "I received these parameters from create()'s args: @args\n";
-  }
-
-=item heap => ANYTHING
-
-The C<heap> parameter defines a session's heap.  The heap is passed
-into states as the $_[HEAP] field.  Heaps are anonymous hash
-references by default.
-
-  POE::Session->create( ..., heap => { runstate_variable => 1 }, ... );
-
-  sub state_function {
-    my $heap = $_[HEAP];
-    print "runstate variable is $heap->{runstate_variable}\n";
-  }
-
-It's also possible to use create's C<heap> parameter to change the
-heap into something completely different, such as a list reference or
-even an object.
-
-  sub RUNSTATE_VARIABLE () { 0 } # offset into the heap
-  POE::Session->create( ..., heap => [ 1 ], ... );
-
-  sub state_function {
-    my $heap = $_[HEAP];
-    print "runstate variable is ", $heap->[RUNSTATE_VARIABLE], "\n";
-  }
-
-=item inline_states => HASHREF
-
-C<inline_states> maps events names to the plain coderefs which will
-handle them.  Its value is a reference to a hash of event names and
-corresponding coderefs.
-
-  inline_states => {
-    _start => sub { print "arg0=$_[ARG0], arg1=$_[ARG1], etc.=$_[ARG2]\n"; }
-    _stop  => \&stop_handler,
-  },
-
-These states are called "inline" because they can be inline anonymous
-subs.
-
-=item object_states => ARRAYREF
-
-C<object_states> maps event names to the object methods which will
-handle them.  Its value is a B<arrayref> of object references and the
-methods to use.  It's a arrayref because using a hashref would
-stringify its keys, and the object references would become unusable.
-
-The object's methods can be specified in two ways.
-
-The first form associates a arrayref to each object reference.  This
-form maps each event to an object method with the same name.  In this
-example, C<event_one> is handled by C<$object>'s C<event_one()>
-method.
-
-  object_states => [
-    $object => [ 'event_one', 'event_two' ],
-  ];
-
-The second form associates a hashref to each object reference.  In
-turn, the hashref maps each event name to a method in the object.  In
-this form, the object's method names needn't match the event names
-they'll handle.  For example, C<event_four> is handled by C<$object's>
-C<handler_four()> method.
-
-  object_states => [
-    $object => {
-      event_three => 'handler_three',
-      event_four  => 'handler_four',
-    }
-  ];
-
-=item options => HASHREF
-
-C<options> contains a new session's initial options.  It's equivalent
-to creating the session and then calling its option() method to set
-them.  HASHREF contains a set of option/value pairs.
-
-These two statements are equivalent:
-
-  POE::Session->create(
-    ...,
-    options => { trace => 1, debug => 1 },
-    ...,
-  );
-
-  POE::Session->create(
-    ...,
-  )->option( trace => 1, debug => 1 );
-
-See the option() method for a list of options and values.
-
-=item package_states => ARRAYREF
-
-C<package_states> maps event names to the package methods which will
-handle them.  It's very similar to C<object_states>.
-C<package_states>' value is a B<arrayref> of package names and the
-methods to use.  It's a arrayref for consistency with C<object_states>.
-
-The package's methods can be specified in two ways.
-
-The first form associates a arrayref to each package name.  This form
-maps each event to a package method with the same name.  In this
-example, C<event_ten> is handled by C<Package>'s C<event_ten()>
-method.
-
-  package_states => [
-    Package => [ 'event_ten', 'event_eleven' ],
-  ];
-
-The second form associates a hashref to each package name.  In turn,
-the hashref maps each event name to a method in the package.  In this
-form, the package's method names needn't match the event names they'll
-handle.  For example, C<event_twelve> is handled by C<Package>'s
-C<handler_twelve()> method.
-
-  package_states => [
-    Package => {
-      event_twelve   => 'handler_twelve',
-      event_thirteen => 'handler_thirteen',
-    }
-  ];
-
-=back
-
-=item option OPTION_NAME
-
-=item option OPTION_NAME, OPTION_VALUE
-
-=item option NAME_VALUE_PAIR_LIST
-
-C<option()> sets and/or retrieves options' values.
-
-The first form returns the value of a single option, OPTION_NAME,
-without changing it.
-
-  my $trace_value = $_[SESSION]->option( 'trace' );
-
-The second form sets OPTION_NAME to OPTION_VALUE, returning the
-B<previous> value of OPTION_NAME.
-
-  my $old_trace_value = $_[SESSION]->option( trace => $new_trace_value );
-
-The final form sets several options, returning a hashref containing
-pairs of option names and their B<previous> values.
-
-  my $old_values = $_[SESSION]->option( trace => $new_trace_value,
-    debug => $new_debug_value,
-  );
-  print "Old option values:\n";
-  while (my ($option, $old_value) = each %$old_values) {
-    print "$option = $old_value\n";
-  }
-
-=item postback EVENT_NAME, EVENT_PARAMETERS
-
-=item callback EVENT_NAME, EVENT_PARAMETERS
-
-postback() and callback() create anonymous coderefs that may be used
-as callbacks for other libraries.  A contrived example:
-
-  my $postback = $session->postback( event_one => 1, 2, 3 );
-  my $callback = $session->callback( event_two => 5, 6, 7 );
-
-  use File::Find;
-  find( $callback, @directories_to_search );
-
-  $poe_main_window->Button(
-    -text    => 'Begin Slow and Fast Alarm Counters',
-    -command => $postback,
-  )->pack;
-
-When called, postbacks and callbacks fire POE events.  Postbacks use
-$kernel->post(), and callbacks use $kernel->call().  See POE::Kernel
-for post() and call() documentation.
-
-Each takes an EVENT_NAME, which is the name of the event to fire when
-called.  Any other EVENT_PARAMETERS are passed to the event's handler
-as a list reference in ARG0.
-
-Calling C<<$postback->("a", "b", "c")>> results in event_one's handler
-being called with the following arguments:
-
-  sub handle_event_one {
-    my $passed_through = $_[ARG0];  # [ 1, 2, 3 ]
-    my $passed_back    = $_[ARG1];  # [ "a", "b", "c" ]
-  }
-
-Calling C<<$callback->("m", "n", "o")>> does the same:
-
-  sub handle_event_two {
-    my $passed_through = $_[ARG0];  # [ 5, 6, 7 ]
-    my $passed_back    = $_[ARG1];  # [ "m", "n", "o" ]
-  }
-
-Therefore you can use ARG0 to pass state through a callback, while
-ARG1 contains information provided by the external library to its
-callbacks.
-
-Postbacks and callbacks use reference counts to keep the sessions they
-are called upon alive.  This prevents sessions from disappearing while
-other code expects them to handle callbacks.  The Tk Button code above
-is an example of this in action.  The session will not stop until the
-widget releases its postback.
-
-The difference between postback() and callback() is subtle but can
-cause all manner of grief if you are not aware of it.  Postback
-handlers are not called right away since they are triggered by events
-posted through the queue.  Callback handlers are invoked immediately
-since they are triggered by call().
-
-Some libraries expect their callbacks to be invoked immediately.  They
-may go so far as to set up global variables for the duration of the
-callback.  File::Find is such a library.  Each callback receives a new
-filename in $_.  Delaying these callbacks until later means that $_
-will not contain expected values.  It is necessary to use callback()
-in these cases.
-
-Most libraries pass state to their callbacks as parameters.
-Generally, postback() is the way to go.
-
-Since postback() and callback() are Session methods, they may be
-called on $_[SESSION] or $_[SENDER], depending on particular needs.
-There are usually better ways to interact between sessions, however.
-
-=item get_heap
-
-C<get_heap()> returns a reference to a session's heap.  It's the same
-value that's passed to every state via the C<HEAP> field, so it's not
-necessary within states.
-
-Combined with the Kernel's C<get_active_session()> method,
-C<get_heap()> lets libraries access a Session's heap without having to
-be given it.  It's convenient, for example, to write a function like
-this:
-
-  sub put_stuff {
-    my @stuff_to_put = @_;
-    $poe_kernel->get_active_session()->get_heap()->{wheel}->put(
-      @stuff_to_put
-    );
-  }
-
-  sub some_state {
+POE::Session and its subclasses translate events from POE::Kernel's
+generic dispatcher into the particular calling conventions suitable for
+application code.  In design pattern parlance, POE::Session classes
+are adapters between L<POE::Kernel> and application code.
+
+The L<sessions|POE::Kernel/Sessions> that POE::Kernel manages are more
+like generic task structures.  Unfortunately these two disparate
+concepts have virtually identical names.
+
+=head2 A note on nomenclature
+
+This documentation will refer to event handlers as "states" in certain
+unavoidable situations.  Sessions were originally meant to be
+event-driven state machines, but their purposes evolved over time.
+Some of the legacy vocabulary lives on in the API for backward
+compatibility, however.
+
+Confusingly, L<POE::NFA> is a class for implementing actual
+event-driven state machines.  Its documentation uses "state" in the
+proper sense.
+
+=head1 USING POE::Session
+
+POE::Session has two main purposes.  First, it maps event names to the
+code that will handle them.  Second, it maps a consistent event
+dispatch interface to those handlers.
+
+Consider the L</SYNOPSIS> for example.  A POE::Session instance is
+created with two C<inline_states>, each mapping an event name
+("_start" and "next") to an inline subroutine.  POE::Session ensures
+that C<$_[KERNEL]> and so on are meaningful within an event handler.
+
+Event handlers may also be object or class methods, using
+L</object_states> and L</package_states> respectively.  The create()
+syntax is different than for C<inline_states>, but the calling
+convention is nearly identical.
+
+Notice that the created POE::Session object has not been saved to a
+variable.  The new POE::Session object gives itself to POE::Kernel,
+which then manages it and all the resources it uses.
+
+It's possible to keep references to new POE::Session objects, but it's 
+not usually necessary.  If an application is not careful about 
+cleaning up these references you will create circular references, 
+which will leak memory when POE::Kernel would normally destroy 
+the POE::Session object.  It is recommended that you keep 
+the session's C</ID> instead.
+
+=head2 POE::Session's Calling Convention
+
+The biggest syntactical hurdle most people have with POE is
+POE::Session's unconventional calling convention.  For example:
+
+  sub handle_event {
+    my ($kernel, $heap, $parameter) = @_[KERNEL, HEAP, ARG0];
     ...;
-    &put_stuff( @stuff_to_put );
   }
 
-While it's more efficient to pass C<HEAP> along, it's also less
-convenient.
+Or the use of CL</$_[KERNEL]>, CL</$_[HEAP]> and CL</$_[ARG0]> inline, as is done
+in most examples.
 
-  sub put_stuff {
-    my ($heap, @stuff_to_put) = @_;
-    $heap->{wheel}->put( @stuff_to_put );
-  }
+What's going on here is rather basic.  Perl passes parameters into
+subroutines or methods using the @_ array.  C<KERNEL>, C<HEAP>, C<ARG0> and
+others are constants exported by POE::Session (which is included for
+free when a program uses POE).
 
-  sub some_state {
-    ...;
-    &put_stuff( $_[HEAP], @stuff_to_put );
-  }
+So CL</$_[KERNEL]> is an event handler's KERNELth parameter.  C<@_[HEAP,
+ARG0]> is a slice of @_ containing the HEAPth and ARG0th parameters.
 
-Although if you expect to have a lot of calls to &put_a_wheel() in
-your program, you may want to optimize for programmer efficiency by
-using the first form.
+While this looks odd, it's perfectly plain and legal Perl syntax.  POE
+uses it for a few reasons:
+
+=over 4
+
+=item 1
+
+In the common case, passing parameters in C<@_> is faster than passing
+hash or array references and then dereferencing them in the handler.
+
+=item 2
+
+Typos in hash-based parameter lists are either subtle runtime
+errors or requires constant runtime checking.  Constants are either
+known at compile time, or are clear compile-time errors.
+
+=item 3
+
+Referencing C<@_> offsets by constants allows parameters to move
+in the future without breaking application code.
+
+=item 4
+
+Most event handlers don't need all of C<@_>.  Slices allow handlers to
+use only the parameters they're interested in.
 
 =back
 
-=head2 Subclassing
+=head2 POE::Session Parameters
 
-There are a few methods available to help people trying to subclass
-L<POE::Session>.
+Event handlers receive most of their runtime context in up to nine
+callback parameters.  POE::Kernel provides many of them.
 
-=over 2
+=head3 $_[OBJECT]
 
-=item instantiate
+C<$_[OBJECT]> is $self for event handlers that are an object method.  It is
+the class (package) name for class-based event handlers.  It is undef
+for plain coderef callbacks, which have no special C<$self>-ish value.
 
-When you want to subclass L<POE::Session>, you may want to allow for extra
-parameters to be passed to the constructor, and maybe store some extra data
-in the object structure.
+C<OBJECT> is always zero, since C<$_[0]> is always C<$self> or C<$class>
+in object and class methods.  Coderef handlers are called with
+an C<undef> placeholder in C<$_[0]> so that the other offsets remain valid.
 
-The easiest way to do this is by overriding the instantiate method, which
-creates an empty object for you, and is passed a reference to the hash of
-parameters passed to create().
-
-When overriding it, be sure to first call the parent classes instantiate
-method, so you have a reference to the empty object. Then you should remove
-all the extra parameters from the hash of parameters you get passed, so
-L<POE::Session>'s create() doesn't croak when it encounters parameters it
-doesn't know.
-
-Also, don't forget to return the reference to the object (optionally already
-filled with your data; try to keep out of the places where L<POE::Session>
-stores its stuff, or it'll get overwritten)
-
-=item try_alloc
-
-At the end of L<POE::Session>'s create() method, try_alloc() is called.
-This tells the POE Kernel to allocate an actual session with the object
-just created.
-
-If you want to fiddle with the object the constructor just created, to
-modify parameters that already exist in the base L<POE::Session> class,
-based on your extra parameters for example, this is the place to do it.
-override the try_alloc() method, do your evil, and end with calling
-the parent try_alloc(), returning its return value.
-
-try_alloc() is passed the arguments for the _start state (the contents of
-the listref passed in the 'args' parameter for create()). Make sure to pass
-this on to the parent method (after maybe fiddling with that too).
-
-=back
-
-=head1 PREDEFINED EVENT FIELDS
-
-Each session maintains its unique runtime context.  Sessions pass
-their contexts on to their states through a series of standard
-parameters.  These parameters tell each state about its Kernel, its
-Session, itself, and the events that invoke it.
-
-State parameters' offsets into @_ are never used directly.  Instead
-they're referenced by symbolic constant.  This lets POE to change
-their order without breaking programs, since the constants will always
-be correct.
-
-These are the @_ fields that make up a session's runtime context.
-
-=over 2
-
-=item ARG0
-
-=item ARG1
-
-=item ARG2
-
-=item ARG3
-
-=item ARG4
-
-=item ARG5
-
-=item ARG6
-
-=item ARG7
-
-=item ARG8
-
-=item ARG9
-
-C<ARG0..ARG9> are a state's first ten custom parameters.  They will
-always be at the end of C<@_>, so it's possible to access more than
-ten parameters with C<$_[ARG9+1]> or even this:
-
-  my @args = @_[ARG0..$#_];
-
-The custom parameters often correspond to PARAMETER_LIST in many of
-the Kernel's methods.  This passes the words "zero" through "four" to
-C<some_state> as C<@_[ARG0..ARG4]>:
-
-  $_[KERNEL]->yield( some_state => qw( zero one two three four ) );
-
-Only C<ARG0> is really needed.  C<ARG1> is just C<ARG0+1>, and so on.
-
-=item HEAP
-
-C<HEAP> is a session's unique runtime storage space.  It's separate
-from everything else so that Session authors don't need to worry about
-namespace collisions.
-
-States that store their runtime values in the C<HEAP> will always be
-saving it in the correct session.  This makes them re-entrant, which
-will be a factor when Perl's threading stops being experimental.
-
-  sub _start {
-    $_[HEAP]->{start_time} = time();
-  }
-
-  sub _stop {
-    my $elapsed_runtime = time() - $_[HEAP]->{start_time};
-    print 'Session ', $_[SESSION]->ID, " elapsed runtime: $elapsed_runtime\n";
-  }
-
-=item KERNEL
-
-C<KERNEL> is a reference to the Kernel.  It's used to access the
-Kernel's methods from within states.
-
-  # Fire a "time_is_up" event in ten seconds.
-  $_[KERNEL]->delay( time_is_up => 10 );
-
-It can also be used with C<SENDER> to make sure Kernel events have
-actually come from the Kernel.
-
-=item OBJECT
-
-C<OBJECT> is only meaningful in object and package states.
-
-In object states, it contains a reference to the object whose method
-is being invoked.  This is useful for invoking plain object methods
-once an event has arrived.
+It's often useful for method-based event handlers to call other
+methods in the same object.  C<$_[OBJECT]> helps this happen.
 
   sub ui_update_everything {
-    my $object = $_[OBJECT];
-    $object->update_menu();
-    $object->update_main_window();
-    $object->update_status_line();
+    my $self = $_[OBJECT];
+    $self->update_menu();
+    $self->update_main_window();
+    $self->update_status_line();
   }
 
-In package states, it contains the name of the package whose method is
-being invoked.  Again, it's useful for invoking plain package methods
-once an event has arrived.
+You may also use method inheritance
 
-  sub Package::_stop {
-    $_[PACKAGE]->shutdown();
+  sub Amethod {
+    my $self = shift;
+    $self->SUPER::Amethod( @_ );
+    # ... more work ...
   }
 
-C<OBJECT> is undef in inline states.
+=head3 $_[SESSION]
 
-=item SENDER
+C<$_[SESSION]> is a reference to the current session object.  This lets event
+handlers access their session's methods.  Programs may also compare
+C<$_[SESSION]> to CL</$_[SENDER]> to verify that intra-session events did not
+come from other sessions.
 
-C<SENDER> is a reference to the session that sent an event.  It can be
-used as a return address for service requests.  It can also be used to
-validate events and ignore them if they've come from unexpected
-places.
+C<$_[SESSION]> may also be used as the destination for intra-session
+CL<post()|POE::Kernel/post> and CL<call()|POE::Kernel/call>.  CL<yield()|POE::Kernel/yield> is marginally more convenient and
+efficient than C<post($_[SESSION], ...)> however.
 
-This example shows both common uses.  It posts a copy of an event back
-to its sender unless the sender happens to be itself.  The condition
-is important in preventing infinite loops.
-
-  sub echo_event {
-    $_[KERNEL]->post( $_[SENDER], $_[STATE], @_[ARG0..$#_] )
-      unless $_[SENDER] == $_[SESSION];
-  }
-
-=item SESSION
-
-C<SESSION> is a reference to the current session.  This lets states
-access their own session's methods, and it's a convenient way to
-determine whether C<SENDER> is the same session.
+It is bad form to access another session directly.  The recommended
+approach is to manipulate a session through an event handler.
 
   sub enable_trace {
-    $_[SESSION]->option( trace => 1 );
-    print "Session ", $_[SESSION]->ID, ": dispatch trace is now on.\n";
+    my $previous_trace = $_[SESSION]->option( trace => 1 );
+    my $id = $_[SESSION]->ID;
+    if ($previous_trace) {
+      print "Session $id: dispatch trace is still on.\n";
+    }
+    else {
+      print "Session $id: dispatch trace has been enabled.\n";
+    }
   }
 
-=item STATE
+=head3 $_[KERNEL]
 
-C<STATE> contains the event name that invoked a state.  This is useful
-in cases where a single state handles several different events.
+The KERNELth parameter is always a reference to the application's
+singleton L<POE::Kernel> instance.  It is most often used to call
+POE::Kernel methods from event handlers.
 
-  sub some_state {
-    print(
-      "some_state in session ", $_[SESSION]->ID,
-      " was invoked as ", $_[STATE], "\n"
-    );
+  # Set a 10-second timer.
+  $_[KERNEL]->delay( time_is_up => 10 );
+
+=head3 $_[HEAP]
+
+Every POE::Session object contains its own variable namespace known as
+the session's C<HEAP>.  It is modeled and named after process memory
+heaps (not priority heaps).  Heaps are by default anonymous hash
+references, but they may be initialized in L<create()|/create> to be almost
+anything.  POE::Session itself never uses C<$_[HEAP]>, although some POE
+components do.
+
+Heaps do not overlap between sessions, although create()'s "heap"
+parameter can be used to make this happen.
+
+These two handlers time the lifespan of a session:
+
+  sub _start_handler {
+    $_[HEAP]{ts_start} = time();
   }
+
+  sub _stop_handler {
+    my $time_elapsed = time() - $_[HEAP]{ts_start};
+    print "Session ", $_[SESSION]->ID, " elapsed seconds: $elapsed\n";
+  }
+
+=head3 $_[STATE]
+
+The STATEth handler parameter contains the name of the event being
+dispatched in the current callback.  This can be important since the
+event and handler names may significantly differ.  Also, a single
+handler may be assigned to more than one event.
 
   POE::Session->create(
     inline_states => {
-      one => \&some_state,
-      two => \&some_state,
-      six => \&some_state,
-      ten => \&some_state,
+      one => \&some_handler,
+      two => \&some_handler,
+      six => \&some_handler,
+      ten => \&some_handler,
+      _start => sub {
+        $_[KERNEL]->yield($_) for qw(one two six ten);
+      }
     }
   );
 
-=item CALLER_FILE
-
-=item CALLER_LINE
-
-=item CALLER_STATE
-
-  my ($caller_file, $caller_line, $caller_state) =
-    @_[CALLER_FILE,  CALLER_LINE,  CALLER_STATE];
-
-The file, line number, and state from which this state was called.
-
-=back
-
-=head1 PREDEFINED EVENT NAMES
-
-POE contains helpers which, in order to help, need to emit predefined
-events.  These events all begin with a single leading underscore, and
-it's recommended that sessions not post leading-underscore events
-unless they know what they're doing.
-
-Predefined events generally have serious side effects.  The C<_start>
-event, for example, performs a lot of internal session initialization.
-Posting a redundant C<_start> event may try to allocate a session that
-already exists, which in turn would do terrible, horrible things to
-the Kernel's internal data structures.  Such things would normally be
-outlawed outright, but the extra overhead to check for them would slow
-everything down all the time.  Please be careful!  The clock cycles
-you save may be your own.
-
-These are the predefined events, why they're emitted, and what their
-parameters mean.
-
-=over 2
-
-=item _child
-
-C<_child> is a job-control event.  It notifies a parent session when
-its set of child sessions changes.
-
-C<ARG0> contains one of three strings describing what is happening to
-the child session.
-
-=over 2
-
-=item 'create'
-
-A child session has just been created, and the current session is its
-original parent.
-
-=item 'gain'
-
-This session is gaining a new child from a child session that has
-stopped.  A grandchild session is being passed one level up the
-inheritance tree.
-
-=item 'lose'
-
-This session is losing a child which has stopped.
-
-=back
-
-C<ARG1> is a reference to the child session.  It will still be valid,
-even if the child is in its death throes, but it won't last long
-enough to receive posted events.  If the parent must interact with
-this child, it should do so with C<call()> or some other means.
-
-C<ARG2> is only valid when a new session has been created or an old
-one destroyed.  It holds the return value from the child session's
-C<_start> or C<_stop> state when C<ARG0> is 'create' or 'lose',
-respectively.
-
-=item _default
-
-C<_default> is the event that's delivered whenever an event isn't
-handled.  The unhandled event becomes parameters for C<_default>.
-
-It's perfectly okay to post events to a session that can't handle
-them.  When this occurs, the session's C<_default> handler is invoked
-instead.  If the session doesn't have a C<_default> handler, then the
-event is quietly discarded.
-
-Quietly discarding events is a feature, but it makes catching mistyped
-event names kind of hard.  There are a couple ways around this: One is
-to define event names as symbolic constants.  Perl will catch typos at
-compile time.  The second way around it is to turn on a session's
-C<debug> option (see Session's C<option()> method).  This makes
-unhandled events hard runtime errors.
-
-As was previously mentioned, unhandled events become C<_default>'s
-parameters.  The original state's name is preserved in C<ARG0> while
-its custom parameter list is preserved as a reference in C<ARG1>.
-
-  sub _default {
-    print "Default caught an unhandled $_[ARG0] event.\n";
-    print "The $_[ARG0] event was given these parameters: @{$_[ARG1]}\n";
+  sub some_handler {
+    print(
+      "Session ", $_[SESSION]->ID,
+      ": some_handler() handled event $_[STATE]\n"
+    );
   }
 
-All the other C<_default> parameters are the same as the unhandled
-event's, with the exception of C<STATE>, which becomes C<_default>.
+It should be noted however that having event names and handlers names match
+will make your code easier to navigate.
 
-L<POE::Kernel> discusses signal handlers in "Signal Watcher Methods".
-It also covers the pitfalls of C<_default> states in more detail
+=head3 $_[SENDER]
 
-=item _parent
+Events must come from somewhere.  C<$_[SENDER]> contains the currently
+dispatched event's source.
 
-C<_parent> It notifies child sessions that their parent sessions are
-in the process of changing.  It is the complement to C<_child>.
+C<$_[SENDER]> is commonly used as a return address for responses.  It may
+also be compared against C<$_[KERNEL]> to verify that timers and other
+POE::Kernel-generated events were not spoofed.
 
-C<ARG0> contains the session's previous parent, and C<ARG1> contains
-its new parent.
+This C<echo_handler()> reponds to the sender with an "echo" event that
+contains all the parameters it received.  It avoids a feedback loop by
+ensuring the sender session and event (STATE) are not identical to the
+current ones.
 
-=item _start
+  sub echo_handler {
+    return if $_[SENDER] == $_[SESSION] and $_[STATE] eq "echo";
+    $_[KERNEL]->post( $_[SENDER], "echo", @_[ARG0..$#_] );
+  }
 
-C<_start> is a session's initialization event.  It tells a session
-that the Kernel has allocated and initialized resources for it, and it
-may now start doing things.  A session's constructors invokes the
-C<_start> handler before it returns, so it's possible for some
-sessions' C<_start> states to run before $poe_kernel->run() is called.
+TODO - Document which events should have $_[SENDER] == $_[KERNEL].
+Probably in POE::Kernel.
 
-Every session must have a C<_start> handler.  Its parameters are
-slightly different from normal ones.
+=head3 $_[CALLER_FILE], $_[CALLER_LINE] and $_[CALLER_STATE]
 
-C<SENDER> contains a reference to the new session's parent.  Sessions
-created before $poe_kernel->run() is called will have C<KERNEL> as
-their parents.
+These parameters are a form of caller(), but they describe where the
+currently dispatched event originated.  CALLER_FILE and CALLER_LINE
+are fairly plain.  CALLER_STATE contains the name of the event that
+was being handled when the event was created, or when the event
+watcher that ultimately created the event was registered.
 
-C<ARG0..$#_> contain the parameters passed into the Session's
-constructor.  See Session's C<create()> method for more information
-on passing parameters to new sessions.
+TODO - Rename SENDER_FILE, SENDER_LINE, SENDER_STATE?
 
-=item _stop
+=head3 @_[ARG0..ARG9] or @_[ARG0..$#_]
 
-C<_stop> is sent to a session when it's about to stop.  This usually
-occurs when a session has run out of events to handle and resources to
-generate new events.
+Parameters $_[ARG0] through the end of @_ contain parameters provided
+by application code, event watchers, or higher-level libraries.  These
+parameters are guaranteed to be at the end of @_ so that @_[ARG0..$#_]
+will always catch them all.
 
-The C<_stop> handler is used to perform shutdown tasks, such as
-releasing custom resources and breaking circular references so that
-Perl's garbage collection will properly destroy things.
+$#_ is the index of the last value in @_.  Blame Perl if it looks odd.
+It's merely the $#array syntax where the array name is an underscore.
 
-Because a session is destroyed after a C<_stop> handler returns, any
-POE things done from a C<_stop> handler may not work.  For example,
-posting events from C<_stop> will be ineffective since part of the
-Session cleanup is removing posted events.
+Consider
 
-=item Signal Events
+  $_[KERNEL]->yield( ev_whatever => qw( zero one two three ) );
 
-C<ARG0> contains the signal's name as it appears in Perl's %SIG hash.
-That is, it is the root name of the signal without the SIG prefix.
-POE::Kernel discusses exceptions to this, namely that CLD will be
-presented as CHLD.
+The handler for ev_whatever will be called with "zero" in $_[ARG0],
+"one" in $_[ARG1], and so on.  @_[ARG0..$#_] will contain all four
+words.
 
-The "Signal Watcher Methods" section in L<POE::Kernel> is recommended
-reading before using signal events.  It discusses the different signal
-levels and the mechanics of signal propagation.
+  sub ev_whatever {
+    $_[OBJECT]->whatever( @_[ARG0..$#_] );
+  }
+
+=head2 Using POE::Session With Objects
+
+One session may handle events across many objects.  Or looking at it
+the other way, multiple objects can be combined into one session.  And
+what the heck---go ahead and mix in some inline code as well.
+
+  POE::Session->create(
+    object_states => [
+      $object_1 => { event_1a => "method_1a" },
+      $object_2 => { event_2a => "method_2a" },
+    ],
+    inline_states => {
+      event_3 => \&piece_of_code,
+    },
+  );
+
+However only one handler may be assigned to a given event name.
+Duplicates will overwrite earlier ones.
+
+event_1a is handled by calling C<$object_1->method_1a(...)>.  C<$_[OBJECT]>
+is C<$object_1> in this case.  C<$_[HEAP]> belongs to the session, which
+means anything stored there will be available to any other event
+handler regardless of the object.
+
+event_2a is handled by calling C<$object_2->method_2a(...)>.  In this
+case CL</$_[OBJECT]> is $object_2.  C<$_[HEAP]> is the same anonymous hashref
+that was passed to the event_1a handler, though.  The methods are resolved
+when the event is handled (late-binding).
+
+event_3 is handled by calling C<piece_of_code(...)>.  C<$_[OBJECT]> is C<undef>
+here because there's no object.  And once again, C<$_[HEAP]> is the same
+shared hashref that the handlers for event_1a and event_2a saw.
+
+Interestingly, there's no technical reason that a
+single object can't handle events from more than one session:
+
+  for (1..2) {
+    POE::Session->create(
+      object_states => [
+        $object_4 => { event_4 => "method_4" },
+      ]
+    );
+  }
+
+Now C<$object_4->method_4(...)> may be called to handle events from one
+of two sessions.  In both cases, C<$_[OBJECT]> will be C<$object_4>, but
+C<$_[HEAP]> will hold data for a particular session.
+
+The same goes for inline states.  One subroutine may handle events
+from many sessions.  C<$_[SESSION]> and C<$_[HEAP]> can be used within the
+handler to easily access the context of the session in which the event
+is being handled.
+
+=head1 PUBLIC METHODS
+
+POE::Session has just a few public methods.
+
+=head2 create LOTS_OF_STUFF
+
+C<create()> starts a new session running.  It returns a new POE::Session
+object upon success, but most applications won't need to save it.
+
+C<create()> invokes the newly started session's _start event handler
+before returning.
+
+C<create()> also passes the new POE::Session object to L</POE::Kernel>.
+POE's kernel holds onto the object in order to dispatch events to it.
+POE::Kernel will release the object when it detects the object has
+become moribund.  This should cause Perl to destroy the object if
+application code has not saved a copy of it.
+
+C<create()> accepts several named parameters, most of which are optional.
+Note however that the parameters are not part of a hashref.
+
+TODO - Is it time to bring new() back as a synonym for create()?
+TODO PG - NO!  IMHO ->new implies simply creating the object, and 
+TODO that you have to hold onto the object.  ->create implies other actions
+TODO are happening, and that you don't want to hold on to it.
+
+TODO - Provide forward-compatible "handler" options and methods as
+synonyms for the "state" versions currently supported?
+TODO PG - No, that's for 1.01
+
+TODO - Add a "class_handlers" as a synonym for "package_handlers"?
+TODO PG - Maybe. However, to many synonyms can be a pain for an API.  
+
+TODO - The above TODOs may be summarized: "deprecate old language"?
+TODO PG - Oh, you are thinking of deprecating the old language... erm... no?
+
+
+
+TODO PG - I notice these =head3 are in alphabetical order.  I think
+TODO all the *_states options should be together.  Followed by heap, args,
+TODO options
+
+
+=head3 args => ARRAYREF
+
+The C<args> parameter accepts a reference to a list of parameters that
+will be passed to the session's _start event handler in C<@_> positions
+C<ARG0> through C<$#_> (the end of C<@_>).
+
+This example would print "arg0 arg1 etc.":
+
+  POE::Session->create(
+    inline_states => {
+      _start => sub {
+        print "Session started with arguments: @_[ARG0..$#_]\n";
+      },
+    },
+    args => [ 'arg0', 'arg1', 'etc.' ],
+  );
+
+=head3 heap => ANYTHING
+
+The C<heap> parameter allows a session's heap to be initialized
+differently at instantiation time.  Heaps are usually anonymous
+hashrefs, but C<heap> may set them to be array references or even
+objects.
+
+This example prints "tree":
+
+  POE::Session->create(
+    inline_states => {
+      _start => sub {
+        print "Slot 0 = $_[HEAP][0]\n";
+      },
+    },
+    heap => [ 'tree', 'bear' ],
+  );
+
+Be careful when initializing the heap to be something that doesn't behave
+like a hashref.  Some libraries assume hashref heap semantics, and
+they will fail if the heap doesn't work that way.
+
+=head3 inline_states => HASHREF
+
+C<inline_states> maps events names to the subroutines that will handle
+them.  Its value is a hashref that maps event names to the coderefs of
+their corresponding handlers:
+
+  POE::Session->create(
+    inline_states => {
+      _start => sub {
+        print "arg0=$_[ARG0], arg1=$_[ARG1], etc.=$_[ARG2]\n";
+      },
+      _stop  => \&stop_handler,
+    },
+    args => [qw( arg0 arg1 etc. )],
+  );
+
+The term "inline" comes from the fact that coderefs can be inlined
+anonymous subroutines.
+
+Be very careful with closures, however.  L</Beware circular references>.
+
+=head3 object_states => ARRAYREF
+
+C<object_states> associates one or more objects to a session and maps
+event names to the object methods that will handle them.  It's value
+is an CB<ARRAYREF>; C<HASHREFs> would stringify the objects, ruining them
+for method invocation.
+
+Here _start is handled by C<$object->_session_start()> and _stop triggers
+C<$object->_session_stop()>:
+
+  POE::Session->create(
+    object_states => [
+      $object => {
+        _start => '_session_start',
+        _stop  => '_session_stop',
+      }
+    ]
+  );
+
+POE::Session also supports a short form where the event and method
+names are identical.  Here _start invokes $object->_start(), and _stop
+triggers $object->_stop():
+
+  POE::Session->create(
+    object_states => [
+      $object => [ '_start', '_stop' ],
+    ]
+  );
+
+Methods are verified when the session is created, but also resolved when the
+handler is called (late binding).  Most of the time, a method won't change. 
+But in some circumstance, such as dynamic inheritance, a method could
+resolve to a different subroutine.
+
+=head3 options => HASHREF
+
+POE::Session sessions support a small number of options, which may be
+initially set with the C<option> constructor parameter and changed at
+runtime with the C<option()|/option> mehtod.
+
+C<option> takes a hashref with option =E<gt> value pairs:
+
+  POE::Session->create(
+    ... set up handlers ...,
+    options => { trace => 1, debug => 1 },
+  );
+
+This is equivalent to the previous example:
+
+  POE::Session->create(
+    ... set up handlers ...,
+  )->option( trace => 1, debug => 1 );
+
+The supported options and values are documented with the C<option()|/option>
+method.
+
+=head3 package_states => ARRAYREF
+
+C<package_states> associates one or more classes to a session and maps
+event names to the class methods that will handle them.  Its function
+is analogous to C<object_states>, but package names are specified
+rather than objects.
+
+In fact, the following documentation is a copy of the C<object_states>
+description with some word substitutions.
+
+The value for C<package_states> is an B<ARRAYREF> to be consistent
+with C<object_states>, even though class names (also known as package names) are
+already strings, so it's not necessary to avoid stringifying them.
+
+Here _start is handled by C<$class_name->_session_start()> and _stop
+triggers C<$class_name->_session_stop()>:
+
+  POE::Session->create(
+    class_states => [
+      $class_name => {
+        _start => '_session_start',
+        _stop  => '_session_stop',
+      }
+    ]
+  );
+
+POE::Session also supports a short form where the event and method
+names are identical.  Here _start invokes C<$class_name->_start()>, and
+_stop triggers C<$class_name->_stop()>:
+
+  POE::Session->create(
+    class_states => [
+      $class_name => [ '_start', '_stop' ],
+    ]
+  );
+
+=head2 ID
+
+C<ID()> returns the session instance's unique identifier.  This is an
+integer that starts at 1 and counts up forever, or until the number
+wraps around.
+
+It's theoretically possible that a session ID will not be unique, but
+this requires at least 4.29 billion sessions to be created within a
+program's lifespan.  POE guarantees that no two sessions will have the
+same ID at the same time, however;  your computer doesn't have enough memory
+to store 4.29 billion session objects.
+
+A session's ID is unique within a running process, but multiple
+processes are likely to have the same session IDs.  If a global ID is
+required, it will need to include both C<$_[KERNEL]->ID> and
+C<$_[SESSION]->ID>.
+
+=head2 option OPTION_NAME [, OPTION_VALUE [, OPTION_NAME, OPTION_VALUE]... ]
+
+C<option()> sets and/or retrieves the values of various session options.
+The options in question are implemented by POE::Session and do not
+have any special meaning anywhere else.
+
+It may be called with a single OPTION_NAME to retrieve the value of
+that option.
+
+  my $trace_value = $_[SESSION]->option('trace');
+
+C<option()> sets an option's value when called with a single OPTION_NAME,
+OPTION_VALUE pair.  In this case, C<option()> returns the option's
+previous value.
+
+  my $previous_trace = $_[SESSION]->option(trace => 1);
+
+C<option()> may also be used to set the values of multiple options at
+once.  In this case, C<option()> returns all the specified options'
+previous values in an anonymous hashref:
+
+  my $previous_values = $_[SESSION]->option(
+    trace => 1,
+    debug => 1,
+  );
+
+  print "Previous option values:\n";
+  while (my ($option, $old_value) = each %$previous_values) {
+    print "  $option = $old_value\n";
+  }
+
+POE::Session currently supports three options:
+
+=head3 The "debug" option.
+
+The "debug" option is intended to enable additional warnings when
+strange things are afoot within POE::Session.  At this time, there is
+only one additional warning:
+
+=over 4
+
+=item * 
+
+Redefining an event handler does not usually cause a warning, but it
+will when the "debug" option is set.
 
 =back
 
-=head1 MISCELLANEOUS CONCEPTS
+=head3 The "default" option.
 
-=head2 States' Return Values
+Enabling the "default" option causes unknown events to become
+warnings, if there is no _default handler to catch them.
 
-States are always evaluated in a scalar context.  States that must
-return more than one value should therefore return them as a reference
-to something bigger.
+The class-level C<POE::Session::ASSERT_STATES> flag is implemented by
+enabling the "default" option on all new sessions.
 
-States may not return references to objects in the "POE" namespace.
-The Kernel will stringify these references to prevent them from
-lingering and breaking its own garbage collection.
+=head3 The "trace" option.
 
-=head2 Resource Tracking
+Turn on the "trace" option to dump a log of all the events dispatched
+to a particular session.  This is a session-specific trace option that
+allows individual sessions to be debugged.
 
-POE::Kernel tracks resources on behalf of its active sessions.  It
-generates events corresponding to these resources' activity, notifying
-sessions when it's time to do things.
+Session-level tracing also indicates when events are redirected to
+_default.  This can be used to discover event naming errors.
 
-The conversation goes something like this.
+=head3 User-defined options.
 
-  Session: Be a dear, Kernel, and let me know when someone clicks on
-           this widget.  Thanks so much!
+C<option()> does not verify whether OPTION_NAMEs are known, so C<option()>
+may be used to store and retrieve user-defined information.
 
-  [TIME PASSES]  [SFX: MOUSE CLICK]
+Choose option names with caution.  There is no established convention
+to avoid namespace collisions between user-defined options and future
+internal options.
 
-  Kernel: Right, then.  Someone's clicked on your widget.
-          Here you go.
+=head2 postback EVENT_NAME, EVENT_PARAMETERS
 
-Furthermore, since the Kernel keeps track of everything sessions do,
-it knows when a session has run out of tasks to perform.  When this
-happens, the Kernel emits a C<_stop> event at the dead session so it
-can clean up and shutdown.
+C<postback()> manufactures callbacks that post POE events.  It returns an
+anonymous code reference that will post EVENT_NAME to the target
+session, with optional EVENT_PARAMETERS in an array reference in ARG0.
+Parameters passed to the callback will be sent in an array reference
+in ARG1.
 
-  Kernel: Please switch off the lights and lock up; it's time to go.
+In other words, ARG0 allows the postback's creator to pass context
+through the postback.  ARG1 allows the caller to return information.
 
-Likewise, if a session stops on its own and there still are opened
-resource watchers, the Kernel knows about them and cleans them up on
-the session's behalf.  POE excels at long-running services because it
-so meticulously tracks and cleans up its resources.
+This example creates a coderef that when called posts "ok_button" to
+C<$some_session> with ARG0 containing C<[ 8, 6, 7 ]>.
 
-=head2 Synchronous and Asynchronous Events
+  my $postback = $some_session->postback( "ok_button", 8, 6, 7 );
 
-While time's passing, however, the Kernel may be telling Session other
-things are happening.  Or it may be telling other Sessions about
-things they're interested in.  Or everything could be quiet... perhaps
-a little too quiet.  Such is the nature of non-blocking, cooperative
-timeslicing, which makes up the heart of POE's threading.
+Here's an example event handler for "ok_button".
 
-Some resources must be serviced right away, or they'll faithfully
-continue reporting their readiness.  These reports would appear as a
-stream of duplicate events, which would be bad.  These are
-"synchronous" events because they're handled right away.
+  sub handle_ok_button {
+    my ($creation_args, $called_args) = @_[ARG0, ARG1];
+    print "Postback created with (@$creation_args).\n";
+    print "Postback called with (@$called_args).\n";
+  }
 
-The other kind of event is called "asynchronous" because they're
-posted and dispatched through a queue.  There's no telling just when
-they'll arrive.
+Calling $postback->(5, 3, 0, 9) would perform the equivalent of...
 
-Synchronous event handlers should perform simple tasks limited to
-handling the resources that invoked them.  They are very much like
-device drivers in this regard.
+  $poe_kernel->post(
+    $some_session, "ok_button",
+    [ 8, 6, 7 ],
+    [ 5, 3, 0, 9 ]
+  );
 
-Synchronous events that need to do more than just service a resource
-should pass the resource's information to an asynchronous handler.
-Otherwise synchronous operations will occur out of order in relation
-to asynchronous events.  It's very easy to have race conditions or
-break causality this way, so try to avoid it unless you're okay with
-the consequences.
+This would be displayed when "ok_button" was dispatched to
+handle_ok_button():
 
-=head2 Postbacks
+  Postback created with (8 6 7).
+  Postback called with (5 3 0 9).
 
-Many external libraries expect plain coderef callbacks, but sometimes
-programs could use asynchronous events instead.  POE::Session's
-C<postback()> method was created to fill this need.
 
-C<postback()> creates coderefs suitable to be used in traditional
-callbacks.  When invoked as callbacks, these coderefs post their
-parameters as POE events.  This lets POE interact with nearly every
-callback currently in existence, and most future ones.
+Postbacks hold references to their target sessions.  Therefore
+sessions with outstanding postbacks will remain active.
 
-=head2 Job Control and Family Values
+Postbacks were created as a thin adapter between callback libraries
+and POE.  The problem at hand was how to turn callbacks from the Tk
+graphical toolkit's widgets into POE events without subclassing
+several Tk classes.  The solution was to provide Tk with plain old
+callbacks that posted POE events.
 
-Sessions are resources, too.  The Kernel watches sessions come and go,
-maintains parent/child relationships, and notifies sessions when these
-relationships change.  These events, C<_parent> and C<_child>, are
-useful for job control and managing pools of worker sessions.
+Since C<postback()> and C<callback()> are Session methods, they may be
+called on C<$_[SESSION]> or C<$_[SENDER]>, depending on particular needs.
+There are usually better ways to interact between sessions than
+abusing postbacks, however.
 
-Parent/child relationships are maintained automatically.  "Child"
-sessions simply are ones which have been created from an existing
-session.  The existing session which created a child becomes its
-"parent".
+Here's a brief example of attaching a L<Gtk2> button to a POE event
+handler:
 
-A session with children will not spontaneously stop.  In other words,
-the presence of child sessions will keep a parent alive.
+  my $btn = Gtk2::Button->new("Clear");
+  $btn->signal_connect( "clicked", $_[SESSION]->postback("ev_clear") );
 
-=head2 Exceptions
+Points to remember: The session will remain alive as long as $btn
+exists and holds a copy of $_[SESSION]'s postback.  Any parameters
+passed by the Gtk2 button will be in ARG1.
 
-POE traps exceptions that happen within an event. When an exception
-occurs, POE sends the C<DIE> signal to the session that caused the
-exception. This is a terminal signal and will shutdown the POE
-environment unless the session handles the signal and calls
-C<sig_handled()>.
+=head2 callback EVENT_NAME, EVENT_PARAMETERS
 
-This behavior can be turned off by setting the C<CATCH_EXCEPTIONS>
-constant subroutine in C<POE::Kernel> to 0 like so:
+callback() manufactures callbacks that use C<$poe_kernel->call()> to
+deliver POE events rather than C<$poe_kernel->post()>.  It is identical
+to C<postback()> in every other respect.
 
-  sub POE::Kernel::CATCH_EXCEPTIONS () { 0 }
+callback() was created to avoid race conditions that arise when
+external libraries assume callbacks will execute synchronously.
+L<File::Find> is an obvious (but not necessarily appropriate) example.
+It provides a lot of information in local variables that stop being
+valid after the callback.  The information would be unavailable by the
+time a post()ed event was dispatched.
 
-The signal handler will be passed a single argument, a hashref,
-containing the following data.
+=head2 get_heap
 
-=over 2
+C<get_heap()> returns a reference to a session's heap.  This is the same
+value as C<$_[HEAP]> for the target session.  C<get_heap()> is intended to
+be used with C<$poe_kernel> and POE::Kernel's C<get_active_session()> so
+that libraries do not need these three common values explicitly passed
+to them.
 
-=item source_session
+That is, it prevents the need for:
 
-The session from which the event originated
+  sub some_helper_function {
+    my ($kernel, $session, $heap, @specific_parameters) = @_;
+    ...;
+  }
 
-=item dest_session
+Rather, helper functions may use:
 
-The session which was the destination of the event. This is also the
-session that caused the exception.
+  use POE::Kernel; # exports $poe_kernel
+  sub some_helper_function {
+    my (@specific_parameters) = @_;
+    my $session = $kernel->get_active_session();
+    my $heap = $session->get_heap();
+  }
 
-=item event
+This isn't very convenient for people writing libraries, but it makes
+the libraries much more convenient to use.
 
-Name of the event that caused the exception
+Using C<get_heap()> to break another session's encapsulation is strongly
+discouraged.
 
-=item file
+=head2 instantiate CREATE_PARAMETERS
 
-The filename of the code which called the problematic event
+C<instantiate()> creates and returns an empty POE::Session object.  It is
+called with the CREATE_PARAMETERS in a hash reference just before
+C<create()> processes them.  Modifications to the CREATE_PARAMETERS will
+affect how C<create()> initializes the new session.
 
-=item line
+Subclasses may override C<instantiate()> to alter the underlying
+session's structure.  They may extend C<instantiate()> to add new
+parameters to C<create()>.
 
-The line number of the code which called the problematic event
+Any parameters not recognized by C<create()> must be removed from the
+CREATE_PARAMETERS before C<instantiate()> returns.  C<create()> will
+L<croak|Carp/croak>
+if it discovers unknown parameters.
 
-=item from_state
+Be sure to return C<$self> from instantiate.
 
-The state that was called the problematci event
+  sub instantiate {
+    my ($class, $create_params) = @_;
 
-=item error_str
+    # Have the base class instantiate the new session.
+    my $self = $class->SUPER::instantiate($create_parameters);
 
-The value of C<$@>, which contains the error string created by the
-exception.
+    # Extend the parameters recognized by create().
+    my $new_option = delete $create_parameters->{new_option};
+    if (defined $new_option) {
+      # ... customize $self here ...
+    }
 
-=back
+    return $self;
+  }
 
-=head2 Session's Debugging Features
+=head2 try_alloc START_ARGS
 
-POE::Session contains a two debugging assertions, for now.
+C<try_alloc()> calls POE::Kernel's C<session_alloc()> to allocate a session
+structure and begin managing the session within POE's kernel.  It is
+called at the end of POE::Session's C<create()>.  It returns C<$self>.
 
-=over 2
+It is a subclassing hook for late session customization prior to
+C<create()> returning.  It may also affect the contents of C<@_[ARG0..$#_]>
+that are passed to the session's _start handler.
 
-=item ASSERT_DEFAULT
+  sub try_alloc {
+    my ($self, @start_args) = @_;
 
-ASSERT_DEFAULT is used as the default value for all the other assert
-constants.  Setting it true is a quick and reliably way to ensure all
-Session assertions are enabled.
+    # Perform late initialization.
+    # ...
 
-Session's ASSERT_DEFAULT inherits Kernel's ASSERT_DEFAULT value unless
-overridden.
+    # Give $self to POE::Kernel.
+    return $self->SUPER::try_alloc(@args);
+  }
 
-=item ASSERT_STATES
+=head1 POE::Session'S EVENTS
+
+Please do not define new events that begin with a leading underscore.
+POE claims /^_/ events as its own.
+
+POE::Session only generates one event, _default.  All other internal
+POE events are generated by (and documented in) POE::Kernel.
+
+=head2 _default
+
+_default is the C<AUTOLOAD> of event handlers.  If POE::Session can't
+find a handler at dispatch time, it attempts to redirect the event to
+_default's handler instead.
+
+If there's no _default handler, POE::Session will silently drop the
+event unless the "default" option is set.
+
+To preserve the original information, the original event is slightly
+changed before being redirected to the _default handler:  The original
+event parameters are moved to an array reference in ARG1, and the
+original event name is passed to _default in ARG0.
+
+  sub handle_default {
+    my ($event, $args) = @_[ARG0, ARG1];
+    print(
+      "Session ", $_[SESSION]->ID,
+      " caught unhandled event $event with (@$args).\n"
+    );
+  }
+
+_default is quite flexible.  It may be used for debugging, or to
+handle dynamically generated event names without pre-defining their
+handlers.  In the latter sense, _default performs analogously to
+Perl's C<AUTOLOAD>.
+
+_default may also be used as the default or "otherwise" clause of a
+switch statement.  Consider an input handler that throws events based
+on a command name:
+
+  sub parse_command {
+    my ($command, @parameters) = split /\s+/, $_[ARG0];
+    $_[KERNEL]->post( "cmd_$command", @parameters );
+  }
+
+A _default handler may be used to emit errors for unknown commands:
+
+  sub handle_default {
+    my $event = $_[ARG0];
+    return unless $event =~ /^cmd_(\S+)/;
+    warn "Unknown command: $1\n";
+  }
+
+The _default behavior is implemented in POE::Session, so it may be
+different for other session types.
+
+=head2 POE::Session's Debugging Features
+
+POE::Session contains one debugging assertion, for now.
+
+=head3 ASSERT_STATES
 
 Setting ASSERT_STATES to true causes every Session to warn when they
 are asked to handle unknown events.  Session.pm implements the guts of
 ASSERT_STATES by defaulting the "default" option to true instead of
-false.  See the option() function earlier in this document for details
+false.  See the option() method earlier in this document for details
 about the "default" option.
 
-=back
+TODO - It's not much of an assertion if it only warns.
 
 =head1 SEE ALSO
 
-POE::Kernel.
+L<POE::Kernel>.
 
 The SEE ALSO section in L<POE> contains a table of contents covering
 the entire POE distribution.
@@ -1676,10 +1620,59 @@ the entire POE distribution.
 =head1 BUGS
 
 There is a chance that session IDs may collide after Perl's integer
-value wraps.  This can occur after as few as 4.29 billion sessions.
+value wraps.  This can occur after as I<few> as 4.29 billion sessions.
+
+=head2 Beware circular references
+
+The following creates a circular reference:
+
+  my $session = POE::Session->create(
+    inline_states => {
+      _start => sub {
+        $_[HEAP]->{todo} = [ qw( step1 step2 step2a ) ],
+        $_[KERNEL]->post( $session, 'next' );
+      },
+      next => sub {
+        my $next = shift @{ $_[HEAP]->{todo} };
+        return unless $next;
+        $_[KERNEL]->post( $session, $next );
+      }
+      # ....
+    }
+  );
+
+Note also that a anonymous sub creates a closure on all lexical variables in 
+the scope it was defined in, even if it doesn't reference them:
+
+  my $self = $package->new;
+  my $session = POE::Session->create(
+    inline_state => {
+      _start => sub { $self->_start( @_[ARG0..$#_] ) }
+    }
+  );
+
+To avoid this, must hold onto a session's ID, rather then the session's
+object.  You may convert a session ID back into the session's object with
+L<POE::Kernel->session_id_to_session()|POE::Kernel/session_id_to_session>.
+
+  my $session = POE::Session->create(
+    inline_states => {
+      _start => sub {
+        $session = $session->ID;
+        $_[HEAP]->{todo} = [ qw( step1 step2 step2a ) ],
+        $_[KERNEL]->post( $session, 'next' );
+      },
+      # ....
+    }
+  );
+
+
+
 
 =head1 AUTHORS & COPYRIGHTS
 
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab

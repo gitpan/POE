@@ -1,4 +1,4 @@
-# $Id: Stream.pm 1920 2006-04-02 07:17:33Z rcaputo $
+# $Id: Stream.pm 2220 2007-08-19 00:59:33Z rcaputo $
 
 package POE::Filter::Stream;
 
@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 1920 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 #------------------------------------------------------------------------------
@@ -98,3 +98,6 @@ Oh, probably some.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

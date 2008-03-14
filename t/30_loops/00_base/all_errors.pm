@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: all_errors.pm 2153 2006-11-04 01:58:24Z rcaputo $
+# $Id: all_errors.pm 2208 2007-08-11 09:10:38Z rcaputo $
 
 # Tests error conditions.  This has to be a separate test since it
 # depends on ASSERT_DEFAULT being 0.  All the other tests enable it.
@@ -13,7 +13,7 @@ sub POE::Kernel::TRACE_FILENAME () { "./test-output.err" }
 
 # use Test::More;
 
-print "1..0 # most of these should move into other test files\n";
+print "1..0 # Skip most of these should move into other test files\n";
 
 #use POSIX qw(:errno_h);
 #use Socket;

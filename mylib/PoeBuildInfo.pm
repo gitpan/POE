@@ -1,4 +1,4 @@
-# $Id: PoeBuildInfo.pm 2191 2007-06-14 01:26:41Z rcaputo $
+# $Id: PoeBuildInfo.pm 2268 2008-01-12 12:36:44Z bingosnet $
 
 # Build information for POE.  Moved into a library so it can be
 # required by Makefile.PL and gen-meta.perl.
@@ -22,14 +22,15 @@ use vars qw(@EXPORT_OK);
 
 sub CORE_REQUIREMENTS () {
   (
-    "Carp"               => 0,
-    "Errno"              => 1.09,
-    "Exporter"           => 0,
-    "File::Spec"         => 0.87,
-    "IO::Handle"         => 1.27,
-    "POSIX"              => 1.02,
-    "Socket"             => 1.7,
-    "Test::Harness"      => 2.26,
+    "Carp"              => 0,
+    "Errno"             => 1.09,
+    "Exporter"          => 0,
+    "File::Spec"        => 0.87,
+    "IO::Handle"        => 1.27,
+    "POSIX"             => 1.02,
+    "Socket"            => 1.7,
+    "Test::Harness"     => 2.26,
+    "Storable"          => 2.16,
     (
       ($^O eq "MSWin32")
       ? (
@@ -55,6 +56,7 @@ sub DIST_ABSTRACT () {
 
 sub CLEAN_FILES () {
   my @clean_files = qw(
+    bingos-followtail
     coverage.report
     poe_report.xml
     run_network_tests

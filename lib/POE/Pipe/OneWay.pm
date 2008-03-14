@@ -1,4 +1,4 @@
-# $Id: OneWay.pm 2116 2006-09-08 04:45:45Z rcaputo $
+# $Id: OneWay.pm 2220 2007-08-19 00:59:33Z rcaputo $
 
 # Portable one-way pipe creation, trying as many different methods as
 # we can.
@@ -8,7 +8,7 @@ package POE::Pipe::OneWay;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Symbol qw(gensym);
 use IO::Socket qw( AF_UNIX SOCK_STREAM PF_UNSPEC );
@@ -195,3 +195,6 @@ reserved.  POE::Pipe::OneWay is free software; you may redistribute it
 and/or modify it under the same terms as Perl itself.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

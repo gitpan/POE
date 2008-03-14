@@ -1,4 +1,4 @@
-# $Id: TkCommon.pm 2201 2007-07-23 07:22:57Z rcaputo $
+# $Id: TkCommon.pm 2219 2007-08-19 00:54:55Z rcaputo $
 
 # The common bits of our system-specific Tk event loops.  This is
 # everything but file handling.
@@ -10,7 +10,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2201 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2219 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Tk 800.021;
 use 5.00503;
@@ -181,3 +181,6 @@ Please see L<POE> for more information about authors, contributors,
 and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

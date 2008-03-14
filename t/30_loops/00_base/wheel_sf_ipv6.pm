@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_sf_ipv6.pm 2195 2007-07-21 06:52:55Z rcaputo $
+# $Id: wheel_sf_ipv6.pm 2279 2008-03-09 21:53:28Z rcaputo $
 
 # Exercises Client and Server TCP components, which exercise
 # SocketFactory in AF_INET6 mode.
@@ -11,7 +11,7 @@ use Socket;
 BEGIN {
   my $error;
 
-  eval 'use Socket6';
+  eval 'use Socket6 ()';
   if ( length($@) or not exists($INC{"Socket6.pm"}) ) {
     $error = "Socket6 is needed for IPv6 tests";
   }

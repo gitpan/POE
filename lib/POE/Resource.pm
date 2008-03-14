@@ -1,9 +1,9 @@
-# $Id: Resource.pm 2116 2006-09-08 04:45:45Z rcaputo $
+# $Id: Resource.pm 2220 2007-08-19 00:59:33Z rcaputo $
 
 package POE::Resource;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 1;
 
@@ -86,3 +86,6 @@ Please see L<POE> for more information about its authors,
 contributors, and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

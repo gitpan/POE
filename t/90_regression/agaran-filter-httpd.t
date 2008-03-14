@@ -1,15 +1,11 @@
 #!/usr/bin/perl
-# $Id: cfedde-filter-httpd.t 2276 2008-02-29 20:38:17Z cfedde $
+# $Id: cfedde-filter-httpd.t 2206 2007-07-25 04:44:21Z rcaputo $
 # vim: filetype=perl
 
 use warnings;
 use strict;
 
 BEGIN {
-  unless (-f 'run_network_tests') {
-    print "1..0 # skip - Network access (and permission) required to run this test\n";
-    exit;
-  }
   eval "use HTTP::Request";
   if ($@) {
     print "1..0 # skip - HTTP::Request needed to test POE::Filter::HTTPD\n";
@@ -17,7 +13,7 @@ BEGIN {
   }
 }
 
-use Test::More tests => 2;
+use Test::More tests => 3;
 
 my $port;
 
@@ -45,11 +41,12 @@ POE::Component::Server::TCP->new(
   ClientInput => sub {
     my ( $kernel, $heap, $request ) = @_[ KERNEL, HEAP, ARG0 ];
     isa_ok( $request, 'HTTP::Message', $request);
+    ok( $request->uri() eq '/foo/bar', 'Double striped' );
   },
 );
 
 POE::Component::Client::TCP->new (
-  Alias => 'c0',
+  Alias         => 'c0',
   RemoteAddress => '127.0.0.1',
   RemotePort => $port,
   ServerInput => sub {
@@ -58,12 +55,12 @@ POE::Component::Client::TCP->new (
 );
 
 POE::Component::Client::TCP->new (
-  Alias => 'c1',
+  Alias         => 'c1',
   RemoteAddress => '127.0.0.1',
   RemotePort => $port,
   Connected => sub {
     ok 1, 'client connected';
-    $_[HEAP]->{server}->put( "GET / 1.0\015\012\015\012");
+    $_[HEAP]->{server}->put( "GET //foo/bar 1.0\015\012\015\012");
   },
   ServerInput => sub {
     ok 1, "client got $_[ARG0]";

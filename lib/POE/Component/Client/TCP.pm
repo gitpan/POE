@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2162 2007-01-01 08:38:53Z rcaputo $
+# $Id: TCP.pm 2220 2007-08-19 00:59:33Z rcaputo $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2162 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -726,3 +726,6 @@ POE::Component::Client::TCP is based on code, used with permission,
 from Jos Boumans E<lt>kane@cpan.orgE<gt>.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

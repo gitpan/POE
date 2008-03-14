@@ -1,11 +1,11 @@
-# $Id: Filter.pm 2145 2006-10-30 16:33:03Z rcaputo $
+# $Id: Filter.pm 2269 2008-01-21 19:09:06Z rcaputo $
 
 package POE::Filter;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2145 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2269 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -41,7 +41,7 @@ sub clone {
     $buf,                     # BUFFER
     @$self[1..$#$self],  # everything else
   ], ref $self;
-  return $nself;    
+  return $nself;
 }
 
 #------------------------------------------------------------------------------
@@ -192,3 +192,6 @@ block protocols tend to be incompatible.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

@@ -1,4 +1,4 @@
-# $Id: filehandles.pm 2033 2006-08-07 05:41:22Z rcaputo $
+# $Id: filehandles.pm 2273 2008-02-20 10:45:43Z bingosnet $
 
 use strict;
 
@@ -31,7 +31,13 @@ sub SH_HANDLE    () { POE::Kernel::SH_HANDLE    }
 sub SH_REFCOUNT  () { POE::Kernel::SH_REFCOUNT  }
 sub SH_MODECOUNT () { POE::Kernel::SH_MODECOUNT }
 
-use Test::More tests => 192;
+use Test::More;
+
+unless (-f "run_network_tests") {
+  plan skip_all => "Network access (and permission) required to run this test";
+}
+
+plan tests => 192;
 
 ### Factoried out common tests
 

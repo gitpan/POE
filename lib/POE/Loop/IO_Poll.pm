@@ -1,4 +1,4 @@
-# $Id: IO_Poll.pm 2173 2007-02-18 07:47:52Z rcaputo $
+# $Id: IO_Poll.pm 2222 2007-08-19 05:02:19Z rcaputo $
 
 # IO::Poll event loop bridge for POE::Kernel.  The theory is that this
 # will be faster for large scale applications.  This file is
@@ -8,13 +8,24 @@
 package POE::Loop::IO_Poll;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2173 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Include common signal handling.
 use POE::Loop::PerlSignals;
 
 # Everything plugs into POE::Kernel;
 package POE::Kernel;
+
+=for poe_tests
+
+sub skip_tests {
+  return "IO::Poll is not 100% compatible with $^O" if $^O eq "MSWin32";
+  return "IO::Poll tests require the IO::Poll module" if (
+    do { eval "use IO::Poll"; $@ }
+  );
+}
+
+=cut
 
 use strict;
 
@@ -259,7 +270,7 @@ sub loop_do_timeslice {
     }
   }
 
-  # Avoid looking at filehandles if we don't need to.  -><- The added
+  # Avoid looking at filehandles if we don't need to.  TODO The added
   # code to make this sleep is non-optimal.  There is a way to do this
   # in fewer tests.
 
@@ -404,3 +415,6 @@ Please see L<POE> for more information about authors, contributors,
 and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

@@ -1,4 +1,4 @@
-# $Id: Pipe.pm 2116 2006-09-08 04:45:45Z rcaputo $
+# $Id: Pipe.pm 2274 2008-02-25 05:56:36Z rcaputo $
 
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
@@ -9,7 +9,7 @@ package POE::Pipe;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2116 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2274 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Symbol qw(gensym);
 use IO::Socket qw(
@@ -62,8 +62,8 @@ sub _shift_preference {
 
 BEGIN {
   if ($^O eq 'MSWin32') {
-    eval '*F_GETFL = sub { 0 };';
-    eval '*F_SETFL = sub { 0 };';
+    eval '*F_GETFL = sub () { 0 };';
+    eval '*F_SETFL = sub () { 0 };';
   }
 }
 
@@ -271,3 +271,6 @@ POE::Pipe is free software; you may redistribute it and/or modify it
 under the same terms as Perl itself.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

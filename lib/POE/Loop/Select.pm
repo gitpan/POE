@@ -1,4 +1,4 @@
-# $Id: Select.pm 1980 2006-06-11 19:23:12Z rcaputo $
+# $Id: Select.pm 2222 2007-08-19 05:02:19Z rcaputo $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,7 +11,13 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
+
+=for poe_tests
+
+sub skip_tests { return }
+
+=cut
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -182,7 +188,7 @@ sub loop_do_timeslice {
     );
   }
 
-  # Avoid looking at filehandles if we don't need to.  -><- The added
+  # Avoid looking at filehandles if we don't need to.  TODO The added
   # code to make this sleep is non-optimal.  There is a way to do this
   # in fewer tests.
 
@@ -356,3 +362,6 @@ Please see L<POE> for more information about authors, contributors,
 and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

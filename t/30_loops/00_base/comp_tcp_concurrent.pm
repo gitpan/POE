@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: comp_tcp_concurrent.pm 1971 2006-05-30 20:32:30Z bsmith $
+# $Id: comp_tcp_concurrent.pm 2285 2008-03-10 08:11:30Z rcaputo $
 
 # Exercise Server::TCP and later, when it's available, Client::TCP.
 
@@ -8,16 +8,19 @@ use lib qw(./mylib ../mylib);
 
 BEGIN {
   unless (-f "run_network_tests") {
-    print "1..0: Network access (and permission) required to run this test\n";
+    print "1..0 # Skip Network access (and permission) required to run this test\n";
     CORE::exit();
   }
   if ($^O eq "MSWin32") {
-    print "1..0: Windows sockets aren't as concurrent as those on Unix\n";
+    print "1..0 # Skip Windows sockets aren't as concurrent as those on Unix\n";
     CORE::exit();
   }
 }
 
-use Test::More tests => (42);
+my $NUM_CLIENTS;
+BEGIN { $NUM_CLIENTS = 9 } # rt.cpan.org 32034
+
+use Test::More tests => $NUM_CLIENTS * 2;
 
 diag( "You might see a 'disconnect' error during this test." );
 diag( "It may be ignored." );
@@ -30,6 +33,8 @@ sub POE::Kernel::ASSERT_DEFAULT () { 1 }
 use POE qw( Component::Server::TCP Wheel::ReadWrite Component::Client::TCP );
 
 #use POE::API::Peek;
+
+my ($acceptor_port, $callback_port);
 
 sub DEBUG () { 0 }
 
@@ -49,9 +54,15 @@ sub do_servers {
   # Create a server.  This one uses Acceptor to create a session of the
   # program's devising.
   POE::Component::Server::TCP->new(
-    Port => 31401,
+    Port => 0,
     Alias => 'acceptor_server',
     Concurrency => 1,
+    Started => sub {
+      use Socket qw(sockaddr_in);
+      $acceptor_port = (
+        sockaddr_in($_[HEAP]->{listener}->getsockname())
+      )[0];
+    },
     Acceptor => sub {
       my ($socket, $peer_addr, $peer_port) = @_[ARG0..ARG2];
 
@@ -127,8 +138,14 @@ sub do_servers {
   # Create a server.  This one uses ClientXyz to process clients instead
   # of a user-defined session.
   POE::Component::Server::TCP->new(
-    Port => 31402,
+    Port => 0,
     Alias => 'callback_server',
+    Started => sub {
+      use Socket qw(sockaddr_in);
+      $callback_port = (
+        sockaddr_in($_[HEAP]->{listener}->getsockname())
+      )[0];
+    },
     Concurrency => 4,
     # ClientShutdownOnError => 0,
 
@@ -179,7 +196,7 @@ sub do_servers {
 }
 
 sub do_clients {
-  foreach my $N (1..21) {
+  foreach my $N (1..$NUM_CLIENTS) {
     DEBUG and warn "$$: SPAWN\n";
     two_clients($N);
   }
@@ -194,7 +211,7 @@ sub two_clients {
   # A client to connect to acceptor_server.
   POE::Component::Client::TCP->new(
     RemoteAddress => '127.0.0.1',
-    RemotePort    => 31401,
+    RemotePort    => $acceptor_port,
     Alias         => "acceptor client $N",
 
     Connected => sub {
@@ -214,7 +231,7 @@ sub two_clients {
     ServerInput => sub {
       my ($heap, $input) = @_[HEAP, ARG0];
       DEBUG and warn("$$: acceptor client $N got input ($input)");
-      if( $input =~ /#21$/ ) {
+      if( $input =~ /#$NUM_CLIENTS$/ ) {
         $_[HEAP]->{server}->put( 'quit' );
       }
 
@@ -239,7 +256,7 @@ sub two_clients {
 
   POE::Component::Client::TCP->new(
     RemoteAddress => '127.0.0.1',
-    RemotePort    => 31402,
+    RemotePort    => $callback_port,
     Alias         => "callback client $N",
 
     Connected => sub {
@@ -259,7 +276,7 @@ sub two_clients {
     ServerInput => sub {
       my ($heap, $input) = @_[HEAP, ARG0];
       DEBUG and warn("$$: callback client $N got input ($input)");
-      if( $input =~ /#21$/ ) {
+      if( $input =~ /#$NUM_CLIENTS$/ ) {
           $_[HEAP]->{server}->put( 'quit' );
       }
       $_[KERNEL]->yield('shutdown');

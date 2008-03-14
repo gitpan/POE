@@ -1,9 +1,9 @@
-# $Id: Queue.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Queue.pm 2220 2007-08-19 00:59:33Z rcaputo $
 
 package POE::Queue;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -180,3 +180,6 @@ Please see L<POE> for more information about authors, contributors,
 and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

@@ -1,11 +1,11 @@
-# $Id: Run.pm 2179 2007-03-21 07:55:15Z rcaputo $
+# $Id: Run.pm 2283 2008-03-10 07:55:29Z rcaputo $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2179 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2283 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -34,33 +34,6 @@ BEGIN {
     eval    { require Win32API::File; };
     if ($@) { die "Win32API::File but failed to load:\n$@" }
     else    { Win32API::File->import( qw(FdGetOsFHandle) ); };
-  }
-
-  # How else can I get them out?!
-  if (eval '&IO::Tty::Constant::TIOCSCTTY') {
-    *TIOCSCTTY = *IO::Tty::Constant::TIOCSCTTY;
-  }
-  else {
-    eval 'sub TIOCSCTTY () { undef }';
-  }
-
-  if (eval '&IO::Tty::Constant::CIBAUD') {
-    *CIBAUD = *IO::Tty::Constant::CIBAUD;
-  }
-  else {
-    eval 'sub CIBAUD () { undef; }';
-  }
-
-  if (
-    eval '&IO::Tty::Constant::TIOCSWINSZ' and
-    eval '&IO::Tty::Constant::TIOCGWINSZ'
-  ) {
-    *TIOCSWINSZ = *IO::Tty::Constant::TIOCSWINSZ;
-    *TIOCGWINSZ = *IO::Tty::Constant::TIOCGWINSZ;
-  }
-  else {
-    eval 'sub TIOCSWINSZ () { undef; }';
-    eval 'sub TIOCGWINSZ () { undef; }';
   }
 
   # Determine the most file descriptors we can use.
@@ -312,50 +285,23 @@ sub new {
       # Program 19.3, APITUE.  W. Richard Stevens built my hot rod.
       eval 'setsid()' unless $no_setsid;
 
+      # Acquire a controlling terminal.  Program 19.3, APITUE.
+      $stdin_write->make_slave_controlling_terminal();
+
       # Open the slave side of the pty.
       $stdin_read = $stdout_write = $stdin_write->slave();
       croak "could not create slave pty: $!" unless defined $stdin_read;
-      ## for a simple pty conduit, stderr is wedged into stdout:
-      $stderr_write = $stdout_write if $conduit eq 'pty';
 
-      # Acquire a controlling terminal.  Program 19.3, APITUE.
-      if (defined TIOCSCTTY and not defined CIBAUD) {
-        ioctl( $stdin_read, TIOCSCTTY, 0 );
-      }
+      # For a simple pty conduit, stderr is wedged into stdout.
+      $stderr_write = $stdout_write if $conduit eq 'pty';
 
       # Put the pty conduit (slave side) into "raw" or "cbreak" mode,
       # per APITUE 19.4 and 11.10.
-      my $tio = POSIX::Termios->new();
-      $tio->getattr(fileno($stdin_read));
-      my $lflag = $tio->getlflag;
-      $lflag &= ~(ECHO | ICANON | IEXTEN | ISIG);
-      $tio->setlflag($lflag);
-      my $iflag = $tio->getiflag;
-      $iflag &= ~(BRKINT | ICRNL | INPCK | ISTRIP | IXON);
-      $tio->setiflag($iflag);
-      my $cflag = $tio->getcflag;
-      $cflag &= ~(CSIZE | PARENB);
-      $tio->setcflag($cflag);
-      my $oflag = $tio->getoflag;
-      $oflag &= ~(OPOST);
-      $tio->setoflag($oflag);
-      $tio->setattr(fileno($stdin_read), TCSANOW);
+      $stdin_read->set_raw();
 
       # Set the pty conduit (slave side) window size to our window
       # size.  APITUE 19.4 and 19.5.
-      if (defined TIOCGWINSZ) {
-        my $window_size = '!' x 25;
-        if (-t STDIN and !$winsize) {
-          ioctl( STDIN, TIOCGWINSZ, $window_size ) or die $!;
-        }
-        $window_size = pack('SSSS', @$winsize) if ref($winsize);
-        if ($window_size ne '!' x 25) {
-          ioctl( $stdin_read, TIOCSWINSZ, $window_size ) or die $!;
-        }
-        else {
-          carp "STDIN is not a terminal.  Can't set slave pty's window size";
-        }
-      }
+      $stdin_read->clone_winsize_from(\*STDIN);
     }
 
     # Reset all signals in the child process.  POE's own handlers are
@@ -364,7 +310,7 @@ sub new {
     my @safe_signals = $poe_kernel->_data_sig_get_safe_signals();
     @SIG{@safe_signals} = ("DEFAULT") x @safe_signals;
 
-    # -><- How to pass events to the parent process?  Maybe over a
+    # TODO How to pass events to the parent process?  Maybe over a
     # expedited (OOB) filehandle.
 
     # Fix the child process' priority.  Don't bother doing this if it
@@ -375,26 +321,26 @@ sub new {
       eval {
         if (defined(my $priority = getpriority(0, $$))) {
           unless (setpriority(0, $$, $priority + $priority_delta)) {
-            # -><- can't set child priority
+            # TODO can't set child priority
           }
         }
         else {
-          # -><- can't get child priority
+          # TODO can't get child priority
         }
       };
       if ($@) {
-        # -><- can't get child priority
+        # TODO can't get child priority
       }
     }
 
-    # Fix the group ID.  -><- Add getgrnam so group IDs can be
-    # specified by name.  -><- Warn if not superuser to begin with.
+    # Fix the group ID.  TODO Add getgrnam so group IDs can be
+    # specified by name.  TODO Warn if not superuser to begin with.
     if (defined $group_id) {
       $( = $) = $group_id;
     }
 
-    # Fix the user ID.  -><- Add getpwnam so user IDs can be specified
-    # by name.  -><- Warn if not superuser to begin with.
+    # Fix the user ID.  TODO Add getpwnam so user IDs can be specified
+    # by name.  TODO Warn if not superuser to begin with.
     if (defined $user_id) {
       $< = $> = $user_id;
     }
@@ -1605,3 +1551,6 @@ names.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

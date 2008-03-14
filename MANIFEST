@@ -1,8 +1,6 @@
 CHANGES
 HISTORY
 lib/POE.pm
-lib/POE/API/Ctl.pm
-lib/POE/API/ResLoader.pm
 lib/POE/Component.pm
 lib/POE/Component/Client/TCP.pm
 lib/POE/Component/Server/TCP.pm
@@ -36,7 +34,6 @@ lib/POE/Queue.pm
 lib/POE/Queue/Array.pm
 lib/POE/Resource.pm
 lib/POE/Resource/Aliases.pm
-lib/POE/Resource/Controls.pm
 lib/POE/Resource/Events.pm
 lib/POE/Resource/Extrefs.pm
 lib/POE/Resource/FileHandles.pm
@@ -92,8 +89,6 @@ t/10_units/02_pipes/01_base.t
 t/10_units/02_pipes/02_oneway.t
 t/10_units/02_pipes/03_twoway.t
 t/10_units/03_base/01_poe.t
-t/10_units/03_base/02_api_ctl.t
-t/10_units/03_base/02_api_resloader.t
 t/10_units/03_base/03_component.t
 t/10_units/03_base/04_driver.t
 t/10_units/03_base/05_filter.t
@@ -127,7 +122,6 @@ t/10_units/07_exceptions/02_turn_off.t
 t/10_units/07_exceptions/03_not_handled.t
 t/20_resources/00_base/aliases.pm
 t/20_resources/00_base/caller_state.pm
-t/20_resources/00_base/controls.pm
 t/20_resources/00_base/events.pm
 t/20_resources/00_base/extrefs.pm
 t/20_resources/00_base/extrefs_gc.pm
@@ -159,11 +153,12 @@ t/30_loops/00_base/wheel_sf_tcp.pm
 t/30_loops/00_base/wheel_sf_udp.pm
 t/30_loops/00_base/wheel_sf_unix.pm
 t/30_loops/00_base/wheel_tail.pm
+t/90_regression/agaran-filter-httpd.t
 t/90_regression/averell-callback-ret.t
+t/90_regression/bingos-followtail.t
 t/90_regression/broeren-win32-nbio.t
 t/90_regression/cfedde-filter-httpd.t
 t/90_regression/ferrari-server-unix.t
-t/90_regression/immute-server-tcp-filter.t
 t/90_regression/merijn-sigchld-system.t
 t/90_regression/neyuki_detach.t
 t/90_regression/rt14444-arg1.t
@@ -171,9 +166,9 @@ t/90_regression/rt1648-tied-stderr.t
 t/90_regression/rt19908-merlyn-stop.t
 t/90_regression/rt23181-sigchld-rc.t
 t/90_regression/steinert-passed-wheel.t
-t/90_regression/steinert-recursive-signal.t
 t/90_regression/steinert-signal-integrity.t
 t/90_regression/suzman_windows.t
 t/90_regression/ton-stop-corruption.t
+t/90_regression/whelan-dieprop.t
 t/90_regression/whjackson-followtail.t
 TODO

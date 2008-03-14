@@ -1,11 +1,11 @@
-# $Id: SocketFactory.pm 2194 2007-07-21 06:51:26Z rcaputo $
+# $Id: SocketFactory.pm 2222 2007-08-19 05:02:19Z rcaputo $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2194 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -49,18 +49,17 @@ sub MY_SOCKET_SELECTED () { 12 }
 # Test and provide for each constant separately, per suggestion in
 # rt.cpan.org 27250.
 BEGIN {
-  eval {
-    require Socket6;
-    my $x = &Socket6::AF_INET6;
-  };
-  *Socket6::AF_INET6 = sub () { ~0 } if $@;
-
-  eval {
-    require Socket6;
-    my $x = &Socket6::PF_INET6;
-  };
-
-  *Socket6::PF_INET6 = sub () { ~0 } if $@;
+  eval { require Socket6 };
+  if ($@) {
+    *Socket6::AF_INET6 = sub () { ~0 };
+    *Socket6::PF_INET6 = sub () { ~0 };
+  }
+  else {
+    eval { my $x = &Socket6::AF_INET6 };
+    *Socket6::AF_INET6 = sub () { ~0 } if $@;
+    eval { my $x = &Socket6::PF_INET6 };
+    *Socket6::PF_INET6 = sub () { ~0 } if $@;
+  }
 }
 
 #------------------------------------------------------------------------------
@@ -99,7 +98,7 @@ my %supported_protocol = (
   },
 );
 
-# Sane default socket types for each supported protocol.  -><- Maybe
+# Sane default socket types for each supported protocol.  TODO Maybe
 # this structure can be combined with %supported_protocol?
 my %default_socket_type = (
   DOM_UNIX, {
@@ -1481,3 +1480,6 @@ the SocketFactory class.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

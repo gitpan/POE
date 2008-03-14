@@ -1,4 +1,4 @@
-# $Id: Block.pm 2187 2007-04-19 21:35:33Z rcaputo $
+# $Id: Block.pm 2221 2007-08-19 02:45:16Z rcaputo $
 
 package POE::Filter::Block;
 
@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2187 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2221 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -119,8 +119,8 @@ sub get_one {
   ) {
     return [ ] if length($self->[FRAMING_BUFFER]) < $self->[EXPECTED_SIZE];
 
-    # TODO - Four-arg substr() would be better here, but it's not
-    # compatible with Perl as far back as we support.
+    # Four-arg substr() would be better here, but it's not compatible
+    # with Perl as far back as we support.
     my $block = substr($self->[FRAMING_BUFFER], 0, $self->[EXPECTED_SIZE]);
     substr($self->[FRAMING_BUFFER], 0, $self->[EXPECTED_SIZE]) = '';
     $self->[EXPECTED_SIZE] = undef;
@@ -260,3 +260,6 @@ Rocco Caputo.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

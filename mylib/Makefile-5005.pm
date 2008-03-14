@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm 2187 2007-04-19 21:35:33Z rcaputo $
+# $Id: Makefile-5005.pm 2286 2008-03-10 08:32:44Z rcaputo $
 
 use strict;
 
@@ -32,7 +32,7 @@ sub check_for_modules {
     my $module  = shift @modules;
     my $target  = shift @modules;
 
-    my $version = eval "use $module; return \$$module\::VERSION";
+    my $version = eval "use $module (); return \$$module\::VERSION";
 
     if ($@) {
       push(

@@ -1,4 +1,4 @@
-# $Id: Gtk.pm 2004 2006-06-27 08:22:05Z bsmith $
+# $Id: Gtk.pm 2219 2007-08-19 00:54:55Z rcaputo $
 
 # Gtk-Perl event loop bridge for POE::Kernel.
 
@@ -11,7 +11,19 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2004 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2219 $=~/(\d+)/);sprintf"1.%04d",$r};
+
+=for poe_tests
+
+sub skip_tests {
+  return "Gtk needs a DISPLAY (set one today, okay?)" unless (
+    defined $ENV{DISPLAY} and length $ENV{DISPLAY}
+  );
+  return "Gtk tests require the Gtk module" if do { eval "use Gtk"; $@ };
+  return;
+}
+
+=cut
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -338,3 +350,6 @@ Please see L<POE> for more information about authors, contributors,
 and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_run.pm 2198 2007-07-22 06:15:17Z rcaputo $
+# $Id: wheel_run.pm 2279 2008-03-09 21:53:28Z rcaputo $
 
 use strict;
 use lib qw(./mylib ../mylib);
@@ -28,6 +28,9 @@ BEGIN {
     }
     elsif (exists $INC{"Event.pm"}) {
       $error = "$^O\'s fork() emulation breaks Event";
+    }
+    else {
+      $error = "Signal handling on $^O is too fragile - Perl crashes";
     }
 
     $RUNNING_WIN32 = 1;

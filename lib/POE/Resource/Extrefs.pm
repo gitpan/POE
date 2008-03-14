@@ -1,4 +1,4 @@
-# $Id: Extrefs.pm 2087 2006-09-01 10:24:43Z bsmith $
+# $Id: Extrefs.pm 2222 2007-08-19 05:02:19Z rcaputo $
 
 # The data necessary to manage tagged extra/external reference counts
 # on sessions, and the accessors to get at them sanely from other
@@ -7,7 +7,7 @@
 package POE::Resource::Extrefs;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -42,14 +42,14 @@ sub _data_extref_finalize {
 # time the tag is used in the session, then increment the session's
 # reference count as well.  Returns the tag's new reference count.
 #
-# -><- Allows incrementing reference counts on sessions that don't
+# TODO Allows incrementing reference counts on sessions that don't
 # exist, but the public interface catches that.
 
 sub _data_extref_inc {
   my ($self, $session, $tag) = @_;
   my $refcount = ++$kr_extra_refs{$session}->{$tag};
 
-  # -><- We could probably get away with only incrementing the
+  # TODO We could probably get away with only incrementing the
   # session's master refcount once, as long as any extra refcount is
   # positive.  Then the session reference count would be a flag
   # instead of a counter.
@@ -69,7 +69,7 @@ sub _data_extref_inc {
 # if the count reaches zero.  Return the new reference count or undef
 # if the tag doesn't exist.
 #
-# -><- Allows negative reference counts, and the resulting hilarity.
+# TODO Allows negative reference counts, and the resulting hilarity.
 # Hopefully the public interface won't allow it.
 
 sub _data_extref_dec {
@@ -196,3 +196,6 @@ Probably others.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

@@ -1,4 +1,4 @@
-# $Id: SIDs.pm 2087 2006-09-01 10:24:43Z bsmith $
+# $Id: SIDs.pm 2245 2007-10-13 05:18:39Z rcaputo $
 
 # Session IDs: The data to maintain them, and accessors to get at them
 # sanely from other files.
@@ -6,7 +6,7 @@
 package POE::Resource::SIDs;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2245 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -32,7 +32,6 @@ sub _data_sid_initialize {
   $poe_kernel->[KR_SESSION_IDS] = \%kr_session_ids;
   $poe_kernel->[KR_SID_SEQ] = \$kr_sid_seq;
 }
-use POE::API::ResLoader \&_data_sid_initialize;
 
 ### End-run leak checking.
 
@@ -116,3 +115,6 @@ Probably.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

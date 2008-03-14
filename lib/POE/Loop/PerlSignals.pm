@@ -1,4 +1,4 @@
-# $Id: PerlSignals.pm 1980 2006-06-11 19:23:12Z rcaputo $
+# $Id: PerlSignals.pm 2280 2008-03-10 06:08:01Z rcaputo $
 
 # Plain Perl signal handling is something shared by several event
 # loops.  The invariant code has moved out here so that each loop may
@@ -10,7 +10,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1980 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2280 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -59,9 +59,9 @@ sub loop_watch_signal {
 
   # Child process has stopped.
   if ($signal eq 'CHLD' or $signal eq 'CLD') {
-# We should never twiddle $SIG{CH?LD} under poe, unless we want to override
-# system() and friends. --hachi
-#    $SIG{$signal} = "DEFAULT";
+    # We should never twiddle $SIG{CH?LD} under POE, unless we want to
+    # override system() and friends. --hachi
+    # $SIG{$signal} = "DEFAULT";
     $self->_data_sig_begin_polling();
     return;
   }
@@ -83,9 +83,9 @@ sub loop_ignore_signal {
 
   if ($signal eq 'CHLD' or $signal eq 'CLD') {
     $self->_data_sig_cease_polling();
-# We should never twiddle $SIG{CH?LD} under poe, unless we want to override
-# system() and friends. --hachi
-#    $SIG{$signal} = "IGNORE";
+    # We should never twiddle $SIG{CH?LD} under poe, unless we want to
+    # override system() and friends. --hachi
+    # $SIG{$signal} = "IGNORE";
     return;
   }
 
@@ -133,3 +133,6 @@ Please see L<POE> for more information about authors, contributors,
 and POE's licensing.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2196 2007-07-21 07:04:55Z rcaputo $
+# $Id: TCP.pm 2220 2007-08-19 00:59:33Z rcaputo $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2196 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -1028,3 +1028,6 @@ POE::Component::Server::TCP is based on code, used with permission,
 from Jos Boumans E<lt>kane@cpan.orgE<gt>.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

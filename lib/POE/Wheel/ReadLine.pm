@@ -1,4 +1,4 @@
-# $Id: ReadLine.pm 2187 2007-04-19 21:35:33Z rcaputo $
+# $Id: ReadLine.pm 2222 2007-08-19 05:02:19Z rcaputo $
 
 package POE::Wheel::ReadLine;
 
@@ -6,7 +6,7 @@ use strict;
 BEGIN { eval { require bytes } and bytes->import; }
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2187 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
@@ -767,7 +767,7 @@ sub _global_init {
       $str = '^' . lc(chr($ord+64));
     }
     elsif ($ord == 127) {
-      $str = "^?"; # -><- chr(127);
+      $str = "^?";
     }
     $normalized_character{chr($ord)} = $str;
     $normalized_extra_width[$ord] = length ( $str ) - 1;
@@ -3418,3 +3418,6 @@ Please see L<POE> for more information about other authors and
 contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

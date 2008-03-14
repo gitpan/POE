@@ -1,15 +1,15 @@
-# $Id: FollowTail.pm 2160 2006-12-31 21:35:35Z rcaputo $
+# $Id: FollowTail.pm 2267 2008-01-11 15:50:02Z bingosnet $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2160 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2267 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
-use POSIX qw(SEEK_SET SEEK_CUR SEEK_END);
+use POSIX qw(SEEK_SET SEEK_CUR SEEK_END S_ISCHR S_ISBLK);
 use POE qw(Wheel Driver::SysRW Filter::Line);
 use IO::Handle ();
 
@@ -331,6 +331,11 @@ sub _define_timer_states {
             }
 
             $last_stat->[7] = $new_stat[7];
+
+            # Ignore rdev changes for non-device files
+            if (!S_ISBLK($new_stat[2]) and !S_ISCHR($new_stat[2])) {
+              $last_stat->[6] = $new_stat[6];
+            }
 
             # Something fundamental about the file changed.  Reopen it.
             if (
@@ -747,3 +752,6 @@ This wheel can't tail pipes and consoles on some systems.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

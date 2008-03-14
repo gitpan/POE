@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm 2188 2007-04-29 06:38:11Z rcaputo $
+# $Id: HTTPD.pm 2272 2008-02-20 10:18:36Z bingosnet $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,7 +17,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2188 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2272 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 sub BUFFER        () { 0 }
@@ -76,7 +76,8 @@ sub get {
 
   # Sanity check.  "finish" is set when a request has completely
   # arrived.  Subsequent get() calls on the same request should not
-  # happen.  -><- Maybe this should return [] instead of dying?
+  # happen.
+  # TODO Maybe this should return [] instead of dying?
 
   if ($self->[FINISH]) {
 
@@ -174,7 +175,11 @@ sub get {
 
   # Use the request line to create a request object.
 
-  my $r = HTTP::Request->new($1, URI->new($2));
+  my $method = $1;
+  my $req_path = $2;
+  $req_path =~ s/^[\/]{2,}/\//; # fix double slash starting path
+
+  my $r = HTTP::Request->new($method, URI->new($req_path));
   $r->protocol($proto);
   $self->[CLIENT_PROTO] = $proto = _http_version($proto);
 
@@ -204,8 +209,7 @@ sub get {
 
   # If this is a GET or HEAD request, we won't be expecting a message
   # body.  Finish up.
-
-  my $method = uc $r->method();
+  $method = uc $r->method();
   if ($method eq 'GET' or $method eq 'HEAD') {
     $self->[FINISH]++;
     # We are sending this back, so won't need it anymore.
@@ -481,3 +485,6 @@ The HTTPD filter was contributed by Artur Bergman.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

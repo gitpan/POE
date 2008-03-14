@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm 2087 2006-09-01 10:24:43Z bsmith $
+# $Id: FileHandles.pm 2274 2008-02-25 05:56:36Z rcaputo $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,7 +6,7 @@
 package POE::Resource::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2087 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2274 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -20,8 +20,8 @@ use strict;
 
 BEGIN {
   if (RUNNING_IN_HELL) {
-    eval '*F_GETFL = sub { 0 };';
-    eval '*F_SETFL = sub { 0 };';
+    eval '*F_GETFL = sub () { 0 };';
+    eval '*F_SETFL = sub () { 0 };';
   }
 }
 
@@ -88,9 +88,8 @@ sub SH_MODECOUNT  () {  2 } #          [ $read_reference_count,     (MODE_RD)
                             #    },
 
 sub _data_handle_preload {
-    $poe_kernel->[KR_FILENOS] = \%kr_filenos;
+  $poe_kernel->[KR_FILENOS] = \%kr_filenos;
 }
-use POE::API::ResLoader \&_data_handle_preload;
 
 ### Begin-run initialization.
 
@@ -625,7 +624,7 @@ sub _data_handle_remove {
   }
 
   # SS_HANDLES - Remove the select from the session, assuming there is
-  # a session to remove it from.  -><- Key it on fileno?
+  # a session to remove it from.  TODO Key it on fileno?
 
   if (
     exists($kr_ses_to_handle{$session}) and
@@ -753,7 +752,7 @@ sub _data_handle_clear_session {
   }
 }
 
-# -><- Testing accessors.  Maybe useful for introspection.  May need
+# TODO Testing accessors.  Maybe useful for introspection.  May need
 # modification before that.
 
 sub _data_handle_fno_refcounts {
@@ -835,3 +834,6 @@ Probably.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

@@ -12,7 +12,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2145 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -276,3 +276,5 @@ contributors.
 
 =cut
 
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.

@@ -1,4 +1,4 @@
-# $Id: Signals.pm 2192 2007-07-04 21:31:15Z rcaputo $
+# $Id: Signals.pm 2245 2007-10-13 05:18:39Z rcaputo $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2192 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2245 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -65,12 +65,6 @@ my $polling_for_signals = 0;
 # A flag determining whether there are child processes.
 my $kr_child_procs = exists($INC{'Apache.pm'}) ? 0 : 1;
 
-sub _data_sig_preload {
-  $poe_kernel->[KR_SIGNALS] = \%kr_signals;
-  $poe_kernel->[KR_PIDS]    = \%kr_pids_to_events;
-}
-use POE::API::ResLoader \&_data_sig_preload;
-
 # A list of special signal types.  Signals that aren't listed here are
 # benign (they do not kill sessions at all).  "Terminal" signals are
 # the ones that UNIX defaults to killing processes with.  Thus STOP is
@@ -106,6 +100,9 @@ sub _data_sig_initialize {
   # least once.  Starts false when running in an Apache handler so our
   # SIGCHLD hijinx don't interfere with the web server.
   $kr_child_procs = exists($INC{'Apache.pm'}) ? 0 : 1;
+
+  $poe_kernel->[KR_SIGNALS] = \%kr_signals;
+  $poe_kernel->[KR_PIDS]    = \%kr_pids_to_events;
 
   # In case we're called multiple times.
   unless (keys %_safe_signals) {
@@ -355,7 +352,7 @@ sub _data_sig_explicitly_watched {
 }
 
 ### Return the signals watched by a session and the events they
-### generate.  -><- Used mainly for testing, but may also be useful
+### generate.  TODO Used mainly for testing, but may also be useful
 ### for introspection.
 
 sub _data_sig_watched_by_session {
@@ -371,7 +368,7 @@ sub _data_sig_watchers {
 }
 
 ### Return the current signal's handled status.
-### -><- Used for testing.
+### TODO Used for testing.
 
 sub _data_sig_handled_status {
   return(
@@ -417,7 +414,7 @@ sub _data_sig_free_terminated_sessions {
     }
   }
   else {
-    # -><- Implicit signal reaping.  This is deprecated behavior and
+    # TODO Implicit signal reaping.  This is deprecated behavior and
     # will eventually be removed.  See the commented out tests in
     # t/res/signals.t.
     #
@@ -481,7 +478,7 @@ sub _data_sig_handle_poll_event {
 
   # Reap children for as long as waitpid(2) says something
   # interesting has happened.
-  # -><- This has a possibility of an infinite loop, but so far it
+  # TODO This has a possibility of an infinite loop, but so far it
   # hasn't hasn't happened.
 
   my $pid;
@@ -550,7 +547,7 @@ sub _data_sig_handle_poll_event {
       next;
     }
 
-    # No child processes exist.  -><- This is different than
+    # No child processes exist.  TODO This is different than
     # children being present but running.  Maybe this condition
     # could halt polling entirely, and some UNIVERSAL::fork wrapper
     # could restart polling when processes are forked.
@@ -639,3 +636,6 @@ Probably.
 Please see L<POE> for more information about authors and contributors.
 
 =cut
+
+# rocco // vim: ts=2 sw=2 expandtab
+# TODO - Redocument.
