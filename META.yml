@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 0.9999_01
+version: 0.9999_02
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -22,7 +22,7 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 0.9999_01
+    version: 0.9999_02
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2220
@@ -70,7 +70,7 @@ provides:
     version: 1.2220
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.2284
+    version: 1.2290
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.2280
@@ -171,7 +171,7 @@ provides:
     version: 1.2232
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
-    version: 1.2283
+    version: 1.2290
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
     version: 1.2222

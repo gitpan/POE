@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 2284 2008-03-10 08:04:27Z rcaputo $
+# $Id: Kernel.pm 2290 2008-03-19 21:09:44Z nothingmuch $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2284 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2290 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -2987,7 +2987,8 @@ problematic, it will be removed without much notice.
 stop() is advanced magic.  Programmers who think they need it are
 invited to become familiar with its source.
 
-TODO - Example of stop().
+See L<POE::Wheel::Run/Nested POE Kernel> for an example of how to use this
+facility.
 
 =head2 Asynchronous Messages (FIFO Events)
 
@@ -4799,6 +4800,11 @@ get_next_event_time() returns the time the next event is due, in a
 form compatible with the UNIX time() function.  It is exposed for
 L<POE::Loop|POE::Loop> class authors.  It may be deprecated in the future.
 
+=head3 poe_kernel_loop
+
+poe_kernel_loop() returns the name of the POE::Loop class that is used
+to detect and dispatch events.
+
 =head2 Session Helper Methods
 
 The methods in this group expose features for L<POE::Session|POE::Session>
@@ -5047,15 +5053,17 @@ When enabled, POE counts the number of times each event is dispatched.
 At the end of a run, POE will display a table fo each event name and
 its dispatch count.
 
-When TRACE_PROFILE is enabled, a program may call
-C<< $_[KERNEL]->stat_show_profile() >> to display a current dispatch
-profile snapshot.
-
 See TRACE_STATISTICS for more profiling.
 
 Prefix: <pr>
 
 Environment variable: POE_TRACE_PROFILE
+
+=head3 stat_show_profile
+
+When TRACE_PROFILE is enabled, a program may call
+C<< $_[KERNEL]->stat_show_profile() >> to display a current dispatch
+profile snapshot.
 
 =head2 TRACE_REFCNT
 
@@ -5112,9 +5120,12 @@ dispatcher, and the time spent waiting for an event.  A report is
 displayed just before run() returns, and the data can be retrieved at
 any time using stat_getdata().
 
+=head3 stat_getdata
+
 stat_getdata() returns a hash of various statistics and their values
 The statistics are calculated using a sliding window and vary over
-time as a program runs.
+time as a program runs.  It only returns meaningful data if
+TRACE_STATISTICS is enabled.
 
 =head1 SEE ALSO
 

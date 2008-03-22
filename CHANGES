@@ -2,6 +2,26 @@
 9999-99-99 99:99:99 (untagged)
 ==============================
 
+  2008-03-22 22:22:40 (r2292) by rcaputo; poe/lib/POE.pm M
+
+    Bump up the version for the 2nd pre-release test.
+
+  2008-03-22 22:21:42 (r2291) by rcaputo
+  poe/t/30_loops/00_base/wheel_run.pm M
+
+    Tweak the debugging output in a vain attempt to address rt 28804. 
+
+  2008-03-19 21:09:44 (r2290) by nothingmuch
+  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Kernel.pm M
+
+    Demonstrate usage of POE::Kernel->stop in L<POE::Wheel::Run/TIPS AND
+    TRICKS>
+
+  2008-03-19 15:38:58 (r2289) by rcaputo
+  poe/lib/POE/Kernel.pm M; poe/t/10_units/01_pod/02_pod_coverage.t M
+
+    Solve POD test coverage issues.
+
   2008-03-14 18:55:13 (r2288) by rcaputo; poe/lib/POE.pm M
 
     Packaging up a release for the testers.

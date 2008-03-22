@@ -1,4 +1,4 @@
-# $Id: 02_pod_coverage.t 2171 2007-01-18 19:51:37Z rcaputo $
+# $Id: 02_pod_coverage.t 2289 2008-03-19 15:38:58Z rcaputo $
 # vim: filetype=perl
 
 use Test::More;
@@ -25,6 +25,10 @@ my %special = (
     ],
     coverage_class => 'Pod::Coverage::CountParents',
   },
+	'POE::Kernel' => {
+		%$default_opts,
+		trustme => [ qr/^loop_/ ], # mixed in from POE::Loop
+	},
 );
 
 # Get the list of modules
