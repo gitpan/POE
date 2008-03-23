@@ -1,11 +1,11 @@
-# $Id: Run.pm 2290 2008-03-19 21:09:44Z nothingmuch $
+# $Id: Run.pm 2294 2008-03-23 01:23:36Z rcaputo $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2290 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2294 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -301,7 +301,7 @@ sub new {
 
       # Set the pty conduit (slave side) window size to our window
       # size.  APITUE 19.4 and 19.5.
-      $stdin_read->clone_winsize_from(\*STDIN);
+      eval { $stdin_read->clone_winsize_from(\*STDIN) };
     }
 
     # Reset all signals in the child process.  POE's own handlers are
