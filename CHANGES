@@ -1,32 +1,83 @@
-===========================
-2008-03-25 20:09:15 v1_0000
-===========================
+===================================
+2008-04-19T22:26:06.023137Z v1_0001
+===================================
+
+  2008-04-19 22:25:25 (r2315) by rcaputo; poe/mylib/svn-log.perl M
+
+    Use a much faster svn-log.perl from the latest repo-tools. 
+
+  2008-04-19 22:18:35 (r2314) by rcaputo; poe/lib/POE.pm M
+
+    Bump for release.
+
+  2008-04-19 20:01:20 (r2313) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Resolve rt.cpan.org ticket 34803. Apocalypse pointed out that
+    $_[KERNEL]->signal(DIE => $_[KERNEL]) would lock up and chew up
+    memory and CPU. Very bad bug. Resolved now, thanks! 
+
+  2008-04-19 05:49:16 (r2312) by rcaputo
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Resource/FileHandles.pm
+  M
+
+    Removal of POE::API::ResLoader broke POE::API::Peek. This change
+    re-initializes $poe_kernel members that stopped being set by the
+    previous change. Thanks to Niko Tyni of the Debian Perl Group for
+    pointing out the problem. 
+
+  2008-04-14 04:46:59 (r2311) by rcaputo; poe/lib/POE/Component.pm M
+
+    First draft of the new docs. 
+
+  2008-04-14 03:47:44 (r2310) by rcaputo; poe/lib/POE/Filter.pm M
+
+    First stab at a doc rewrite. 
+
+  2008-04-02 16:37:14 (r2309) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Change the name of Setpgrp to SetPgrp to follow the form of SetSid. 
+
+  2008-04-02 14:08:34 (r2308) by bingosnet; poe/lib/POE/Wheel/Run.pm M
+
+    Added setpgrp() to POE::Wheel::Run to change process group of child
+    process, if supported by the OS.
+
+  2008-03-31 11:46:07 (r2307) by nothingmuch
+  poe/lib/POE/Resource/Signals.pm M;
+  poe/t/90_regression/merijn-sigchld-system.t M;
+  poe/lib/POE/Loop/PerlSignals.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Introduce optional (see USE_SIGCHLD) $SIG{CHLD} based child polling
+    in addition to interval based polling
+
+  2008-03-27 18:57:08 (r2306) by nothingmuch; poe/lib/POE/Kernel.pm M
+
+    Document all the "other" constants in their own section of
+    POE::Kernel
+
+  2008-03-27 18:39:59 (r2305) by nothingmuch
+  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Kernel.pm M
+
+    Introduce the CHILD_POLLING_INTERVAL constant
+
+  2008-03-27 18:38:20 (r2304) by nothingmuch; poe/lib/POE/Kernel.pm M
+
+    Accept values from POE_([A-Z]+) environment variables for any defined
+    constant, not just ASSERT/TRACE
+
+  2008-03-27 18:17:26 (r2303) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    LARGE_QUEUE_SIZE isn't needed anymore. Linear scanning wasn't that
+    much of an optimization. 
+
+===================================
+2008-03-25T20:09:15.042886Z v1_0000
+===================================
 
   2008-03-25 20:08:47 (r2301) by rcaputo; poe/lib/POE.pm M
 
     At long last, it is time.
-
-  2008-03-24 05:11:33 (r2299) by rcaputo
-  poe-test-loops/t/01_no_tests.t M;
-  poe-test-loops/lib/POE/Test/Loops/k_signals_rerun.pm M;
-  poe-test-loops/lib/POE/Test/Loops/comp_tcp_concurrent.pm M;
-  poe-test-loops/MANIFEST M;
-  poe-test-loops/lib/POE/Test/Loops/wheel_readline.pm M;
-  poe-test-loops/lib/POE/Test/DondeEstan.pm M; poe-test-loops/Makefile.PL
-  M; poe-test-loops/lib/POE/Test/Loops/wheel_curses.pm M;
-  poe-test-loops/lib/POE/Test/Loops/wheel_run.pm M;
-  poe-test-loops/lib/POE/Test/Loops/wheel_sf_ipv6.pm M;
-  poe-test-loops/lib/POE/Test/Loops.pm A;
-  poe-test-loops/bin/poe-gen-tests M
-
-    Update tests to match POE 0.9999_03.
-    
-    Add POE::Test::Loops and move the VERSION number there so that the
-    package name can be installed and/or depended upon.
-    
-    Add keyword expansion to files that didn't have it set.
-    
-    Bump the version to 0.98. 
 
   2008-03-23 01:43:22 (r2298) by rcaputo; poe/lib/POE.pm M
 
@@ -502,72 +553,6 @@
 
     Revise documentation in a major way. 
 
-  2007-08-13 06:52:41 (r2216) by rcaputo
-  poe-test-loops/bin/poe-gen-tests M
-
-    Roll the version back to 0.97 for release.
-
-  2007-08-13 06:52:24 (r2215) by rcaputo; poe-test-loops/Makefile.PL M
-
-    Only report on tags matching ^ptl- 
-
-  2007-08-12 22:48:36 (r2214) by rcaputo
-  poe-test-loops/bin/poe-gen-tests M
-
-    Majorly simplify the code. Document the new conventions. 
-
-  2007-08-12 05:46:32 (r2213) by rcaputo
-  poe-test-loops/bin/poe-gen-tests M
-
-    Document how to specify more tests.
-
-  2007-08-11 18:12:49 (r2212) by rcaputo; poe-test-loops/Makefile.PL M
-
-    Add poe-gen-tests to EXE_FILES, ensuring it will be installed
-    somewhere good.
-
-  2007-08-11 18:08:55 (r2211) by rcaputo
-  poe-test-loops/Makefile.PL M; poe-test-loops/bin/poe-gen-tests M
-
-    Document more magic, converting it to merely technology. 
-
-  2007-08-11 09:18:48 (r2210) by rcaputo
-  poe-test-loops/t/01_no_tests.t A; poe-test-loops/MANIFEST A;
-  poe-test-loops/Makefile.PL A; poe-test-loops/lib/POE/Test/DondeEstan.pm
-  A; poe-test-loops/bin/poe-gen-tests A
-
-    More additions. 
-
-  2007-08-11 09:14:58 (r2209) by rcaputo
-  poe-test-loops/t A; poe-test-loops/lib/POE/Test/Loops A;
-  poe-test-loops/lib/POE/Test/Loops/k_signals_rerun.pm A;
-  poe-test-loops/lib A; poe-test-loops/lib/POE/Test/Loops/wheel_run.pm A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_curses.pm A; poe-test-loops/bin
-  A; poe-test-loops/lib/POE/Test A;
-  poe-test-loops/lib/POE/Test/Loops/k_alarms.pm A;
-  poe-test-loops/lib/POE/Test/Loops/k_aliases.pm A;
-  poe-test-loops/lib/POE/Test/Loops/ses_session.pm A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_sf_unix.pm A;
-  poe-test-loops/lib/POE/Test/Loops/sbk_signal_init.pm A;
-  poe-test-loops/lib/POE/Test/Loops/k_sig_child.pm A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_sf_ipv6.pm A;
-  poe-test-loops/lib/POE/Test/Loops/k_detach.pm A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_sf_tcp.pm A;
-  poe-test-loops/lib/POE/Test/Loops/comp_tcp.pm A;
-  poe-test-loops/lib/POE/Test/Loops/all_errors.pm A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_sf_udp.pm A;
-  poe-test-loops/lib/POE/Test/Loops/comp_tcp_concurrent.pm A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_readline.pm A;
-  poe-test-loops/lib/POE/Test/Loops/k_signals.pm A;
-  poe-test-loops/lib/POE A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_readwrite.pm A;
-  poe-test-loops/lib/POE/Test/Loops/k_selects.pm A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_tail.pm A;
-  poe-test-loops/lib/POE/Test/Loops/ses_nfa.pm A; poe-test-loops A;
-  poe-test-loops/lib/POE/Test/Loops/wheel_accept.pm A
-
-    Initial add. Hoping the svn copy from POE will preserve history. 
-
   2007-08-11 09:10:38 (r2208) by rcaputo
   poe/t/30_loops/00_base/comp_tcp_concurrent.pm M;
   poe/t/30_loops/00_base/all_errors.pm M;
@@ -608,9 +593,9 @@
     tests. Slow machines, especially running emulators within
     virtualizations, get the time wrong sometimes. 
 
-===========================
-2007-07-23 07:25:45 v0_9999
-===========================
+===================================
+2007-07-23T07:25:45.773662Z v0_9999
+===================================
 
   2007-07-23 07:25:09 (r2202) by rcaputo; poe/lib/POE.pm M
 

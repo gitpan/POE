@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm 2274 2008-02-25 05:56:36Z rcaputo $
+# $Id: FileHandles.pm 2312 2008-04-19 05:49:16Z rcaputo $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,7 +6,7 @@
 package POE::Resource::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2274 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2312 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -35,6 +35,7 @@ my $kr_queue;
 ### more unique.
 
 my %kr_filenos;
+BEGIN { $poe_kernel->[KR_FILENOS] = \%kr_filenos; }
 
 sub FNO_MODE_RD      () { MODE_RD } # [ [ (fileno read mode structure)
 # --- BEGIN SUB STRUCT 1 ---        #
@@ -86,10 +87,6 @@ sub SH_MODECOUNT  () {  2 } #          [ $read_reference_count,     (MODE_RD)
                             #        ...
                             #      },
                             #    },
-
-sub _data_handle_preload {
-  $poe_kernel->[KR_FILENOS] = \%kr_filenos;
-}
 
 ### Begin-run initialization.
 
@@ -525,7 +522,7 @@ sub _data_handle_remove {
     ) {
 
       TRACE_FILES and
-        _warn "<fh> removing handle ($handle) fileno ($fd) mode ($mode)";
+        _warn "<fh> removing handle ($handle) fileno ($fd) mode ($mode) from " . Carp::shortmess;
 
       # Remove the handle from the kernel's session record.
 
@@ -552,7 +549,7 @@ sub _data_handle_remove {
         $self->_data_ev_refcount_dec( @$event[EV_SESSION, EV_SOURCE] );
 
         TRACE_EVENTS and
-          _warn "<ev> removing select event $id ``$event->[EV_NAME]''";
+          _warn "<ev> removing select event $id ``$event->[EV_NAME]''" . Carp::shortmess;
 
         $kr_fno_rec->[FMO_EV_COUNT]--;
 

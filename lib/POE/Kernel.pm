@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 2290 2008-03-19 21:09:44Z nothingmuch $
+# $Id: Kernel.pm 2313 2008-04-19 20:01:20Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2290 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2313 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -111,6 +111,22 @@ BEGIN {
   { no strict 'refs';
     unless (defined &CATCH_EXCEPTIONS) {
       *CATCH_EXCEPTIONS = sub () { 1 };
+    }
+  }
+
+  { no strict 'refs';
+    unless (defined &CHILD_POLLING_INTERVAL) {
+      *CHILD_POLLING_INTERVAL = sub () { 1 }; # that's one second, not a true value
+    }
+  }
+
+  { no strict 'refs';
+    unless (defined &USE_SIGCHLD) {
+      #if ( exists($INC{'Apache.pm'}) ) { # or unsafe signals
+      *USE_SIGCHLD = sub () { 0 };
+      #} else {
+      #  *USE_SIGCHLD = sub () { 1 };
+      #}
     }
   }
 }
@@ -258,11 +274,6 @@ sub EA_SEL_HANDLE () { 0 }
 sub EA_SEL_MODE   () { 1 }
 sub EA_SEL_ARGS   () { 2 }
 
-# Queues with this many events (or more) are considered to be "large",
-# and different strategies are used to find events within them.
-
-sub LARGE_QUEUE_SIZE () { 512 }
-
 #------------------------------------------------------------------------------
 # Debugging and configuration constants.
 
@@ -297,17 +308,20 @@ BEGIN {
   # Assimilate POE_TRACE_* and POE_ASSERT_* environment variables.
   # Environment variables override everything else.
   while (my ($var, $val) = each %ENV) {
-    next unless $var =~ /^POE_((?:TRACE|ASSERT)_[A-Z_]+)$/;
+    next unless $var =~ /^POE_([A-Z_]+)$/;
+
     my $const = $1;
 
-    # Copy so we don't hurt our environment.  Make sure strings are
-    # wrapped in quotes.
+    next unless $const =~ /^(?:TRACE|ASSERT)_/ or do { no strict 'refs'; defined &$const };
+
+    # Copy so we don't hurt our environment.
     my $value = $val;
     $value =~ tr['"][]d;
-    $value = qq($value) if $value =~ /\D/;
+    $value = 0 + $value if $value =~ /^\s*-?\d+(?:\.\d+)?\s*$/;
 
     no strict 'refs';
     local $^W = 0;
+    local $SIG{__WARN__} = sub { }; # redefine
     *$const = sub () { $value };
   }
 
@@ -912,7 +926,7 @@ sub _dispatch_event {
 
       if ($signal eq "DIE") {
         my $next_target = $self->_data_ses_get_parent($session);
-        while ($next_target != $self) {
+        while (defined($next_target) and $next_target != $self) {
           unshift @touched_sessions, $next_target;
           $next_target = $self->_data_ses_get_parent($next_target);
         }
@@ -5126,6 +5140,39 @@ stat_getdata() returns a hash of various statistics and their values
 The statistics are calculated using a sliding window and vary over
 time as a program runs.  It only returns meaningful data if
 TRACE_STATISTICS is enabled.
+
+=head1 ADDITIONAL CONSTANTS
+
+=head2 USE_TIME_HIRES
+
+Whether or not to use L<Time::HiRes> for timing purposes.
+
+See L</"Using Time::HiRes">.
+
+=head1 USE_SIGCHLD
+
+Whether to use C<$SIG{CHLD}> or to poll at an interval.
+
+This flag is disabled by default, and enabling it may cause breakage under
+older perls with no safe signals, and under L<Apache> which uses
+C<$SIG{CHLD}>.
+
+Enabling this flag will cause child reaping to happen almost immediately, as
+opposed to once per L</CHILD_POLLING_INTERVAL>.
+
+=head2 CHILD_POLLING_INTERVAL
+
+The interval at which C<wait> is called to determine if child processes need to
+be reaped and the C<CHLD> signal emulated.
+
+Defaults to 1 second.
+
+=head2 CATCH_EXCEPTIONS
+
+Whether or not POE should run event handler code in an eval { } and deliver the
+C<DIE> signal on errors.
+
+See L</"Exception Handling">.
 
 =head1 SEE ALSO
 

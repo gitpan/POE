@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 1.0000
+version: 1.0001
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -22,10 +22,10 @@ recommends:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.0000
+    version: 1.0001
   POE::Component:
     file: lib/POE/Component.pm
-    version: 1.2220
+    version: 1.2311
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
     version: 1.2220
@@ -40,7 +40,7 @@ provides:
     version: 1.2220
   POE::Filter:
     file: lib/POE/Filter.pm
-    version: 1.2269
+    version: 1.2310
   POE::Filter::Block:
     file: lib/POE/Filter/Block.pm
     version: 1.2221
@@ -70,7 +70,7 @@ provides:
     version: 1.2220
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.2290
+    version: 1.2313
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.2280
@@ -85,7 +85,7 @@ provides:
     version: 1.2222
   POE::Loop::PerlSignals:
     file: lib/POE/Loop/PerlSignals.pm
-    version: 1.2280
+    version: 1.2307
   POE::Loop::Select:
     file: lib/POE/Loop/Select.pm
     version: 1.2222
@@ -130,16 +130,16 @@ provides:
     version: 1.2222
   POE::Resource::FileHandles:
     file: lib/POE/Resource/FileHandles.pm
-    version: 1.2274
+    version: 1.2312
   POE::Resource::SIDs:
     file: lib/POE/Resource/SIDs.pm
     version: 1.2245
   POE::Resource::Sessions:
     file: lib/POE/Resource/Sessions.pm
-    version: 1.2245
+    version: 1.2312
   POE::Resource::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.2245
+    version: 1.2307
   POE::Resource::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.2220
@@ -171,7 +171,7 @@ provides:
     version: 1.2232
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
-    version: 1.2294
+    version: 1.2309
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
     version: 1.2222

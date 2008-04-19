@@ -1,11 +1,11 @@
-# $Id: Sessions.pm 2245 2007-10-13 05:18:39Z rcaputo $
+# $Id: Sessions.pm 2312 2008-04-19 05:49:16Z rcaputo $
 
 # Manage session data structures on behalf of POE::Kernel.
 
 package POE::Resource::Sessions;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2245 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2312 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -36,9 +36,7 @@ sub SS_CHILDREN   () { 3 }
 sub SS_PROCESSES  () { 4 }
 sub SS_ID         () { 5 }
 
-sub _data_ses_preload {
-  $POE::Kernel::poe_kernel->[KR_SESSIONS] = \%kr_sessions;
-}
+BEGIN { $POE::Kernel::poe_kernel->[KR_SESSIONS] = \%kr_sessions; }
 
 ### End-run leak checking.
 
