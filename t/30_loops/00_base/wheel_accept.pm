@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: wheel_accept.pm 2206 2007-07-25 04:44:21Z rcaputo $
+# $Id: wheel_accept.pm 2322 2008-05-11 20:45:25Z rcaputo $
 
 # Exercises the ListenAccept wheel.
 
@@ -56,7 +56,7 @@ sub listener_start {
   );
 
   $heap->{accept_count} = 0;
-  $_[KERNEL]->delay( got_timeout => 15 );
+  $_[KERNEL]->delay( got_timeout => 30 );
 }
 
 sub listener_stop {

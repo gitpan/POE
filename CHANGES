@@ -1,4 +1,57 @@
 ===================================
+2008-05-11T22:30:51.597024Z v1_0002
+===================================
+
+  2008-05-11 22:29:43 (r2325) by rcaputo; poe/lib/POE.pm M
+
+    Bump version for release.
+
+  2008-05-11 21:28:17 (r2324) by rcaputo
+  poe/lib/POE/Pipe.pm M; poe/lib/POE/Resource/FileHandles.pm M
+
+    Clean up the F_GETFL/F_SETFL mess a little. 
+
+  2008-05-11 20:51:44 (r2323) by rcaputo
+  poe/t/30_loops/00_base/wheel_run.pm M
+
+    Increase the timeout a little. Seeing some test failures due to
+    timeouts. 
+
+  2008-05-11 20:45:25 (r2322) by rcaputo
+  poe/t/30_loops/00_base/wheel_accept.pm M
+
+    Increase timeout for my slow VirtualPC test system.
+
+  2008-05-11 20:36:05 (r2321) by rcaputo
+  poe/t/90_regression/merijn-sigchld-system.t M
+
+    Actually, we must skip 4 tests if /bin/true does not exist. 
+
+  2008-04-28 18:10:04 (r2320) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Link the sig_child() documentation to the USE_SIGCHLD documentation
+    per Marc Lehmann's feedback. 
+
+  2008-04-28 06:16:20 (r2319) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Per Marc Lehmann's feedback, I have documented how to avoid a
+    potential race condition when catching child processes with
+    sig_child(). Basically, if you want sig_child() to catch a process,
+    call the method in the same event handler that forked the process.
+    Otherwise POE::Kernel may reap the process before sig_child() is
+    called. 
+
+  2008-04-26 09:13:50 (r2318) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Document how to avoid the run-wasn't-called warning. Thanks to Marc
+    Lehmann for reminding me to document it. 
+
+  2008-04-20 21:10:54 (r2317) by rcaputo
+  poe/t/30_loops/00_base/wheel_run.pm M
+
+    Increase the timeout in a test to avoid false errors.
+
+===================================
 2008-04-19T22:26:06.023137Z v1_0001
 ===================================
 

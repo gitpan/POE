@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm 2312 2008-04-19 05:49:16Z rcaputo $
+# $Id: FileHandles.pm 2324 2008-05-11 21:28:17Z rcaputo $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,7 +6,7 @@
 package POE::Resource::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2312 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2324 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -19,9 +19,10 @@ use strict;
 # aren't used if we're RUNNING_IN_HELL, but Perl needs to see them.
 
 BEGIN {
-  if (RUNNING_IN_HELL) {
-    eval '*F_GETFL = sub () { 0 };';
-    eval '*F_SETFL = sub () { 0 };';
+  eval 'F_GETFL';
+  if ($@) {
+    *F_GETFL = sub () { 0 };
+    *F_SETFL = sub () { 0 };
   }
 }
 

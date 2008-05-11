@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 2313 2008-04-19 20:01:20Z rcaputo $
+# $Id: Kernel.pm 2320 2008-04-28 18:10:04Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2313 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2320 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -2945,6 +2945,17 @@ waits for and dispatches events.
 run() will not return until every session has ended.  This includes
 sessions that were created while run() was running.
 
+POE::Kernel will print a strong message if a program creates sessions
+but fails to call run().  If the lack of a run() call is deliberate,
+you can avoid the message by calling it before creating a session.
+run() at that point will return immediately, and POE::Kernel will be
+satisfied.
+
+  use POE;
+  POE::Kernel->run(); # silence the warning
+  POE::Session->create( ... );
+  exit;
+
 =head3 run_one_timeslice
 
 run_one_timeslice() dispatches any events that are due to be
@@ -4342,10 +4353,10 @@ Example:
     # ...
   }
 
-SIGCHLD is not handled by registering a C<%SIG> handler, although it may
-be in the future.  For now, POE polls for child processes using a
-non-blocking C<waitpid()> call.  This is much more portable and reliable
-than setting C<$SIG{CHLD}>, although it's somewhat less responsive.
+By default, SIGCHLD is not handled by registering a C<%SIG> handler.
+Rather, waitpid() is called periodically to test for child process
+exits.  See the experimental L<USE_SIGCHLD> option if you would prefer
+child processes to be reaped in a more timely fashion.
 
 =head4 SIGPIPE
 
@@ -4514,13 +4525,18 @@ watcher can be cleared prematurely by calling sig_child() with just
 the PROCESS_ID.
 
 A session may register as many sig_child() handlers as necessary, but
-there may only be one per PROCESS_ID.
+a session may only have one per PROCESS_ID.
 
 sig_child() watchers are one-shot.  They automatically unregister
 themselves once the EVENT_NAME has been delivered.
 
 sig_child() watchers keep a session alive for as long as they are
 active.  This is unique among signal watchers.
+
+Programs that wish to reliably reap child processes should be sure to
+call sig_child() before returning from the event handler that forked
+the process.  Otherwise POE::Kernel may have an opportunity to call
+waitpid() before an appropriate event watcher has been registered.
 
 sig_chid() does not return a meaningful value.
 

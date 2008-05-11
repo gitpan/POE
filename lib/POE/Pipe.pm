@@ -1,4 +1,4 @@
-# $Id: Pipe.pm 2274 2008-02-25 05:56:36Z rcaputo $
+# $Id: Pipe.pm 2324 2008-05-11 21:28:17Z rcaputo $
 
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
@@ -9,7 +9,7 @@ package POE::Pipe;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2274 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2324 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Symbol qw(gensym);
 use IO::Socket qw(
@@ -17,7 +17,7 @@ use IO::Socket qw(
   pack_sockaddr_in unpack_sockaddr_in inet_aton
   SOMAXCONN SO_ERROR
 );
-use POSIX qw(:fcntl_h);
+use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
 use Errno qw(EINPROGRESS EWOULDBLOCK);
 
 # CygWin seems to have a problem with socketpair() and exec().  When
@@ -61,9 +61,10 @@ sub _shift_preference {
 # Provide dummy constants for MSWin32, so things at least compile.
 
 BEGIN {
-  if ($^O eq 'MSWin32') {
-    eval '*F_GETFL = sub () { 0 };';
-    eval '*F_SETFL = sub () { 0 };';
+  eval 'F_GETFL';
+  if ($@) {
+    *F_GETFL = sub () { 0 };
+    *F_SETFL = sub () { 0 };
   }
 }
 
