@@ -1,4 +1,4 @@
-# $Id: Gtk.pm 2219 2007-08-19 00:54:55Z rcaputo $
+# $Id: Gtk.pm 2329 2008-05-25 23:01:58Z rcaputo $
 
 # Gtk-Perl event loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2219 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2329 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 =for poe_tests
 
@@ -328,7 +328,7 @@ __END__
 
 =head1 NAME
 
-POE::Loop::Gtk - a bridge that supports Gtk's event loop from POE
+POE::Loop::Gtk - a bridge that allows POE to be driven by Gtk
 
 =head1 SYNOPSIS
 
@@ -336,13 +336,13 @@ See L<POE::Loop>.
 
 =head1 DESCRIPTION
 
-This class is an implementation of the abstract POE::Loop interface.
-It follows POE::Loop's public interface exactly.  Therefore, please
-see L<POE::Loop> for its documentation.
+POE::Loop::Gtk implements the interface documented in L<POE::Loop>.
+Therefore it has no documentation of its own.  Please see L<POE::Loop>
+for more details.
 
 =head1 SEE ALSO
 
-L<POE>, L<POE::Loop>, L<Gtk>
+L<POE>, L<POE::Loop>, L<Gtk>, L<POE::Loop::PerlSignals>
 
 =head1 AUTHORS & LICENSING
 
@@ -352,4 +352,3 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

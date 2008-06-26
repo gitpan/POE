@@ -1,11 +1,11 @@
-# $Id: Loop.pm 2280 2008-03-10 06:08:01Z rcaputo $
+# $Id: Loop.pm 2357 2008-06-20 17:41:54Z rcaputo $
 
 package POE::Loop;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2280 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 1;
 
@@ -82,7 +82,7 @@ Here is a skeleton of a POE::Loop subclass:
   package POE::Loop::YourToolkit;
 
   use vars qw($VERSION);
-  $VERSION = do {my@r=(q$Revision: 2280 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+  $VERSION = do {my@r=(q$Revision: 2357 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
   package POE::Kernel;
 
@@ -350,7 +350,7 @@ loop_pause_time_watcher() to provide less expensive timer toggling for
 frequent use cases.  As mentioned above, NEXT_EVENT_TIME is in UNIX
 epoch time and may have subsecond accuracy.
 
-loop_resume_time_watcher() is used by bridges that set tiem watchers
+loop_resume_time_watcher() is used by bridges that set them watchers
 in the underlying event loop.  For example, POE::Loop::Gtk implements
 it this way:
 
@@ -530,7 +530,7 @@ Firstly, if a POE::Loop subclass is manually loaded before
 POE::Kernel, then that will be used.  End of story.
 
 If one isn't, POE::Kernel searches for an external event loop module
-in %INC.  For each module in %INC, cooresponding POE::XS::Loop and
+in %INC.  For each module in %INC, corresponding POE::XS::Loop and
 POE::Loop subclasses are tried.
 
 For example, if IO::Poll is loaded, POE::Kernel tries
@@ -552,6 +552,10 @@ POE::Kernel will not detect them.
 
 L<POE>, L<POE::Loop::Event>, L<POE::Loop::Gtk>, L<POE::Loop::IO_Poll>,
 L<POE::Loop::Select>, L<POE::Loop::Tk>.
+
+L<POE::Test::Loops> is POE's event loop tests released as a separate,
+reusable distribution.  POE::Loop authors are encouraged to use the
+tests for their own distributions.
 
 TODO - Link to CPAN for POE::Loop modules.
 

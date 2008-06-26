@@ -1,4 +1,4 @@
-# $Id: Select.pm 2222 2007-08-19 05:02:19Z rcaputo $
+# $Id: Select.pm 2355 2008-06-20 02:31:51Z rcaputo $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2355 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 =for poe_tests
 
@@ -83,18 +83,23 @@ sub loop_attach_uidestroy {
 }
 
 #------------------------------------------------------------------------------
-# Maintain time watchers.
+# Maintain time watchers.  For this loop, we simply save the next
+# event time in a scalar.  loop_do_timeslice() will use the saved
+# value.  A "paused" time watcher is just a timeout for some future
+# time.
+
+my $_next_event_time = time();
 
 sub loop_resume_time_watcher {
-  # does nothing ($_[0] == next time)
+  $_next_event_time = $_[1];
 }
 
 sub loop_reset_time_watcher {
-  # does nothing ($_[0] == next time)
+  $_next_event_time = $_[1];
 }
 
 sub loop_pause_time_watcher {
-  # does nothing
+  $_next_event_time = time() + 3600;
 }
 
 #------------------------------------------------------------------------------
@@ -155,7 +160,7 @@ sub loop_do_timeslice {
   # event, if there are any.  If nothing is waiting, set the timeout
   # for some constant number of seconds.
 
-  my $timeout = $self->get_next_event_time();
+  my $timeout = $_next_event_time;
 
   my $now = time();
   if (defined $timeout) {
@@ -163,6 +168,7 @@ sub loop_do_timeslice {
     $timeout = 0 if $timeout < 0;
   }
   else {
+    die "shouldn't happen" if ASSERT_DATA;
     $timeout = 3600;
   }
 
@@ -340,7 +346,7 @@ __END__
 
 =head1 NAME
 
-POE::Loop::Select - a bridge that supports select(2) from POE
+POE::Loop::Select - a bridge that allows POE to be driven by select(2)
 
 =head1 SYNOPSIS
 
@@ -348,13 +354,13 @@ See L<POE::Loop>.
 
 =head1 DESCRIPTION
 
-This class is an implementation of the abstract POE::Loop interface.
-It follows POE::Loop's public interface exactly.  Therefore, please
-see L<POE::Loop> for its documentation.
+POE::Loop::Select implements the interface documented in L<POE::Loop>.
+Therefore it has no documentation of its own.  Please see L<POE::Loop>
+for more details.
 
 =head1 SEE ALSO
 
-L<POE>, L<POE::Loop>, L<select>
+L<POE>, L<POE::Loop>, L<select>, L<POE::Loop::PerlSignals>.
 
 =head1 AUTHORS & LICENSING
 
@@ -364,4 +370,3 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

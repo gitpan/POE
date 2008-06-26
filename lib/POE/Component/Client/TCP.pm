@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2220 2007-08-19 00:59:33Z rcaputo $
+# $Id: TCP.pm 2357 2008-06-20 17:41:54Z rcaputo $
 
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -346,6 +346,11 @@ POE::Component::Client::TCP - a simplified TCP client
 
 =head1 SYNOPSIS
 
+See L<POE::Wheel::SocketFactory/SYNOPSIS> for a lengthier version that
+allows the application more control over how the server works.
+
+  #!perl
+
   use POE qw(Component::Client::TCP);
 
   # Basic usage.
@@ -457,7 +462,7 @@ with as little work as possible.
 =item new
 
 The new() method can accept quite a lot of parameters.  It will return
-the session ID of the accecptor session.  One must use callbacks to 
+the session ID of the acceptor session.  One must use callbacks to 
 check for errors rather than the return value of new().
 
 =back

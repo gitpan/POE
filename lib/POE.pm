@@ -1,4 +1,4 @@
-# $Id: POE.pm 2325 2008-05-11 22:29:43Z rcaputo $
+# $Id: POE.pm 2360 2008-06-26 05:25:26Z rcaputo $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,8 +7,8 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION $REVISION);
-$VERSION = '1.0002'; # NOTE - Should be #.#### (four decimal places)
-$REVISION = do {my($r)=(q$Revision: 2325 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.0003'; # NOTE - Should be #.#### (four decimal places)
+$REVISION = do {my($r)=(q$Revision: 2360 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 sub import {
   my $self = shift;
@@ -270,7 +270,7 @@ rehash the common things.
 
 L<POE::Queue|POE::Queue>, L<POE::Resource|POE::Resource>, L<POE::Loop|POE::Loop>, and L<POE::API|POE::API> document the
 concepts and sometimes the standard interfaces behind multiple
-subclasess.  You're encouraged to have a look.
+subclasses.  You're encouraged to have a look.
 
 =head2 Helper Classes
 
@@ -353,7 +353,7 @@ non-obvious detail.
 
 One of POE's design goals is to be as portable as possible.  That's
 why it's written in "Plain Perl".  XS versions of POE modules are
-avaliable as third-party distributions.  Parts of POE that require
+available as third-party distributions.  Parts of POE that require
 nonstandard libraries are optional, and not having those libraries
 should not prevent POE from installing.
 
@@ -366,7 +366,7 @@ MacOS X, Linux, Solaris.  Maybe even AIX and QNX, but we're not sure.
 POE has also been tested on Windows XP, using the latest version of
 ActiveState Perl and Cygwin Perl.  Support for the Neopolitan Perls
 (Vanilla, Strawberry and Chocolate) is still early, but there should
-be no major showstoppers.
+be no major show stoppers.
 
 OS/2 and MacOS 9 have been reported to work in the past, but nobody
 seems to be testing there anymore.  Reports and patches are still
@@ -462,6 +462,8 @@ an e-mail via his CPAN address.
 
 Broken down by abstraction layer.
 
+TODO - Link to web resources.
+
 TODO - Verify this is complete.
 
 =head2 Layer 1
@@ -546,9 +548,9 @@ future.
 
 =item Jos Boumans
 
-Jos Boumans is <boumans@frg.eur.nl>, aka C<Co-Kane>.  Jos is a major
-driving force behind the POE::Simple movement and has helped inspire
-the POE::Components for TCP clients and servers.
+Jos Boumans is <kane@cpan.org>, aka C<kane>.  Jos is a major driving
+force behind the POE::Simple movement and has helped inspire the
+POE::Components for TCP clients and servers.
 
 =item Matt Cashner
 

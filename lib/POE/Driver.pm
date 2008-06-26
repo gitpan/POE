@@ -1,11 +1,11 @@
-# $Id: Driver.pm 2267 2008-01-11 15:50:02Z bingosnet $
+# $Id: Driver.pm 2331 2008-05-26 01:19:11Z rcaputo $
 
 package POE::Driver;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2267 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2331 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -23,7 +23,7 @@ __END__
 
 =head1 NAME
 
-POE::Driver - An API for abstract buffered file I/O.
+POE::Driver - an abstract interface for buffered, non-blocking I/O
 
 =head1 SYNOPSIS
 
@@ -63,6 +63,9 @@ POE "drivers" implement the specifics of reading and writing to
 devices.  Drivers plug into POE::Wheel objects so that wheels may
 support a large number of device types without implementing a separate
 subclass for each.
+
+As mentioned in the SYNOPSIS, POE::Driver objects may be used in
+stand-alone applications.
 
 =head2 Public Driver Methods
 

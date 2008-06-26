@@ -1,11 +1,11 @@
-# $Id: Run.pm 2309 2008-04-02 16:37:14Z rcaputo $
+# $Id: Run.pm 2358 2008-06-26 04:51:13Z rcaputo $
 
 package POE::Wheel::Run;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2309 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2358 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -355,7 +355,7 @@ sub new {
     close $stderr_read if defined $stderr_read;
 
     # Win32 needs the stdio handles closed before they're reopened
-    # because the standard handles aren't dup'd.
+    # because the standard handles aren't dup()'d.
 
     # Redirect STDIN from the read end of the stdin pipe.
     close STDIN if POE::Kernel::RUNNING_IN_HELL;
@@ -391,7 +391,7 @@ sub new {
       # based on the true win32 handles For the exec these get
       # remembered, so manipulation of STDIN/OUT/ERR is not enough.
       # Only necessary for the exec, as Perl CODE subroutine goes
-      # through 0/1/2 which are correct.  But ofcourse that coderef
+      # through 0/1/2 which are correct.  But of course that coderef
       # might invoke exec, so better do it regardless.
       # HACK: Using Win32::Console as nothing else exposes SetStdHandle
       Win32::Console::_SetStdHandle(
@@ -1078,14 +1078,13 @@ sub kill {
   eval { kill $signal, $self->[CHILD_PID] };
 }
 
-###############################################################################
 1;
 
 __END__
 
 =head1 NAME
 
-POE::Wheel::Run - event driven fork/exec with added value
+POE::Wheel::Run - abstract pipe/fork/exec mix-in (also runs subroutines)
 
 =head1 SYNOPSIS
 
@@ -1268,7 +1267,7 @@ methods.  If stderr is also to be used, StderrFilter will need to be
 specified separately.
 
 C<Filter> is optional.  If left blank, it will default to an
-instance of C<POE::Filter::Line->new(Literal => "\n");>
+instance of C<< POE::Filter::Line->new(Literal => "\n"); >>
 
 C<StdinFilter> and C<StdoutFilter> can be used instead of or in
 addition to C<StdioFilter>.  They will override the default filter's

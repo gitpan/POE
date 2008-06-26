@@ -1,4 +1,4 @@
-# $Id: IO_Poll.pm 2222 2007-08-19 05:02:19Z rcaputo $
+# $Id: IO_Poll.pm 2355 2008-06-20 02:31:51Z rcaputo $
 
 # IO::Poll event loop bridge for POE::Kernel.  The theory is that this
 # will be faster for large scale applications.  This file is
@@ -8,7 +8,7 @@
 package POE::Loop::IO_Poll;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2355 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Include common signal handling.
 use POE::Loop::PerlSignals;
@@ -90,18 +90,23 @@ sub loop_attach_uidestroy {
 }
 
 #------------------------------------------------------------------------------
-# Maintain time watchers.
+# Maintain time watchers.  For this loop, we simply save the next
+# event time in a scalar.  loop_do_timeslice() will use the saved
+# value.  A "paused" time watcher is just a timeout for some future
+# time.
+
+my $_next_event_time = time();
 
 sub loop_resume_time_watcher {
-  # does nothing
+  $_next_event_time = $_[1];
 }
 
 sub loop_reset_time_watcher {
-  # does nothing
+  $_next_event_time = $_[1];
 }
 
 sub loop_pause_time_watcher {
-  # does nothing
+  $_next_event_time = time() + 3600;
 }
 
 # A static function; not some object method.
@@ -225,14 +230,15 @@ sub loop_do_timeslice {
   # there are any.  If nothing is waiting, set the timeout for some
   # constant number of seconds.
 
-  my $now = time();
+  my $timeout = $_next_event_time;
 
-  my $timeout = $self->get_next_event_time();
+  my $now = time();
   if (defined $timeout) {
     $timeout -= $now;
     $timeout = 0 if $timeout < 0;
   }
   else {
+    die "shouldn't happen" if ASSERT_DATA;
     $timeout = 3600;
   }
 
@@ -393,7 +399,7 @@ __END__
 
 =head1 NAME
 
-POE::Loop::IO_Poll - a bridge that supports IO::Poll from POE
+POE::Loop::IO_Poll - a bridge that allows POE to be driven by IO::Poll
 
 =head1 SYNOPSIS
 
@@ -401,13 +407,13 @@ See L<POE::Loop>.
 
 =head1 DESCRIPTION
 
-This class is an implementation of the abstract POE::Loop interface.
-It follows POE::Loop's public interface exactly.  Therefore, please
-see L<POE::Loop> for its documentation.
+POE::Loop::IO_Poll implements the interface documented in L<POE::Loop>.
+Therefore it has no documentation of its own.  Please see L<POE::Loop>
+for more details.
 
 =head1 SEE ALSO
 
-L<POE>, L<POE::Loop>, L<IO::Poll>
+L<POE>, L<POE::Loop>, L<IO::Poll>, L<POE::Loop::PerlSignals>
 
 =head1 AUTHORS & LICENSING
 
@@ -417,4 +423,3 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

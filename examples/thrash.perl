@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: thrash.perl 1746 2005-01-28 22:57:30Z rcaputo $
+# $Id: thrash.perl 2357 2008-06-20 17:41:54Z rcaputo $
 
 # This program creates a server session and an infinitude of clients
 # that connect to it, all in the same process.  It's mainly used to
@@ -28,7 +28,7 @@ my $server_addr = '127.0.0.1';
 my $server_port = 31415;
 
 ###############################################################################
-# This is a single client session.  It uses two separater wheels: a
+# This is a single client session.  It uses two separator wheels: a
 # SocketFactory to establish a connection, and a ReadWrite to process
 # data once the connection is made
 
@@ -190,7 +190,7 @@ sub pool_start {
 
   # Start five clients.  NOTE: This would not work if clients used
   # IO::Socket to connect to the server, because IO::Socket's connect
-  # blocks.  It would wait for the server to accept a connectino
+  # blocks.  It would wait for the server to accept a connection
   # before continuing, which would never happen since this loop is
   # holding up the event queue.  The program can only get away with
   # this loop because SocketFactory connections do not block.

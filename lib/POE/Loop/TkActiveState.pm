@@ -1,4 +1,4 @@
-# $Id: TkActiveState.pm 2222 2007-08-19 05:02:19Z rcaputo $
+# $Id: TkActiveState.pm 2329 2008-05-25 23:01:58Z rcaputo $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
@@ -6,7 +6,7 @@
 package POE::Loop::TkActiveState;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2329 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Merge things into POE::Loop::Tk.
 package POE::Loop::Tk;
@@ -259,7 +259,7 @@ __END__
 
 =head1 NAME
 
-POE::Loop::Tk - a bridge that supports Tk's event loop from POE
+POE::Loop::TkActiveState - a POE/Tk bridge for ActiveState's Tk
 
 =head1 SYNOPSIS
 
@@ -267,13 +267,18 @@ See L<POE::Loop>.
 
 =head1 DESCRIPTION
 
-This class is an implementation of the abstract POE::Loop interface.
-It follows POE::Loop's public interface exactly.  Therefore, please
-see L<POE::Loop> for its documentation.
+POE::Loop::TkActiveState implements the interface documented in
+L<POE::Loop>.  Therefore it has no documentation of its own.  Please
+see L<POE::Loop> for more details.
+
+This version of POE::Loop::Tk handles unique behavioral differences
+discovered in ActiveState's build of Tk.  It will be selected
+automatically based on the runtime environment.
 
 =head1 SEE ALSO
 
-L<POE>, L<POE::Loop>, L<Tk>
+L<POE>, L<POE::Loop>, L<Tk>, L<POE::Loop::Tk>,
+L<POE::Loop::PerlSignals>
 
 =head1 AUTHORS & LICENSING
 
@@ -283,4 +288,3 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

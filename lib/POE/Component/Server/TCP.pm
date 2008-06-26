@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2220 2007-08-19 00:59:33Z rcaputo $
+# $Id: TCP.pm 2357 2008-06-20 17:41:54Z rcaputo $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -484,7 +484,7 @@ sub _load_filter {
     }
 }
 
-# Test if a Filter can be loaded, return sucess or failure
+# Test if a Filter can be loaded, return success or failure
 sub _test_filter {
     my $filter = shift;
     my $eval = eval {
@@ -535,6 +535,34 @@ __END__
 POE::Component::Server::TCP - a simplified TCP server
 
 =head1 SYNOPSIS
+
+  #!perl
+
+  use warnings;
+  use strict;
+
+  use POE qw(Component::Server::TCP);
+
+  POE::Component::Server::TCP->new(
+    Port => 12345,
+    ClientConnected => sub {
+      print "got a connection from $_[HEAP]{remote_ip}\n";
+      $_[HEAP]{client}->put("Smile from the server.");
+    },
+    ClientInput => sub {
+      my $client_input = $_[ARG0];
+      $client_input =~ tr[a-zA-Z][n-ma-zN-MA-Z];
+      $_[HEAP]{client}->put($client_input);
+    },
+    ClientDisconnected => sub {
+      print "client from $_[HEAP]{remote_ip} disconnected\n";
+    },
+  );
+
+  POE::Kernel->run;
+  exit;
+
+-><- OLD SYNOPSIS FOLLOWS
 
   use POE qw(Component::Server::TCP);
 
@@ -654,7 +682,7 @@ difficult.  A tutorial at http://poe.perl.org/ describes how.
 =item new
 
 The new() method can accept quite a lot of parameters.  It will return
-the session ID of the accecptor session.  One must use callbacks to
+the session ID of the acceptor session.  One must use callbacks to
 check for errors rather than the return value of new().
 
 POE::Component::Server::TCP supplies common defaults for most
@@ -929,7 +957,7 @@ Started is optional.
 =item Concurrency => SCALAR
 
 Controls the number of connections that may be open at the same time.
-Defaults to -1, which means unlimited number of simutaneous connections.
+Defaults to -1, which means unlimited number of simultaneous connections.
 0 means no connections.  This value may be set via the
 C<set_concurrency> event, see L<EVENTS>.
 

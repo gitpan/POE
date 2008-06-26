@@ -1,4 +1,4 @@
-# $Id: Signals.pm 2307 2008-03-31 11:46:07Z nothingmuch $
+# $Id: Signals.pm 2357 2008-06-20 17:41:54Z rcaputo $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2307 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -99,7 +99,7 @@ sub _data_sig_initialize {
 
   # Initialize this to a true value so our waitpid() loop can run at
   # least once.  Starts false when running in an Apache handler so our
-  # SIGCHLD hijinx don't interfere with the web server.
+  # SIGCHLD hijinks don't interfere with the web server.
   $kr_child_procs = exists($INC{'Apache.pm'}) ? 0 : ( USE_SIGCHLD ? 0 : 1 );
 
   $poe_kernel->[KR_SIGNALS] = \%kr_signals;
@@ -487,7 +487,7 @@ sub _data_sig_handle_poll_event {
   }
 
   if (TRACE_SIGNALS) {
-    _warn("<sg> POE::Kernel is polling for signals at " . time())
+    _warn("<sg> POE::Kernel is polling for signals at " . time() . (USE_SIGCHLD ? " due to SIGCHLD" : ""));
   }
 
   # Reap children for as long as waitpid(2) says something
@@ -627,26 +627,35 @@ __END__
 
 =head1 NAME
 
-POE::Resource::Signals - signal management for POE::Kernel
+POE::Resource::Signals - internal signal manager for POE::Kernel
 
 =head1 SYNOPSIS
 
-Used internally by POE::Kernel.  Better documentation will be
-forthcoming.
+There is no public API.
 
 =head1 DESCRIPTION
 
-This module encapsulates and provides accessors for POE::Kernel's data
-structures that manage signals.  It is used internally by POE::Kernel
-and has no public interface.
+POE::Resource::Signals is a mix-in class for POE::Kernel.  It provides
+the features needed to manage signals.  It is used internally by
+POE::Kernel, so it has no public interface.
 
 =head1 SEE ALSO
 
-See L<POE::Kernel> for documentation on signals.
+See L<POE::Kernel/Signals> for a deeper discussion about POE's signal
+handling.
+
+See L<POE::Kernel/Signal Watcher Methods> for POE's public signals
+API.
+
+See L<POE::Kernel/Resources> for for public information about POE
+resources.
+
+See L<POE::Resource> for general discussion about resources and the
+classes that manage them.
 
 =head1 BUGS
 
-Probably.
+None known.
 
 =head1 AUTHORS & COPYRIGHTS
 
@@ -655,4 +664,3 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

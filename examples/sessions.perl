@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: sessions.perl 1746 2005-01-28 22:57:30Z rcaputo $
+# $Id: sessions.perl 2357 2008-06-20 17:41:54Z rcaputo $
 
 # This is the first test program written for POE.  It originally was
 # written to test POE's ability to dispatch events to inline sessions
@@ -26,7 +26,7 @@ my $session_name;
 # This section defines the event handler (or state) subs for the
 # sessions that this program calls "child" sessions.  Each sub does
 # just one thing, possibly passing execution to other event handlers
-# through one of the supported event-passing mechanims.
+# through one of the supported event-passing mechanisms.
 
 #------------------------------------------------------------------------------
 # Newly created sessions are not ready to run until the kernel

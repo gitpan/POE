@@ -1,4 +1,4 @@
-# $Id: TkCommon.pm 2219 2007-08-19 00:54:55Z rcaputo $
+# $Id: TkCommon.pm 2329 2008-05-25 23:01:58Z rcaputo $
 
 # The common bits of our system-specific Tk event loops.  This is
 # everything but file handling.
@@ -10,7 +10,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2219 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2329 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Tk 800.021;
 use 5.00503;
@@ -159,7 +159,7 @@ __END__
 
 =head1 NAME
 
-POE::Loop::TkCommon - common features of POE's Tk event loop bridges
+POE::Loop::TkCommon - common code between the POE/Tk event loop bridges
 
 =head1 SYNOPSIS
 
@@ -167,13 +167,15 @@ See L<POE::Loop>.
 
 =head1 DESCRIPTION
 
-This class is an implementation of the abstract POE::Loop interface.
-It follows POE::Loop's public interface exactly.  Therefore, please
-see L<POE::Loop> for its documentation.
+POE::Loop::TkCommon is a mix-in class that supports common features
+between POE::Loop::Tk and POE::Loop::TkActiveState.  All Tk bridges
+implement the interface documented in POE::Loop.  Therefore, please
+see L<POE::Loop> for more details.
 
 =head1 SEE ALSO
 
-L<POE>, L<POE::Loop>, L<Tk>
+L<POE>, L<POE::Loop>, L<Tk>, L<POE::Loop::Tk>,
+L<POE::Loop::TkActiveState>
 
 =head1 AUTHORS & LICENSING
 
@@ -183,4 +185,3 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

@@ -12,7 +12,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2220 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2337 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -121,7 +121,7 @@ sub get_pending {
 #------------------------------------------------------------------------------
 
 sub filter_types {
-   map { ((ref $_) =~ /::(\w+)$/)[0] } @{$_[0]->[FILTERS]};
+   map { ref($_) } @{$_[0]->[FILTERS]};
 }
 
 #------------------------------------------------------------------------------
@@ -180,101 +180,199 @@ sub pop {
   $filter;
 }
 
-###############################################################################
-
 1;
 
 __END__
 
 =head1 NAME
 
-POE::Filter::Stackable - POE Multiple Filter Abstraction
+POE::Filter::Stackable - combine multiple POE::Filter objects
 
 =head1 SYNOPSIS
 
-  $filter = new POE::Filter::Stackable(Filters => [ $filter1, $filter2 ]);
-  $filter = new POE::Filter::Stackable;
-  $filter->push($filter1, $filter2);
-  $filter2 = $filter->pop;
-  $filter1 = $filter->shift;
-  $filter->unshift($filter1, $filter2);
-  $arrayref_for_driver = $filter->put($arrayref_of_data);
-  $arrayref_for_driver = $filter->put($single_data_element);
-  $arrayref_of_data = $filter->get($arrayref_of_raw_data);
-  $arrayref_of_leftovers = $filter->get_pending;
-  @filter_type_names = $filter->filter_types;
-  @filter_objects = $filter->filters;
+  #!perl
+
+  use POE qw(
+    Wheel::FollowTail
+    Filter::Line Filter::Grep Filter::Stackable
+  );
+
+  POE::Session->create(
+    inline_states => {
+      _start => sub {
+        my $parse_input_as_lines = POE::Filter::Line->new();
+
+        my $select_sudo_log_lines = POE::Filter::Grep->new(
+          Put => sub { 1 },
+          Get => sub {
+            my $input = shift;
+            return $input =~ /sudo\[\d+\]/i;
+          },
+        );
+
+        my $filter_stack = POE::Filter::Stackable->new(
+          Filters => [
+            $parse_input_as_lines, # first on get, last on put
+            $select_sudo_log_lines, # first on put, last on get
+          ]
+        );
+
+        $_[HEAP]{tailor} = POE::Wheel::FollowTail->new(
+          Filename => "/var/log/system.log",
+          InputEvent => "got_log_line",
+          Filter => $filter_stack,
+        );
+      },
+      got_log_line => sub {
+        print "Log: $_[ARG0]\n";
+      }
+    }
+  );
+
+  POE::Kernel->run();
+  exit;
 
 =head1 DESCRIPTION
 
-The Stackable filter allows the use of multiple filters within a
-single wheel.  Internally, filters are stored in an array, with array
-index 0 being "near" to the wheel's handle and therefore being the
-first filter passed through using "get" and the last filter passed
-through in "put".  All POE::Filter public methods are implemented as
-though data were being passed through a single filter; other program
-components do not need to know there are multiple filters.
+POE::Filter::Stackable combines multiple filters together in such a
+way that they appear to be a single filter.  All the usual POE::Filter
+methods work, but data is secretly passed through the stacked filters
+before it is returned.  POE::Wheel objects and stand-alone programs
+need no modifications to work with a filter stack.
+
+In the L</SYNOPSIS>, POE::Filter::Line and POE::Filter::Grep are
+combined into one filter that only returns a particular kind of line.
+This can be more efficient than filtering lines in application space,
+as fewer events may need to be dispatched and handled.
+
+Internally, filters are stored in an array.
+
+Data added by get_one_start() will flow through the filter array in
+increasing index order.  Filter #0 will have first crack at it,
+followed by filter #1 and so.  The get_one() call will return an item
+after it has passed through the last filter.
+
+put() passes data through the filters in descending index order.  Data
+will go through the filter with the highest index first, and put()
+will return the results after data has passed through filter #0.
 
 =head1 PUBLIC FILTER METHODS
 
-=over 4
+In addition to the usual POE::Filter methods, POE::Filter::Stackable
+also supports the following.
 
-=item new
+=head2 new
 
-The new() method creates the Stackable filter.  It accepts an optional
-parameter "Filters" that specifies an arrayref of initial filters.  If
-no filters are given, Stackable will pass data through unchanged; this
-is true if there are no filters present at any time.
+By default, new() creates an empty filter stack that behaves like
+POE::Filter::Stream.  It may be given optional parameters to
+initialize the stack with an array of filters.
 
-=item pop
-=item shift
-=item push
-=item unshift
+  my $sudo_lines = POE::Filter::Stackable->new(
+    Filters => [
+      POE::Filter::Line->new(),
+      POE::Filter::Grep->new(
+        Put => sub { 1 }, # put all items
+        Get => sub { shift() =~ /sudo\[\d+\]/i },
+      ),
+    ]
+  );
 
-POE::Filter::Stackable::pop()
-POE::Filter::Stackable::shift()
-POE::Filter::Stackable::push($filter1, $filter2, ...)
-POE::Filter::Stackable::unshift($filter1, $filter2...)
+=head2 pop
 
-These methods all function identically to the perl builtin functions
-of the same name.  push() and unshift() will return the new number of
-filters inside the Stackable filter.
+Behaves like Perl's built-in pop() for the filter stack.  The
+highest-indexed filter is removed from the stack and returned.  Any
+data remaining in the filter's input buffer is lost, but an
+application may always call L<POE::Filter/get_pending> on the returned
+filter.
 
-=item filter_types
+  my $last_filter = $stackable->pop();
+  my $last_buffer = $last_filter->get_pending();
 
-The filter_types() method returns a list of types for the filters
-inside the Stackable filter, in order from near to far; for example,
-qw(Block HTTPD).
+=head2 shift
 
-=item filters
+Behaves like Perl's built-in shift() for the filter stack.  The 0th
+filter is removed from the stack and returned.  Any data remaining in
+the filter's input buffer is passed to the new head of the stack, or
+it is lost if the stack becomes empty.  An application may also call
+L<POE::Filter/get_pending> on the returned filter to examine the
+filter's input buffer.
 
-The filters() method returns a list of the objects inside the
-Stackable filter, in order from near to far.
+  my $first_filter = $stackable->shift();
+  my $first_buffer = $first_filter->get_pending();
 
-=item *
+=head2 push FILTER[, FILTER]
 
-See POE::Filter.
+push() adds one or more new FILTERs to the end of the stack.  The
+newly pushed FILTERs will process input last, and they will handle
+output first.
 
-=back
+  # Reverse data read through the stack.
+  # rot13 encode data sent through the stack.
+  $stackable->push(
+    POE::Filter::Map->(
+      Get => sub { return scalar reverse shift() },
+      Put => sub { local $_ = shift(); tr[a-zA-Z][n-za-mN-ZA-M]; $_ },
+    )
+  );
+
+=head2 unshift FILTER[, FILTER]
+
+unshift() adds one or more new FILTERs to the beginning of the stack.
+The newly unshifted FILTERs will process input first, and they will
+handle output last.
+
+=head2 filters
+
+filters() returns a list of the filters inside the Stackable filter,
+in the stack's native order.
+
+Calling C<<$filter_stack->filters()>> in the L</SYNOPSIS> would return
+a list of two filter objects:
+
+  POE::Filter::Line=ARRAY(0x8b5ee0)
+  POE::Filter::Grep=ARRAY(0x8b5f7c)
+
+=head2 filter_types
+
+filter_types() returns a list of class names for each filter in the
+stack, in the stack's native order.
+
+Calling C<<$filter_stack->filter_types()>> in the L</SYNOPSIS> would
+return a list of two class names:
+
+  POE::FIlter::Line
+  POE::Filter::Grep
+
+It could easily be replaced by:
+
+  my @filter_types = map { ref } $filter_stack->filters;
 
 =head1 SEE ALSO
 
-POE::Filter; POE::Filter::HTTPD; POE::Filter::Reference;
-POE::Filter::Line; POE::Filter::Block; POE::Filter::Stream
+L<POE::Filter> for more information about filters in general.
+
+Specific filters, amongst which are:
+L<POE::Filter::Block>,
+L<POE::Filter::Grep>,
+L<POE::Filter::HTTPD>,
+L<POE::Filter::Line>,
+L<POE::Filter::Map>,
+L<POE::Filter::RecordBlock>,
+L<POE::Filter::Reference>,
+L<POE::Filter::Stream>
 
 =head1 BUGS
 
-Undoubtedly.  None currently known.
+None currently known.
 
 =head1 AUTHORS & COPYRIGHTS
 
-The Stackable filter was contributed by Dieter Pearcey.  Rocco Caputo
-is sure to have had his hands in it.
+The Stackable filter was contributed by Dieter Pearcey.  Documentation
+provided by Rocco Caputo.
 
-Please see the POE manpage for more information about authors and
+Please see the L<POE> manpage for more information about authors and
 contributors.
 
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

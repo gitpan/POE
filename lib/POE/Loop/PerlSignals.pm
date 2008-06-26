@@ -1,4 +1,4 @@
-# $Id: PerlSignals.pm 2307 2008-03-31 11:46:07Z nothingmuch $
+# $Id: PerlSignals.pm 2329 2008-05-25 23:01:58Z rcaputo $
 
 # Plain Perl signal handling is something shared by several event
 # loops.  The invariant code has moved out here so that each loop may
@@ -10,7 +10,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2307 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2329 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -132,7 +132,7 @@ __END__
 
 =head1 NAME
 
-POE::Loop::PerlSignals - plain Perl signal handlers used by many loops
+POE::Loop::PerlSignals - common signal handling routines for POE::Loop bridges
 
 =head1 SYNOPSIS
 
@@ -140,10 +140,12 @@ See L<POE::Loop>.
 
 =head1 DESCRIPTION
 
-This class is an implementation of the signal handling functions
-defined by the abstract POE::Loop interface.  It follows POE::Loop's
-public interface for signal handling exactly.  Therefore, please see
-L<POE::Loop> for its documentation.
+POE::Loop::PerlSignals implements common code to handle signals for
+many different event loops.  Most loops don't handle signals natively,
+so this code has been abstracted into a reusable mix-in module.
+
+POE::Loop::PerlSignals follows POE::Loop's public interface for signal
+handling.  Therefore, please see L<POE::Loop> for more details.
 
 =head1 SEE ALSO
 
@@ -157,4 +159,3 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

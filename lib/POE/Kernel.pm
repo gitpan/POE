@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 2320 2008-04-28 18:10:04Z rcaputo $
+# $Id: Kernel.pm 2357 2008-06-20 17:41:54Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2320 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -51,7 +51,7 @@ sub import {
 
   # Extract the import arguments we're interested in here.
 
-  my $loop = delete $args->{loop};
+  my $loop = delete $args->{loop} || $ENV{POE_EVENT_LOOP};
 
   # Don't accept unknown/mistyped arguments.
 
@@ -61,7 +61,15 @@ sub import {
   # Now do things with them.
 
   unless (UNIVERSAL::can('POE::Kernel', 'poe_kernel_loop')) {
-    $loop =~ s/^((POE::)?Loop::)?/POE::Loop::/ if defined $loop;
+    if (defined $loop) {
+      $loop =~ s/^(POE::)?(XS::)?(Loop::)?//;
+      if (defined $2) {
+        $loop = "POE::XS::Loop::$loop";
+      }
+      else {
+        $loop = "POE::Loop::$loop";
+      }
+    }
     _test_loop($loop);
     # Bootstrap the kernel.  This is inherited from a time when multiple
     # kernels could be present in the same Perl process.
@@ -811,7 +819,7 @@ sub new {
       \$kr_active_event,   # KR_ACTIVE_EVENT
     ], $type;
 
-    POE::Resources->initialize();
+    POE::Resources->load();
 
     $self->_data_sid_set($self->ID(), $self);
 
@@ -932,7 +940,7 @@ sub _dispatch_event {
         }
       }
 
-      # Step 2: Propagate the signal to the explict watchers in the
+      # Step 2: Propagate the signal to the explicit watchers in the
       # child tree.  Ensure the full tree is touched regardless
       # whether there are explicit watchers.
 
@@ -2707,7 +2715,7 @@ the resulting event is dispatched.
 
 =item Aliases.
 
-Session aliases are an application-controled way of addressing a
+Session aliases are an application-controlled way of addressing a
 session.  Aliases act as passive event watchers.  As long as a session
 has an alias, some other session may send events to that session by
 that name.  Aliases keep sessions alive as long as a process has
@@ -2784,7 +2792,7 @@ be sent from the kernel, from a wheel or from a session.
 
 An application creates an event with L</post>, L</yield>, L</call> or
 even L</signal>.  POE::Kernel creates events in response external
-stimulous (signals, select, etc).
+stimulus (signals, select, etc).
 
 TODO - discuss the POE::Kernel queue
 
@@ -2858,9 +2866,23 @@ It can be abbreviated using POE's loader magic.
   use POE qw( Loop::Event_Lib );
 
 POE::Kernel also supports configuration directives on its own C<use>
-line.
+line.  A loop explicitly specified this way will override the search
+logic.
 
   use POE::Kernel { loop => "Glib" };
+
+Finally, one may specify the loop class by setting the POE::Loop or
+POE::XS:Loop class name in the POE_EVENT_LOOP environment variable.
+This mechanism was added for tests that need to specify the loop from
+a distance.
+
+  BEGIN { $ENV{POE_EVENT_LOOP} = "POE::XS::Loop::Poll" }
+  use POE;
+
+Of course this may also be set from your shell:
+
+  % export POE_EVENT_LOOP='POE::XS::Loop::Poll'
+  % make test
 
 Many external event loops support their own callback mechanisms.
 L<POE::Session|POE::Session>'s L<"postback()"|POE::Session/postback>
@@ -2918,7 +2940,7 @@ each set of features is grouped by purpose.
 =head3 ID
 
 ID() returns the kernel's unique identifier.  Every POE::Kernel
-instance is assigned a (hopefully) globaly unique ID at birth.
+instance is assigned a (hopefully) globally unique ID at birth.
 
   % perl -wl -MPOE -e 'print $poe_kernel->ID'
   poerbook.local-46c89ad800000e21
@@ -3066,7 +3088,7 @@ same as the sender.  This example is equivalent to the one for post():
     }
   );
 
-As with post(), yield() returns right away, and the enquered
+As with post(), yield() returns right away, and the enqueued
 EVENT_NAME is dispatched later.  This may be confusing if you're
 already familiar with threading.
 
@@ -3137,7 +3159,7 @@ of time has elapsed ("delays").
 
 Timer interfaces are further divided into two groups.  One group identifies
 timers by the names of their associated events.  Another group identifies
-timers by a unique identifyer returned by the timer constructors.
+timers by a unique identifier returned by the timer constructors.
 Technically, the two are both name-based, but the "identifier-based" timers
 provide a second, more specific handle to identify individual timers.
 
@@ -3609,7 +3631,7 @@ global unique identifier.
   );
 
 Kernels also maintain a global session namespace or dictionary from which
-may be used to map a symblic aliases to a session. Once an alias is mapping
+may be used to map a symbolic aliases to a session. Once an alias is mapping
 has been created, that alias may be used to refer to the session wherever a
 session may be specified.
 
@@ -3633,7 +3655,7 @@ L</Signal Classes> for more information.
 
 =head3 alias_set ALIAS
 
-alias_set() maps an ALIAS in POE::Kernel's dictonary to the
+alias_set() maps an ALIAS in POE::Kernel's dictionary to the
 current session. The ALIAS may then be used nearly everywhere a session
 reference, stringified reference, or ID is expected.
 
@@ -3727,7 +3749,7 @@ to ESRCH ("No such process").
 =head3 ID_session_to_id SESSION_REFERENCE
 
 ID_session_to_id() converts a blessed or stringified SESSION_REFERENCE
-into a session ID.  It's more practical for strigified references, as
+into a session ID.  It's more practical for stringified references, as
 programs can call the POE::Session ID() method on the blessed ones.
 These statements are equivalent:
 
@@ -3873,7 +3895,7 @@ TODO - Practical example here.
 
 select_pause_write() pauses a FILE_HANDLE output watcher the same way
 select_pause_read() does for input.  Please see select_pause_read()
-for further discusssion.
+for further discussion.
 
 TODO - Practical example here.
 
@@ -4062,7 +4084,7 @@ The new session receives _start.
 
 =item 4
 
-The parent session receves _child ('create'), the new
+The parent session receives _child ('create'), the new
 session reference, and the new session's _start's return value.
 
 =item 5
@@ -4070,7 +4092,6 @@ session reference, and the new session's _start's return value.
 The session's constructor returns.
 
 =back
-
 
 =head4 When an old session stops:
 
@@ -4177,13 +4198,13 @@ explain the nature of the failure:
 
 =item EPERM ("Operation not permitted").
 
-The current session is alreay a
+The current session is already a
 child of POE::Kernel, so it may not be detached.
 
 =back
 
 detach_child() will generate L</_parent> and/or L</_child> events to the
-appropriate sessions.  See L</"Session Manaement Events"> for a detailed
+appropriate sessions.  See L</"Session Management Events"> for a detailed
 explanation of these events.  See
 L<above|/"When a session is detached from its parent:">
 for the order the events are generated.
@@ -4295,7 +4316,7 @@ sessions:
 POE::Kernel is the parent of sessions 2 and 3.  Session 2 is the
 parent of sessions 4 and 5.  And session 3 is the parent of 6 and 7.
 
-A signal sent to Session 2 may also be dispatched to sessionl 4 and 5
+A signal sent to Session 2 may also be dispatched to session 4 and 5
 because they are 2's children.  Sessions 4 and 5 will only receive the
 signal if they have registered the appropriate watcher.  If the signal is
 terminal, and none of the signal watchers in sessions 2, 4 and 5 called
@@ -4386,7 +4407,7 @@ POE::Kernel provides only one form of exception handling: the
 C<DIE> signal.
 
 When exception handling is enabled (the default), POE::Kernel wraps state
-invocation in C<eval{}>.  If the event handler raises an exception, generaly
+invocation in C<eval{}>.  If the event handler raises an exception, generally
 with C<die>, POE::Kernel will dispatch a C<DIE> signal to the event's
 destination session.
 
@@ -4416,7 +4437,7 @@ That is, C<$_[SENDER]> in the function that died.
 
 =item from_state
 
-State from which the orignal event was sent.
+State from which the original event was sent.
 That is, C<$_[CALLER_STATE]> in the function that died.
 
 =item file
@@ -4431,7 +4452,7 @@ That is, C<$_[CALLER_LINE]> in the function that died.
 
 =back
 
-I<Note that the preceeding discussion assumes you are using
+I<Note that the preceding discussion assumes you are using
 L<POE::Session|POE::Session>'s call semantics.>
 
 Note that the C<DIE> signal is sent to the session that raised the
@@ -4578,7 +4599,7 @@ sig_handled() does not return a meaningful value.
 =head3 signal SESSION, SIGNAL_NAME [, ARGS_LIST]
 
 signal() posts a SIGNAL_NAME signal to a specific SESSION with an
-optional ARGS_LIST that will be passed to every intersted handler.  As
+optional ARGS_LIST that will be passed to every interested handler.  As
 mentioned elsewhere, the signal may be delivered to SESSION's
 children, grandchildren, and so on.  And if SESSION is the POE::Kernel
 itself, then all interested sessions will receive the signal.
@@ -4737,7 +4758,7 @@ COUNTER_NAME reference counters are zero.  (Actually, it may stop in
 some cases, such as failing to handle a terminal signal.)
 
 Negative reference counters are legal.  They still must be incremented
-back to zero before a session is elegible for stopping.
+back to zero before a session is eligible for stopping.
 
   sub handle_request {
     # Among other things, hold a reference count on the sender.
@@ -4768,7 +4789,7 @@ refcount_increment() for more context.
     $_[KERNEL]->refcount_increment( $requester_id, "pending request");
   }
 
-The reqester's $_[SENDER]->ID is remembered and removed from the hear
+The requester's $_[SENDER]->ID is remembered and removed from the heap
 (lest there be memory leaks).  It's used to decrement the reference
 counter that was incremented at the start of the request.
 
@@ -4888,12 +4909,12 @@ L<POE::Loop::Tk|POE::Loop::Tk> creates a main window to satisfy Tk's
 event loop.  The window is given to the application since POE has no
 other use for it.
 
-C<$poe_main_window> is undefined in toolkits that don't require a widget
-to dispatch events.
+C<$poe_main_window> is undefined in toolkits that don't require a
+widget to dispatch events.
 
 On a related note, POE will shut down if the widget in
-C<$poe_main_window> is destroyed.  This can be changed with POE::Kernel's
-C</signal_ui_destroy>() methode
+C<$poe_main_window> is destroyed.  This can be changed with
+POE::Kernel's C</signal_ui_destroy>() method.
 
 =head1 DEBUGGING POE AND PROGRAMS USING IT
 
@@ -4904,7 +4925,7 @@ runtime penalties in programs where debugging is not necessary.  That
 is, in most production cases.
 
 Traces are verbose reminders of what's going on within POE.  Each is
-prefixed with a four-character field describing the POE subsustem that
+prefixed with a four-character field describing the POE subsystem that
 generated it.
 
 Assertions (asserts) are quiet but deadly, both in performance (they
@@ -4996,7 +5017,7 @@ Environment variable: POE_ASSERT_FILES
 ASSERT_RETVALS upgrades failure codes from POE::Kernel's methods from
 advisory return values to fatal errors.  Most programmers don't check
 the values these methods return, so ASSERT_RETVALS is a quick way to
-validate one's assumption that all's correct.
+validate one's assumption that all is correct.
 
 Prefix: <rv>
 
@@ -5080,7 +5101,7 @@ Environment variable: POE_TRACE_FILES
 
 TRACE_PROFILE enables basic profiling within POE's event dispatcher.
 When enabled, POE counts the number of times each event is dispatched.
-At the end of a run, POE will display a table fo each event name and
+At the end of a run, POE will display a table for each event name and
 its dispatch count.
 
 See TRACE_STATISTICS for more profiling.
@@ -5150,6 +5171,9 @@ dispatcher, and the time spent waiting for an event.  A report is
 displayed just before run() returns, and the data can be retrieved at
 any time using stat_getdata().
 
+See L<POE::Resource::Statistics> for more details about POE's
+statistics.
+
 =head3 stat_getdata
 
 stat_getdata() returns a hash of various statistics and their values
@@ -5157,7 +5181,12 @@ The statistics are calculated using a sliding window and vary over
 time as a program runs.  It only returns meaningful data if
 TRACE_STATISTICS is enabled.
 
+See L<POE::Resource::Statistics/Gathered Statistics> for details about
+what is gathered.
+
 =head1 ADDITIONAL CONSTANTS
+
+These additional constants govern POE's operation.
 
 =head2 USE_TIME_HIRES
 
@@ -5169,24 +5198,24 @@ See L</"Using Time::HiRes">.
 
 Whether to use C<$SIG{CHLD}> or to poll at an interval.
 
-This flag is disabled by default, and enabling it may cause breakage under
-older perls with no safe signals, and under L<Apache> which uses
+This flag is disabled by default, and enabling it may cause breakage
+under older perls with no safe signals, and under L<Apache> which uses
 C<$SIG{CHLD}>.
 
-Enabling this flag will cause child reaping to happen almost immediately, as
-opposed to once per L</CHILD_POLLING_INTERVAL>.
+Enabling this flag will cause child reaping to happen almost
+immediately, as opposed to once per L</CHILD_POLLING_INTERVAL>.
 
 =head2 CHILD_POLLING_INTERVAL
 
-The interval at which C<wait> is called to determine if child processes need to
-be reaped and the C<CHLD> signal emulated.
+The interval at which C<wait> is called to determine if child
+processes need to be reaped and the C<CHLD> signal emulated.
 
 Defaults to 1 second.
 
 =head2 CATCH_EXCEPTIONS
 
-Whether or not POE should run event handler code in an eval { } and deliver the
-C<DIE> signal on errors.
+Whether or not POE should run event handler code in an eval { } and
+deliver the C<DIE> signal on errors.
 
 See L</"Exception Handling">.
 

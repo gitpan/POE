@@ -1,4 +1,4 @@
-# $Id: Array.pm 2222 2007-08-19 05:02:19Z rcaputo $
+# $Id: Array.pm 2327 2008-05-21 05:42:02Z rcaputo $
 # Copyrights and documentation are at the end.
 
 package POE::Queue::Array;
@@ -7,7 +7,7 @@ use strict;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(POE::Queue);
-$VERSION = do {my($r)=(q$Revision: 2222 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2327 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(ESRCH EPERM);
 use Carp qw(confess);
@@ -443,11 +443,13 @@ See L<POE::Queue>.
 =head1 DESCRIPTION
 
 This class is an implementation of the abstract POE::Queue interface.
-It implement the priority queue using Perl arrays, splice, and a
-copious application of cleverness.
+As such, its documentation may be found in L<POE::Queue>.
 
-Please see the L<POE::Queue> documentation, which explains this one's
-functions, features, and behavior.
+POE::Queue::Array implements a priority queue using Perl arrays,
+splice, and copious application of cleverness.
+
+Despite its name, POE::Queue::Array may be used as a stand-alone
+priority queue without the rest of POE.
 
 =head1 SEE ALSO
 
@@ -465,4 +467,3 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

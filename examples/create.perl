@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: create.perl 1509 2004-01-31 06:58:31Z rcaputo $
+# $Id: create.perl 2357 2008-06-20 17:41:54Z rcaputo $
 
 # This is a version of sessions.perl that uses the &Session::create
 # constructor.
@@ -22,7 +22,7 @@ my $session_name;
 # This section defines the event handler (or state) subs for the
 # sessions that this program calls "child" sessions.  Each sub does
 # just one thing, possibly passing execution to other event handlers
-# through one of the supported event-passing mechanims.
+# through one of the supported event-passing mechanisms.
 
 #------------------------------------------------------------------------------
 # Newly created sessions are not ready to run until the kernel

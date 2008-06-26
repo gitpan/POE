@@ -1,4 +1,4 @@
-# $Id: Aliases.pm 2245 2007-10-13 05:18:39Z rcaputo $
+# $Id: Aliases.pm 2335 2008-05-26 18:39:15Z rcaputo $
 
 # Manage the POE::Kernel data structures necessary to keep track of
 # session aliases.
@@ -6,7 +6,7 @@
 package POE::Resource::Aliases;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2245 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2335 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -137,25 +137,32 @@ __END__
 
 =head1 NAME
 
-POE::Resource::Aliases - manage session aliases for POE::Kernel
+POE::Resource::Aliases - internal session alias manager for POE::Kernel
 
 =head1 SYNOPSIS
 
-Used internally by POE::Kernel.  Better documentation will be
-forthcoming.
+There is no public API.
 
 =head1 DESCRIPTION
 
-This module manages session aliases for POE::Kernel.  It is used
-internally by POE::Kernel and has no public interface.
+POE::Resource::Aliases is a mix-in class for POE::Kernel.  It provides
+the features to manage session aliases.  It is used internally by
+POE::Kernel, so it has no public interface.
 
 =head1 SEE ALSO
 
-See L<POE::Kernel> for documentation on session aliases.
+See L<POE::Kernel/Session Identifiers (IDs and Aliases)> for the
+public alias API.
+
+See L<POE::Kernel/Resources> for for public information about POE
+resources.
+
+See L<POE::Resource> for general discussion about resources and the
+classes that manage them.
 
 =head1 BUGS
 
-Probably.
+None known.
 
 =head1 AUTHORS & COPYRIGHTS
 
@@ -164,4 +171,3 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
-# TODO - Redocument.

@@ -1,4 +1,4 @@
-# $Id: Null.pm 1903 2006-03-20 04:44:08Z rcaputo $
+# $Id: Null.pm 2357 2008-06-20 17:41:54Z rcaputo $
 
 # This `perl -d` debugging module is an ad-hoc custom debugger.  It's
 # optional, and it may not even work.
@@ -6,7 +6,7 @@
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 package Null; # satisfies 'use'
 
@@ -15,7 +15,7 @@ use vars qw($sub);
 use Carp;
 
 # This bit traces execution immediately before a given condition.
-# It's used to find out where in hell something went worng.
+# It's used to find out where in hell something went wrong.
 my @trace = ("no step") x 16;
 
 sub DB {

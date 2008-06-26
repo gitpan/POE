@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm 2286 2008-03-10 08:32:44Z rcaputo $
+# $Id: Makefile-5005.pm 2357 2008-06-20 17:41:54Z rcaputo $
 
 use strict;
 
@@ -22,7 +22,7 @@ use PoeBuildInfo qw(
 open(TOUCH, ">>CHANGES") and close TOUCH;
 open(TOUCH, ">>META.yml") and close TOUCH;
 
-### Some advisory dependancy testing.
+### Some advisory dependency testing.
 
 sub check_for_modules {
   my ($dep_type, @modules) = @_;

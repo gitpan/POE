@@ -1,4 +1,4 @@
-# $Id: filehandles.pm 2273 2008-02-20 10:45:43Z bingosnet $
+# $Id: filehandles.pm 2357 2008-06-20 17:41:54Z rcaputo $
 
 use strict;
 
@@ -39,7 +39,7 @@ unless (-f "run_network_tests") {
 
 plan tests => 192;
 
-### Factoried out common tests
+### Factored out common tests
 
 # 1 subtest
 sub verify_handle_structure {
