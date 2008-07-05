@@ -1,4 +1,21 @@
 ==================================
+2008-07-05T18:21:13.947381Z v1_002
+==================================
+
+  2008-07-05 18:01:55 (r2387) by rcaputo
+  poe/mylib/Makefile-5004.pm M; poe/mylib/gen-meta.perl M;
+  poe/lib/POE/Wheel/ReadLine.pm M; poe/mylib/Makefile-5005.pm M;
+  poe/lib/POE/Filter/HTTPD.pm M; poe/mylib/preprocessor.perl M;
+  poe/lib/POE.pm M; poe/docs/Makefile M; poe/mylib/PoeBuildInfo.pm M;
+  poe/mylib/gen-tests.perl M; poe/lib/POE/Filter/Reference.pm M;
+  poe/lib/POE/NFA.pm M
+
+    Add POE::Test::Loops to config_requires, so modern systems can
+    install it before Makefile.PL runs. Allow gen-tests.pl to fail
+    gracefully if POE::Test::Loops isn't installed. Remove a bunch of
+    tabs from unrelated files. 
+
+==================================
 2008-07-05T02:39:32.500880Z v1_001
 ==================================
 

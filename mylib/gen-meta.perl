@@ -1,5 +1,6 @@
 #!/usr/bin/perl -w
-# $Id: gen-meta.perl 2147 2006-11-02 20:06:03Z bsmith $
+# $Id: gen-meta.perl 2387 2008-07-05 18:01:55Z rcaputo $
+# rocco // vim: ts=2 sw=2 expandtab
 
 # Generate META.yml.
 
@@ -24,6 +25,7 @@ my $build = Module::Build->new(
     RECOMMENDED_TIME_HIRES,
   },
   requires          => { CORE_REQUIREMENTS },
+  config_requires   => { CONFIG_REQUIREMENTS },
   no_index => {
     directory => [ "mylib", "t" ]
   },

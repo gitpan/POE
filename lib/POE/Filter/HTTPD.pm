@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm 2339 2008-05-29 04:02:50Z rcaputo $
+# $Id: HTTPD.pm 2387 2008-07-05 18:01:55Z rcaputo $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,7 +17,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2339 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2387 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 sub BUFFER        () { 0 }
@@ -386,55 +386,55 @@ POE::Filter::HTTPD - parse simple HTTP requests, and serialize HTTP::Response
 
 =head1 SYNOPSIS
 
-	#!perl
+  #!perl
 
-	use warnings;
-	use strict;
+  use warnings;
+  use strict;
 
-	use POE qw(Component::Server::TCP Filter::HTTPD);
-	use HTTP::Response;
+  use POE qw(Component::Server::TCP Filter::HTTPD);
+  use HTTP::Response;
 
-	POE::Component::Server::TCP->new(
-		Port         => 8088,
-		ClientFilter => 'POE::Filter::HTTPD',  ### <-- HERE WE ARE!
+  POE::Component::Server::TCP->new(
+    Port         => 8088,
+    ClientFilter => 'POE::Filter::HTTPD',  ### <-- HERE WE ARE!
 
-		ClientInput => sub {
-			my $request = $_[ARG0];
+    ClientInput => sub {
+      my $request = $_[ARG0];
 
-			# It's a response for the client if there was a problem.
-			if ($request->isa("HTTP::Response")) {
-				$_[HEAP]{client}->put($request);
-				$_[KERNEL]->yield("shutdown");
-				return;
-			}
+      # It's a response for the client if there was a problem.
+      if ($request->isa("HTTP::Response")) {
+        $_[HEAP]{client}->put($request);
+        $_[KERNEL]->yield("shutdown");
+        return;
+      }
 
-			my $request_fields = '';
-			$request->headers()->scan(
-				sub {
-					my ($header, $value) = @_;
-					$request_fields .= (
+      my $request_fields = '';
+      $request->headers()->scan(
+        sub {
+          my ($header, $value) = @_;
+          $request_fields .= (
             "<tr><td>$header</td><td>$value</td></tr>"
           );
-				}
-			);
+        }
+      );
 
-			my $response = HTTP::Response->new(200);
-			$response->push_header( 'Content-type', 'text/html' );
-			$response->content(
-				"<html><head><title>Your Request</title></head>" .
-				"<body>Details about your request:" .
-				"<table border='1'>$request_fields</table>" .
-				"</body></html>"
-			);
+      my $response = HTTP::Response->new(200);
+      $response->push_header( 'Content-type', 'text/html' );
+      $response->content(
+        "<html><head><title>Your Request</title></head>" .
+        "<body>Details about your request:" .
+        "<table border='1'>$request_fields</table>" .
+        "</body></html>"
+      );
 
-			$_[HEAP]{client}->put($response);
-			$_[KERNEL]->yield("shutdown");
-		}
-	);
+      $_[HEAP]{client}->put($response);
+      $_[KERNEL]->yield("shutdown");
+    }
+  );
 
-	print "Aim your browser at port 8088 of this host.\n";
-	POE::Kernel->run();
-	exit;
+  print "Aim your browser at port 8088 of this host.\n";
+  POE::Kernel->run();
+  exit;
 
 =head1 DESCRIPTION
 

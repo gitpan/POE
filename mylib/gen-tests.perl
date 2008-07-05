@@ -1,9 +1,18 @@
 #!/usr/bin/perl -w
+# $Id: gen-tests.perl 2387 2008-07-05 18:01:55Z rcaputo $
+# rocco // vim: ts=2 sw=2 expandtab
 
 use strict;
 use File::Spec;
 use File::Path;
-use POE::Test::Loops;
+
+BEGIN {
+  eval "require POE::Test::Loops";
+  if ($@) {
+    warn "Could not load POE::Test::Loops.  Skipping loop tests";
+    exit;
+  }
+}
 
 my $test_base = "t";
 

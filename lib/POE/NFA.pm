@@ -1,11 +1,11 @@
-# $Id: NFA.pm 2334 2008-05-26 06:48:40Z rcaputo $
+# $Id: NFA.pm 2387 2008-07-05 18:01:55Z rcaputo $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2334 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2387 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 
@@ -785,9 +785,9 @@ POE::NFA - an event-driven state machine (nondeterministic finite automaton)
       $_[RUNSTATE]{io}->put('Bye!');
       $_[MACHINE]->stop();
     }
-		else {
+    else {
       $_[MACHINE]->goto_state(state_cmd => "on_entry");
-		}
+    }
   }
 
 =head1 DESCRIPTION

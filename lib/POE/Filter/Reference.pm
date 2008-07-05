@@ -1,4 +1,4 @@
-# $Id: Reference.pm 2357 2008-06-20 17:41:54Z rcaputo $
+# $Id: Reference.pm 2387 2008-07-05 18:01:55Z rcaputo $
 
 # Filter::Reference partial copyright 1998 Artur Bergman
 # <artur@vogon-solutions.com>.  Partial copyright 1999 Philip Gwyn.
@@ -9,7 +9,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2387 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
@@ -257,8 +257,8 @@ POE::Filter::Reference - freeze and thaw arbitrary Perl data
       },
       got_perl_data => sub {
         print "Got data:\n", YAML::Dump($_[ARG0]);
-				print "Bye!\n";
-				delete $_[HEAP]{io};
+        print "Bye!\n";
+        delete $_[HEAP]{io};
       }
     }
   );
