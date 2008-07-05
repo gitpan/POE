@@ -1,3 +1,54 @@
+==================================
+2008-07-05T02:39:32.500880Z v1_001
+==================================
+
+  2008-07-05 02:38:47 (r2385) by rcaputo; poe/lib/POE.pm M
+
+    Time for a new release.
+
+  2008-07-05 02:35:08 (r2384) by rcaputo; poe/mylib/PoeBuildInfo.pm M
+
+    Use the bleeding-edge POE::Test::Loops.
+
+  2008-07-04 21:47:28 (r2379) by rcaputo; poe/t/30_loops D
+
+    Remove empty directories.
+
+  2008-07-04 21:31:06 (r2378) by rcaputo; poe/MANIFEST M
+
+    Remove the removed files from the MANIFEST.
+
+  2008-07-04 21:21:12 (r2377) by lotr; poe/mylib/PoeBuildInfo.pm M
+
+    update version 
+
+  2008-07-04 21:20:36 (r2376) by lotr
+  poe/t/30_loops/00_base/k_signals_rerun.pm D;
+  poe/t/30_loops/00_base/wheel_run.pm D;
+  poe/t/30_loops/00_base/wheel_curses.pm D;
+  poe/t/30_loops/00_base/k_alarms.pm D;
+  poe/t/30_loops/00_base/k_aliases.pm D;
+  poe/t/30_loops/00_base/ses_session.pm D;
+  poe/t/30_loops/00_base/wheel_sf_unix.pm D;
+  poe/t/30_loops/00_base/k_sig_child.pm D;
+  poe/t/30_loops/00_base/sbk_signal_init.pm D;
+  poe/t/30_loops/00_base/wheel_sf_ipv6.pm D; poe/mylib/gen-tests.perl M;
+  poe/t/30_loops/00_base/wheel_sf_tcp.pm D;
+  poe/t/30_loops/00_base/k_detach.pm D;
+  poe/t/30_loops/00_base/wheel_sf_udp.pm D;
+  poe/t/30_loops/00_base/all_errors.pm D;
+  poe/t/30_loops/00_base/comp_tcp.pm D;
+  poe/t/30_loops/00_base/comp_tcp_concurrent.pm D;
+  poe/t/30_loops/00_base/wheel_readline.pm D;
+  poe/t/30_loops/00_base/k_signals.pm D;
+  poe/t/30_loops/00_base/wheel_readwrite.pm D;
+  poe/t/30_loops/00_base/k_selects.pm D;
+  poe/t/30_loops/00_base/wheel_tail.pm D;
+  poe/t/30_loops/00_base/ses_nfa.pm D; poe/mylib/PoeBuildInfo.pm M;
+  poe/t/30_loops/00_base/wheel_accept.pm D
+
+    use POE::Test::Loops 
+
 ===================================
 2008-06-26T05:25:54.564733Z v1_0003
 ===================================
