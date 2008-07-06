@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm 2387 2008-07-05 18:01:55Z rcaputo $
+# $Id: Makefile-5004.pm 2391 2008-07-05 22:50:47Z rcaputo $
 # rocco // vim: ts=2 sw=2 expandtab
 
 use strict;
@@ -20,9 +20,9 @@ use PoeBuildInfo qw(
 open(TOUCH, ">>CHANGES") and close TOUCH;
 open(TOUCH, ">>META.yml") and close TOUCH;
 
-### Generate dynamic test files.
+### Touch gen-tests.perl so it always triggers.
 
-system($^X, "mylib/gen-tests.perl") and die "couldn't generate tests: $!";
+utime(time(), time(), "mylib/gen-tests.perl");
 
 ### Generate Makefile.PL.
 
@@ -60,7 +60,11 @@ WriteMakefile(
     TESTS => TEST_FILES,
   },
 
-  PL_FILES  => { },
+  # Not executed on "make test".
+  PL_FILES  => {
+    'mylib/gen-tests.perl' => [ 'lib/POE.pm' ],
+  },
+
   PREREQ_PM => { CORE_REQUIREMENTS },
 );
 

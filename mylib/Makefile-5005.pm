@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# $Id: Makefile-5005.pm 2387 2008-07-05 18:01:55Z rcaputo $
+# $Id: Makefile-5005.pm 2391 2008-07-05 22:50:47Z rcaputo $
 # rocco // vim: ts=2 sw=2 expandtab
 
 use strict;
@@ -22,6 +22,10 @@ use PoeBuildInfo qw(
 
 open(TOUCH, ">>CHANGES") and close TOUCH;
 open(TOUCH, ">>META.yml") and close TOUCH;
+
+### Touch gen-tests.perl so it always triggers.
+
+utime(time(), time(), "mylib/gen-tests.perl");
 
 ### Some advisory dependency testing.
 
@@ -77,10 +81,6 @@ check_for_modules(
   "URI"             => 1.30,
 );
 
-### Generate dynamic test files.
-
-system($^X, "mylib/gen-tests.perl") and die "couldn't generate tests: $!";
-
 ### Generate Makefile.PL.
 
 sub MY::postamble {
@@ -131,8 +131,12 @@ WriteMakefile(
     TESTS => TEST_FILES,
   },
 
+  # Not executed on "make test".
+  PL_FILES       => {
+    'mylib/gen-tests.perl' => [ 'lib/POE.pm' ],
+  },
+
   # More for META.yml than anything.
-  PL_FILES       => { },
   NO_META        => 1,
   PREREQ_PM      => { CORE_REQUIREMENTS },
 );

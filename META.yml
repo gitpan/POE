@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 1.001
+version: 1.003
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -18,12 +18,14 @@ requires:
   Socket: 1.7
   Storable: 2.16
   Test::Harness: 2.26
+build_requires:
+  POE::Test::Loops: 1.002
 recommends:
   Time::HiRes: 1.59
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.001
+    version: 1.003
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2311
@@ -50,7 +52,7 @@ provides:
     version: 1.2337
   POE::Filter::HTTPD:
     file: lib/POE/Filter/HTTPD.pm
-    version: 1.2339
+    version: 1.2387
   POE::Filter::Line:
     file: lib/POE/Filter/Line.pm
     version: 1.2340
@@ -62,7 +64,7 @@ provides:
     version: 1.2337
   POE::Filter::Reference:
     file: lib/POE/Filter/Reference.pm
-    version: 1.2357
+    version: 1.2387
   POE::Filter::Stackable:
     file: lib/POE/Filter/Stackable.pm
     version: 1.2337
@@ -101,7 +103,7 @@ provides:
     version: 1.2329
   POE::NFA:
     file: lib/POE/NFA.pm
-    version: 1.2334
+    version: 1.2387
   POE::Pipe:
     file: lib/POE/Pipe.pm
     version: 1.2332
@@ -164,7 +166,7 @@ provides:
     version: 1.2347
   POE::Wheel::ReadLine:
     file: lib/POE/Wheel/ReadLine.pm
-    version: 1.2357
+    version: 1.2387
   POE::Wheel::ReadLine::Keymap:
     file: lib/POE/Wheel/ReadLine.pm
   POE::Wheel::ReadWrite:
@@ -180,7 +182,7 @@ no_index:
   directory:
     - mylib
     - t
-generated_by: Module::Build version 0.2805
+generated_by: Module::Build version 0.2808
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.2.html
   version: 1.2

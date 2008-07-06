@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: gen-meta.perl 2387 2008-07-05 18:01:55Z rcaputo $
+# $Id: gen-meta.perl 2389 2008-07-05 20:15:25Z rcaputo $
 # rocco // vim: ts=2 sw=2 expandtab
 
 # Generate META.yml.
@@ -13,6 +13,7 @@ use PoeBuildInfo qw(
   DIST_ABSTRACT
   DIST_AUTHOR
   RECOMMENDED_TIME_HIRES
+  CONFIG_REQUIREMENTS
 );
 
 my $build = Module::Build->new(
@@ -25,7 +26,8 @@ my $build = Module::Build->new(
     RECOMMENDED_TIME_HIRES,
   },
   requires          => { CORE_REQUIREMENTS },
-  config_requires   => { CONFIG_REQUIREMENTS },
+  build_requires    => { CONFIG_REQUIREMENTS },
+  configure_requires => { CONFIG_REQUIREMENTS },
   no_index => {
     directory => [ "mylib", "t" ]
   },

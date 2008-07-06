@@ -1,4 +1,28 @@
 ==================================
+2008-07-06T00:20:23.186069Z v1_003
+==================================
+
+  2008-07-06 00:19:32 (r2392) by rcaputo; poe/lib/POE.pm M
+
+    Let's try this again.
+
+  2008-07-05 22:50:47 (r2391) by rcaputo
+  poe/mylib/Makefile-5004.pm M; poe/mylib/Makefile-5005.pm M
+
+    Touch mylib/gen-tests.perl during Makefile.PL execution. This
+    triggers gen-tests.perl during "make test". 
+
+  2008-07-05 21:53:37 (r2390) by rcaputo
+  poe/mylib/Makefile-5004.pm M; poe/mylib/Makefile-5005.pm M
+
+    Move test generation to PL_FILES. Requires a separate "make" for the
+    tests to be generated. 
+
+  2008-07-05 20:15:25 (r2389) by rcaputo; poe/mylib/gen-meta.perl M
+
+    Add build_requires and rename config_requires to configure_requires. 
+
+==================================
 2008-07-05T18:21:13.947381Z v1_002
 ==================================
 
