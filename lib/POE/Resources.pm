@@ -3,7 +3,7 @@ package POE::Resources;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2335 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 my @resources = qw(
   POE::XS::Resource::Aliases
@@ -84,3 +84,4 @@ contributors, and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

@@ -1,4 +1,4 @@
-# $Id: Event.pm 2329 2008-05-25 23:01:58Z rcaputo $
+# $Id: Event.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 # Event.pm event loop bridge for POE::Kernel.
 
@@ -12,7 +12,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2329 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 =for poe_tests
 
@@ -23,6 +23,9 @@ sub skip_tests {
   my $test_name = shift;
   if ($test_name eq "k_signals_rerun" and $^O eq "MSWin32") {
     return "This test crashes Perl when run with Tk on $^O";
+  }
+  if ($test_name eq "wheel_readline" and $^O eq "darwin") {
+    return "Event skips two of its own tests for the same reason";
   }
 }
 
@@ -241,3 +244,4 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

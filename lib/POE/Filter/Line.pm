@@ -1,4 +1,4 @@
-# $Id: Line.pm 2340 2008-05-29 05:57:52Z rcaputo $
+# $Id: Line.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 package POE::Filter::Line;
 
@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2340 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
@@ -277,6 +277,9 @@ default parser interprets newlines as the record terminator, and the
 default serializer appends network newlines (CR/LF, or "\x0D\x0A") to
 outbound records.
 
+Record terminators are removed from the data POE::Filter::Line
+returns.
+
 POE::Filter::Line supports a number of other ways to parse lines.
 Constructor parameters may specify literal newlines, regular
 expressions, or that the filter should detect newlines on its own.
@@ -288,6 +291,9 @@ POE::Filter::Line's new() method has some interesting parameters.
 =head2 new
 
 new() accepts a list of named parameters.
+
+In all cases, the data interpreted as the record terminator is
+stripped from the data POE::Filter::Line returns.
 
 C<InputLiteral> may be used to parse records that are terminated by
 some literal string.  For example, POE::Filter::Line may be used to
@@ -371,3 +377,4 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

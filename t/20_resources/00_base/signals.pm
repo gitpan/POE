@@ -1,4 +1,4 @@
-# $Id: signals.pm 1971 2006-05-30 20:32:30Z bsmith $
+# $Id: signals.pm 2427 2009-02-10 09:32:08Z rcaputo $
 
 use strict;
 
@@ -197,7 +197,7 @@ $poe_kernel->_data_sig_touched_session(
 );
 
 { my ($tot, $type, $ses) = $poe_kernel->_data_sig_handled_status();
-  ok($tot == 0, "SIGQUIT handled by zero sessions");
+  ok(!defined($tot), "SIGQUIT handled by zero sessions");
   ok($type == POE::Kernel::SIGTYPE_TERMINAL, "SIGQUIT is terminal");
   ok( eq_array($ses, [ $ses_2 ]), "SIGQUIT touched correct session" );
 }
@@ -253,7 +253,7 @@ TODO: {
   );
 
   my ($tot, $type, $ses) = $poe_kernel->_data_sig_handled_status();
-  ok($tot == 0, "nonexistent signal handled by zero sessions");
+  ok(!defined($tot), "nonexistent signal handled by zero sessions");
   ok(
     $type == POE::Kernel::SIGTYPE_BENIGN,
     "nonexistent signal is benign"
@@ -327,7 +327,7 @@ $poe_kernel->_data_sig_touched_session(
 );
 
 { my ($tot, $type, $ses) = $poe_kernel->_data_sig_handled_status();
-  ok($tot == 0, "SIGQUIT handled by zero sessions");
+  ok(!defined($tot), "SIGQUIT handled by zero sessions");
   ok($type == POE::Kernel::SIGTYPE_TERMINAL, "SIGQUIT is terminal");
   ok( eq_array($ses, [ $ses_2 ]), "SIGQUIT touched session 2" );
 }

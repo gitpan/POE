@@ -1,11 +1,11 @@
-# $Id: Loop.pm 2357 2008-06-20 17:41:54Z rcaputo $
+# $Id: Loop.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 package POE::Loop;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 1;
 
@@ -82,7 +82,7 @@ Here is a skeleton of a POE::Loop subclass:
   package POE::Loop::YourToolkit;
 
   use vars qw($VERSION);
-  $VERSION = do {my@r=(q$Revision: 2357 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
+  $VERSION = do {my@r=(q$Revision: 2447 $=~/\d+/g);sprintf"%d."."%04d"x$#r,@r};
 
   package POE::Kernel;
 
@@ -317,7 +317,7 @@ Here's Gtk's:
           $self->_dispatch_event(
             $self, $self,
             EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
-            __FILE__, __LINE__, time(), -__LINE__
+            __FILE__, __LINE__, undef, time(), -__LINE__
           );
         }
         return 0;
@@ -571,3 +571,4 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

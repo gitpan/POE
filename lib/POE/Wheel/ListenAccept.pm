@@ -1,11 +1,11 @@
-# $Id: ListenAccept.pm 2347 2008-06-01 18:40:12Z rcaputo $
+# $Id: ListenAccept.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 package POE::Wheel::ListenAccept;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2347 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -354,3 +354,4 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

@@ -1,4 +1,4 @@
-# $Id: Select.pm 2355 2008-06-20 02:31:51Z rcaputo $
+# $Id: Select.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2355 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 =for poe_tests
 
@@ -370,3 +370,4 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

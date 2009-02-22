@@ -1,11 +1,11 @@
-# $Id: SocketFactory.pm 2352 2008-06-16 02:48:57Z rcaputo $
+# $Id: SocketFactory.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2352 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -1156,7 +1156,7 @@ __END__
 
 =head1 NAME
 
-POE::Wheel::SocketFactory - non-blocking socket creation and management
+POE::Wheel::SocketFactory - non-blocking socket creation
 
 =head1 SYNOPSIS
 
@@ -1601,3 +1601,4 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

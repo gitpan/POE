@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm 2335 2008-05-26 18:39:15Z rcaputo $
+# $Id: FileHandles.pm 2455 2009-02-22 07:45:28Z rcaputo $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,7 +6,7 @@
 package POE::Resource::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2335 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2455 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -19,10 +19,14 @@ use strict;
 # aren't used if we're RUNNING_IN_HELL, but Perl needs to see them.
 
 BEGIN {
-  eval 'F_GETFL';
-  if ($@) {
-    *F_GETFL = sub () { 0 };
-    *F_SETFL = sub () { 0 };
+  if ( ! defined &F_GETFL ) {
+    if ( ! defined prototype "F_GETFL" ) {
+      *F_GETFL = sub { 0 };
+      *F_SETFL = sub { 0 };
+    } else {
+      *F_GETFL = sub () { 0 };
+      *F_SETFL = sub () { 0 };
+    }
   }
 }
 
@@ -511,7 +515,7 @@ sub _data_handle_remove {
 
   # Make sure the handle is deregistered with the kernel.
 
-  if (exists $kr_filenos{$fd}) {
+  if (defined($fd) and exists($kr_filenos{$fd})) {
     my $kr_fileno  = $kr_filenos{$fd};
     my $kr_fno_rec = $kr_fileno->[$mode];
 
@@ -842,3 +846,4 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

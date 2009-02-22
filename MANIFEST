@@ -83,6 +83,7 @@ examples/tcp_watermarks.perl
 examples/thrash.perl
 examples/watermarks.perl
 examples/wheels2.perl
+t/00_info.t
 t/10_units/01_pod/01_pod.t
 t/10_units/01_pod/02_pod_coverage.t
 t/10_units/02_pipes/01_base.t
@@ -104,6 +105,7 @@ t/10_units/03_base/14_kernel.t
 t/10_units/03_base/15_kernel_internal.t
 t/10_units/03_base/16_explicit_loop.t
 t/10_units/03_base/17_explicit_loop_fail.t
+t/10_units/03_base/18_nfa_usage.t
 t/10_units/04_drivers/01_sysrw.t
 t/10_units/05_filters/01_block.t
 t/10_units/05_filters/02_grep.t
@@ -136,6 +138,7 @@ t/90_regression/bingos-followtail.t
 t/90_regression/broeren-win32-nbio.t
 t/90_regression/cfedde-filter-httpd.t
 t/90_regression/ferrari-server-unix.t
+t/90_regression/kogman-sig-order.t
 t/90_regression/merijn-sigchld-system.t
 t/90_regression/neyuki_detach.t
 t/90_regression/rt14444-arg1.t

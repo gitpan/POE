@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: selects.perl 1746 2005-01-28 22:57:30Z rcaputo $
+# $Id: selects.perl 2423 2009-02-09 23:26:45Z apocal $
 
 # This is an early, basic test of POE's filehandle selecting
 # mechanism.  It was written before POE::Wheel classes were conceived.
@@ -27,7 +27,7 @@ use POE;
 use IO::Socket;
 use POSIX qw(EAGAIN);
                                         # the chargen server's listen port
-my $chargen_port = 30019;
+my $chargen_port = 32100;
 
 #==============================================================================
 # This is the session that will handle a client connection to the

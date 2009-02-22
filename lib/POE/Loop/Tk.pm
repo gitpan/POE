@@ -1,11 +1,11 @@
-# $Id: Tk.pm 2329 2008-05-25 23:01:58Z rcaputo $
+# $Id: Tk.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
 package POE::Loop::Tk;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2329 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Include common things.
 use POE::Loop::PerlSignals;
@@ -232,3 +232,4 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

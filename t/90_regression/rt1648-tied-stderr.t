@@ -1,5 +1,5 @@
 #!/usr/bin/perl 
-# $Id: rt1648-tied-stderr.t 2174 2007-02-20 23:13:48Z teknikill $
+# $Id: rt1648-tied-stderr.t 2427 2009-02-10 09:32:08Z rcaputo $
 # vim: filetype=perl
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He
@@ -83,11 +83,12 @@ BEGIN {
   use Tie::Handle;
   use vars qw(@ISA);
   @ISA = 'Tie::Handle';
+  use Symbol qw(gensym);
 
   sub TIEHANDLE {
     my $class = shift;
-    my $fh    = do { \local *HANDLE};
-    bless $fh,$class;
+    my $fh    = gensym();
+    bless $fh, $class;
     $fh->OPEN(@_) if (@_);
     return $fh;
   }

@@ -1,11 +1,11 @@
-# $Id: Kernel.pm 2357 2008-06-20 17:41:54Z rcaputo $
+## $Id: Kernel.pm 2457 2009-02-22 18:51:40Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2457 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(:fcntl_h :sys_wait_h);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -370,7 +370,7 @@ BEGIN {
 #
 # XXX - There must be a better mechanism.
 #
-my $idle_queue_size = TRACE_PROFILE ? 1 : 0;
+my $idle_queue_size = TRACE_STATISTICS ? 1 : 0;
 
 sub _idle_queue_grow   { $idle_queue_size++; }
 sub _idle_queue_shrink { $idle_queue_size--; }
@@ -420,7 +420,11 @@ sub _trap {
 
   _trap_death();
   confess(
-    "Please mail the following information to bug-POE\@rt.cpan.org:\n@_"
+    "-----\n",
+    "Please address any warnings or errors above this message, and try\n",
+    "again.  If there are none, or those messages are from within POE,\n",
+    "then please mail them along with the following information\n",
+    "to bug-POE\@rt.cpan.org:\n---\n@_\n-----\n"
   );
   _release_death();
 }
@@ -863,8 +867,9 @@ sub _dispatch_event {
 
   if (TRACE_EVENTS) {
     my $log_session = $session;
-    $log_session =  $self->_data_alias_loggable($session)
-      unless $type & ET_START;
+    $log_session =  $self->_data_alias_loggable($session) unless (
+      $type & ET_START
+    );
     my $string_etc = join(" ", map { defined() ? $_ : "(undef)" } @$etc);
     _warn(
       "<ev> Dispatching event $seq ``$event'' ($string_etc) from ",
@@ -874,7 +879,7 @@ sub _dispatch_event {
 
   my $local_event = $event;
 
-  $self->_stat_profile($event) if TRACE_PROFILE;
+  $self->_stat_profile($event, $session) if TRACE_PROFILE;
 
   # Pre-dispatch processing.
 
@@ -1246,14 +1251,20 @@ sub _finalize_kernel {
   $self->_data_stat_finalize() if TRACE_PROFILE or TRACE_STATISTICS;
 }
 
+sub run_while {
+  my ($self, $scalar_ref) = @_;
+  1 while $$scalar_ref and $self->run_one_timeslice();
+}
+
 sub run_one_timeslice {
   my $self = shift;
-  return undef unless $self->_data_ses_count();
-  $self->loop_do_timeslice();
   unless ($self->_data_ses_count()) {
     $self->_finalize_kernel();
     $kr_run_warning |= KR_RUN_DONE;
+    return;
   }
+  $self->loop_do_timeslice();
+  return 1;
 }
 
 sub run {
@@ -1686,6 +1697,8 @@ sub call {
   # mixing the two types makes it harder than necessary to write
   # deterministic programs, but the difficulty can be ameliorated if
   # programmers set some base rules and stick to them.
+
+  $self->_stat_profile($event_name, $session) if TRACE_PROFILE;
 
   if (wantarray) {
     my @return_value = (
@@ -3008,6 +3021,23 @@ example:
 Do be careful.  The above example will spin if POE::Kernel is done but
 $done is never set.  The loop will never be done, even though there's
 nothing left that will set $done.
+
+=head3 run_while SCALAR_REF
+
+run_while() is an B<experimental> version of run_one_timeslice() that
+will only return when there are no more active sessions, or the value
+of the referenced scalar becomes false.
+
+Here's a version of the run_one_timeslice() example using run_while()
+instead:
+
+  my $job_count = 3;
+
+  sub handle_some_event {
+    $job_count--;
+  }
+
+  $kernel->run_while(\$job_count);
 
 =head3 stop
 
@@ -4540,10 +4570,9 @@ sig() does not return a meaningful value.
 
 =head3 sig_child PROCESS_ID [, EVENT_NAME]
 
-sig_child() is a convenient way to deliver an EVENT_NAME event with an
-optional ARGS_LIST when a particular PROCESS_ID has exited.  The
-watcher can be cleared prematurely by calling sig_child() with just
-the PROCESS_ID.
+sig_child() is a convenient way to deliver an EVENT_NAME event when a
+particular PROCESS_ID has exited.  The watcher can be cleared
+prematurely by calling sig_child() with just the PROCESS_ID.
 
 A session may register as many sig_child() handlers as necessary, but
 a session may only have one per PROCESS_ID.
@@ -4786,7 +4815,7 @@ refcount_increment() for more context.
     # Among other things, release the reference count for the
     # requester.
     my $requester_id = delete $_[HEAP]{requesters}{$request_id};
-    $_[KERNEL]->refcount_increment( $requester_id, "pending request");
+    $_[KERNEL]->refcount_decrement( $requester_id, "pending request");
   }
 
 The requester's $_[SENDER]->ID is remembered and removed from the heap
@@ -5116,6 +5145,21 @@ When TRACE_PROFILE is enabled, a program may call
 C<< $_[KERNEL]->stat_show_profile() >> to display a current dispatch
 profile snapshot.
 
+=head3 stat_getprofile [ SESSION ]
+
+stat_getprofile() returns a hash of events and the number of times
+they were dispatched.  It only returns meaningful data if
+TRACE_PROFILE is enabled.
+
+Without the optional SESSION parameter, stat_getprofile() returns
+cumulative statistics for the entire program.
+
+When given a valid SESSION, stat_getprofile() will return profile
+statistics for that session.
+
+stat_getprofile() returns nothing if TRACE_PROFILE isn't enabled, or
+if the given SESSION doesn't exist.
+
 =head2 TRACE_REFCNT
 
 TRACE_REFCNT governs whether POE::Kernel will trace sessions'
@@ -5252,3 +5296,4 @@ Please see L<POE> for more information about authors and contributors.
 # rocco // vim: ts=2 sw=2 expandtab
 # TODO - More practical examples.
 # TODO - Test the examples.
+# TODO - Edit.

@@ -1,11 +1,11 @@
-# $Id: Wheel.pm 2357 2008-06-20 17:41:54Z rcaputo $
+# $Id: Wheel.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 package POE::Wheel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -35,7 +35,6 @@ sub _test_set_wheel_id {
   $current_id = shift;
 }
 
-#------------------------------------------------------------------------------
 1;
 
 __END__
@@ -280,6 +279,16 @@ destructor.
 Wheel IDs may be reused, although it has never been reported.  Two
 active wheels will never share the same ID, however.
 
+=head3 ID
+
+B<This is usually implemented in the subclass!>
+
+The ID() method returns a wheel's unique ID. It is commonly used to
+match events with the wheels which generated them.
+
+Again, this method is not implemented in this class! If it's missing
+from the subclass, please go pester that module author---thanks!
+
 =head1 SEE ALSO
 
 The SEE ALSO section in L<POE> contains a table of contents covering
@@ -322,3 +331,4 @@ and POE;s licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

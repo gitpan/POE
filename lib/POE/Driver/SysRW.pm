@@ -1,4 +1,4 @@
-# $Id: SysRW.pm 2335 2008-05-26 18:39:15Z rcaputo $
+# $Id: SysRW.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 # Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
@@ -9,7 +9,7 @@ package POE::Driver::SysRW;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2335 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
@@ -252,3 +252,4 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

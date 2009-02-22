@@ -1,9 +1,9 @@
-# $Id: Queue.pm 2328 2008-05-21 06:03:58Z rcaputo $
+# $Id: Queue.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 package POE::Queue;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2328 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 
@@ -307,3 +307,4 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

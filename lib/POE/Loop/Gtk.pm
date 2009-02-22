@@ -1,4 +1,4 @@
-# $Id: Gtk.pm 2329 2008-05-25 23:01:58Z rcaputo $
+# $Id: Gtk.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 # Gtk-Perl event loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2329 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 =for poe_tests
 
@@ -93,7 +93,7 @@ sub loop_attach_uidestroy {
         $self->_dispatch_event
           ( $self, $self,
             EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
-            __FILE__, __LINE__, time(), -__LINE__
+            __FILE__, __LINE__, undef, time(), -__LINE__
           );
       }
       return 0;
@@ -352,3 +352,4 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

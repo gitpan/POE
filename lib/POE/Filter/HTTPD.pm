@@ -1,4 +1,4 @@
-# $Id: HTTPD.pm 2387 2008-07-05 18:01:55Z rcaputo $
+# $Id: HTTPD.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 # Filter::HTTPD Copyright 1998 Artur Bergman <artur@vogon.se>.
 
@@ -17,7 +17,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = do {my($r)=(q$Revision: 2387 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 @ISA = qw(POE::Filter);
 
 sub BUFFER        () { 0 }
@@ -536,3 +536,4 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

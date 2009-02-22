@@ -1,4 +1,4 @@
-# $Id: SIDs.pm 2335 2008-05-26 18:39:15Z rcaputo $
+# $Id: SIDs.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 # Session IDs: The data to maintain them, and accessors to get at them
 # sanely from other files.
@@ -6,7 +6,7 @@
 package POE::Resource::SIDs;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2335 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -122,3 +122,4 @@ Please see L<POE> for more information about authors and contributors.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

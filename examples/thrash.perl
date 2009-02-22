@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: thrash.perl 2357 2008-06-20 17:41:54Z rcaputo $
+# $Id: thrash.perl 2423 2009-02-09 23:26:45Z apocal $
 
 # This program creates a server session and an infinitude of clients
 # that connect to it, all in the same process.  It's mainly used to
@@ -25,7 +25,7 @@ sub MAX_SIMULTANEOUS_CLIENTS () { 5 }
 sub DEBUG () { 0 }
                                         # address and port the server binds to
 my $server_addr = '127.0.0.1';
-my $server_port = 31415;
+my $server_port = 32100;
 
 ###############################################################################
 # This is a single client session.  It uses two separator wheels: a

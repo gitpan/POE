@@ -1,4 +1,4 @@
-# $Id: Array.pm 2327 2008-05-21 05:42:02Z rcaputo $
+# $Id: Array.pm 2447 2009-02-17 05:04:43Z rcaputo $
 # Copyrights and documentation are at the end.
 
 package POE::Queue::Array;
@@ -7,7 +7,7 @@ use strict;
 
 use vars qw(@ISA $VERSION);
 @ISA = qw(POE::Queue);
-$VERSION = do {my($r)=(q$Revision: 2327 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Errno qw(ESRCH EPERM);
 use Carp qw(confess);
@@ -467,3 +467,4 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.

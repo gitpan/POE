@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: watermarks.perl 1509 2004-01-31 06:58:31Z rcaputo $
+# $Id: watermarks.perl 2423 2009-02-09 23:26:45Z apocal $
 
 # This program tests the high and low watermarks.  It merges the
 # wheels from wheels.perl and the chargen service from selects.perl to
@@ -9,7 +9,7 @@ use strict;
 use lib '../lib';
 use POE qw(Wheel::SocketFactory Wheel::ReadWrite Driver::SysRW Filter::Line);
 
-my $chargen_port = 32019;
+my $chargen_port = 32100;
 
 #==============================================================================
 # This is a simple TCP server.  It answers connections and passes them

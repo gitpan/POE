@@ -1,9 +1,17 @@
 #!/usr/bin/perl -w
-# $Id: rt19908-merlyn-stop.t 2052 2006-08-20 06:33:46Z rcaputo $
+# $Id: rt19908-merlyn-stop.t 2443 2009-02-16 11:18:25Z apocal $
 # vim: filetype=perl
 
 # Randal Schwartz reported that die() within _stop causes an infinite
 # loop.  He's right.  This tests rt.cpan.org ticket 19908.
+
+# perl-5.6.x on Win32 does not support alarm()
+BEGIN {
+  if ( $^O eq 'MSWin32' and $] < 5.008 ) {
+    print "1..0 # Skip perl-5.6.x on $^O does not support alarm()";
+    exit();
+  }
+}
 
 use POE;
 use Test::More tests => 3;

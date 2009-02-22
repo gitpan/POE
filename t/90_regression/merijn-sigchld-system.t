@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: merijn-sigchld-system.t 2321 2008-05-11 20:36:05Z rcaputo $
+# $Id: merijn-sigchld-system.t 2427 2009-02-10 09:32:08Z rcaputo $
 # vim: filetype=perl
 
 
@@ -33,23 +33,26 @@ SKIP: {
   POE::Session->create(
     inline_states => {
       _start => sub {
+				my $sig_chld = $SIG{CHLD};
+				$sig_chld = "(undef)" unless defined $sig_chld;
+
         is(
           system( $command ), 0,
-          "System returns properly chld($SIG{CHLD}) err($!)"
+          "System returns properly chld($sig_chld) err($!)"
         );
         $! = undef;
 
         $_[KERNEL]->sig( 'CHLD', 'chld' );
         is(
           system( $command ), 0,
-          "System returns properly chld($SIG{CHLD}) err($!)"
+          "System returns properly chld($sig_chld) err($!)"
         );
         $! = undef;
 
         $_[KERNEL]->sig( 'CHLD' );
         is(
           system( $command ), 0,
-          "System returns properly chld($SIG{CHLD}) err($!)"
+          "System returns properly chld($sig_chld) err($!)"
         );
         $! = undef;
       },

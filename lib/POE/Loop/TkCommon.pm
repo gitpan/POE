@@ -1,4 +1,4 @@
-# $Id: TkCommon.pm 2329 2008-05-25 23:01:58Z rcaputo $
+# $Id: TkCommon.pm 2447 2009-02-17 05:04:43Z rcaputo $
 
 # The common bits of our system-specific Tk event loops.  This is
 # everything but file handling.
@@ -10,7 +10,7 @@ package POE::Loop::TkCommon;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2329 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Tk 800.021;
 use 5.00503;
@@ -36,7 +36,7 @@ sub loop_attach_uidestroy {
         $self->_dispatch_event(
           $self, $self,
           EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
-          __FILE__, __LINE__, time(), -__LINE__
+          __FILE__, __LINE__, undef, time(), -__LINE__
         );
       }
     }
@@ -51,9 +51,14 @@ sub loop_resume_time_watcher {
   $self->loop_pause_time_watcher();
   my $timeout = $next_time - time();
 
-  $timeout = "idle" if $timeout < 0;
+  if ( $timeout < 0 ) {
+    $timeout = "idle";
+  } else {
+    $timeout *= 1000;
+  }
+
   $_watcher_time = $poe_main_window->after(
-    $timeout * 1000, [ sub { } ]
+    $timeout, [ sub { } ]
   );
 }
 
@@ -116,7 +121,7 @@ sub Tk::Error {
     $poe_kernel->_dispatch_event(
       $poe_kernel, $poe_kernel,
       EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
-      __FILE__, __LINE__, time(), -__LINE__
+      __FILE__, __LINE__, undef, time(), -__LINE__
     );
   }
 }
@@ -185,3 +190,4 @@ and POE's licensing.
 =cut
 
 # rocco // vim: ts=2 sw=2 expandtab
+# TODO - Edit.
