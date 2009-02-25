@@ -1,5 +1,10 @@
-# $Id: 02_pod_coverage.t 2359 2008-06-26 04:55:35Z rcaputo $
+# $Id: 02_pod_coverage.t 2465 2009-02-25 07:57:54Z rcaputo $
 # vim: filetype=perl
+
+# This testcase loads all POE modules.  Some of them may define
+# alternative methods with the same full-qualified names.  Disable the
+# inevitable warnings.
+BEGIN { $^W = 0 }
 
 use Test::More;
 eval "use Test::Pod::Coverage 1.08";

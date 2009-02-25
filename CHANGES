@@ -1,4 +1,24 @@
 =====================================
+2009-02-25T08:00:13.920106Z v1_003_02
+=====================================
+
+  2009-02-25 07:58:55 (r2466) by rcaputo; poe/lib/POE.pm M
+
+    New test release.
+
+  2009-02-25 07:57:54 (r2465) by rcaputo
+  poe/t/10_units/01_pod/02_pod_coverage.t M
+
+    Avoid a lot of warnings, which are the inevitable result of loading
+    all POE modules, even the ones which are alternate implementations of
+    the same methods.
+
+  2009-02-25 07:48:14 (r2464) by rcaputo
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Improve fcntl() error messages to help track down a 5.6.2 failure. 
+
+=====================================
 2009-02-22T19:49:12.955550Z v1_003_01
 =====================================
 

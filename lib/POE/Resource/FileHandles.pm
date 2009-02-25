@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm 2455 2009-02-22 07:45:28Z rcaputo $
+# $Id: FileHandles.pm 2464 2009-02-25 07:48:14Z rcaputo $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,7 +6,7 @@
 package POE::Resource::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2455 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2464 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -340,9 +340,9 @@ sub _data_handle_add {
         else {
           # Long, drawn out, POSIX way.
           my $flags = fcntl($handle, F_GETFL, 0)
-            or _trap "fcntl($handle, F_GETFL, etc.) fails: $!\n";
+            or _trap "fcntl($handle, F_GETFL, 0) fails: $!\n";
           until (fcntl($handle, F_SETFL, $flags | O_NONBLOCK)) {
-            _trap "fcntl($handle, FSETFL, etc) fails: $!"
+            _trap "fcntl($handle, F_SETFL, $flags | " . O_NONBLOCK . ") fails: $!"
               unless $! == EAGAIN or $! == EWOULDBLOCK;
           }
         }
