@@ -1,4 +1,4 @@
-# $Id: Signals.pm 2449 2009-02-17 07:28:32Z rcaputo $
+# $Id: Signals.pm 2470 2009-02-27 03:24:48Z rcaputo $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,7 +6,7 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2449 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2470 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -610,16 +610,6 @@ sub _data_sig_handle_poll_event {
 sub _data_sig_child_procs {
   return if !USE_SIGCHLD and !$polling_for_signals;
   return $kr_child_procs;
-}
-
-# Reap child processes.  Discard their statuses.  Used to prevent
-# zombie processes when nobody else is watching for children.  See
-# POE::Loop::Event for its use.
-
-sub _data_sig_ignore_sigchld {
-  my $pid;
-  1 while $pid = waitpid(-1, WNOHANG);
-  $kr_child_procs = !$pid;
 }
 
 1;

@@ -1,4 +1,4 @@
-# $Id: PerlSignals.pm 2447 2009-02-17 05:04:43Z rcaputo $
+# $Id: PerlSignals.pm 2470 2009-02-27 03:24:48Z rcaputo $
 
 # Plain Perl signal handling is something shared by several event
 # loops.  The invariant code has moved out here so that each loop may
@@ -10,7 +10,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2470 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -101,8 +101,17 @@ sub loop_ignore_signal {
 
   delete $signal_watched{$signal};
 
-  unless ( USE_SIGCHLD ) {
     if ($signal eq 'CHLD' or $signal eq 'CLD') {
+    if ( USE_SIGCHLD ) {
+      if( $self->_data_sig_child_procs) {
+        # We need SIGCHLD to stay around after shutdown, so that
+        # child processes may be reaped and kr_child_procs=0
+        if (TRACE_SIGNALS) {
+          POE::Kernel::_warn "<sg> Keeping SIG$signal anyway!";
+        }
+        return;
+      }
+    } else {
       $self->_data_sig_cease_polling();
       # We should never twiddle $SIG{CH?LD} under poe, unless we want to
       # override system() and friends. --hachi
@@ -111,12 +120,17 @@ sub loop_ignore_signal {
     }
   }
 
+  delete $signal_watched{$signal};
+
+  my $state = 'DEFAULT';
   if ($signal eq 'PIPE') {
-    $SIG{$signal} = "IGNORE";
-    return;
+    $state = "IGNORE";
   }
 
-  $SIG{$signal} = "DEFAULT";
+  if (TRACE_SIGNALS) {
+    POE::Kernel::_warn "<sg> $state SIG$signal";
+  }
+  $SIG{$signal} = $state;
 }
 
 sub loop_ignore_all_signals {

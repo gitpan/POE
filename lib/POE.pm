@@ -1,4 +1,4 @@
-# $Id: POE.pm 2466 2009-02-25 07:58:55Z rcaputo $
+# $Id: POE.pm 2473 2009-02-28 18:15:48Z rcaputo $
 # Copyrights and documentation are after __END__.
 
 package POE;
@@ -7,8 +7,8 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION $REVISION);
-$VERSION = '1.003_02'; # NOTE - Should be #.### (three decimal places)
-$REVISION = do {my($r)=(q$Revision: 2466 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.003_03'; # NOTE - Should be #.### (three decimal places)
+$REVISION = do {my($r)=(q$Revision: 2473 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 sub import {
   my $self = shift;

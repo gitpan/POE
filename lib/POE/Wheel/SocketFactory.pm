@@ -1,11 +1,11 @@
-# $Id: SocketFactory.pm 2447 2009-02-17 05:04:43Z rcaputo $
+# $Id: SocketFactory.pm 2471 2009-02-27 20:33:51Z rcaputo $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2471 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -1187,7 +1187,7 @@ of this program.
         my $io_wheel = POE::Wheel::ReadWrite->new(
           Handle => $client_socket,
           InputEvent => "on_client_input",
-          FailureEvent => "on_client_error",
+          ErrorEvent => "on_client_error",
         );
         $_[HEAP]{client}{ $io_wheel->ID() } = $io_wheel;
       },

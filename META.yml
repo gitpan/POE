@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 1.003_02
+version: 1.003_03
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -33,7 +33,7 @@ meta-spec:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.003_02
+    version: 1.003_03
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2447
@@ -96,7 +96,7 @@ provides:
     version: 1.2447
   POE::Loop::PerlSignals:
     file: lib/POE/Loop/PerlSignals.pm
-    version: 1.2447
+    version: 1.2470
   POE::Loop::Select:
     file: lib/POE/Loop/Select.pm
     version: 1.2447
@@ -141,7 +141,7 @@ provides:
     version: 1.2447
   POE::Resource::FileHandles:
     file: lib/POE/Resource/FileHandles.pm
-    version: 1.2464
+    version: 1.2472
   POE::Resource::SIDs:
     file: lib/POE/Resource/SIDs.pm
     version: 1.2447
@@ -150,7 +150,7 @@ provides:
     version: 1.2447
   POE::Resource::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.2449
+    version: 1.2470
   POE::Resource::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.2447
@@ -185,6 +185,6 @@ provides:
     version: 1.2447
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
-    version: 1.2447
+    version: 1.2471
 resources:
   license: http://dev.perl.org/licenses/
