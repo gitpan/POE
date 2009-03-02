@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 1.003_03
+version: 1.003_04
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -33,7 +33,7 @@ meta-spec:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.003_03
+    version: 1.003_04
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2447
@@ -81,7 +81,7 @@ provides:
     version: 1.2447
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.2457
+    version: 1.2478
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.2447
@@ -114,7 +114,7 @@ provides:
     version: 1.2456
   POE::Pipe:
     file: lib/POE/Pipe.pm
-    version: 1.2447
+    version: 1.2485
   POE::Pipe::OneWay:
     file: lib/POE/Pipe/OneWay.pm
     version: 1.2447
@@ -141,7 +141,7 @@ provides:
     version: 1.2447
   POE::Resource::FileHandles:
     file: lib/POE/Resource/FileHandles.pm
-    version: 1.2472
+    version: 1.2485
   POE::Resource::SIDs:
     file: lib/POE/Resource/SIDs.pm
     version: 1.2447
@@ -150,7 +150,7 @@ provides:
     version: 1.2447
   POE::Resource::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.2470
+    version: 1.2478
   POE::Resource::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.2447
@@ -165,7 +165,7 @@ provides:
     version: 1.2447
   POE::Wheel::Curses:
     file: lib/POE/Wheel/Curses.pm
-    version: 1.2447
+    version: 1.2485
   POE::Wheel::FollowTail:
     file: lib/POE/Wheel/FollowTail.pm
     version: 1.2447
@@ -185,6 +185,6 @@ provides:
     version: 1.2447
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
-    version: 1.2471
+    version: 1.2485
 resources:
   license: http://dev.perl.org/licenses/

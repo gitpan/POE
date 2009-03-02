@@ -1,4 +1,4 @@
-# $Id: FileHandles.pm 2472 2009-02-28 17:36:13Z rcaputo $
+# $Id: FileHandles.pm 2485 2009-03-01 21:28:22Z rcaputo $
 
 # Manage file handles, associated descriptors, and read/write modes
 # thereon.
@@ -6,12 +6,14 @@
 package POE::Resource::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2472 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2485 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
 
 use strict;
+
+use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
 
 ### Some portability things.
 
@@ -19,7 +21,10 @@ use strict;
 # aren't used if we're RUNNING_IN_HELL, but Perl needs to see them.
 
 BEGIN {
-  if ( ! defined &F_GETFL ) {
+  # older perls than 5.10 needs a kick in the arse to AUTOLOAD the constant...
+  eval "F_GETFL" if $] < 5.010;
+
+  if ( ! defined &Fcntl::F_GETFL ) {
     if ( ! defined prototype "F_GETFL" ) {
       *F_GETFL = sub { 0 };
       *F_SETFL = sub { 0 };

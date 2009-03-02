@@ -5,7 +5,7 @@ package POE::Wheel::Curses;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2485 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(croak);
 use Curses qw(
@@ -13,9 +13,8 @@ use Curses qw(
   intrflush meta typeahead mousemask ALL_MOUSE_EVENTS clear refresh
   endwin COLS
 );
-use POSIX qw(:fcntl_h);
+use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
 use POE qw( Wheel );
-
 
 sub SELF_STATE_READ  () { 0 }
 sub SELF_STATE_WRITE () { 1 }

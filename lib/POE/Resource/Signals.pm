@@ -1,4 +1,4 @@
-# $Id: Signals.pm 2470 2009-02-27 03:24:48Z rcaputo $
+# $Id: Signals.pm 2478 2009-03-01 18:55:04Z rcaputo $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,12 +6,14 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2470 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2478 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
 
 use strict;
+
+use POSIX qw(:sys_wait_h);
 
 ### Map watched signal names to the sessions that are watching them
 ### and the events that must be delivered when they occur.

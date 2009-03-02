@@ -1,16 +1,15 @@
-# $Id: SocketFactory.pm 2471 2009-02-27 20:33:51Z rcaputo $
+# $Id: SocketFactory.pm 2485 2009-03-01 21:28:22Z rcaputo $
 
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2471 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2485 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
 
-use POSIX qw(:fcntl_h);
 use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
 use Errno qw(EWOULDBLOCK EADDRNOTAVAIL EINPROGRESS EADDRINUSE);
 use Socket qw(

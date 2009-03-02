@@ -2,6 +2,35 @@
 9999-99-99 99:99:99.999999Z (untagged)
 ======================================
 
+  2009-03-01 21:28:22 (r2485) by rcaputo
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Pipe.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Restrict what Fcntl exports. Bump up the versions for a new test
+    release. 
+
+  2009-03-01 20:44:39 (r2480) by apocal
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Backport the Fcntl tweak to the rest of the POE distribution - thanks
+    dngor for pointing this out!
+
+  2009-03-01 20:06:23 (r2479) by apocal
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    tweaked the F_GETFL detection routine to be more portable, thanks
+    dngor/p5p for the help!
+
+  2009-03-01 18:55:04 (r2478) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Move around some POSIX constants so they're used where they're
+    needed. 
+
   2009-02-28 18:15:48 (r2473) by rcaputo; poe/lib/POE.pm M
 
     Another developer release for 5.6.2 testing.
@@ -29,10 +58,6 @@
     "we have child processes" flags to be cleared. Resolves rt.cpan.org
     #39872. 
 
-=====================================
-2009-02-25T08:00:13.920106Z v1_003_02
-=====================================
-
   2009-02-25 07:58:55 (r2466) by rcaputo; poe/lib/POE.pm M
 
     New test release.
@@ -48,10 +73,6 @@
   poe/lib/POE/Resource/FileHandles.pm M
 
     Improve fcntl() error messages to help track down a 5.6.2 failure. 
-
-=====================================
-2009-02-22T19:49:12.955550Z v1_003_01
-=====================================
 
   2009-02-22 19:48:13 (r2461) by rcaputo; poe/lib/POE.pm M
 
