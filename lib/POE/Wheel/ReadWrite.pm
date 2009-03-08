@@ -1,11 +1,11 @@
-# $Id: ReadWrite.pm 2454 2009-02-18 10:02:54Z bingosnet $
+# $Id: ReadWrite.pm 2488 2009-03-02 20:17:53Z bingosnet $
 
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2454 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2488 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -658,7 +658,7 @@ __END__
 
 =head1 NAME
 
-POE::Wheel::ReadWrite - non-blocking buffered I/O mix-in for POE::Sessoin
+POE::Wheel::ReadWrite - non-blocking buffered I/O mix-in for POE::Session
 
 =head1 SYNOPSIS
 

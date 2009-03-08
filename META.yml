@@ -1,25 +1,25 @@
 ---
 name: POE
-version: 1.003_04
+version: 1.003_05
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
 license: perl
 configure_requires:
-  POE::Test::Loops: 1.002
+  POE::Test::Loops: 1.004
 requires:
   Carp: 0
   Errno: 1.09
   Exporter: 0
   File::Spec: 0.87
   IO::Handle: 1.27
-  POE::Test::Loops: 1.002
+  POE::Test::Loops: 1.004
   POSIX: 1.02
   Socket: 1.7
   Storable: 2.16
   Test::Harness: 2.26
 build_requires:
-  POE::Test::Loops: 1.002
+  POE::Test::Loops: 1.004
 recommends:
   Time::HiRes: 1.59
 no_index:
@@ -33,7 +33,7 @@ meta-spec:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.003_04
+    version: 1.003_05
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2447
@@ -51,7 +51,7 @@ provides:
     version: 1.2447
   POE::Filter:
     file: lib/POE/Filter.pm
-    version: 1.2447
+    version: 1.2490
   POE::Filter::Block:
     file: lib/POE/Filter/Block.pm
     version: 1.2447
@@ -159,7 +159,7 @@ provides:
     version: 1.2447
   POE::Session:
     file: lib/POE/Session.pm
-    version: 1.2447
+    version: 1.2489
   POE::Wheel:
     file: lib/POE/Wheel.pm
     version: 1.2447
@@ -179,7 +179,7 @@ provides:
     file: lib/POE/Wheel/ReadLine.pm
   POE::Wheel::ReadWrite:
     file: lib/POE/Wheel/ReadWrite.pm
-    version: 1.2454
+    version: 1.2488
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
     version: 1.2447

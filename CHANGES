@@ -2,6 +2,35 @@
 9999-99-99 99:99:99.999999Z (untagged)
 ======================================
 
+  2009-03-07 19:08:57 (r2496) by rcaputo; poe/lib/POE.pm M
+
+    Another development release. This one relies on the latest
+    POE::Test::Loops changes.
+
+  2009-03-07 19:07:45 (r2495) by rcaputo; poe/mylib/PoeBuildInfo.pm M
+
+    We need POE::Test::Loops 1.004 or later now. 
+
+  2009-03-06 06:44:04 (r2492) by rcaputo
+  poe/t/90_regression/rt39872-sigchld-stop.t A; poe/MANIFEST M
+
+    Add Philip Gwyn's test for a failure for POE::Kernel to stop if
+    lingering processes are around without a sig_child() to reap them. 
+
+  2009-03-02 20:52:40 (r2490) by rcaputo; poe/lib/POE/Filter.pm M
+
+    Gcola discovered that we don't explain POE::Filter get() and
+    get_one() return values when there's nothing to return. 
+
+  2009-03-02 20:19:54 (r2489) by bingosnet; poe/lib/POE/Session.pm M
+
+    Fixed typo in =head1 EVENTS; 
+
+  2009-03-02 20:17:53 (r2488) by bingosnet
+  poe/lib/POE/Wheel/ReadWrite.pm M; extras/smoker.perl M
+
+    Corrected typo in =head1 NAME
+
   2009-03-01 21:28:22 (r2485) by rcaputo
   poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Pipe.pm M; poe/lib/POE.pm M;
   poe/lib/POE/Wheel/SocketFactory.pm M;

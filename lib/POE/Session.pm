@@ -1,11 +1,11 @@
-# $Id: Session.pm 2447 2009-02-17 05:04:43Z rcaputo $
+# $Id: Session.pm 2489 2009-03-02 20:19:54Z bingosnet $
 
 package POE::Session;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2489 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Errno;
@@ -1540,7 +1540,7 @@ that are passed to the session's _start handler.
     return $self->SUPER::try_alloc(@args);
   }
 
-=head1 POE::Session'S EVENTS
+=head1 POE::Session's EVENTS
 
 Please do not define new events that begin with a leading underscore.
 POE claims /^_/ events as its own.
