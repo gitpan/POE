@@ -1,11 +1,11 @@
-## $Id: Kernel.pm 2478 2009-03-01 18:55:04Z rcaputo $
+## $Id: Kernel.pm 2501 2009-03-11 02:28:50Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2478 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2501 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(uname);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -2633,7 +2633,7 @@ perform some setup, run some code, and eventually exit.  Halting
 Problem notwithstanding.
 
 A POE-based application loads some modules, sets up one or more
-sessions, runs the code in those sessions, and eventually exists.
+sessions, runs the code in those sessions, and eventually exits.
 
   use POE;
   POE::Session->create( ... map events to code here ... );
@@ -2847,10 +2847,12 @@ POE's public interfaces remain the same regardless of the event loop
 being used.  Since most graphical toolkits include some form of event
 loop, back-end code should be portable to all of them.
 
-Cooperation with other event loops also lets you embed POE code into
-other software.  For example, one can embed networking code into Vim,
-so non-blocking HTTP clients into irssi because they all cooperatively
-share L<Glib>.
+POE's cooperation with other event loops lets POE be embedded into
+other software.  The common underlying event loop drives both the
+application and POE.  For example, by using POE::Loop::Glib, one can
+embed POE into Vim, irssi, and so on.  Application scripts can then
+take advantage of POE::Component::Client::HTTP (and everything else)
+to do large-scale work without blocking the rest of the program.
 
 Because this is Perl, there are multiple ways to load an alternate
 event loop.  The simplest way is to load the event loop before loading
@@ -3173,7 +3175,7 @@ The L<POE::Wheel|POE::Wheel> classes uses call() to synchronously deliver I/O
 notifications.  This avoids a host of race conditions.
 
 call() may fail in the same way and for the same reasons as post().
-On failure, $! is set to some nonzero value indicating way.  Since
+On failure, $! is set to some nonzero value indicating why.  Since
 call() may return undef as a matter of course, it's recommended that
 $! be checked for the error condition as well as the explanation.
 

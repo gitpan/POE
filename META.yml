@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 1.003_05
+version: 1.003_06
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -33,7 +33,7 @@ meta-spec:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.003_05
+    version: 1.003_06
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2447
@@ -42,7 +42,7 @@ provides:
     version: 1.2447
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.2447
+    version: 1.2505
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.2447
@@ -81,7 +81,7 @@ provides:
     version: 1.2447
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.2478
+    version: 1.2501
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.2447
@@ -111,7 +111,7 @@ provides:
     version: 1.2447
   POE::NFA:
     file: lib/POE/NFA.pm
-    version: 1.2456
+    version: 1.2506
   POE::Pipe:
     file: lib/POE/Pipe.pm
     version: 1.2485

@@ -1,11 +1,11 @@
-# $Id: NFA.pm 2456 2009-02-22 18:44:15Z rcaputo $
+# $Id: NFA.pm 2506 2009-03-14 20:43:28Z bingosnet $
 
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2456 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2506 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 
@@ -1027,8 +1027,8 @@ the following three exceptions.
 
 =head2 MACHINE
 
-C<MACHINE> is equivalent to Session's C<SESSION> field.  It hold a
-reference to the current state machine, and it's useful for calling
+C<MACHINE> is equivalent to Session's C<SESSION> field.  It holds a
+reference to the current state machine, and is useful for calling
 its methods.
 
 See POE::Session's C<SESSION> field for more information.

@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2447 2009-02-17 05:04:43Z rcaputo $
+# $Id: TCP.pm 2505 2009-03-12 00:54:24Z apocal $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2505 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -169,6 +169,69 @@ sub new {
 
     croak "ClientArgs must be an array reference"
       unless ref($args) eq 'ARRAY';
+
+    # Sanity check, thanks to crab@irc for making this mistake, ha!
+    # TODO we could move this to POE::Session and make it a
+    # "sanity checking" sub somehow...
+    if (POE::Kernel::ASSERT_USAGE) {
+      my %forbidden_handlers = (
+        _child => 1,
+        _start => 1,
+        _stop => 1,
+        shutdown => 1,
+        tcp_server_got_error => 1,
+        tcp_server_got_flush => 1,
+        tcp_server_got_high => 1,
+        tcp_server_got_input => 1,
+        tcp_server_got_low => 1,
+      );
+
+      if (
+        my @forbidden_inline_handlers = (
+          grep { exists $inline_states->{$_} }
+          keys %forbidden_handlers
+        )
+      ) {
+        croak "These InlineStates aren't allowed: @forbidden_inline_handlers";
+      }
+
+      my %handlers = (
+        PackageStates => $package_states,
+        ObjectStates => $object_states,
+      );
+
+      while (my ($name, $states) = each(%handlers)) {
+        my %states_hash = @$states;
+        my @forbidden_handlers;
+        while (my ($package, $handlers) = each %states_hash) {
+          croak "Undefined $name member for $package" unless (
+            defined $handlers
+          );
+
+          if (ref($handlers) eq 'HASH') {
+            push(
+              @forbidden_handlers,
+              grep { exists $handlers->{$_} }
+              keys %forbidden_handlers
+            );
+          }
+          elsif (ref($handlers) eq 'ARRAY') {
+            push(
+              @forbidden_handlers,
+              grep { exists $forbidden_handlers{$_} }
+              @$handlers
+            );
+          }
+          else {
+            croak "Unknown $name member type for $package";
+          }
+        }
+
+        croak "These $name aren't allowed: @forbidden_handlers" if (
+          @forbidden_handlers
+        );
+      }
+    }
 
     # Revise the acceptor callback so it spawns a session.
 
@@ -851,6 +914,10 @@ Remember: These InlineStates handlers will be added to the main
 listening session, not to every connection.  A yield() in a connection
 will not reach these handlers.
 
+If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
+detects a state that it uses internally. For example, please use the "Started"
+callback if you want to specify your own "_start" event.
+
 =head4 ObjectStates
 
 If C<ObjectStates> is specified, it must holde an arrayref of objects
@@ -860,6 +927,10 @@ for POE::Session->create()'s object_states parameter.
 Remember: These ObjectStates handlers will be added to the main
 listening session, not to every connection.  A yield() in a connection
 will not reach these handlers.
+
+If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
+detects a state that it uses internally. For example, please use the "Started"
+callback if you want to specify your own "_start" event.
 
 =head4 PackageStates
 
@@ -871,6 +942,10 @@ parameter.
 Remember: These PackageStates handlers will be added to the main
 listening session, not to every connection.  A yield() in a connection
 will not reach these handlers.
+
+If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
+detects a state that it uses internally. For example, please use the "Started"
+callback if you want to specify your own "_start" event.
 
 =head4 Port
 
