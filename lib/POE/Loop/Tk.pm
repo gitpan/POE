@@ -1,11 +1,11 @@
-# $Id: Tk.pm 2447 2009-02-17 05:04:43Z rcaputo $
+# $Id: Tk.pm 2508 2009-03-27 17:35:31Z rcaputo $
 
 # Tk-Perl event loop bridge for POE::Kernel.
 
 package POE::Loop::Tk;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2508 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Include common things.
 use POE::Loop::PerlSignals;
@@ -25,6 +25,12 @@ sub skip_tests {
     return "This test crashes Perl when run with Tk on $^O";
   }
   return "Tk tests require the Tk module" if do { eval "use Tk"; $@ };
+  my $m = eval { Tk::MainWindow->new() };
+  if ($@) {
+    my $why = $@;
+    $why =~ s/ at .*//;
+    return "Tk couldn't be initialized: $why";
+  }
   return;
 }
 

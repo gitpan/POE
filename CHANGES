@@ -2,6 +2,23 @@
 9999-99-99 99:99:99.999999Z (untagged)
 ======================================
 
+  2009-03-27 20:38:41 (r2511) by rcaputo; poe/lib/POE.pm M
+
+    New dev release to address issues with Andreas Koenig's smoker. He's
+    setting a DISPLAY that cannot be reached.
+
+  2009-03-27 20:17:27 (r2510) by rcaputo; poe/mylib/PoeBuildInfo.pm M
+
+    Avoid IO::Pty crashes on fbsd 6.4 with perl 5.8.8.
+
+  2009-03-27 20:02:21 (r2509) by rcaputo; poe/lib/POE/Loop/Gtk.pm M
+
+    Skip Gtk tests if Gtk cannot be initialized.
+
+  2009-03-27 17:35:31 (r2508) by rcaputo; poe/lib/POE/Loop/Tk.pm M
+
+    Skip Tk tests if Tk cannot be started.
+
   2009-03-27 16:28:34 (r2507) by rcaputo
   poe/lib/POE.pm M; poe/MANIFEST M
 

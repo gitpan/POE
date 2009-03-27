@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 1.003_06
+version: 1.003_07
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -13,6 +13,7 @@ requires:
   Exporter: 0
   File::Spec: 0.87
   IO::Handle: 1.27
+  IO::Tty: 1.08
   POE::Test::Loops: 1.004
   POSIX: 1.02
   Socket: 1.7
@@ -33,7 +34,7 @@ meta-spec:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.003_06
+    version: 1.003_07
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2447
@@ -90,7 +91,7 @@ provides:
     version: 1.2447
   POE::Loop::Gtk:
     file: lib/POE/Loop/Gtk.pm
-    version: 1.2447
+    version: 1.2509
   POE::Loop::IO_Poll:
     file: lib/POE/Loop/IO_Poll.pm
     version: 1.2447
@@ -102,7 +103,7 @@ provides:
     version: 1.2447
   POE::Loop::Tk:
     file: lib/POE/Loop/Tk.pm
-    version: 1.2447
+    version: 1.2508
   POE::Loop::TkActiveState:
     file: lib/POE/Loop/TkActiveState.pm
     version: 1.2447

@@ -1,4 +1,4 @@
-# $Id: PoeBuildInfo.pm 2495 2009-03-07 19:07:45Z rcaputo $
+# $Id: PoeBuildInfo.pm 2510 2009-03-27 20:17:27Z rcaputo $
 # rocco // vim: ts=2 sw=2 expandtab
 
 # Build information for POE.  Moved into a library so it can be
@@ -36,6 +36,7 @@ sub CORE_REQUIREMENTS () {
     "Exporter"          => 0,
     "File::Spec"        => 0.87,
     "IO::Handle"        => 1.27,
+    "IO::Tty"           => 1.08, # avoids crashes on fbsd
     "POSIX"             => 1.02,
     "Socket"            => 1.7,
     "Test::Harness"     => 2.26,
