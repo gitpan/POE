@@ -1,6 +1,6 @@
 ---
 name: POE
-version: 1.003_07
+version: 1.004
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
@@ -34,13 +34,13 @@ meta-spec:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.003_07
+    version: 1.004
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2447
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
-    version: 1.2447
+    version: 1.2512
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
     version: 1.2505

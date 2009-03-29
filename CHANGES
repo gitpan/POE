@@ -1,6 +1,15 @@
-======================================
-9999-99-99 99:99:99.999999Z (untagged)
-======================================
+==================================
+2009-03-29T17:03:26.594634Z v1_004
+==================================
+
+  2009-03-29 16:44:40 (r2513) by rcaputo; poe/lib/POE.pm M
+
+    At long last, a major revision.
+
+  2009-03-29 16:42:28 (r2512) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M
+
+    Clean up some large loose ends in the POD.
 
   2009-03-27 20:38:41 (r2511) by rcaputo; poe/lib/POE.pm M
 
