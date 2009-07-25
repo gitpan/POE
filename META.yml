@@ -1,12 +1,12 @@
 ---
 name: POE
-version: 1.006
+version: 1.006_90
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
 license: perl
 configure_requires:
-  POE::Test::Loops: 1.004
+  POE::Test::Loops: 1.02
 requires:
   Carp: 0
   Errno: 1.09
@@ -14,13 +14,13 @@ requires:
   File::Spec: 0.87
   IO::Handle: 1.27
   IO::Tty: 1.08
-  POE::Test::Loops: 1.004
+  POE::Test::Loops: 1.02
   POSIX: 1.02
   Socket: 1.7
   Storable: 2.16
   Test::Harness: 2.26
 build_requires:
-  POE::Test::Loops: 1.004
+  POE::Test::Loops: 1.02
 recommends:
   Time::HiRes: 1.59
 no_index:
@@ -34,7 +34,7 @@ meta-spec:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.006
+    version: 1.006_90
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2447
@@ -43,7 +43,7 @@ provides:
     version: 1.2512
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.2505
+    version: 1.2569
   POE::Driver:
     file: lib/POE/Driver.pm
     version: 1.2447
@@ -82,7 +82,7 @@ provides:
     version: 1.2447
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.2501
+    version: 1.2585
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.2447
@@ -94,13 +94,13 @@ provides:
     version: 1.2509
   POE::Loop::IO_Poll:
     file: lib/POE/Loop/IO_Poll.pm
-    version: 1.2447
+    version: 1.2576
   POE::Loop::PerlSignals:
     file: lib/POE/Loop/PerlSignals.pm
-    version: 1.2470
+    version: 1.2585
   POE::Loop::Select:
     file: lib/POE/Loop/Select.pm
-    version: 1.2447
+    version: 1.2576
   POE::Loop::Tk:
     file: lib/POE/Loop/Tk.pm
     version: 1.2508
@@ -142,7 +142,7 @@ provides:
     version: 1.2447
   POE::Resource::FileHandles:
     file: lib/POE/Resource/FileHandles.pm
-    version: 1.2485
+    version: 1.2576
   POE::Resource::SIDs:
     file: lib/POE/Resource/SIDs.pm
     version: 1.2447
@@ -151,7 +151,7 @@ provides:
     version: 1.2447
   POE::Resource::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.2478
+    version: 1.2595
   POE::Resource::Statistics:
     file: lib/POE/Resource/Statistics.pm
     version: 1.2447
@@ -169,7 +169,7 @@ provides:
     version: 1.2485
   POE::Wheel::FollowTail:
     file: lib/POE/Wheel/FollowTail.pm
-    version: 1.2447
+    version: 1.2561
   POE::Wheel::ListenAccept:
     file: lib/POE/Wheel/ListenAccept.pm
     version: 1.2447

@@ -1,11 +1,11 @@
-## $Id: Kernel.pm 2501 2009-03-11 02:28:50Z rcaputo $
+## $Id: Kernel.pm 2585 2009-07-21 02:22:15Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2501 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2585 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(uname);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -137,6 +137,15 @@ BEGIN {
       #}
     }
   }
+  { no strict 'refs';
+    unless (defined &USE_SIGNAL_PIPE) {
+      if( exists $ENV{ POE_USE_SIGNAL_PIPE } and not $ENV{ POE_USE_SIGNAL_PIPE } ) {
+        *USE_SIGNAL_PIPE = sub () { 0 };
+      } else {
+        *USE_SIGNAL_PIPE = sub () { 1 };
+      }
+    }
+  }
 }
 
 #==============================================================================
@@ -155,6 +164,9 @@ use vars qw($kr_exception);
 
 # The Kernel's master queue.
 my $kr_queue;
+
+# The current PID, to detect when it changes
+my $kr_pid;
 
 # Filehandle activity modes.  They are often used as list indexes.
 sub MODE_RD () { 0 }  # read
@@ -471,6 +483,7 @@ sub _warn {
   $message .= " at $file line $line\n" unless $message =~ /\n$/;
 
   _trap_death();
+  $message =~ s/^/$$: /mg;
   warn $message;
   _release_death();
 }
@@ -482,6 +495,7 @@ sub _die {
   local *STDERR = *TRACE_FILE;
 
   _trap_death();
+  $message =~ s/^/$$: /mg;
   die $message;
   _release_death();
 }
@@ -629,6 +643,12 @@ sub _test_if_kernel_is_idle {
       "<rc> `---------------------------\n",
       "<rc> ..."
      );
+  }
+
+  if( ASSERT_DATA ) {
+    if( $kr_pid != $$ ) {
+      _trap "New process detected. You must call ->has_forked() in the child process."
+    }
   }
 
   unless (
@@ -801,6 +821,9 @@ sub new {
 
     # Create our master queue.
     $kr_queue = $queue_class->new();
+
+    # Remember the PID
+    $kr_pid = $$;
 
     # TODO - Should KR_ACTIVE_SESSIONS and KR_ACTIVE_EVENT be handled
     # by POE::Resource::Sessions?
@@ -1193,10 +1216,12 @@ sub _dispatch_event {
            $self->_data_ses_exists($source_session)
          );
   }
-  elsif ($type & ET_CALL and $source_session != $session) {
-    $self->_data_ses_collect_garbage($session)
-      if $self->_data_ses_exists($session);
-  }
+
+  # XXX - Apparently we don't need this.
+  #elsif ($type & ET_CALL and $source_session != $session) {
+  #  $self->_data_ses_collect_garbage($session)
+  #    if $self->_data_ses_exists($session);
+  #}
 
   # These types of events require garbage collection afterwards, but
   # they don't need any other processing.
@@ -1240,10 +1265,11 @@ sub _finalize_kernel {
   $self->_data_sig_remove($self, "IDLE");
 
   # The main loop is done, no matter which event library ran it.
+  # sig before loop so that it clears the signal_pipe file handler
+  $self->_data_sig_finalize();  
   $self->loop_finalize();
   $self->_data_extref_finalize();
   $self->_data_sid_finalize();
-  $self->_data_sig_finalize();
   $self->_data_alias_finalize();
   $self->_data_handle_finalize();
   $self->_data_ev_finalize();
@@ -1329,6 +1355,24 @@ sub stop {
   $self->[KR_ID] = undef;
 
   return;
+}
+
+# Less invasive form of ->stop() + ->run()
+sub has_forked {
+  if( $kr_pid == $$ ) {
+    _croak "You should only call ->has_forked() from the child process.";
+  }
+
+  # So has_forked() can be called as a class method.
+  my $self = $poe_kernel;
+
+  # Undefine the kernel ID so it will be recalculated on the next
+  # ID() call.
+  $self->[KR_ID] = undef;
+  $kr_pid = $$;
+
+  # reset some stuff for the signals
+  $poe_kernel->_data_sig_has_forked;
 }
 
 #------------------------------------------------------------------------------
@@ -3040,6 +3084,22 @@ instead:
   }
 
   $kernel->run_while(\$job_count);
+
+=head3 has_forked
+
+    my $pid = fork();
+    die "Unable to fork" unless defined $pid;
+    unless( $pid ) { 
+        $poe_kernel->has_forked;
+    }
+ 
+Inform the kernel that it is now running in a new process.  This allows the
+kernel to reset some internal data to adjust to the new situation.
+
+has_forked() must be called in the child process if you wish to run the same
+kernel.  However, if you want the child process to have new kernel, you must
+call L</stop> instead.
+
 
 =head3 stop
 
@@ -5258,7 +5318,19 @@ processes need to be reaped and the C<CHLD> signal emulated.
 
 Defaults to 1 second.
 
-=head2 CATCH_EXCEPTIONS
+=head2 USE_SIGNAL_PIPE
+
+The only safe way to handle signals is to implement a shared-nothing model. 
+POE builds a I<signal pipe> that communicates between the the signal
+handlers and the POE kernel loop in a safe and atomic manner.  The signal
+pipe is implemented with L<POE::Pipe::OneWay>, using a C<pipe> conduit on
+Unix, and C<inet> on Windows.
+
+If you wish to revert to the previous unsafe signal behaviour, you must set
+C<USE_SIGNAL_PIPE> to 0, or the environment vairable C<POE_USE_SIGNAL_PIPE>.
+
+
+=head1 CATCH_EXCEPTIONS
 
 Whether or not POE should run event handler code in an eval { } and
 deliver the C<DIE> signal on errors.

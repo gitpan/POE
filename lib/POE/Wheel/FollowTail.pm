@@ -1,11 +1,11 @@
-# $Id: FollowTail.pm 2447 2009-02-17 05:04:43Z rcaputo $
+# $Id: FollowTail.pm 2561 2009-07-09 14:58:31Z bingosnet $
 
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2561 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -790,7 +790,7 @@ This error handler logs a message to STDERR and then shuts down the
 wheel.  It assumes that the session is watching multiple files.
 
   sub handle_tail_error {
-    my ($operation, $errnu, $errstr, $wheel_id) = @_[ARG0..ARG3];
+    my ($operation, $errnum, $errstr, $wheel_id) = @_[ARG0..ARG3];
     warn "Wheel $wheel_id: $operation error $errnum: $errstr\n";
     delete $_[HEAP]{tailors}{$wheel_id};
   }

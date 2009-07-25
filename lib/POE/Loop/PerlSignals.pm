@@ -1,4 +1,4 @@
-# $Id: PerlSignals.pm 2470 2009-02-27 03:24:48Z rcaputo $
+# $Id: PerlSignals.pm 2585 2009-07-21 02:22:15Z rcaputo $
 
 # Plain Perl signal handling is something shared by several event
 # loops.  The invariant code has moved out here so that each loop may
@@ -10,7 +10,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2470 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2585 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -26,6 +26,15 @@ my %signal_watched;
 # Signal handlers/callbacks.
 
 sub _loop_signal_handler_generic {
+  if( USE_SIGNAL_PIPE ) {
+    POE::Kernel->_data_sig_pipe_send( $_[0] );
+  }
+  else {
+    _loop_signal_handler_generic_bottom( $_[0] );
+  }
+}
+
+sub _loop_signal_handler_generic_bottom {
   if (TRACE_SIGNALS) {
     POE::Kernel::_warn "<sg> Enqueuing generic SIG$_[0] event";
   }
@@ -37,7 +46,17 @@ sub _loop_signal_handler_generic {
   $SIG{$_[0]} = \&_loop_signal_handler_generic;
 }
 
+##
 sub _loop_signal_handler_pipe {
+  if( USE_SIGNAL_PIPE ) {
+    POE::Kernel->_data_sig_pipe_send( $_[0] );
+  }
+  else {
+    _loop_signal_handler_pipe_bottom( $_[0] );
+  }
+}
+
+sub _loop_signal_handler_pipe_bottom {
   if (TRACE_SIGNALS) {
     POE::Kernel::_warn "<sg> Enqueuing PIPE-like SIG$_[0] event";
   }
@@ -49,8 +68,17 @@ sub _loop_signal_handler_pipe {
   $SIG{$_[0]} = \&_loop_signal_handler_pipe;
 }
 
-# only used under USE_SIGCHLD
+## only used under USE_SIGCHLD
 sub _loop_signal_handler_chld {
+  if( USE_SIGNAL_PIPE ) {
+    POE::Kernel->_data_sig_pipe_send( 'CHLD' );
+  }
+  else {
+    _loop_signal_handler_chld_bottom( $_[0] );
+  }
+}
+
+sub _loop_signal_handler_chld_bottom {
   if (TRACE_SIGNALS) {
     POE::Kernel::_warn "<sg> Enqueuing CHLD-like SIG$_[0] event";
   }

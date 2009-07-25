@@ -1,4 +1,4 @@
-# $Id: PoeBuildInfo.pm 2524 2009-04-21 04:01:03Z rcaputo $
+# $Id: PoeBuildInfo.pm 2601 2009-07-25 22:28:49Z rcaputo $
 # rocco // vim: ts=2 sw=2 expandtab
 
 # Build information for POE.  Moved into a library so it can be
@@ -26,7 +26,7 @@ use vars qw(@EXPORT_OK);
 
 sub CONFIG_REQUIREMENTS () {
   (
-    "POE::Test::Loops"  => 1.004,
+    "POE::Test::Loops"  => 1.020,
   )
 }
 

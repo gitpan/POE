@@ -1,4 +1,4 @@
-# $Id: Signals.pm 2478 2009-03-01 18:55:04Z rcaputo $
+# $Id: Signals.pm 2595 2009-07-22 19:03:28Z rcaputo $
 
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
@@ -6,14 +6,16 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2478 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2595 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
 
 use strict;
 
-use POSIX qw(:sys_wait_h);
+use POE::Pipe::OneWay;
+use POE::Resource::FileHandles;
+use POSIX qw(:sys_wait_h sigprocmask SIG_SETMASK);
 
 ### Map watched signal names to the sessions that are watching them
 ### and the events that must be delivered when they occur.
@@ -99,10 +101,7 @@ my %_safe_signals;
 sub _data_sig_initialize {
   my $self = shift;
 
-  # Initialize this to a true value so our waitpid() loop can run at
-  # least once.  Starts false when running in an Apache handler so our
-  # SIGCHLD hijinks don't interfere with the web server.
-  $kr_child_procs = exists($INC{'Apache.pm'}) ? 0 : ( USE_SIGCHLD ? 0 : 1 );
+  $self->_data_sig_reset_procs;
 
   $poe_kernel->[KR_SIGNALS] = \%kr_signals;
   $poe_kernel->[KR_PIDS]    = \%kr_pids_to_events;
@@ -140,8 +139,29 @@ sub _data_sig_initialize {
     $self->loop_ignore_signal("CHLD") if exists $SIG{CHLD};
     $self->loop_ignore_signal("CLD")  if exists $SIG{CLD};
     $self->loop_ignore_signal("PIPE") if exists $SIG{PIPE};
+
+    $self->_data_sig_pipe_build if USE_SIGNAL_PIPE;
   }
 }
+
+sub _data_sig_has_forked {
+  my( $self ) = @_;
+  $self->_data_sig_reset_procs;
+  if( USE_SIGNAL_PIPE ) {
+    $self->_data_sig_mask_all;
+    $self->_data_sig_pipe_finalize;
+    $self->_data_sig_pipe_build;
+    $self->_data_sig_unmask_all;
+  }
+}
+
+sub _data_sig_reset_procs {
+  # Initialize this to a true value so our waitpid() loop can run at
+  # least once.  Starts false when running in an Apache handler so our
+  # SIGCHLD hijinks don't interfere with the web server.
+  $kr_child_procs = exists($INC{'Apache.pm'}) ? 0 : ( USE_SIGCHLD ? 0 : 1 );
+}
+
 
 ### Return signals that are safe to manipulate.
 
@@ -152,7 +172,10 @@ sub _data_sig_get_safe_signals {
 ### End-run leak checking.
 
 sub _data_sig_finalize {
+  my( $self ) = @_;
   my $finalized_ok = 1;
+
+  $self->_data_sig_pipe_finalize;
 
   while (my ($sig, $sig_rec) = each(%kr_signals)) {
     $finalized_ok = 0;
@@ -189,9 +212,20 @@ sub _data_sig_finalize {
   unless (RUNNING_IN_HELL) {
     local $!;
     local $?;
+
+    my $leaked_children = 0;
     until ((my $pid = waitpid( -1, 0 )) == -1) {
       _warn( "!!! Child process PID:$pid reaped: $!\n" ) if $pid;
       $finalized_ok = 0;
+      $leaked_children++;
+    }
+
+    if ($leaked_children) {
+      _warn(
+        "!!! Your program may not be using sig_child() to reap processes.\n",
+        "!!! In extreme cases, your program can force a system reboot\n",
+        "!!! if this resource leakage is not corrected.\n",
+      );
     }
   }
 
@@ -613,6 +647,229 @@ sub _data_sig_child_procs {
   return if !USE_SIGCHLD and !$polling_for_signals;
   return $kr_child_procs;
 }
+
+######################
+## Safe signals, the final solution:
+## Semantically, signal handlers and the main loop are in different threads.
+## To avoid all possible deadlock and race conditions once and for all we
+## implement them as shared-nothing threads.
+##
+## The signal handlers are split in 2 :
+##  - a top handler, which sends the signal number over a one-way pipe.
+##  - a bottom handler, which is called when this number is received in the
+##  main loop.
+
+use vars qw( $signal_pipe_read_fd );
+my( $signal_pipe_write, $signal_pipe_read, $signal_pipe_pid,
+    $signal_mask_none, $signal_mask_all, %SIG2NUM, %NUM2SIG );
+
+sub _data_sig_pipe_build {
+  my( $self ) = @_;
+  return unless USE_SIGNAL_PIPE;
+  my $fake = 128;
+  
+  unless( %SIG2NUM ) {
+    foreach my $sig ( keys %_safe_signals ) {
+      my $n = eval "POSIX::SIG$sig()";
+      # warn $@;
+      if( $@ ) {    # AKA : RUNNING_IN_HELL
+          # The number used is less important then the fact that it has
+          # a unique number assigned to it
+          $n = $fake++;
+          _trap "<sg> SIG$sig not defined and $n > 255" if $n > 255;
+      }
+      else {
+          # paranoid check
+          _trap "<sg> SIG$sig is out of range ($n)" if $n > 127;
+      }
+      $SIG2NUM{ $sig } = $n;
+      $NUM2SIG{ $n } = $sig;
+    }
+    # warn join "\n", map { "$_: $SIG2NUM{$_}" } sort keys %SIG2NUM;
+    # we need CLD to be named CHLD
+    $SIG2NUM{ CLD } = $SIG2NUM{ CHLD };
+    $NUM2SIG{ $SIG2NUM{ CHLD } } = 'CHLD';
+    $NUM2SIG{ $SIG2NUM{ CLD } } = 'CHLD' if $SIG2NUM{ CLD };
+    # warn join "\n", map { "$_: $_safe_signals{$_}" } sort keys %_safe_signals;
+  }
+
+  # Associate the pipe with this PID
+  $signal_pipe_pid = $$;
+
+  # Mess with the signal mask
+  $self->_data_sig_mask_all;
+
+  # Open the signal pipe
+  if (RUNNING_IN_HELL) {
+    ( $signal_pipe_read, $signal_pipe_write ) = POE::Pipe::OneWay->new('inet');
+  }
+  else {
+    ( $signal_pipe_read, $signal_pipe_write ) = POE::Pipe::OneWay->new('pipe');
+  }
+  _trap "<sg> Error " . ($!+0) . " trying to create the signal pipe: $!" unless $signal_pipe_write;
+
+  # Allows Resource::FileHandles to by-pass the queue
+  $signal_pipe_read_fd = fileno $signal_pipe_read;
+  if( TRACE_SIGNALS ) {
+    _warn "<sg> signal_pipe_write=$signal_pipe_write";
+    _warn "<sg> signal_pipe_read=$signal_pipe_read";
+    _warn "<sg> signal_pipe_read_fd=$signal_pipe_read_fd";
+  }
+
+  # Add to the select list
+  $self->_data_handle_condition( $signal_pipe_read );
+  $self->loop_watch_filehandle( $signal_pipe_read, MODE_RD );
+  $self->_data_sig_unmask_all;
+}
+
+sub _data_sig_mask_build {
+  return if RUNNING_IN_HELL;
+  $signal_mask_none  = POSIX::SigSet->new();
+  $signal_mask_none->emptyset();
+  $signal_mask_all  = POSIX::SigSet->new();
+  $signal_mask_all->fillset();
+}
+
+### Mask all signals
+sub _data_sig_mask_all {
+  return if RUNNING_IN_HELL;
+  my $self = $poe_kernel;
+  unless( $signal_mask_all ) {
+    $self->_data_sig_mask_build;
+  }
+  my $mask_temp;
+  sigprocmask( SIG_SETMASK, $signal_mask_all, $mask_temp ) 
+            or _trap "<sg> Unable to mask all signals: $!";
+}
+
+### Unmask all signals
+sub _data_sig_unmask_all {
+  return if RUNNING_IN_HELL;
+  my $self = $poe_kernel;
+  unless( $signal_mask_none ) {
+    $self->_data_sig_mask_build;
+  }
+  my $mask_temp;
+  sigprocmask( SIG_SETMASK, $signal_mask_none, $mask_temp ) 
+        or _trap "<sg> Unable to unmask all signals: $!";
+}
+
+
+
+sub _data_sig_pipe_finalize {
+  my( $self ) = @_;
+  if( $signal_pipe_read ) {
+    $self->loop_ignore_filehandle( $signal_pipe_read, MODE_RD );
+    close $signal_pipe_read; undef $signal_pipe_read;
+  }
+  if( $signal_pipe_write ) {
+    close $signal_pipe_write; undef $signal_pipe_write;
+  }
+  undef $signal_pipe_pid;
+}
+
+### Send a signal "message" to the main thread
+### Called from the bottom signal handlers
+sub _data_sig_pipe_send {
+  my $n = $SIG2NUM{ $_[1] };
+  if( ASSERT_DATA ) {
+    _trap "<sg> Unknown signal $_[1]" unless defined $n;
+  }
+  if( TRACE_SIGNALS ) {
+    _warn "<sg> Caught SIG$_[1] ($n)";
+  }
+  if( $$ != $signal_pipe_pid ) {
+    _trap "<sg> Kernel now running in a different process.  You must call call \$poe_kernel->has_forked in the child process.";
+  }
+
+  my $count = _data_sig_pipe_syswrite( pack( "C", $n ) );
+  if( ASSERT_DATA ) {
+    if( $count != 1 ) {
+      _trap "<sg> Wrote more than one byte (count=$count)";
+    }
+  }
+}
+
+### write one signal number to the pipe
+sub _data_sig_pipe_syswrite {
+  my( $data ) = @_;
+  my $count = syswrite( $signal_pipe_write, $data );
+  if( defined $count and $count > 0 ) {
+    $! = 0;
+    if( TRACE_SIGNALS ) {
+      _warn "<sg> Wrote $count byte(s) to signal pipe";
+    }
+
+    return $count;
+  }
+
+  # if we got here, something bad happened
+  if( $! == EAGAIN or $! == EWOULDBLOCK ) {
+    _trap "<sg> Excessive signals detected; signal pipe full: $!";
+  }
+  _trap "<sg> Error " . ($!+0) . " writing to signal pipe: $!";
+}
+
+### Read all signal numbers.
+### Call the related top handlers
+sub _data_sig_pipe_read {
+  my( $self, $fileno, $mode ) = @_;
+  if( ASSERT_DATA ) {
+    _trap "Illegal mode=$mode on fileno=$fileno" unless
+                                    $fileno == $signal_pipe_read_fd
+                                and $mode eq MODE_RD;
+  }
+  my $data = $self->_data_sig_pipe_sysread();
+  return unless defined $data;
+
+  my $count = length $data;
+  if( TRACE_SIGNALS ) {
+    _warn "<sg> Read $count bytes from signal pipe";
+  }
+  return unless $count;
+
+  for(my $q=0; $q< $count; $q++ ) {
+    my $n = unpack "C", substr( $data, $q, 1 );
+    next if $n == 0;
+    if( ASSERT_DATA ) {
+      _trap "Unknown signal number $n" unless $NUM2SIG{ $n };
+    }
+    my $sig = $NUM2SIG{ $n };
+    if( $sig eq 'CHLD' ) {
+      _loop_signal_handler_chld_bottom( $sig );
+    }
+    elsif( $sig eq 'PIPE' ) {
+      _loop_signal_handler_pipe_bottom( $sig );
+    }
+    else {
+      _loop_signal_handler_generic_bottom( $sig );
+    }
+  }
+}
+
+### Read all signal numbers from the pipe
+sub _data_sig_pipe_sysread {
+  my $data = '';
+  # To avoid flooding the queue, we don't read the entire pipe at once
+  # PG- Mind you, I doubt signal flooding is ever going to be much of
+  # a problem, is it?
+  my $result = sysread( $signal_pipe_read, $data, 4096 ); # XXX
+  if( defined $result ) {
+    $! = 0;
+    return $data;
+  }
+  # Nonfatal sysread() error.  Return an empty list.
+  return '' if $! == EAGAIN or $! == EWOULDBLOCK;
+
+  if( ASSERT_DATA ) {
+    _trap "<sg> Error " . ($!+0) . " reading from signal pipe: $!";
+  }
+  elsif( TRACE_SIGNALS ) {
+    _warn "<sg> Error " . ($!+0) . " reading from signal pipe: $!";
+  }
+  return;
+}
+
 
 1;
 

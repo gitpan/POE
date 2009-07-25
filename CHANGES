@@ -1,3 +1,169 @@
+======================================
+9999-99-99 99:99:99.999999Z (untagged)
+======================================
+
+  2009-07-25 22:35:58 (r2604) by rcaputo; poe/lib/POE.pm M
+
+    Roll the version back slightly so CPAN can test before an official
+    release.
+
+  2009-07-25 22:28:49 (r2601) by rcaputo
+  poe/lib/POE.pm M; poe/mylib/PoeBuildInfo.pm M
+
+    Set the POE::Test::Loops dependency to 1.020, and bump the version to
+    1.007 for release. 
+
+  2009-07-22 19:03:28 (r2595) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M
+
+    Explain the likely cause and solution for the "Child process (pid)
+    reaped" messages, and why it's important for programs to avoid
+    leaking processes. 
+
+  2009-07-22 15:17:40 (r2594) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M
+
+    Add error number to signal pipe errors. Windows doesn't always have
+    an error string for some of winsock's wacky error numbers.
+
+  2009-07-22 07:45:31 (r2593) by rcaputo; poe/MANIFEST M
+
+    Add rt47966-sigchld.t to the MANIFEST.
+
+  2009-07-22 04:34:06 (r2592) by gwyn17
+  poe/t/90_regression/rt47966-sigchld.t M
+
+    Wait for longer for all children to exit
+
+  2009-07-22 02:56:35 (r2591) by rcaputo
+  poe/t/90_regression/rt47966-sigchld.t M
+
+    Try to speed up the tests by triggering the children to exit upon
+    demand rather than after a certain amount of time. Doesn't seem
+    significant on my G4 laptop, but it might be on faster machines. 
+
+  2009-07-22 02:41:27 (r2590) by rcaputo
+  poe/t/90_regression/rt47966-sigchld.t M
+
+    Run perltidy & convert all tabs to spaces. No actual code changed
+    this time around. It's bad to mix semantic changes with stylistic
+    ones. The semantic changes get lost. 
+
+  2009-07-21 20:27:13 (r2589) by gwyn17
+  poe/t/90_regression/rt47966-sigchld.t A
+
+    Added rt47966-sigchld.t which tortures the signal-pipe with CHLD, for
+    testing
+
+    on win32. Maybe this test should be moved to POE::Test::Loops 
+
+  2009-07-21 19:24:24 (r2588) by gwyn17
+  poe/lib/POE/Resource/Signals.pm M
+
+    Win32 fixes : - Assign fake numbers (>=128) to signals that don't
+    have a SIG* constant - Don't call sigprocmask() and related
+
+  2009-07-21 11:19:37 (r2587) by bingosnet
+  poe/t/90_regression/somni-poco-server-tcp.t M
+
+    Make the somni-poco-server-tcp test explicitly bind to the loopback
+    address It is hit and miss if the OS supports binding client
+    connections to 0.0.0.0 otherwise. 
+
+  2009-07-21 02:22:15 (r2585) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Kernel.pm M
+
+    Apply Philip Gwyn's second patch from rt.cpan.org #47966. This one
+    builds upon his earlier patch on the same ticket. It reinitializes
+    POE's signal handlers in child processes after has_forked() is
+    called. It documents has_forked() and USE_SIGNAL_PIPE. It renames the
+    _top methods to _bottom to follow interrupt handler semantics. It
+    avoids a race condition by blocking signals for the duration of pipe
+    rebuilding. 
+
+  2009-07-20 16:27:13 (r2584) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M
+
+    Gcola on IRC discovered that the internal signals socket wasn't
+    compatible with select() on Windows. This patch makes it a plain
+    socket when POE is running on Windows. 
+
+  2009-07-20 06:21:48 (r2581) by rcaputo
+  poe/t/90_regression/rt39872-sigchld.t D;
+  poe/t/90_regression/rt39872-sigchld-stop.t D;
+  poe/t/90_regression/merijn-sigchld-system.t D;
+  poe/t/90_regression/steinert-signal-integrity.t D;
+  poe/t/90_regression/kogman-sig-order.t D; poe/MANIFEST M
+
+    These tests have gone into POE::Test::Loops, where they may be useful
+    for other POE::Loop writers. 
+
+  2009-07-19 07:38:58 (r2576) by rcaputo
+  poe/lib/POE/Loop/IO_Poll.pm M; poe/lib/POE/Resource/Signals.pm M;
+  poe/lib/POE/Loop/Select.pm M;
+  poe/t/90_regression/rt39872-sigchld-stop.t M;
+  poe/lib/POE/Loop/PerlSignals.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Apply Philip Gwyn's patch to deliver signals via pipe rather than
+    directly into the queue. This avoids queue re-entrancy during find or
+    modification operations, which has previously caused inconsistencies
+    in the queue, event enqueuing and event dispatch.
+    
+    Philip's patch may be found along with a great problem description at
+    http://rt.cpan.org/Public/Bug/Display.html?id=47966 
+
+  2009-07-15 10:47:05 (r2571) by bingosnet
+  poe/MANIFEST M; poe/t/90_regression/somni-poco-server-tcp.t A
+
+    RT #47892: added regression test for PoCo-Server-TCP from Michael
+    Fowler. 
+
+  2009-07-14 21:40:50 (r2569) by bingosnet
+  poe/lib/POE/Component/Server/TCP.pm M
+
+    RT #47854: Fix and document the default setting for Port option, by
+    Michael Fowler 
+
+  2009-07-14 20:52:45 (r2568) by bingosnet
+  poe/lib/POE/Component/Server/TCP.pm M
+
+    RT #47853: document Inline/Package/Object states as applying to
+    client sessions not the listening session, by Michael Folwer 
+
+  2009-07-14 16:03:15 (r2567) by bingosnet
+  poe/lib/POE/Component/Server/TCP.pm M
+
+    RT #47852 'POE::Component::Server::TCP - ClientArgs is passed to the
+    listener, too' applied patch from Michael Fowler, signed off by
+    bingos 
+
+  2009-07-09 14:58:31 (r2561) by bingosnet
+  poe/lib/POE/Wheel/FollowTail.pm M
+
+    Fixed typo in FollowTail example code for ErrorEvent
+
+  2009-07-03 07:33:44 (r2560) by rcaputo
+  poe/t/10_units/03_base/13_assert_data.t M
+
+    Resolve a test failure where the error message cannot be recognized
+    on certain systems.
+
+  2009-06-29 18:58:34 (r2559) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Comment out garbage collection testing at the end of call(). Neither
+    the caller's nor the callee's reference count is affected by the
+    call() itself. Anything that does affect the count should be GC
+    tested separately. All tests pass, which probably means we need new
+    tests. Thanks to DrGeek on IRC for asking an insightful question
+    about call()'s GC. 
+
+  2009-06-04 01:54:32 (r2548) by rcaputo
+  poe/lib/POE/Component/Server/TCP.pm M
+
+    Fix a minor doc typo, thanks to Hinrik.
+
 ==================================
 2009-05-30T23:08:36.045620Z v1_006
 ==================================
@@ -541,292 +707,6 @@
   2008-07-07 02:50:35 (r2394) by rcaputo; poe/mylib/coverage.perl M
 
     Omit POE::Test::Loops from coverage output.
-
-==================================
-2008-07-06T00:20:23.186069Z v1_003
-==================================
-
-  2008-07-06 00:19:32 (r2392) by rcaputo; poe/lib/POE.pm M
-
-    Let's try this again.
-
-  2008-07-05 22:50:47 (r2391) by rcaputo
-  poe/mylib/Makefile-5004.pm M; poe/mylib/Makefile-5005.pm M
-
-    Touch mylib/gen-tests.perl during Makefile.PL execution. This
-    triggers gen-tests.perl during "make test". 
-
-  2008-07-05 21:53:37 (r2390) by rcaputo
-  poe/mylib/Makefile-5004.pm M; poe/mylib/Makefile-5005.pm M
-
-    Move test generation to PL_FILES. Requires a separate "make" for the
-    tests to be generated. 
-
-  2008-07-05 20:15:25 (r2389) by rcaputo; poe/mylib/gen-meta.perl M
-
-    Add build_requires and rename config_requires to configure_requires. 
-
-==================================
-2008-07-05T18:21:13.947381Z v1_002
-==================================
-
-  2008-07-05 18:01:55 (r2387) by rcaputo
-  poe/mylib/Makefile-5004.pm M; poe/mylib/gen-meta.perl M;
-  poe/lib/POE/Wheel/ReadLine.pm M; poe/mylib/Makefile-5005.pm M;
-  poe/lib/POE/Filter/HTTPD.pm M; poe/mylib/preprocessor.perl M;
-  poe/lib/POE.pm M; poe/docs/Makefile M; poe/mylib/PoeBuildInfo.pm M;
-  poe/mylib/gen-tests.perl M; poe/lib/POE/Filter/Reference.pm M;
-  poe/lib/POE/NFA.pm M
-
-    Add POE::Test::Loops to config_requires, so modern systems can
-    install it before Makefile.PL runs. Allow gen-tests.pl to fail
-    gracefully if POE::Test::Loops isn't installed. Remove a bunch of
-    tabs from unrelated files. 
-
-==================================
-2008-07-05T02:39:32.500880Z v1_001
-==================================
-
-  2008-07-05 02:38:47 (r2385) by rcaputo; poe/lib/POE.pm M
-
-    Time for a new release.
-
-  2008-07-05 02:35:08 (r2384) by rcaputo; poe/mylib/PoeBuildInfo.pm M
-
-    Use the bleeding-edge POE::Test::Loops.
-
-  2008-07-04 21:47:28 (r2379) by rcaputo; poe/t/30_loops D
-
-    Remove empty directories.
-
-  2008-07-04 21:31:06 (r2378) by rcaputo; poe/MANIFEST M
-
-    Remove the removed files from the MANIFEST.
-
-  2008-07-04 21:21:12 (r2377) by lotr; poe/mylib/PoeBuildInfo.pm M
-
-    update version 
-
-  2008-07-04 21:20:36 (r2376) by lotr
-  poe/t/30_loops/00_base/k_signals_rerun.pm D;
-  poe/t/30_loops/00_base/wheel_run.pm D;
-  poe/t/30_loops/00_base/wheel_curses.pm D;
-  poe/t/30_loops/00_base/k_alarms.pm D;
-  poe/t/30_loops/00_base/k_aliases.pm D;
-  poe/t/30_loops/00_base/ses_session.pm D;
-  poe/t/30_loops/00_base/wheel_sf_unix.pm D;
-  poe/t/30_loops/00_base/k_sig_child.pm D;
-  poe/t/30_loops/00_base/sbk_signal_init.pm D;
-  poe/t/30_loops/00_base/wheel_sf_ipv6.pm D; poe/mylib/gen-tests.perl M;
-  poe/t/30_loops/00_base/wheel_sf_tcp.pm D;
-  poe/t/30_loops/00_base/k_detach.pm D;
-  poe/t/30_loops/00_base/wheel_sf_udp.pm D;
-  poe/t/30_loops/00_base/all_errors.pm D;
-  poe/t/30_loops/00_base/comp_tcp.pm D;
-  poe/t/30_loops/00_base/comp_tcp_concurrent.pm D;
-  poe/t/30_loops/00_base/wheel_readline.pm D;
-  poe/t/30_loops/00_base/k_signals.pm D;
-  poe/t/30_loops/00_base/wheel_readwrite.pm D;
-  poe/t/30_loops/00_base/k_selects.pm D;
-  poe/t/30_loops/00_base/wheel_tail.pm D;
-  poe/t/30_loops/00_base/ses_nfa.pm D; poe/mylib/PoeBuildInfo.pm M;
-  poe/t/30_loops/00_base/wheel_accept.pm D
-
-    use POE::Test::Loops 
-
-===================================
-2008-06-26T05:25:54.564733Z v1_0003
-===================================
-
-  2008-06-26 05:25:26 (r2360) by rcaputo; poe/lib/POE.pm M
-
-    Bump the version for release.
-
-  2008-06-26 04:55:35 (r2359) by rcaputo
-  poe/t/10_units/01_pod/02_pod_coverage.t M
-
-    Note some deprecated method names in the POD coverage tests.
-
-  2008-06-26 04:51:13 (r2358) by rcaputo; poe/lib/POE/Wheel/Run.pm M
-
-    Minor NAME update.
-
-  2008-06-20 17:41:54 (r2357) by rcaputo
-  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Wheel/Run.pm M;
-  poe/lib/POE/Loop.pm M; poe/t/20_resources/00_base/filehandles.pm M;
-  poe/examples/create.perl M; poe/lib/POE/Kernel.pm M;
-  poe/examples/sessions.perl M; poe/lib/POE/Filter/Reference.pm M;
-  poe/lib/POE/Filter.pm M; poe/mylib/Makefile-5005.pm M;
-  poe/lib/POE/Wheel/ReadLine.pm M; poe/lib/POE/Resource/Signals.pm M;
-  poe/t/30_loops/00_base/wheel_readwrite.pm M; poe/mylib/Devel/Null.pm M;
-  poe/lib/POE/Component/Server/TCP.pm M;
-  poe/t/10_units/03_base/15_kernel_internal.t M; poe/lib/POE.pm M;
-  poe/t/20_resources/00_base/events.pm M; poe/lib/POE/Wheel.pm M;
-  poe/examples/thrash.perl M
-
-    Apply Chris Fedde's massive doc patch, resolving rt.cpan.org ticket
-    36394. 
-
-  2008-06-20 07:43:46 (r2356) by nothingmuch; poe/lib/POE/Session.pm M
-
-    Fixed instances of the package_states incorrectly referred to as
-    class_states in docs
-
-  2008-06-20 02:31:51 (r2355) by rcaputo
-  poe/lib/POE/Loop/IO_Poll.pm M; poe/lib/POE/Loop/Select.pm M
-
-    Make the same fix to POE::Loop::IO_Poll as was done in
-    POE::Loop::Select. Add an ASSERT_DATA test to both, to see if some
-    code is ever executed. 
-
-  2008-06-20 02:02:56 (r2354) by rcaputo; poe/lib/POE/Loop/Select.pm M
-
-    Apply Tony Cook's patch to fix the updated time watcher methods.
-    Avoids a nasty loop spin when there are no pending events.
-
-  2008-06-18 13:13:12 (r2353) by nothingmuch
-  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Session.pm M
-
-    replace C<> with C<< >> when the formatted text contains a > symbol
-
-  2008-06-16 02:48:57 (r2352) by rcaputo
-  poe/lib/POE/Wheel/ReadLine.pm M; poe/lib/POE/Wheel/SocketFactory.pm M
-
-    Redocument POE::Wheel::ReadLine. Remove tabs from
-    POE::Wheel::SocketFactory. 
-
-  2008-06-16 00:22:43 (r2351) by rcaputo
-  poe/lib/POE/Wheel/SocketFactory.pm M
-
-    Redocument. 
-
-  2008-06-13 20:34:15 (r2350) by nothingmuch
-  poe/lib/POE/Resource/Signals.pm M
-
-    clarify trace message when polling for signals under USE_SIGCHLD
-
-  2008-06-05 06:00:55 (r2349) by rcaputo; poe/lib/POE/Kernel.pm M
-
-    Rename POE_LOOP to POE_EVENT_LOOP.
-
-  2008-06-05 05:58:33 (r2348) by rcaputo
-  poe/lib/POE/Kernel.pm M; poe/lib/POE.pm M;
-  poe/lib/POE/Wheel/SocketFactory.pm M
-
-    Partially redocument POE::Wheel::SocketFactory. Add support for
-    setting the event loop with an environment variable. 
-
-  2008-06-01 18:40:12 (r2347) by rcaputo
-  poe/lib/POE/Component/Client/TCP.pm M;
-  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE/Wheel/FollowTail.pm
-  M; poe/lib/POE/Wheel/ListenAccept.pm M;
-  poe/lib/POE/Wheel/SocketFactory.pm M
-
-    Redocument POE::Wheel::ListenAccept. Add examples for
-    POE::Component::Server::TCP and POE::Wheel::SocketFactory. Tweak
-    POE::Wheel::FollowTail to match some patterns that emerged now that a
-    second wheel has been redocumented. 
-
-  2008-05-31 21:57:34 (r2346) by rcaputo
-  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE/Wheel/FollowTail.pm
-  M
-
-    Redocument.
-
-  2008-05-29 06:37:47 (r2343) by rcaputo; poe/lib/POE/Kernel.pm M
-
-    Support XS loops in POE::Kernel's import() syntax. 
-
-  2008-05-29 06:03:46 (r2342) by rcaputo
-  poe/lib/POE/Wheel/Curses.pm M; poe/t/10_units/05_filters/50_stackable.t
-  M
-
-    Fix a test that relied on unqualified stacked filter class names.
-    
-    Redocument POE::Wheel::Cursesl 
-
-  2008-05-29 06:02:19 (r2341) by rcaputo; poe/lib/POE/Loop/Select.pm M
-
-    Eliminate a call to get_next_event_time(). 
-
-  2008-05-29 05:57:52 (r2340) by rcaputo; poe/lib/POE/Filter/Line.pm M
-
-    Fix a bug introduced during redocumenting.
-
-  2008-05-29 04:02:50 (r2339) by rcaputo; poe/lib/POE/Filter/HTTPD.pm M
-
-    Redocument.
-
-  2008-05-28 07:57:32 (r2338) by rcaputo
-  poe/lib/POE/Filter/Line.pm M; poe/lib/POE/Filter/Reference.pm M
-
-    Redocument.
-
-  2008-05-27 07:09:15 (r2337) by rcaputo
-  poe/lib/POE/Filter/Line.pm M; poe/lib/POE/Filter/RecordBlock.pm M;
-  poe/lib/POE/Filter/Stackable.pm M; poe/lib/POE/Filter/Stream.pm M;
-  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Filter/Map.pm M
-
-    Redocument.
-
-  2008-05-26 22:01:01 (r2336) by rcaputo
-  poe/lib/POE/Filter/Stackable.pm M; poe/lib/POE/Filter/Block.pm M;
-  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Filter/Map.pm M;
-  poe/lib/POE/Filter.pm M
-
-    Redocument.
-
-  2008-05-26 18:39:15 (r2335) by rcaputo
-  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Resource/Signals.pm M;
-  poe/lib/POE/Resource.pm M; poe/lib/POE/Resource/Aliases.pm M;
-  poe/lib/POE/Resource/SIDs.pm M; poe/lib/POE/Resources.pm M;
-  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Resource/Sessions.pm M;
-  poe/lib/POE/Kernel.pm M; poe/lib/POE/Resource/Statistics.pm M;
-  poe/t/10_units/03_base/09_resources.t M; poe/lib/POE/Driver/SysRW.pm M;
-  poe/lib/POE/Resource/FileHandles.pm M
-
-    Redocument.
-
-  2008-05-26 06:48:40 (r2334) by rcaputo
-  poe/lib/POE/Loader.pm M; poe/lib/POE/Session.pm M; poe/lib/POE/NFA.pm M
-
-    Redocument.
-
-  2008-05-26 02:59:48 (r2333) by rcaputo; poe/lib/POE.pm M
-
-    Fix Jos Boumans' credit.
-
-  2008-05-26 02:53:21 (r2332) by rcaputo
-  poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Pipe.pm M;
-  poe/lib/POE/Pipe/OneWay.pm M
-
-    Redocument.
-
-  2008-05-26 01:19:11 (r2331) by rcaputo
-  poe/lib/POE/Driver.pm M; poe/lib/POE/Driver/SysRW.pm M
-
-    Redocument.
-
-  2008-05-25 23:06:14 (r2330) by rcaputo; poe/lib/POE/Loop.pm M
-
-    Point out POE::Test::Loops.
-
-  2008-05-25 23:01:58 (r2329) by rcaputo
-  poe/lib/POE/Loop/IO_Poll.pm M; poe/lib/POE/Loop/Tk.pm M;
-  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Loop/Event.pm M;
-  poe/lib/POE/Loop/PerlSignals.pm M; poe/lib/POE/Loop/Gtk.pm M;
-  poe/lib/POE/Loop/TkCommon.pm M; poe/lib/POE/Loop/TkActiveState.pm M
-
-    Redocument the specific POE::Loop classes. 
-
-  2008-05-21 06:03:58 (r2328) by rcaputo; poe/lib/POE/Queue.pm M
-
-    Fix a typo.
-
-  2008-05-21 05:42:02 (r2327) by rcaputo
-  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Queue.pm M
-
-    Redocument. 
 
 ==============
 End of Excerpt

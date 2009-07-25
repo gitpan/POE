@@ -1,4 +1,4 @@
-# $Id: Select.pm 2447 2009-02-17 05:04:43Z rcaputo $
+# $Id: Select.pm 2576 2009-07-19 07:38:58Z rcaputo $
 
 # Select loop bridge for POE::Kernel.
 
@@ -11,7 +11,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2576 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 =for poe_tests
 
@@ -216,9 +216,10 @@ sub loop_do_timeslice {
           $hits < 0 and
           $! != EINPROGRESS and
           $! != EWOULDBLOCK and
-          $! != EINTR
+          $! != EINTR and
+          $! != 0                   # this is caused by SIGNAL_PIPE
         ) {
-          POE::Kernel::_trap("<fh> select error: $!");
+          POE::Kernel::_trap("<fh> select error: $! (hits=$hits)");
         }
       }
 

@@ -1,11 +1,11 @@
-# $Id: TCP.pm 2505 2009-03-12 00:54:24Z apocal $
+# $Id: TCP.pm 2569 2009-07-14 21:40:50Z bingosnet $
 
 package POE::Component::Server::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2505 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2569 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -36,9 +36,6 @@ sub new {
   croak "$mi requires an even number of parameters" if (@_ & 1);
   my %param = @_;
 
-  # Validate what we're given.
-  croak "$mi needs a Port parameter" unless exists $param{Port};
-
   # Extract parameters.
   my $alias   = delete $param{Alias};
   my $address = delete $param{Address};
@@ -46,6 +43,8 @@ sub new {
   my $port    = delete $param{Port};
   my $domain  = delete($param{Domain}) || AF_INET;
   my $concurrency = delete $param{Concurrency};
+
+  $port = 0 unless defined $port;
 
   foreach (
     qw(
@@ -100,6 +99,11 @@ sub new {
   my $session_type        = delete $param{SessionType};
   my $session_params      = delete $param{SessionParams};
   my $server_started      = delete $param{Started};
+  my $listener_args       = delete $param{ListenerArgs};
+
+  $listener_args = [] unless defined $listener_args;
+  croak "ListenerArgs must be an array reference"
+    unless ref($listener_args) eq 'ARRAY';
 
   if (exists $param{Args}) {
     if (exists $param{ClientArgs}) {
@@ -111,7 +115,7 @@ sub new {
     }
   }
 
-  my $args                = delete($param{ClientArgs}) || delete($param{Args});
+  my $client_args         = delete($param{ClientArgs}) || delete($param{Args});
 
   # Defaults.
 
@@ -140,7 +144,7 @@ sub new {
     $client_connected    = sub {} unless defined $client_connected;
     $client_disconnected = sub {} unless defined $client_disconnected;
     $client_flushed      = sub {} unless defined $client_flushed;
-    $args = [] unless defined $args;
+    $client_args = [] unless defined $client_args;
 
     # Extra states.
 
@@ -168,7 +172,7 @@ sub new {
       unless ref($object_states) eq 'ARRAY';
 
     croak "ClientArgs must be an array reference"
-      unless ref($args) eq 'ARRAY';
+      unless ref($client_args) eq 'ARRAY';
 
     # Sanity check, thanks to crab@irc for making this mistake, ha!
     # TODO we could move this to POE::Session and make it a
@@ -373,7 +377,7 @@ sub new {
           package_states => $package_states,
           object_states  => $object_states,
 
-          args => [ $socket, $args ],
+          args => [ $socket, $client_args ],
         );
       };
     }
@@ -504,7 +508,7 @@ sub new {
       _child  => sub { },
     },
 
-    args => $args,
+    args => $listener_args,
   )->ID;
 
   # Return the session ID.
@@ -910,8 +914,8 @@ C<InlineStates> is optional.  If specified, it must hold a hashref of
 named callbacks.  Its syntax is that of POE:Session->create()'s
 inline_states parameter.
 
-Remember: These InlineStates handlers will be added to the main
-listening session, not to every connection.  A yield() in a connection
+Remember: These InlineStates handlers will be added to the client 
+sessions, not to the main listening session.  A yield() in the listener
 will not reach these handlers.
 
 If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
@@ -924,8 +928,8 @@ If C<ObjectStates> is specified, it must holde an arrayref of objects
 and the events they will handle.  The arrayref must follow the syntax
 for POE::Session->create()'s object_states parameter.
 
-Remember: These ObjectStates handlers will be added to the main
-listening session, not to every connection.  A yield() in a connection
+Remember: These ObjectStates handlers will be added to the client 
+sessions, not to the main listening session.  A yield() in the listener
 will not reach these handlers.
 
 If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
@@ -939,8 +943,8 @@ package names and the events they will handle  The arrayref must
 follow the syntax for POE::Session->create()'s package_states
 parameter.
 
-Remember: These PackageStates handlers will be added to the main
-listening session, not to every connection.  A yield() in a connection
+Remember: These PackageStates handlers will be added to the client 
+sessions, not to the main listening session.  A yield() in the listener
 will not reach these handlers.
 
 If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
@@ -950,7 +954,7 @@ callback if you want to specify your own "_start" event.
 =head4 Port
 
 C<Port> contains the port the listening socket will be bound to.  It
-defaults to INADDR_ANY, which usually lets the operating system pick a
+defaults to 0, which usually lets the operating system pick a
 port at random.
 
   Port => 30023
@@ -963,6 +967,12 @@ C<Started> sets an optional callback that will be invoked within the
 main server session's context.  It notifies the server that it has
 fully started.  The callback's parameters are the usual for a
 session's _start handler.
+
+=head4 ListenerArgs
+
+C<ListenerArgs> is passed to the listener session as the C<args> parameter.  In
+other words, it must be an arrayref, and the values are are passed into the
+C<Started> handler as ARG0, ARG1, etc.
 
 =head3 Connection Session Configuration
 
@@ -1044,7 +1054,7 @@ POE::Filter class to use.  Each new connection will be given a freshly
 instantiated filter of that class.  No constructor parameters will be
 passed.
 
-  ClientFIlter => "POE::Filter::Stream",
+  ClientFilter => "POE::Filter::Stream",
 
 Some filters require constructor parameters.  These may be specified
 by an ARRAYREF.  The first element is the POE::Filter class name, and

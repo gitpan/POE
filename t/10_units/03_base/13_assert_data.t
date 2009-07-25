@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: 13_assert_data.t 2154 2006-11-06 03:33:50Z rcaputo $
+# $Id: 13_assert_data.t 2560 2009-07-03 07:33:44Z rcaputo $
 
 # Test the ASSERT_DATA code in POE::Kernel.  This involves a lot of
 # dying.
@@ -51,7 +51,7 @@ ok(
 
 eval { $poe_kernel->session_alloc($poe_kernel) };
 ok(
-  $@ && $@ =~ /session .*? already exists/,
+  $@ && $@ =~ /session .*? already exists/s,
   "double session_alloc"
 );
 
