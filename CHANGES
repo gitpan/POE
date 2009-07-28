@@ -2,6 +2,32 @@
 9999-99-99 99:99:99.999999Z (untagged)
 ======================================
 
+  2009-07-28 05:36:12 (r2611) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Some people may be using POE without actually reading the docs.
+    Furthermore, they may go on to rant about the side effects in obscure
+    places. Recommend reading the documentation in one of POE's most
+    "infamous" warnings. 
+
+==================================
+2009-07-27T18:53:10.417148Z v1_007
+==================================
+
+  2009-07-27 18:51:38 (r2609) by rcaputo
+  poe/lib/POE.pm M; poe/mylib/PoeBuildInfo.pm M
+
+    Rely on POE::Test::Loops 1.021, which should be everywhere by now.
+    Update links in documentation. 
+
+  2009-07-27 07:57:24 (r2607) by bingosnet
+  poe/mylib/gen-meta.perl M; poe/mylib/PoeBuildInfo.pm M
+
+    Added 'homepage' meta to the META.yml generation code.
+
+  2009-07-27 05:12:48 (r2606) by rcaputo; poe/lib/POE.pm M
+
+    Documented the bug tracker, repository, and other resource URLs. 
+
   2009-07-25 22:35:58 (r2604) by rcaputo; poe/lib/POE.pm M
 
     Roll the version back slightly so CPAN can test before an official

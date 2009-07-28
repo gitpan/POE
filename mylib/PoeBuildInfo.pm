@@ -1,4 +1,4 @@
-# $Id: PoeBuildInfo.pm 2601 2009-07-25 22:28:49Z rcaputo $
+# $Id: PoeBuildInfo.pm 2609 2009-07-27 18:51:38Z rcaputo $
 # rocco // vim: ts=2 sw=2 expandtab
 
 # Build information for POE.  Moved into a library so it can be
@@ -21,12 +21,13 @@ use vars qw(@EXPORT_OK);
   RECOMMENDED_TIME_HIRES
   CONFIG_REQUIREMENTS
   REPOSITORY
+  HOMEPAGE
 );
 
 
 sub CONFIG_REQUIREMENTS () {
   (
-    "POE::Test::Loops"  => 1.020,
+    "POE::Test::Loops"  => 1.021,
   )
 }
 
@@ -96,6 +97,10 @@ sub TEST_FILES () {
 
 sub REPOSITORY () {
   ( 'https://poe.svn.sourceforge.net/svnroot/poe/trunk' )
+}
+
+sub HOMEPAGE () {
+  ( 'http://poe.perl.org/' )
 }
 
 1;

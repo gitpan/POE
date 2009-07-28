@@ -1,5 +1,5 @@
 #!/usr/bin/perl -w
-# $Id: gen-meta.perl 2515 2009-03-31 13:01:38Z bingosnet $
+# $Id: gen-meta.perl 2607 2009-07-27 07:57:24Z bingosnet $
 # rocco // vim: ts=2 sw=2 expandtab
 
 # Generate META.yml.
@@ -15,6 +15,7 @@ use PoeBuildInfo qw(
   RECOMMENDED_TIME_HIRES
   CONFIG_REQUIREMENTS
   REPOSITORY
+  HOMEPAGE
 );
 
 my $build = Module::Build->new(
@@ -35,6 +36,7 @@ my $build = Module::Build->new(
   meta_merge  => {
     resources => {
        repository => REPOSITORY,
+       homepage   => HOMEPAGE,
     },
   },
 );

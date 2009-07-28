@@ -1,11 +1,11 @@
-## $Id: Kernel.pm 2585 2009-07-21 02:22:15Z rcaputo $
+## $Id: Kernel.pm 2611 2009-07-28 05:36:12Z rcaputo $
 
 package POE::Kernel;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2585 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = do {my($r)=(q$Revision: 2611 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 use POSIX qw(uname);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -1390,7 +1390,8 @@ sub DESTROY {
         "called to execute them.  This usually happens because an error\n",
         "occurred before POE::Kernel->run() could be called.  Please fix\n",
         "any errors above this notice, and be sure that POE::Kernel->run()\n",
-        "is called.\n",
+        "is called.  See documentation for POE::Kernel's run() method for\n",
+        "another way to disable this warning.\n",
       );
     }
   }

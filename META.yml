@@ -1,12 +1,12 @@
 ---
 name: POE
-version: 1.006_90
+version: 1.007
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 abstract: A portable networking and multitasking framework.
 license: perl
 configure_requires:
-  POE::Test::Loops: 1.02
+  POE::Test::Loops: 1.021
 requires:
   Carp: 0
   Errno: 1.09
@@ -14,13 +14,13 @@ requires:
   File::Spec: 0.87
   IO::Handle: 1.27
   IO::Tty: 1.08
-  POE::Test::Loops: 1.02
+  POE::Test::Loops: 1.021
   POSIX: 1.02
   Socket: 1.7
   Storable: 2.16
   Test::Harness: 2.26
 build_requires:
-  POE::Test::Loops: 1.02
+  POE::Test::Loops: 1.021
 recommends:
   Time::HiRes: 1.59
 no_index:
@@ -34,7 +34,7 @@ meta-spec:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.006_90
+    version: 1.007
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.2447
@@ -82,7 +82,7 @@ provides:
     version: 1.2447
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.2585
+    version: 1.2611
   POE::Loop:
     file: lib/POE/Loop.pm
     version: 1.2447
@@ -188,5 +188,6 @@ provides:
     file: lib/POE/Wheel/SocketFactory.pm
     version: 1.2485
 resources:
+  homepage: http://poe.perl.org/
   license: http://dev.perl.org/licenses/
   repository: https://poe.svn.sourceforge.net/svnroot/poe/trunk
