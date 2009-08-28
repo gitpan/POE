@@ -1,5 +1,3 @@
-# $Id: sessions.pm 1971 2006-05-30 20:32:30Z bsmith $
-
 use strict;
 
 use lib qw(./mylib ../mylib);

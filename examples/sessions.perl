@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: sessions.perl 2357 2008-06-20 17:41:54Z rcaputo $
 
 # This is the first test program written for POE.  It originally was
 # written to test POE's ability to dispatch events to inline sessions

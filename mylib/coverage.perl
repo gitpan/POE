@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: coverage.perl 2394 2008-07-07 02:50:35Z rcaputo $
 # rocco // vim: ts=2 sw=2 expandtab
 
 # Runs "make test" with Devel::Cover to check POE's test coverage.

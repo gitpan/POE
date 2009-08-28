@@ -1,11 +1,9 @@
-# $Id: TCP.pm 2512 2009-03-29 16:42:28Z rcaputo $
-
 package POE::Component::Client::TCP;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2512 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);

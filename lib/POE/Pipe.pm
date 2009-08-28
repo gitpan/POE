@@ -1,5 +1,3 @@
-# $Id: Pipe.pm 2485 2009-03-01 21:28:22Z rcaputo $
-
 # Common routines for POE::Pipe::OneWay and ::TwoWay.  This is meant
 # to be inherited.  This is ugly, messy code right now.  It fails
 # terribly upon the slightest error, which is generally bad.
@@ -9,7 +7,7 @@ package POE::Pipe;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2485 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 use Symbol qw(gensym);
 use IO::Socket qw(

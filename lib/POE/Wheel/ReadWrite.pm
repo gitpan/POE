@@ -1,11 +1,9 @@
-# $Id: ReadWrite.pm 2488 2009-03-02 20:17:53Z bingosnet $
-
 package POE::Wheel::ReadWrite;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2488 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);

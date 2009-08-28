@@ -1,4 +1,3 @@
-# $Id: extrefs_gc.pm 2123 2006-09-10 16:11:58Z rcaputo $
 # vim: filetype=perl
 
 # Test a case that Yuval Kogman ran into.  Decrementing a reference

@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: caller_state.pm 1971 2006-05-30 20:32:30Z bsmith $
 
 # Test that caller_state returnes expected results
 

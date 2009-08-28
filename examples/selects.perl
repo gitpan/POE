@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: selects.perl 2423 2009-02-09 23:26:45Z apocal $
 
 # This is an early, basic test of POE's filehandle selecting
 # mechanism.  It was written before POE::Wheel classes were conceived.

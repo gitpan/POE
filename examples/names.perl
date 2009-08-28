@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: names.perl 1746 2005-01-28 22:57:30Z rcaputo $
 
 # Aliases were originally called Names.
 

@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: neyuki_detach.t 1971 2006-05-30 20:32:30Z bsmith $
 
 use strict;
 

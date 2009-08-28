@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: wheels2.perl 2423 2009-02-09 23:26:45Z apocal $
 
 # A simple socket client that uses a two-handle wheel to pipe between
 # a socket and the console.  It's hardcoded to talk with wheels.perl's

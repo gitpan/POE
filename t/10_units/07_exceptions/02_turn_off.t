@@ -1,6 +1,4 @@
-# $Id: 02_turn_off.t 2058 2006-08-21 06:25:50Z rcaputo $
-
-use Test::More tests => 3; 
+use Test::More tests => 3;
 
 BEGIN { sub POE::Kernel::CATCH_EXCEPTIONS () { 0 } }
 use POE;

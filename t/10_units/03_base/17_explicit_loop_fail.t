@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: 17_explicit_loop_fail.t 2126 2006-09-16 05:33:53Z rcaputo $
 
 use strict;
 

@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: broeren-win32-nbio.t 2127 2006-09-16 06:25:20Z rcaputo $
 # vim: filetype=perl
 
 use strict;

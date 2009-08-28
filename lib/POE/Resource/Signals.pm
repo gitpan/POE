@@ -1,12 +1,10 @@
-# $Id: Signals.pm 2595 2009-07-22 19:03:28Z rcaputo $
-
 # The data necessary to manage signals, and the accessors to get at
 # that data in a sane fashion.
 
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2595 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -737,8 +735,8 @@ sub _data_sig_mask_all {
   unless( $signal_mask_all ) {
     $self->_data_sig_mask_build;
   }
-  my $mask_temp;
-  sigprocmask( SIG_SETMASK, $signal_mask_all, $mask_temp ) 
+  my $mask_temp = POSIX::SigSet->new();
+  sigprocmask( SIG_SETMASK, $signal_mask_all, $mask_temp )
             or _trap "<sg> Unable to mask all signals: $!";
 }
 
@@ -749,8 +747,8 @@ sub _data_sig_unmask_all {
   unless( $signal_mask_none ) {
     $self->_data_sig_mask_build;
   }
-  my $mask_temp;
-  sigprocmask( SIG_SETMASK, $signal_mask_none, $mask_temp ) 
+  my $mask_temp = POSIX::SigSet->new();
+  sigprocmask( SIG_SETMASK, $signal_mask_none, $mask_temp )
         or _trap "<sg> Unable to unmask all signals: $!";
 }
 
@@ -769,7 +767,7 @@ sub _data_sig_pipe_finalize {
 }
 
 ### Send a signal "message" to the main thread
-### Called from the bottom signal handlers
+### Called from the top signal handlers
 sub _data_sig_pipe_send {
   my $n = $SIG2NUM{ $_[1] };
   if( ASSERT_DATA ) {
@@ -811,7 +809,7 @@ sub _data_sig_pipe_syswrite {
 }
 
 ### Read all signal numbers.
-### Call the related top handlers
+### Call the related bottom handler.  That is, inside the kernel loop.
 sub _data_sig_pipe_read {
   my( $self, $fileno, $mode ) = @_;
   if( ASSERT_DATA ) {

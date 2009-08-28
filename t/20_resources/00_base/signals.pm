@@ -1,5 +1,3 @@
-# $Id: signals.pm 2427 2009-02-10 09:32:08Z rcaputo $
-
 use strict;
 
 use lib qw(./mylib ../mylib);

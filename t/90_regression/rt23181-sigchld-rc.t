@@ -1,5 +1,4 @@
 #!perl
-# $Id: rt23181-sigchld-rc.t 2271 2008-02-19 20:21:48Z rcaputo $
 # vim: filetype=perl
 
 # Calling sig_child($pid) without a prior sig_child($pid, $event)

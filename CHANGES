@@ -1,6 +1,292 @@
-======================================
-9999-99-99 99:99:99.999999Z (untagged)
-======================================
+==================================
+2009-08-27T23:58:29.378085Z v1_020
+==================================
+
+  2009-08-27 23:56:49 (r2658) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Loop.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Filter/Stackable.pm M;
+  poe/lib/POE/Filter/Stream.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Resource/Statistics.pm
+  M; poe/lib/POE/Wheel/ListenAccept.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Wheel/ReadLine.pm M;
+  poe/lib/POE/Resource/SIDs.pm M; poe/README M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Loop/IO_Poll.pm M;
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Filter/Line.pm M;
+  poe/lib/POE/Filter/RecordBlock.pm M; poe/lib/POE/Filter/Block.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Resource/Signals.pm
+  M; poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/lib/POE/Component.pm M; poe/lib/POE/Filter/Map.pm M;
+  poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Set revisions for 1.020 release.
+
+  2009-08-27 19:16:49 (r2657) by rcaputo; poe/lib/POE/Filter/HTTPD.pm M
+
+    Document that it's good practice to scrap the connection when there's
+    a client error. 
+
+  2009-08-27 10:22:20 (r2656) by gwyn17
+  poe/lib/POE/Filter/HTTPD.pm M; poe/lib/POE.pm M;
+  poe/t/10_units/05_filters/03_http.t M
+
+    Fixes to POE::Filter::HTTPD: 
+
+    - RFC2616 says a body is implied if we have Content-Encoding or
+
+    Content-Length;
+
+    - C-E w/o C-L is an error for HTTP 1.1;
+
+    - Added copious comments to justify the above;
+
+    - Created ->_reset();
+
+    - If possible, include the request in an error response object;
+
+    - Set ->message on an error response object;
+
+    - Updated documentation. Unit tests for above.
+
+  2009-08-26 03:58:14 (r2643) by rcaputo
+  poe/lib/POE/Loop/PerlSignals.pm M
+
+    Comment on the likely cause of the deep recursion noted in
+    rt.cpan.org ticket 45109. Waiting for confirmation that Philip Gwyn's
+    USE_SIGNAL_PIPE changes haven't fixed this particular problem. 
+
+  2009-08-26 03:52:58 (r2642) by rcaputo; poe/lib/POE/Wheel.pm M
+
+    Explain why wheels can't be altered outside their creator sessions.
+    Potentially explains an oblique side effect reported by Sean Pieper
+    in rt.cpan.org ticket 45408. 
+
+  2009-08-25 17:05:17 (r2635) by rcaputo
+  polo-gtk/lib/POE/Loop A; polo-gtk/lib/POE/Loop/Gtk.pm A;
+  polo-tk/MANIFEST.SKIP A; polo-gtk/lib A; polo-gtk/MANIFEST A;
+  polo-gtk/MANIFEST.SKIP A; poe/lib/POE/Loop/TkActiveState.pm D;
+  polo-tk/Makefile.PL A; polo-tk/lib/POE A; polo-tk/lib/POE/Loop/Tk.pm A;
+  polo-gtk/Makefile.PL A; polo-tk/t/00_info.t A; polo-tk A;
+  poe/lib/POE/Loop/Gtk.pm D; polo-gtk/lib/POE A;
+  poe/lib/POE/Loop/TkCommon.pm D; polo-tk/lib/POE/Loop A; polo-tk/t A;
+  polo-gtk/README A; polo-event/lib/POE/Loop A; polo-gtk/t/00_info.t A;
+  polo-tk/MANIFEST A; polo-gtk A; polo-event/MANIFEST A; polo-event/lib
+  A; polo-gtk/t A; polo-event/MANIFEST.SKIP A;
+  polo-tk/lib/POE/Loop/TkActiveState.pm A; poe/mylib/Makefile-5005.pm M;
+  poe/lib/POE/Loop/Tk.pm D; polo-event/Makefile.PL A;
+  poe/lib/POE/Loop/Event.pm D; polo-event/lib/POE A; polo-tk/README A;
+  polo-event/README A; polo-event/lib/POE/Loop/Event.pm A;
+  polo-event/t/00_info.t A; polo-event A;
+  polo-tk/lib/POE/Loop/TkCommon.pm A; poe/MANIFEST M; polo-tk/lib A;
+  polo-event/t A
+
+    Create new project directories for POE::Loop::{Event,Tk,Gtk}. Moved
+    the loops to their new project directories. Configured the new
+    projects for CPAN distribution. Removed the event loops from POE's
+    distro configuration. 
+
+  2009-08-25 05:47:30 (r2634) by rcaputo
+  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Kernel.pm M
+
+    Document POE::Wheel::Run coderef execution side effects. Disable the
+    POE::Kernel->run() not-called warning if POE::Kernel->stop() is
+    called. 
+
+  2009-08-22 05:15:52 (r2633) by rcaputo
+  poe/lib/POE/Filter/HTTPD.pm M; poe/t/10_units/05_filters/03_http.t M
+
+    Mainly rewrite POE::Filter::HTTPD's parser. May support get_one()
+    now, so some tests also had to change. I hope this will resolve
+    rt.cpan.org ticket 48802, reported by a very patient zerhash. 
+
+  2009-08-22 05:12:06 (r2632) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    For some reason, this wheel was not inheriting from POE::Wheel.
+
+  2009-08-15 06:49:12 (r2631) by rcaputo
+  poe/examples/objmaps.perl M; poe/lib/POE/Loader.pm M;
+  poe/t/10_units/01_pod/01_pod.t M; poe/lib/POE/Wheel/Curses.pm M;
+  poe/lib/POE/Loop.pm M; poe/t/90_regression/broeren-win32-nbio.t M;
+  poe/t/10_units/07_exceptions/03_not_handled.t M;
+  poe/examples/objsessions.perl M;
+  poe/t/10_units/07_exceptions/02_turn_off.t M;
+  poe/lib/POE/Filter/Stackable.pm M; poe/examples/names.perl M;
+  poe/examples/create.perl M; poe/lib/POE/Wheel/FollowTail.pm M;
+  poe/lib/POE/Kernel.pm M; poe/t/90_regression/rt19908-merlyn-stop.t M;
+  poe/lib/POE/Filter/Stream.pm M; poe/t/10_units/05_filters/08_stream.t
+  M; poe/lib/POE/Resource/Statistics.pm M;
+  poe/lib/POE/Wheel/ListenAccept.pm M;
+  poe/t/10_units/05_filters/07_reference.t M; poe/lib/POE/Filter.pm M;
+  poe/README M; poe/examples/watermarks.perl M;
+  poe/t/10_units/05_filters/99_filterchange.t M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Resource/Sessions.pm M;
+  poe/examples/packagesessions.perl M; poe/lib/POE/Pipe.pm M;
+  poe/t/10_units/06_queues/01_array.t M; poe/lib/POE/Loop/Gtk.pm M;
+  poe/t/10_units/03_base/16_explicit_loop.t M;
+  poe/t/10_units/05_filters/03_http.t M; poe/lib/POE/Loop/TkCommon.pm M;
+  poe/docs/out-out.perl M; poe/t/90_regression/averell-callback-ret.t M;
+  poe/t/90_regression/neyuki_detach.t M; poe/mylib/gen-meta.perl M;
+  poe/lib/POE/Loop/IO_Poll.pm M; poe/lib/POE/Resource/Extrefs.pm M;
+  poe/t/90_regression/whelan-dieprop.t M; poe/lib/POE/Wheel/Run.pm M;
+  poe/examples/fakelogin.perl M; poe/t/10_units/03_base/13_assert_data.t
+  M; poe/t/10_units/05_filters/50_stackable.t M;
+  poe/t/10_units/03_base/08_resource.t M;
+  poe/t/20_resources/00_base/aliases.pm M;
+  poe/t/90_regression/suzman_windows.t M; poe/mylib/gen-tests.perl M;
+  poe/t/10_units/01_pod/02_pod_coverage.t M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Pipe/TwoWay.pm M;
+  poe/mylib/Makefile-5005.pm M; poe/t/90_regression/rt23181-sigchld-rc.t
+  M; poe/lib/POE/Wheel/ReadWrite.pm M; poe/lib/POE/Loop/Event.pm M;
+  poe/mylib/Devel/Null.pm M; poe/mylib/MyOtherFreezer.pm M;
+  poe/t/10_units/03_base/06_loop.t M; poe/mylib/svn-log.perl M;
+  poe/t/20_resources/00_base/signals.pm M; poe/examples/queue.perl M;
+  poe/lib/POE/Pipe/OneWay.pm M; poe/t/10_units/03_base/12_assert_retval.t
+  M; poe/t/20_resources/00_base/sids.pm M; poe/docs/Makefile M;
+  poe/examples/tcp_watermarks.perl M; poe/mylib/PoeBuildInfo.pm M;
+  poe/lib/POE/Filter/Map.pm M; poe/lib/POE/Component.pm M;
+  poe/lib/POE/NFA.pm M; poe/t/20_resources/00_base/sessions.pm M;
+  poe/examples/thrash.perl M; poe/lib/POE/Component/Client/TCP.pm M;
+  poe/t/90_regression/cfedde-filter-httpd.t M; poe/mylib/cpan-test.perl
+  M; poe/lib/POE/Filter/HTTPD.pm M; poe/t/10_units/05_filters/01_block.t
+  M; poe/lib/POE/Resources.pm M; poe/examples/forkbomb.perl M;
+  poe/examples/selects.perl M; poe/examples/sessions.perl M;
+  poe/t/10_units/07_exceptions/01_normal.t M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Loop/TkActiveState.pm M;
+  poe/t/90_regression/rt1648-tied-stderr.t M; poe/mylib/Makefile-5004.pm
+  M; poe/t/90_regression/agaran-filter-httpd.t M;
+  poe/lib/POE/Wheel/ReadLine.pm M; poe/lib/POE/Resource/SIDs.pm M;
+  poe/t/90_regression/whjackson-followtail.t M;
+  poe/lib/POE/Loop/PerlSignals.pm M; poe/lib/POE/Component/Server/TCP.pm
+  M; poe/lib/POE.pm M; poe/lib/POE/Queue/Array.pm M;
+  poe/t/10_units/03_base/01_poe.t M; poe/mylib/coverage.perl M;
+  poe/t/90_regression/steinert-passed-wheel.t M;
+  poe/t/10_units/03_base/11_assert_usage.t M;
+  poe/t/90_regression/rt14444-arg1.t M; poe/lib/POE/Resource/Aliases.pm
+  M; poe/t/10_units/05_filters/04_line.t M; poe/examples/signals.perl M;
+  poe/lib/POE/Filter/Line.pm M; poe/t/20_resources/00_base/filehandles.pm
+  M; poe/t/10_units/05_filters/02_grep.t M;
+  poe/lib/POE/Filter/RecordBlock.pm M;
+  poe/t/20_resources/00_base/extrefs.pm M;
+  poe/t/90_regression/ton-stop-corruption.t M;
+  poe/lib/POE/Filter/Block.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/t/10_units/03_base/03_component.t M;
+  poe/lib/POE/Queue.pm M; poe/lib/POE/Wheel/SocketFactory.pm M;
+  poe/examples/wheels2.perl M; poe/lib/POE/Resource/Signals.pm M;
+  poe/lib/POE/Resource.pm M; poe/t/20_resources/00_base/extrefs_gc.pm M;
+  poe/lib/POE/Loop/Tk.pm M; poe/lib/POE/Loop/Select.pm M;
+  poe/t/10_units/03_base/17_explicit_loop_fail.t M; poe/lib/POE/Driver.pm
+  M; poe/t/10_units/05_filters/05_map.t M;
+  poe/t/20_resources/00_base/caller_state.pm M;
+  poe/t/20_resources/00_base/events.pm M; poe/lib/POE/Wheel.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Remove $Id$ and $Revision$ tags. No significant code changed despite
+    most of the distribution being touched. 
+
+  2009-08-13 05:01:44 (r2630) by rcaputo; poe/lib/POE/Session.pm M
+
+    Added experimental code to allow postbacks and callbacks to be
+    weakened, explicitly reducing their reference counts. Untested.
+    Resolves rt.cpan.org #48670, submitted by Adam Kennedy. 
+
+  2009-08-10 05:45:09 (r2629) by gwyn17; poe/lib/POE/Loop/Event.pm M
+
+    Hiding Event's exceptions is no longer necessary
+
+  2009-08-09 06:37:09 (r2628) by rcaputo
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Kernel.pm M
+
+    Defer rethrowing exceptions until after run() cleans up. Previously
+    exceptions would be thrown farther inside POE's dispatcher,
+    preventing some important cleanup. This only affects a few people who
+    re-run() POE::Kernel after an exception or using $kernel->stop(). 
+
+  2009-08-08 09:06:17 (r2627) by rcaputo; poe/lib/POE/Loop/Event.pm M
+
+    Quiet Event's exception handler. I'm not entirely sure this is a good
+    idea, but it's worth a shot. 
+
+  2009-08-08 08:30:18 (r2626) by rcaputo
+  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Loop/Event.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Increase filehandle trace verbosity. Add more diagnostic information
+    to Event watchers, in case they fail. Slightly optimize
+    POE::Wheel::Run destruction. There's no need to unselect file handles
+    in modes that were never watched. 
+
+  2009-08-08 07:37:53 (r2624) by rcaputo; poe/lib/POE/Loop/Event.pm M
+
+    Describe Event watchers to aid in debugging. 
+
+  2009-08-08 04:56:28 (r2623) by rcaputo
+  poe/t/90_regression/leolo-poe-wheel-run.t D; poe-test-loops/MANIFEST M;
+  poe-test-loops/lib/POE/Test/Loops/z_leolo_wheel_run.pm A
+
+    Move Philip Gwyn's signals test to POE::Test::Loops, so it can
+    exercise everyone's event loops. 
+
+  2009-08-07 07:29:13 (r2622) by gwyn17
+  poe/t/90_regression/leolo-poe-wheel-run.t A
+
+    Added test to make sure we get the 3 "completion" events from
+    POE::Wheel::Run. Multiplied by the 4 conduit types. 
+
+  2009-08-06 10:55:58 (r2621) by gwyn17; poe/lib/POE/Wheel/Run.pm M
+
+    Roll back previous patch. We need to call ->close_slave() on the
+    _read handles. Do that instead.
+
+  2009-08-06 07:21:19 (r2620) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Fix case where POE::Wheel::Run CloseEvent doesn't fire on Linux.
+    Thanks to Philip Gwyn's investigation and test cases, we found out
+    that close() wasn't sufficient to close and destruct slave ptys, so
+    the parent processes were keeping them open. Replaced close() with
+    $io_pty->close_slave() as needed. 
+
+  2009-08-04 04:39:59 (r2615) by gwyn17
+  poe/lib/POE/Resource/Signals.pm M
+
+    Small comment tweak re: top/bottom handlers
+
+  2009-07-31 09:09:21 (r2614) by bingosnet
+  poe/t/90_regression/agaran-filter-httpd.t M
+
+    Updated agaran-filter-httpd.t to bind server poco specifically to the
+    loopback as per RT #48341
+
+  2009-07-29 03:53:01 (r2613) by rcaputo
+  poe/lib/POE/Component/Server/TCP.pm M;
+  poe/t/90_regression/somni-poco-server-tcp.t M
+
+    !!! This change breaks backward compatibility on a relatively unused
+    !!! feature. You are affected if you use ARG0 or ARG1 in a !!!
+    POE::Component::Server::TCP ClientConnected callback.
+    
+    ClientArgs promised more than it could deliver, and people finally
+    noticed. This change backs off supplying the socket in $_[ARG0], and
+    it expands ClientArgs' arrayref into @_[ARG0..$#_]. Thanks to Michael
+    Fowler for rt.cpan.org #47855 (which this resolves), and POE's
+    mailing list for advice on which way this change should go. 
+
+  2009-07-29 02:42:33 (r2612) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M
+
+    Initialize the output masks for sigprocmask. Undefined output masks
+    may trigger warnings in some versions of Perl. At least, I hope
+    http://www.nntp.perl.org/group/perl.cpan.testers/2009/07/msg4809122.h
+    tml warnings will be resolved by this change. I wasn't able to
+    reproduce them myself. 
 
   2009-07-28 05:36:12 (r2611) by rcaputo; poe/lib/POE/Kernel.pm M
 

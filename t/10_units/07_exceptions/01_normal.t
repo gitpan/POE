@@ -1,4 +1,3 @@
-# $Id: 01_normal.t 2047 2006-08-19 22:19:44Z rcaputo $
 # vim: filetype=perl
 
 use Test::More tests => 7;

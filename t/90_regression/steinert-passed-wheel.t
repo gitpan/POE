@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: steinert-passed-wheel.t 1802 2005-05-28 23:57:37Z rcaputo $
 # vim: filetype=perl
 
 # Passing a POE::Wheel or something into an event handler will cause

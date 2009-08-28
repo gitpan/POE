@@ -1,5 +1,3 @@
-# $Id: PerlSignals.pm 2585 2009-07-21 02:22:15Z rcaputo $
-
 # Plain Perl signal handling is something shared by several event
 # loops.  The invariant code has moved out here so that each loop may
 # use it without reinventing it.  This will save maintenance and
@@ -10,7 +8,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2585 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -84,6 +82,11 @@ sub _loop_signal_handler_chld_bottom {
   }
 
   $poe_kernel->_data_sig_enqueue_poll_event();
+
+  # TODO - Per https://rt.cpan.org/Ticket/Display.html?id=45109
+  # resetting %SIG may need to be deferred until after child processes
+  # have been reaped.  Waiting for confirmation that the recent
+  # USE_SIGNALS changes have not fixed deep recursion on HP-UX.
   $SIG{$_[0]} = \&_loop_signal_handler_chld;
 }
 

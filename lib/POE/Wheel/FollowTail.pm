@@ -1,11 +1,9 @@
-# $Id: FollowTail.pm 2561 2009-07-09 14:58:31Z bingosnet $
-
 package POE::Wheel::FollowTail;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2561 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );

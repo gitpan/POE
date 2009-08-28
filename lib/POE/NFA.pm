@@ -1,11 +1,9 @@
-# $Id: NFA.pm 2506 2009-03-14 20:43:28Z bingosnet $
-
 package POE::NFA;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2506 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 

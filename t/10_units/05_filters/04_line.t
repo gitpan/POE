@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: 04_line.t 2147 2006-11-02 20:06:03Z bsmith $
 # vim: filetype=perl
 
 # Exercises Filter::Line without the rest of POE.

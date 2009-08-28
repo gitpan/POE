@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: watermarks.perl 2423 2009-02-09 23:26:45Z apocal $
 
 # This program tests the high and low watermarks.  It merges the
 # wheels from wheels.perl and the chargen service from selects.perl to

@@ -1,11 +1,9 @@
-# $Id: Filter.pm 2490 2009-03-02 20:52:40Z rcaputo $
-
 package POE::Filter;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2490 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(croak);
 

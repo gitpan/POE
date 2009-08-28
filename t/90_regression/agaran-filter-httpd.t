@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# $Id: cfedde-filter-httpd.t 2206 2007-07-25 04:44:21Z rcaputo $
 # vim: filetype=perl
 
 use warnings;
@@ -29,6 +28,7 @@ use POE qw(
 
 POE::Component::Server::TCP->new(
   Alias        => 's0',
+  Address      => '127.0.0.1',
   Port         => 0,
   ClientFilter => 'POE::Filter::HTTPD',
   Started => sub {

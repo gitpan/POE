@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: 11_assert_usage.t 1817 2005-06-29 04:56:32Z rcaputo $
 # vim: filetype=perl
 
 # Test the ASSERT_USAGE code in POE::Kernel.  This involves a lot of

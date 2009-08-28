@@ -1,5 +1,3 @@
-# $Id: 03_not_handled.t 2058 2006-08-21 06:25:50Z rcaputo $
-
 use Test::More tests => 7;
 
 use POE;
@@ -27,7 +25,7 @@ POE::Session->create(
     },
 
     _stop => sub { pass("Other session stopping"); },
-    
+
     last_breath => sub { fail("POE environment survived uncaught exception"); },
   },
 );

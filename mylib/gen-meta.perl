@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: gen-meta.perl 2607 2009-07-27 07:57:24Z bingosnet $
 # rocco // vim: ts=2 sw=2 expandtab
 
 # Generate META.yml.

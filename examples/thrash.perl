@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: thrash.perl 2423 2009-02-09 23:26:45Z apocal $
 
 # This program creates a server session and an infinitude of clients
 # that connect to it, all in the same process.  It's mainly used to

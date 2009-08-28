@@ -1,5 +1,4 @@
 #!/usr/bin/perl
-# $Id: Makefile-5004.pm 2391 2008-07-05 22:50:47Z rcaputo $
 # rocco // vim: ts=2 sw=2 expandtab
 
 use strict;

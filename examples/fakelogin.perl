@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: fakelogin.perl 1746 2005-01-28 22:57:30Z rcaputo $
 
 # This is a fake login prompt I wrote after noticing that someone's
 # IRC 'bot was probing telnet whenever I joined a particular channel.

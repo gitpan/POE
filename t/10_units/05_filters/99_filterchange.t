@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: 99_filterchange.t 1971 2006-05-30 20:32:30Z bsmith $
 # vim: filetype=perl
 
 # Exercises filter changing.  A lot of this code comes from Philip

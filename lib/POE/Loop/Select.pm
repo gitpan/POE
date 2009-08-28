@@ -1,5 +1,3 @@
-# $Id: Select.pm 2576 2009-07-19 07:38:58Z rcaputo $
-
 # Select loop bridge for POE::Kernel.
 
 # Empty package to appease perl.
@@ -11,7 +9,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2576 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 =for poe_tests
 

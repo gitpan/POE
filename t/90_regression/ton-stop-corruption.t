@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: ton-stop-corruption.t 1625 2004-09-16 01:38:17Z rcaputo $
 
 # Test that stop() does not result in a double garbage collection on
 # the session that called it.  This test case provided by Ton Hospel.

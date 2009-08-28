@@ -1,4 +1,3 @@
-# $Id: 01_pod.t 2136 2006-09-19 22:00:21Z apocal $
 # vim: filetype=perl
 
 use Test::More;

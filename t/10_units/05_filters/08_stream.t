@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: 08_stream.t 2147 2006-11-02 20:06:03Z bsmith $
 
 # Exercises Filter::Stream without the rest of POE.
 

@@ -1,12 +1,8 @@
-# $Id: MyOtherFreezer.pm 1903 2006-03-20 04:44:08Z rcaputo $
 # A sample external freezer for POE::Filter::Reference testing.
 
 package MyOtherFreezer;
 
 use strict;
-
-use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 1903 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 sub new {
   my $type = shift;

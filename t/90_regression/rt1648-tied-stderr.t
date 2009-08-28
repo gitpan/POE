@@ -1,5 +1,4 @@
 #!/usr/bin/perl 
-# $Id: rt1648-tied-stderr.t 2427 2009-02-10 09:32:08Z rcaputo $
 # vim: filetype=perl
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He

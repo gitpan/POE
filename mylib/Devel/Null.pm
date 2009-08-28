@@ -1,12 +1,7 @@
-# $Id: Null.pm 2357 2008-06-20 17:41:54Z rcaputo $
-
 # This `perl -d` debugging module is an ad-hoc custom debugger.  It's
 # optional, and it may not even work.
 
 use strict;
-
-use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2357 $=~/(\d+)/);sprintf"1.%04d",$r};
 
 package Null; # satisfies 'use'
 

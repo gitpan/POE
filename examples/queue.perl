@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: queue.perl 2114 2006-09-08 02:54:35Z rcaputo $
 
 # This is a simple job queue.
 

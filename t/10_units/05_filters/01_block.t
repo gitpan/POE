@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: 01_block.t 2147 2006-11-02 20:06:03Z bsmith $
 # vim: filetype=perl
 
 # Exercises Filter::Block without the rest of POE.  Suddenly things

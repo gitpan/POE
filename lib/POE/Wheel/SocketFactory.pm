@@ -1,11 +1,9 @@
-# $Id: SocketFactory.pm 2485 2009-03-01 21:28:22Z rcaputo $
-
 package POE::Wheel::SocketFactory;
 
 use strict;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2485 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );

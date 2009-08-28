@@ -1,5 +1,3 @@
-# $Id: Extrefs.pm 2447 2009-02-17 05:04:43Z rcaputo $
-
 # The data necessary to manage tagged extra/external reference counts
 # on sessions, and the accessors to get at them sanely from other
 # files.
@@ -7,7 +5,7 @@
 package POE::Resource::Extrefs;
 
 use vars qw($VERSION);
-$VERSION = do {my($r)=(q$Revision: 2447 $=~/(\d+)/);sprintf"1.%04d",$r};
+$VERSION = '1.020'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;

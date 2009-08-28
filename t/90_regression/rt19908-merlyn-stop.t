@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: rt19908-merlyn-stop.t 2443 2009-02-16 11:18:25Z apocal $
 # vim: filetype=perl
 
 # Randal Schwartz reported that die() within _stop causes an infinite

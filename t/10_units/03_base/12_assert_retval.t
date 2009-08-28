@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: 12_assert_retval.t 2130 2006-09-18 19:21:30Z apocal $
 
 # Test the ASSERT_USAGE code in POE::Kernel.  This involves a lot of
 # dying.

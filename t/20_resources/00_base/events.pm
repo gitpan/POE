@@ -1,5 +1,3 @@
-# $Id: events.pm 2357 2008-06-20 17:41:54Z rcaputo $
-
 use strict;
 
 use lib qw(./mylib ../mylib);

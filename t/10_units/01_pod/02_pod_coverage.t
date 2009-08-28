@@ -1,4 +1,3 @@
-# $Id: 02_pod_coverage.t 2465 2009-02-25 07:57:54Z rcaputo $
 # vim: filetype=perl
 
 # This testcase loads all POE modules.  Some of them may define

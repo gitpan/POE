@@ -1,5 +1,4 @@
 #!/usr/bin/perl -w
-# $Id: averell-callback-ret.t 1826 2005-07-25 02:12:25Z rcaputo $
 
 # Callback must pass on it's return value as per documentation.
 
