@@ -1,4 +1,88 @@
 ==================================
+2009-09-07T19:38:23.992359Z v1_267
+==================================
+
+  2009-09-07 19:29:16 (r2679) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Loop.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Filter/Stackable.pm M;
+  poe/lib/POE/Filter/Stream.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Resource/Statistics.pm
+  M; poe/lib/POE/Wheel/ListenAccept.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Wheel/ReadLine.pm M;
+  poe/lib/POE/Resource/SIDs.pm M; poe/README M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Loop/IO_Poll.pm M;
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Filter/Line.pm M;
+  poe/lib/POE/Filter/RecordBlock.pm M; poe/lib/POE/Filter/Block.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Resource/Signals.pm
+  M; poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/lib/POE/Component.pm M; poe/lib/POE/Filter/Map.pm M;
+  poe/mylib/PoeBuildInfo.pm M; poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm
+  M; poe/lib/POE/Resource/FileHandles.pm M
+
+    Bump version for new release. Rely upon latest POE::Test::Loops. 
+
+  2009-09-07 16:59:24 (r2676) by rcaputo
+  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Kernel.pm M
+
+    POE::Kernel->stop(), when called from a child process, must imply
+    POE::Kernel->has_forked(). POE::Wheel::Run recommends calling stop()
+    to clear out the parent process' sessions before starting new ones in
+    the child process. Users should not also need to call has_forked() in
+    this case. Fixes a bug found by Marius Kjeldahl in irc.perl.org #poe. 
+
+  2009-09-06 03:30:35 (r2674) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M
+
+    [rt 36648] Give POE::Component::Server::TCP a ClientPreConnect
+    callback. Give POE::Component::Client::TCP a PreConnect callback.
+    These callbacks are invoked just before POE::Wheel::ReadWrite is
+    created in their respective components, allowing component users to
+    reject connections or enable SSL on the sockets before beginning
+    application I/O. 
+
+  2009-09-05 17:57:21 (r2673) by rcaputo
+  poe/t/90_regression/cfedde-filter-httpd.t M
+
+    [rt 49384] Explicitly bind to 127.0.0.1 in tests, reported
+    anonymously. 
+
+  2009-09-04 03:25:36 (r2667) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Kernel.pm M
+
+    Defer resetting $SIG{CHLD} and $SIG{CLD} until AFTER the waitpid()
+    loop reaps all outstanding children. Resolves a deep recursion issue
+    in the CLD/CHLD signal handlers on HP-UX and probably every other
+    SysV based OS. Resolves rt.cpan.org 45109 reported by, and graciously
+    assisted by, Olivier 'dolmen' Mengué. 
+
+  2009-09-04 02:35:20 (r2666) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Skip the signals pipe when RUNNING_IN_HELL. Child "processes" in
+    Windows take out the parent's sockets when they close, causing
+    hilarity in the signal pipe code. Probably in a lot of real
+    applications, too. Surely there's a better way? 
+
+  2009-09-03 15:30:32 (r2664) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Fix a typo in my last commit.
+
+  2009-09-03 15:24:25 (r2663) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Fix POE::Wheel::Run stalling on MSWin32 when the Program is not
+    valid. Resolves rt.cpan.org 49373, reported by Andrew Feren. 
+
+==================================
 2009-08-29T19:10:38.926505Z v1_266
 ==================================
 
