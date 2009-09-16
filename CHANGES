@@ -1,4 +1,84 @@
 ==================================
+2009-09-16T18:45:45.476837Z v1_268
+==================================
+
+  2009-09-16 18:12:31 (r2693) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Loop.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Filter/Stackable.pm M;
+  poe/lib/POE/Filter/Stream.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Resource/Statistics.pm
+  M; poe/lib/POE/Wheel/ListenAccept.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Wheel/ReadLine.pm M;
+  poe/lib/POE/Resource/SIDs.pm M; poe/README M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Loop/IO_Poll.pm M;
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Filter/Line.pm M;
+  poe/lib/POE/Filter/RecordBlock.pm M; poe/lib/POE/Filter/Block.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Resource/Signals.pm
+  M; poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/lib/POE/Component.pm M; poe/lib/POE/Filter/Map.pm M;
+  poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Bump the version for a release.
+
+  2009-09-16 18:07:21 (r2692) by rcaputo
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Use the IO::Handle and FileHandle modules, so that blocking() is
+    available at the time the signal pipe is enabled. 
+
+  2009-09-12 00:09:47 (r2690) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Clarify POE::Kernel->run() semantics when called from within some
+    other event loop, thanks to criticism from "remlin" on a blog
+    comment. 
+
+  2009-09-08 16:33:37 (r2689) by gwyn17
+  poe/t/90_regression/kjeldahl-stop-start.t A
+
+    Unit test for r2687
+
+  2009-09-08 14:05:10 (r2688) by gwyn17
+  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Kernel.pm M
+
+    Document the ordering of ErrorEvent, StdoutEvent CloseEvent and CHLD
+
+  2009-09-08 13:43:23 (r2687) by gwyn17; poe/lib/POE/Kernel.pm M
+
+    Reset the idle queue size in Kernel->stop() 
+
+  2009-09-08 10:48:38 (r2686) by gwyn17
+  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Wheel/Run.pm M
+
+    Prevent the signal pipe from being used during signal finalization
+    Added a note about EIO in POE::Wheel::Run
+
+  2009-09-08 07:54:17 (r2685) by gwyn17; poe/lib/POE/Kernel.pm M
+
+    This patch sucks less. _warn not defined at that point. Teach me to
+    commit before make test. 
+
+  2009-09-08 07:43:40 (r2684) by gwyn17; poe/lib/POE/Kernel.pm M
+
+    Document the fact that the signal pipe isn't used on Windows. Warn if
+    we are ignoring the signal pipe on Windows. 
+
+  2009-09-08 07:40:27 (r2683) by gwyn17
+  poe/lib/POE/Wheel/Run.pm M; poe/lib/POE/Kernel.pm M
+
+    POE::Wheel::Run : Mask signals before fork(). Unmask when safe again.
+    POE::Kernel Tweak doco. 
+
+==================================
 2009-09-07T19:38:23.992359Z v1_267
 ==================================
 

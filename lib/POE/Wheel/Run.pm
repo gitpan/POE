@@ -3,7 +3,7 @@ package POE::Wheel::Run;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.267'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.268'; # NOTE - Should be #.### (three decimal places)
 @ISA = 'POE::Wheel';
 
 use Carp qw(carp croak);
@@ -261,6 +261,12 @@ sub new {
     croak "unknown conduit type $conduit";
   }
 
+  # Block signals until safe
+  my $must_unmask;
+  if( $poe_kernel->can( '_data_sig_mask_all' ) ) {
+    $poe_kernel->_data_sig_mask_all;
+    $must_unmask = 1;
+  }
   # Fork!  Woo-hoo!
   my $pid = fork;
 
@@ -314,6 +320,7 @@ sub new {
     # using them.
     my @safe_signals = $poe_kernel->_data_sig_get_safe_signals();
     @SIG{@safe_signals} = ("DEFAULT") x @safe_signals;
+    $poe_kernel->_data_sig_unmask_all if $must_unmask;
 
     # TODO How to pass events to the parent process?  Maybe over a
     # expedited (OOB) filehandle.
@@ -513,6 +520,8 @@ sub new {
     undef,          # STATE_STDERR
   ], $type;
 
+  # PG- I suspect <> might need PIPE
+  $poe_kernel->_data_sig_unmask_all if $must_unmask;
   # Wait here while the child sets itself up.
   {
     local $/ = "\n";
@@ -1356,6 +1365,10 @@ consistent notification that the child is done sending output.  Please
 note that it does not signal when the child process has exited.
 Programs should use sig_child() to detect that.
 
+While it is impossible for ErrorEvent or StdoutEvent to happen after
+CloseEvent, there is no such guarantee for CHLD, which may happen before
+or after CloseEvent.
+
 In addition to the usual POE parameters, each CloseEvent comes with
 one of its own:
 
@@ -1403,6 +1416,9 @@ A sample error event handler:
     $errstr = "remote end closed" if $operation eq "read" and !$errnum;
     warn "Wheel $wheel_id generated $operation error $errnum: $errstr\n";
   }
+
+Note that unless you deactivate the signal pipe, you might allso see C<EIO>
+(5) error during read operations.
 
 =head4 StdinEvent
 

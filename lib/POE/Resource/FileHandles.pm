@@ -4,7 +4,7 @@
 package POE::Resource::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = '1.267'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.268'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -12,6 +12,8 @@ package POE::Kernel;
 use strict;
 
 use Fcntl qw(F_GETFL F_SETFL O_NONBLOCK);
+use IO::Handle ();
+use FileHandle ();
 
 ### Some portability things.
 

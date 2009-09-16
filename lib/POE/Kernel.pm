@@ -3,7 +3,7 @@ package POE::Kernel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.267'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.268'; # NOTE - Should be #.### (three decimal places)
 
 use POSIX qw(uname);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -142,6 +142,7 @@ BEGIN {
       } else {
         if (RUNNING_IN_HELL) {
           # TODO - Let them know we're not using it?
+          warn "The signal pipe is not compatible with $^O";
           *USE_SIGNAL_PIPE = sub () { 0 };
         }
         else {
@@ -381,16 +382,18 @@ BEGIN {
 }
 
 # An "idle" POE::Kernel may still have events enqueued.  These events
-# regulate polling for signals, profiling, and perhaps other aspecs of
+# regulate polling for signals, profiling, and perhaps other aspects of
 # POE::Kernel's internal workings.
 #
 # XXX - There must be a better mechanism.
 #
-my $idle_queue_size = TRACE_STATISTICS ? 1 : 0;
+my $idle_queue_size;
 
 sub _idle_queue_grow   { $idle_queue_size++; }
 sub _idle_queue_shrink { $idle_queue_size--; }
 sub _idle_queue_size   { $idle_queue_size;   }
+sub _idle_queue_reset  { $idle_queue_size = TRACE_STATISTICS ? 1 : 0; }
+
 
 #------------------------------------------------------------------------------
 # Helpers to carp, croak, confess, cluck, warn and die with whatever
@@ -867,6 +870,8 @@ sub new {
 
     # These other subsystems don't have strange interactions.
     $self->_data_handle_initialize($kr_queue);
+
+    _idle_queue_reset();
   }
 
   # Return the global instance.
@@ -1383,6 +1388,7 @@ sub stop {
   # ID() call.
   $self->[KR_ID] = undef;
 
+  _idle_queue_reset();
   return;
 }
 
@@ -3057,15 +3063,27 @@ run() will not return until every session has ended.  This includes
 sessions that were created while run() was running.
 
 POE::Kernel will print a strong message if a program creates sessions
-but fails to call run().  If the lack of a run() call is deliberate,
-you can avoid the message by calling it before creating a session.
-run() at that point will return immediately, and POE::Kernel will be
-satisfied.
+but fails to call run().  Prior to this warning, we received tons of
+bug reports along the lines of "my POE program isn't doing anything".
+It turned out that people forgot to start an event dispatcher, so
+events were never dispatched.
+
+If the lack of a run() call is deliberate, perhaps because some other
+event loop already has control, you can avoid the message by calling
+it before creating a session.  run() at that point will initialize POE
+and return immediately.  POE::Kernel will be satisfied that run() was
+called, although POE will not have actually taken control of the event
+loop.
 
   use POE;
   POE::Kernel->run(); # silence the warning
   POE::Session->create( ... );
   exit;
+
+Note, however, that this varies from one event loop to another.  If a
+particular POE::Loop implementation doesn't support it, that's
+probably a bug.  Please file a bug report with the owner of the
+relevant POE::Loop module.
 
 =head3 run_one_timeslice
 
@@ -5351,10 +5369,11 @@ Defaults to 1 second.
 =head2 USE_SIGNAL_PIPE
 
 The only safe way to handle signals is to implement a shared-nothing
-model.  POE builds a I<signal pipe> that communicates between the the
+model.  POE builds a I<signal pipe> that communicates between the
 signal handlers and the POE kernel loop in a safe and atomic manner.
 The signal pipe is implemented with L<POE::Pipe::OneWay>, using a
-C<pipe> conduit on Unix, and C<inet> on Windows.
+C<pipe> conduit on Unix.  Unfortunately, the signal pipe is not compatible
+with Windows and is not used on that platform.
 
 If you wish to revert to the previous unsafe signal behaviour, you
 must set C<USE_SIGNAL_PIPE> to 0, or the environment vairable
