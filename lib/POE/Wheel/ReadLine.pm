@@ -5,11 +5,12 @@ use strict;
 BEGIN { eval { require bytes } and bytes->import; }
 
 use vars qw($VERSION);
-$VERSION = '1.268'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.269'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
 use POE qw( Wheel );
+use base qw(POE::Wheel);
 use POSIX ();
 
 if ($^O eq "MSWin32") {

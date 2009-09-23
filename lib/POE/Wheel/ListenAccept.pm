@@ -3,7 +3,7 @@ package POE::Wheel::ListenAccept;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.268'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.269'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -11,6 +11,7 @@ use Symbol qw( gensym );
 use POSIX qw(:fcntl_h);
 use Errno qw(EWOULDBLOCK);
 use POE qw( Wheel );
+use base qw(POE::Wheel);
 
 sub SELF_HANDLE       () { 0 }
 sub SELF_EVENT_ACCEPT () { 1 }

@@ -3,12 +3,13 @@ package POE::Wheel::FollowTail;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.268'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.269'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
 use POSIX qw(SEEK_SET SEEK_CUR SEEK_END S_ISCHR S_ISBLK);
 use POE qw(Wheel Driver::SysRW Filter::Line);
+use base qw(POE::Wheel);
 use IO::Handle ();
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
