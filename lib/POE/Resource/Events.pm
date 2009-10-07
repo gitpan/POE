@@ -3,7 +3,7 @@
 package POE::Resource::Events;
 
 use vars qw($VERSION);
-$VERSION = '1.269'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.269_001'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -50,8 +50,9 @@ sub _data_ev_finalize {
 
 sub _data_ev_enqueue {
   my (
-    $self, $session, $source_session, $event, $type, $etc, $file, $line,
-    $fromstate, $time
+    $self,
+    $session, $source_session, $event, $type, $etc,
+    $file, $line, $fromstate, $time
   ) = @_;
 
   if (ASSERT_DATA) {
@@ -87,11 +88,11 @@ sub _data_ev_enqueue {
   # This is the counterpart to _data_ev_refcount_dec().  It's only
   # used in one place, so it's not in its own function.
 
-  $self->_data_ses_refcount_inc($session);
   $event_count{$session}++;
+  $self->_data_ses_refcount_inc($session);
 
-  $self->_data_ses_refcount_inc($source_session);
   $post_count{$source_session}++;
+  $self->_data_ses_refcount_inc($source_session);
 
   return $new_id;
 }
@@ -202,11 +203,11 @@ sub _data_ev_refcount_dec {
     _trap $source_session unless exists $post_count{$source_session};
   }
 
-  $self->_data_ses_refcount_dec($dest_session);
   $event_count{$dest_session}--;
+  $self->_data_ses_refcount_dec($dest_session);
 
-  $self->_data_ses_refcount_dec($source_session);
   $post_count{$source_session}--;
+  $self->_data_ses_refcount_dec($source_session);
 }
 
 ### Fetch the number of pending events sent to a session.
@@ -259,6 +260,8 @@ sub _data_ev_dispatch_due {
       $self->_data_stat_add('blocked_seconds', $now - $due_time);
     }
 
+    # TODO - Can these two lines be reversed?
+    # TODO - May avoid entering/removing GC mark entries.
     $self->_data_ev_refcount_dec($event->[EV_SOURCE], $event->[EV_SESSION]);
     $self->_dispatch_event(@$event, $due_time, $id);
 
@@ -267,8 +270,14 @@ sub _data_ev_dispatch_due {
     POE::Kernel->stop() if $POE::Kernel::kr_exception;
   }
 
+  # Sweep for dead sessions.  The sweep may alter the next queue time.
+
+  $self->_data_ses_gc_sweep();
+  $next_time = $kr_queue->get_next_priority();
+
   # Tell the event loop to wait for the next event, if there is one.
   # Otherwise we're going to wait indefinitely for some other event.
+
   if (defined $next_time) {
     $self->loop_reset_time_watcher($next_time);
   }

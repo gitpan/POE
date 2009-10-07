@@ -1,11 +1,10 @@
 use strict;
+# vim: ts=2 sw=2 filetype=perl expandtab
 
 package main;
 
-use Test::More;
+use Test::More tests => 11;
 use POE::NFA;
-
-plan 'no_plan';
 
 my $nfa;
 

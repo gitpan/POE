@@ -3,7 +3,7 @@ package POE::Wheel::ReadWrite;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.269'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.269_001'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -389,12 +389,12 @@ sub DESTROY {
   # Turn off the select.  This is a problem if a wheel is being
   # swapped, since it will turn off selects for the other wheel.
   if ($self->[HANDLE_INPUT]) {
-    $poe_kernel->select($self->[HANDLE_INPUT]);
+    $poe_kernel->select_read($self->[HANDLE_INPUT]);
     $self->[HANDLE_INPUT] = undef;
   }
 
   if ($self->[HANDLE_OUTPUT]) {
-    $poe_kernel->select($self->[HANDLE_OUTPUT]);
+    $poe_kernel->select_write($self->[HANDLE_OUTPUT]);
     $self->[HANDLE_OUTPUT] = undef;
   }
 

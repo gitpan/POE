@@ -1,5 +1,5 @@
 #!/usr/bin/perl 
-# vim: filetype=perl
+# vim: ts=2 sw=2 filetype=perl expandtab
 
 # Scott Beck reported that tied STDERR breaks POE::Wheel::Run.  He
 # suggested untying STDOUT and STDERR in the child process.  This test
@@ -16,10 +16,10 @@ BEGIN {
   elsif ($^O eq "MSWin32") {
     eval "use Win32::Console";
     if ($@) {
-      $error = "Win32::Console is required on $^O - try ActivePerl";
+      $error = "Win32::Console is required on $^O.";
     }
-    else {
-      $error = "$^O does not support fork/exec properly";
+    elsif ($] < 5.010000) {
+      $error = "$^O ver. $] doesn't fork/exec properly. Consider upgrading.";
     }
   }
   if ($error) {
@@ -33,6 +33,12 @@ sub DEBUG () { 0 }
 use Test::More tests => 1;
 
 sub POE::Kernel::ASSERT_DEFAULT () { 1 }
+
+BEGIN {
+  package POE::Kernel;
+  use constant TRACE_DEFAULT => exists($INC{'Devel/Cover.pm'});
+}
+
 use POE qw/Wheel::Run Session/;
 
 tie *STDERR, 'Test::Tie::Handle';

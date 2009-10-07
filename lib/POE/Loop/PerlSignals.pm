@@ -8,7 +8,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.269'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.269_001'; # NOTE - Should be #.### (three decimal places)
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -121,7 +121,7 @@ sub loop_ignore_signal {
 
   delete $signal_watched{$signal};
 
-    if ($signal eq 'CHLD' or $signal eq 'CLD') {
+  if ($signal eq 'CHLD' or $signal eq 'CLD') {
     if ( USE_SIGCHLD ) {
       if( $self->_data_sig_child_procs) {
         # We need SIGCHLD to stay around after shutdown, so that

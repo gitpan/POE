@@ -4,7 +4,7 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = '1.269'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.269_001'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -62,7 +62,8 @@ use vars (
 #my $kr_signal_type;                 # The type of signal being dispatched.
 
 # A flag to tell whether we're currently polling for signals.
-# Under USE_SIGCHLD, determines whether a SIGCHLD polling event has already been queued
+# Under USE_SIGCHLD, determines whether a SIGCHLD polling event has
+# already been queued.
 my $polling_for_signals = 0;
 
 # A flag determining whether there are child processes.
@@ -154,9 +155,11 @@ sub _data_sig_has_forked {
 }
 
 sub _data_sig_reset_procs {
+  my $self = shift;
   # Initialize this to a true value so our waitpid() loop can run at
   # least once.  Starts false when running in an Apache handler so our
   # SIGCHLD hijinks don't interfere with the web server.
+  $self->_data_sig_cease_polling();
   $kr_child_procs = exists($INC{'Apache.pm'}) ? 0 : ( USE_SIGCHLD ? 0 : 1 );
 }
 
@@ -453,19 +456,6 @@ sub _data_sig_free_terminated_sessions {
       $self->_data_ses_stop($dead_session);
     }
   }
-  else {
-    # TODO Implicit signal reaping.  This is deprecated behavior and
-    # will eventually be removed.  See the commented out tests in
-    # t/res/signals.t.
-    #
-    # Don't reap the parent if it's the kernel.  It still needs to be
-    # a part of the system for finalization in certain cases.
-    foreach my $touched_session (@kr_signaled_sessions) {
-      next unless $self->_data_ses_exists($touched_session);
-      next if $touched_session == $self;
-      $self->_data_ses_collect_garbage($touched_session);
-    }
-  }
 
   # Erase @kr_signaled_sessions, or they will leak until the next
   # signal.
@@ -526,7 +516,10 @@ sub _data_sig_handle_poll_event {
   }
 
   if (TRACE_SIGNALS) {
-    _warn("<sg> POE::Kernel is polling for signals at " . time() . (USE_SIGCHLD ? " due to SIGCHLD" : ""));
+    _warn(
+      "<sg> POE::Kernel is polling for signals at " . time() .
+      (USE_SIGCHLD ? " due to SIGCHLD" : "")
+    );
   }
 
   # Reap children for as long as waitpid(2) says something
@@ -636,14 +629,16 @@ sub _data_sig_handle_poll_event {
   else {
     # The poll loop is over.  Resume slowly polling for signals.
 
-    if (TRACE_SIGNALS) {
-      _warn("<sg> POE::Kernel will poll again after a delay");
-    }
-
     if ($polling_for_signals) {
+      if (TRACE_SIGNALS) {
+        _warn("<sg> POE::Kernel will poll again after a delay");
+      }
       $self->_data_sig_enqueue_poll_event($signal);
     }
     else {
+      if (TRACE_SIGNALS) {
+        _warn("<sg> POE::Kernel SIGCHLD poll loop paused");
+      }
       $self->_idle_queue_shrink();
     }
   }
