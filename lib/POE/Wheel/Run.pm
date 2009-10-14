@@ -3,7 +3,7 @@ package POE::Wheel::Run;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.269_002'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.280'; # NOTE - Should be #.### (three decimal places)
 @ISA = 'POE::Wheel';
 
 use Carp qw(carp croak);
@@ -34,7 +34,7 @@ BEGIN {
       require Win32API::File;
       Win32API::File->import("FdGetOsFHandle");
     };
-    if ($@) { die "Win32::File needed for POE::Wheel::Run on $^O:\n$@" }
+    if ($@) { die "Win32API::File needed for POE::Wheel::Run on $^O:\n$@" }
 
     eval    { require Win32::Process; Win32::Process->import() };
     if ($@) { die "Win32::Process needed for POE::Wheel::Run on $^O:\n$@" }
