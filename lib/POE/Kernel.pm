@@ -3,7 +3,7 @@ package POE::Kernel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.280'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.281'; # NOTE - Should be #.### (three decimal places)
 
 use POSIX qw(uname);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -173,6 +173,7 @@ BEGIN {
 # functions that act on the current session.
 my $kr_active_session;
 my $kr_active_event;
+my $kr_active_event_type;
 
 # Needs to be lexical so that POE::Resource::Events can see it
 # change.  TODO - Something better?  Maybe we call a method in
@@ -197,21 +198,22 @@ sub MODE_EX () { 2 }  # exception/expedite
 # storage in some of the leaf objects, such as POE::Wheel.  All its
 # members are described in detail further on.
 
-sub KR_SESSIONS       () {  0 } # [ \%kr_sessions,
-sub KR_FILENOS        () {  1 } #   \%kr_filenos,
-sub KR_SIGNALS        () {  2 } #   \%kr_signals,
-sub KR_ALIASES        () {  3 } #   \%kr_aliases,
-sub KR_ACTIVE_SESSION () {  4 } #   \$kr_active_session,
-sub KR_QUEUE          () {  5 } #   \$kr_queue,
-sub KR_ID             () {  6 } #   $unique_kernel_id,
-sub KR_SESSION_IDS    () {  7 } #   \%kr_session_ids,
-sub KR_SID_SEQ        () {  8 } #   \$kr_sid_seq,
-sub KR_EXTRA_REFS     () {  9 } #   \$kr_extra_refs,
-sub KR_SIZE           () { 10 } #   XXX UNUSED ???
-sub KR_RUN            () { 11 } #   \$kr_run_warning
-sub KR_ACTIVE_EVENT   () { 12 } #   \$kr_active_event
-sub KR_PIDS           () { 13 } #   \%kr_pids_to_events
-                                # ]
+sub KR_SESSIONS          () {  0 } # [ \%kr_sessions,
+sub KR_FILENOS           () {  1 } #   \%kr_filenos,
+sub KR_SIGNALS           () {  2 } #   \%kr_signals,
+sub KR_ALIASES           () {  3 } #   \%kr_aliases,
+sub KR_ACTIVE_SESSION    () {  4 } #   \$kr_active_session,
+sub KR_QUEUE             () {  5 } #   \$kr_queue,
+sub KR_ID                () {  6 } #   $unique_kernel_id,
+sub KR_SESSION_IDS       () {  7 } #   \%kr_session_ids,
+sub KR_SID_SEQ           () {  8 } #   \$kr_sid_seq,
+sub KR_EXTRA_REFS        () {  9 } #   \$kr_extra_refs,
+sub KR_SIZE              () { 10 } #   XXX UNUSED ???
+sub KR_RUN               () { 11 } #   \$kr_run_warning
+sub KR_ACTIVE_EVENT      () { 12 } #   \$kr_active_event
+sub KR_PIDS              () { 13 } #   \%kr_pids_to_events
+sub KR_ACTIVE_EVENT_TYPE () { 14 } #   \$kr_active_event_type
+                                   # ]
 
 # This flag indicates that POE::Kernel's run() method was called.
 # It's used to warn about forgetting $poe_kernel->run().
@@ -676,17 +678,22 @@ sub _test_if_kernel_is_idle {
     }
   }
 
-  unless (
-    $kr_queue->get_item_count() > $idle_queue_size or
+  # Not yet idle, or SO idle that there's nothing to receive the
+  # event.  Try to order these from most to least likely to be true so
+  # that the tests short-circuit quickly.
+
+  return if (
     $self->_data_handle_count() or
+    $kr_queue->get_item_count() > $idle_queue_size or
     $self->_data_extref_count() or
-    $self->_data_sig_child_procs()
-  ) {
-    $self->_data_ev_enqueue(
-      $self, $self, EN_SIGNAL, ET_SIGNAL, [ 'IDLE' ],
-      __FILE__, __LINE__, undef, time(),
-    ) if $self->_data_ses_count();
-  }
+    $self->_data_sig_child_procs() or
+    !$self->_data_ses_count()
+  );
+
+  $self->_data_ev_enqueue(
+    $self, $self, EN_SIGNAL, ET_SIGNAL, [ 'IDLE' ],
+    __FILE__, __LINE__, undef, time(),
+  );
 }
 
 ### Explain why a session could not be resolved.
@@ -856,19 +863,21 @@ sub new {
     # objects, such as KR_QUEUE is?
 
     my $self = $poe_kernel = bless [
-      undef,               # KR_SESSIONS - from POE::Resource::Sessions
-      undef,               # KR_FILENOS - from POE::Resource::FileHandles
-      undef,               # KR_SIGNALS - from POE::Resource::Signals
-      undef,               # KR_ALIASES - from POE::Resource::Aliases
-      \$kr_active_session, # KR_ACTIVE_SESSION
-      $kr_queue,           # KR_QUEUE - reference to an object
-      undef,               # KR_ID
-      undef,               # KR_SESSION_IDS - from POE::Resource::SIDS
-      undef,               # KR_SID_SEQ - scalar ref from POE::Resource::SIDS
-      undef,               # KR_EXTRA_REFS
-      undef,               # KR_SIZE
-      \$kr_run_warning,    # KR_RUN
-      \$kr_active_event,   # KR_ACTIVE_EVENT
+      undef,                  # KR_SESSIONS - from POE::Resource::Sessions
+      undef,                  # KR_FILENOS - from POE::Resource::FileHandles
+      undef,                  # KR_SIGNALS - from POE::Resource::Signals
+      undef,                  # KR_ALIASES - from POE::Resource::Aliases
+      \$kr_active_session,    # KR_ACTIVE_SESSION
+      $kr_queue,              # KR_QUEUE - reference to an object
+      undef,                  # KR_ID
+      undef,                  # KR_SESSION_IDS - from POE::Resource::SIDS
+      undef,                  # KR_SID_SEQ - from POE::Resource::SIDS
+      undef,                  # KR_EXTRA_REFS
+      undef,                  # KR_SIZE
+      \$kr_run_warning,       # KR_RUN
+      \$kr_active_event,      # KR_ACTIVE_EVENT
+      undef,                  # KR_PIDS
+      \$kr_active_event_type, # KR_ACTIVE_EVENT_TYPE
     ], $type;
 
     POE::Resources->load();
@@ -1046,8 +1055,12 @@ sub _dispatch_event {
   # Prepare to call the appropriate handler.  Push the current active
   # session on Perl's call stack.
 
-  my ($hold_active_session, $hold_active_event) = ($kr_active_session, $kr_active_event);
-  ($kr_active_session, $kr_active_event) = ($session, $event);
+  my ($hold_active_session, $hold_active_event, $hold_active_event_type) = (
+    $kr_active_session, $kr_active_event, $kr_active_event_type
+  );
+  (
+    $kr_active_session, $kr_active_event, $kr_active_event_type
+  ) = ($session, $event, $type);
 
   # Dispatch the event, at long last.
   my $before;
@@ -1055,9 +1068,13 @@ sub _dispatch_event {
     $before = time();
   }
 
+  # We only care about the return value and calling context if it's
+  # ET_CALL.
+
   my $return;
   my $wantarray = wantarray;
-  if (CATCH_EXCEPTIONS) {
+
+  if ($type & ET_CALL) {
     eval {
       if ($wantarray) {
         $return = [
@@ -1077,11 +1094,20 @@ sub _dispatch_event {
         );
       }
     };
+  }
+  else {
+    eval {
+      $session->_invoke_state(
+        $source_session, $event, $etc, $file, $line, $fromstate
+      );
+    };
+  }
 
-    # local $@ doesn't work quite the way I expect, but there is a
-    # bit of a problem if an eval{} occurs here because a signal is
-    # dispatched or something.
+  # local $@ doesn't work quite the way I expect, but there is a
+  # bit of a problem if an eval{} occurs here because a signal is
+  # dispatched or something.
 
+  if (CATCH_EXCEPTIONS) {
     if (ref($@) or $@ ne '') {
       my $exception = $@;
       if(TRACE_EVENTS) {
@@ -1114,24 +1140,10 @@ sub _dispatch_event {
     }
   }
   else {
-    if ($wantarray) {
-      $return = [
-        $session->_invoke_state(
-          $source_session, $event, $etc, $file, $line, $fromstate
-        )
-      ];
-    }
-    elsif (defined $wantarray) {
-      $return = $session->_invoke_state(
-        $source_session, $event, $etc, $file, $line, $fromstate
-      );
-    }
-    else {
-      $session->_invoke_state(
-        $source_session, $event, $etc, $file, $line, $fromstate
-      );
-    }
+    die "$@\n" if ref($@) or $@ ne '';
   }
+
+  # Call with exception catching.
 
   # Clear out the event arguments list, in case there are POE-ish
   # things in it. This allows them to destruct happily before we set
@@ -1160,8 +1172,8 @@ sub _dispatch_event {
   # Pop the active session and event, now that they're no longer
   # active.
 
-  ($kr_active_session, $kr_active_event) = (
-    $hold_active_session, $hold_active_event
+  ($kr_active_session, $kr_active_event, $kr_active_event_type) = (
+    $hold_active_session, $hold_active_event, $hold_active_event_type
   );
 
   if (TRACE_EVENTS) {
@@ -1170,8 +1182,11 @@ sub _dispatch_event {
     _warn("<ev> event $seq ``$event'' returns ($string_ret)\n");
   }
 
+  # Return doesn't matter unless ET_CALL.
+  return unless $type & ET_CALL;
+
   # Return what the handler did.  This is used for call().
-  return( wantarray ? @$return : $return );
+  return( $wantarray ? @$return : $return );
 }
 
 #------------------------------------------------------------------------------
@@ -1505,9 +1520,6 @@ sub session_alloc {
 # relationship between the current session and its parent.  Basically,
 # the current session is given to the Kernel session.  Unlike with
 # _stop, the current session's children follow their parent.
-#
-# TODO - Calling detach_myself() from _start means the parent receives
-# a "_child lose" event without ever seeing "_child create".
 
 sub detach_myself {
   my $self = shift;
@@ -1526,11 +1538,14 @@ sub detach_myself {
   my $old_parent = $self->_data_ses_get_parent($kr_active_session);
 
   # Tell the old parent session that the child is departing.
+  # But not if the active event is ET_START, since that would generate
+  # a CHILD_LOSE without a CHILD_CREATE.
   $self->_dispatch_event(
     $old_parent, $self,
     EN_CHILD, ET_CHILD, [ CHILD_LOSE, $kr_active_session, undef ],
     (caller)[1,2], undef, time(), -__LINE__
-  );
+  )
+  unless $kr_active_event_type & ET_START;
 
   # Tell the new parent (kernel) that it's gaining a child.
   # (Actually it doesn't care, so we don't do that here, but this is
@@ -2669,16 +2684,25 @@ package methods.
 
 POE implements isolated compartments called I<sessions>.  Sessions play
 the role of tasks or threads within POE.  POE::Kernel acts as POE's
-task scheduler, doling out timeslices to each session.
+task scheduler, doling out timeslices to each session by invoking
+callbacks within them.
 
-Sessions cooperate to share the CPU within a process.  Each session
-decides when it's appropriate to be interrupted, which removes the
-need to lock data shared between them.  It also gives the programmer
-more control over the relative priority of each task.  A session may
-take exclusive control of a program's time, if necessary.
+Callbacks are not pre-emptive.  As long as one is running, no others
+will be dispatched.  This is known as I<cooperative> multitasking.
+Each session must cooperate by returning to the central dispatching
+kernel.
+
+Cooperative multitasking vastly simplifies data sharing, since no two
+pieces of code may alter data at once.
+
+A session may also take exclusive control of a program's time, if
+necessary, by simply not returning in a timely fashion.  It's even
+possible to write completely blocking programs that use POE as a state
+machine rather than a cooperative dispatcher.
 
 Every POE-based application needs at least one session.  Code cannot
-run I<within POE> without being a part of some session.
+run I<within POE> without being a part of some session.  Likewise, a
+threaded program always has a "thread zero".
 
 Sessions in POE::Kernel should not be confused with
 L<POE::Session|POE::Session> even though the two are inextricably
@@ -4551,7 +4575,7 @@ be raised.
     my( $sig, $ex ) = @_[ ARG0, ARG1 ];
     # $sig is 'DIE'
     # $ex is the exception hash
-    warn "$$: error in $event: $ex->{error_str}";
+    warn "$$: error in $ex->{event}: $ex->{error_str}";
     $poe_kernel->sig_handled();
 
     # Send the signal to session that sent the original event.
