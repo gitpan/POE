@@ -3,7 +3,7 @@ package POE::Wheel::ReadWrite;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.281'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.282'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -941,7 +941,7 @@ put() accepts a list of RECORDS, which will be serialized by the
 wheel's Filter and buffered and written by its Driver.
 
 put() returns true if a HighMark has been set and the Driver's output
-buffer has reached or exceded the limit.  False is returned if
+buffer has reached or exceeded the limit.  False is returned if
 HighMark has not been set, or if the Driver's buffer is smaller than
 that limit.
 
