@@ -1,4 +1,50 @@
 ==================================
+2010-01-08T00:13:11.003173Z v1_283
+==================================
+
+  2010-01-08 00:01:06 (r2782) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Loop.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Filter/Stackable.pm M;
+  poe/lib/POE/Filter/Stream.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Resource/Statistics.pm
+  M; poe/lib/POE/Wheel/ListenAccept.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Wheel/ReadLine.pm M;
+  poe/lib/POE/Resource/SIDs.pm M; poe/README M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Loop/IO_Poll.pm M;
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Filter/Line.pm M;
+  poe/lib/POE/Filter/RecordBlock.pm M; poe/lib/POE/Filter/Block.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Resource/Signals.pm
+  M; poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/lib/POE/Component.pm M; poe/lib/POE/Filter/Map.pm M;
+  poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Bump revision for release.
+
+  2010-01-07 06:46:40 (r2781) by rcaputo
+  poe/lib/POE/Wheel/FollowTail.pm M;
+  poe/t/90_regression/bingos-followtail.t M
+
+    Fix POE::Wheel::FollowTail, at least as far as Hinrik's test and the
+    rest of the test suite are concerned. 
+
+  2010-01-07 02:20:10 (r2780) by rcaputo
+  poe/t/90_regression/bingos-followtail.t M
+
+    Hinrik Örn Sigurðsson discovered that the new POE::Wheel::FollowTail
+    code doesn't flush out the file on startup. Applied his changes to an
+    existing regression test for this wheel. 
+
+==================================
 2010-01-06T20:55:14.534499Z v1_282
 ==================================
 
