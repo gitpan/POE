@@ -3,7 +3,7 @@ package POE::NFA;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 
@@ -151,32 +151,36 @@ sub import {
 
 sub _add_ref_states {
   my ($states, $refs) = @_;
-    foreach my $state (keys %$refs) {
-      $states->{$state} = {};
-      my $data = $refs->{$state};
-      croak "the data for state '$state' should be an array"
-        unless (ref $data eq 'ARRAY');
-      croak "the array for state '$state' has an odd number of elements"
-        if (@$data & 1);
 
-      while (my ($ref, $events) = splice(@$data, 0, 2)) {
-        if (ref $events eq 'ARRAY') {
-          foreach my $event (@$events) {
-            $states->{$state}->{$event} = [ $ref, $event ];
-          }
-        }
-        elsif (ref $events eq 'HASH') {
-          foreach my $event (keys %$events) {
-            my $method = $events->{$event};
-            $states->{$state}->{$event} = [ $ref, $method ];
-          }
-        }
-        else {
-          croak "events with '$ref' for state '$state' " .
-                "need to be a hash or array ref";
+  foreach my $state (keys %$refs) {
+    $states->{$state} = {};
+
+    my $data = $refs->{$state};
+    croak "the data for state '$state' should be an array" unless (
+      ref $data eq 'ARRAY'
+    );
+    croak "the array for state '$state' has an odd number of elements" if (
+      @$data & 1
+    );
+
+    while (my ($ref, $events) = splice(@$data, 0, 2)) {
+      if (ref $events eq 'ARRAY') {
+        foreach my $event (@$events) {
+          $states->{$state}->{$event} = [ $ref, $event ];
         }
       }
+      elsif (ref $events eq 'HASH') {
+        foreach my $event (keys %$events) {
+          my $method = $events->{$event};
+          $states->{$state}->{$event} = [ $ref, $method ];
+        }
+      }
+      else {
+        croak "events with '$ref' for state '$state' " .
+        "need to be a hash or array ref";
+      }
     }
+  }
 }
 
 sub spawn {
@@ -207,10 +211,7 @@ sub spawn {
     exists $params{+SPAWN_PACKAGES}
   );
 
-  my $states = delete $params{+SPAWN_INLINES} if (
-    exists $params{+SPAWN_INLINES}
-  );
-  $states ||= {};
+  my $states = delete($params{+SPAWN_INLINES}) || {};
 
   if (exists $params{+SPAWN_OBJECTS}) {
     my $objects = delete $params{+SPAWN_OBJECTS};
@@ -222,8 +223,7 @@ sub spawn {
     _add_ref_states($states, $packages);
   }
 
-  my $runstate = delete $params{+SPAWN_RUNSTATE};
-  $runstate ||= {};
+  my $runstate = delete($params{+SPAWN_RUNSTATE}) || {};
 
   # These are unknown.
   croak(
@@ -511,8 +511,9 @@ sub _register_state {
         "redefining handler for event($name) for session(",
         $POE::Kernel::poe_kernel->ID_session_to_id($self), ")"
       )
-      if ( $self->[SELF_OPTIONS]->{+OPT_DEBUG} &&
-           (exists $self->[SELF_INTERNALS]->{$name})
+      if (
+        $self->[SELF_OPTIONS]->{+OPT_DEBUG} and
+        (exists $self->[SELF_INTERNALS]->{$name})
       );
       $self->[SELF_INTERNALS]->{$name} = $handler;
     }
@@ -854,18 +855,18 @@ non-deterministic finite automaton.  Let's break that down.
 
 A finite automaton is a state machine with a bounded number of states
 and transitions.  Technically, POE::NFA objects may modify themselves
-at runtime, so they aren't really "finite".  Runtime modification
+at run time, so they aren't really "finite".  Run-time modification
 isn't currently supported by the API, so plausible deniability is
 maintained!
 
 Deterministic state machines are ones where all possible transitions
 are known at compile time.  POE::NFA is "non-deterministic" because
-transitions may change based on runtime conditions.
+transitions may change based on run-time conditions.
 
 But more simply, POE::NFA is like POE::Session but with banks of event
-handlers that may be swapped according to the session's runtime state.
+handlers that may be swapped according to the session's run-time state.
 Consider the SYNOPSIS example, which has "on_entry" and "on_input"
-handlers that do different things depending on the runtime state.
+handlers that do different things depending on the run-time state.
 POE::Wheel::ReadLine throws "on_input", but different things happen
 depending whether the session is in its "login", "password" or
 "command" state.

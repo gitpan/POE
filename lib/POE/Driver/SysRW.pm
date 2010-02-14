@@ -7,7 +7,7 @@ package POE::Driver::SysRW;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 
 use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
@@ -192,7 +192,7 @@ the base interface.
 
 new() creates a new buffered I/O driver that uses sysread() to read
 data from a handle and syswrite() to flush data to that handle.  The
-constructer accepts one optional named parameter, C<BlockSize>, which
+constructor accepts one optional named parameter, C<BlockSize>, which
 indicates the maximum number of OCTETS that will be read at one time.
 
 C<BlockSize> is 64 kilobytes (65536 octets) by default.  Higher values

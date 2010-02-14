@@ -7,7 +7,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Filter);
 
 use Carp qw(carp croak);
@@ -42,7 +42,7 @@ BEGIN {
 ($DEF_FREEZE, $DEF_THAW) = _get_methods($DEF_FREEZER);
 
 #------------------------------------------------------------------------------
-# Try to acquire Compress::Zlib at runtime.
+# Try to acquire Compress::Zlib at run time.
 
 my $zlib_status = undef;
 sub _include_zlib {
@@ -381,7 +381,7 @@ It's important to use identical serializers on each end of a
 connection.  Even different versions of the same serializer can break
 data in transit.
 
-Most (if not all) serializers will rebless data at the destination,
+Most (if not all) serializers will re-bless data at the destination,
 but many of them will not load the necessary classes to make their
 blessings work.
 

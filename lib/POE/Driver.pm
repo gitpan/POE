@@ -3,7 +3,7 @@ package POE::Driver;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(croak);
 
@@ -100,7 +100,7 @@ internally.
 =item put ARRAYREF
 
 put() accepts an ARRAYREF of raw octet chunks.  These octets are added
-to the dirver's internal output queue or buffer.  put() returns the
+to the driver's internal output queue or buffer.  put() returns the
 number of octets pending output after the new octets are buffered.
 
 Some drivers may flush data immediately from their put() methods.
@@ -108,7 +108,7 @@ Some drivers may flush data immediately from their put() methods.
 =item flush FILEHANDLE
 
 flush() attempts to write a driver's buffered data to a given
-FIELHANDLE.  The driver should flush as much data as possible in a
+FILEHANDLE.  The driver should flush as much data as possible in a
 single flush() call.
 
 flush() returns the number of octets remaining in the driver's output

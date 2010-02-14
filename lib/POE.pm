@@ -6,7 +6,7 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 
 sub import {
   my $self = shift;
@@ -383,7 +383,7 @@ POE's quality is due in large part to the fine work of Chris Williams
 and the other CPAN testers.  They have dedicated resources towards
 ensuring CPAN distributions pass their own tests, and we watch their
 reports religiously.  You can, too.  The latest POE test reports can
-be found at <http://testers.cpan.org/search?request=dist&dist=POE>.
+be found at L<http://cpantesters.org/distro/P/POE.html>.
 
 Thanks also go out to Benjamin Smith and the 2006 Google Summer of
 Code.  Ben was awarded a grant to improve POE's test suite, which he
@@ -589,6 +589,9 @@ Philip also enhanced L<POE::Filter::Reference|POE::Filter::Reference> to
 support different serialization methods.  He has also improved POE's quality
 by finding and fixing several bugs.  He provided POE a much needed code
 review around version 0.06.
+
+Lately, Philip tracked down the race condition in signal handling and
+fixed it with the signal pipe.
 
 =item Arnar M. Hrafnkelsson
 

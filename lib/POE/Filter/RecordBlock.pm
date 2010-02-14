@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
@@ -137,9 +137,9 @@ POE::Filter::RecordBlock - translate between discrete records and blocks of them
 =head1 SYNOPSIS
 
 Hello, dear reader.  This SYNOPSIS does not contain a fully
-functioning sample program because your humble documentor cannot come
+functioning sample program because your humble documenter cannot come
 up with a short, reasonable use case for this module.  Please contact
-the maintaner if this module is useful to you.  Otherwise you may wake
+the maintainer if this module is useful to you.  Otherwise you may wake
 up one morning to discover that it has been deprecated.
 
   $filter = new POE::Filter::RecordBlock( BlockSize => 4 );
@@ -159,7 +159,7 @@ reference.
 On output, this module flattens array references.
 
 This module may be deprecated in the future.  Please contact the
-maintaner if this module is useful to you.
+maintainer if this module is useful to you.
 
 =head1 PUBLIC FILTER METHODS
 

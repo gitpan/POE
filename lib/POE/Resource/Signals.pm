@@ -4,7 +4,7 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -788,7 +788,7 @@ sub _data_sig_pipe_send {
   return if $finalizing;
   
   if( not defined $signal_pipe_pid ) {
-    _trap "<sg> $$ _data_sig_pipe_send called before signal pipe was initilised.";
+    _trap "<sg> $$ _data_sig_pipe_send called before signal pipe was initialized.";
   }
   if( $$ != $signal_pipe_pid ) {
     _trap "<sg> Kernel now running in a different process (is=$$ was=$signal_pipe_pid).  You must call call \$poe_kernel->has_forked in the child process.";

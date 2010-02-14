@@ -3,7 +3,7 @@ package POE::Wheel::Run;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 @ISA = 'POE::Wheel';
 
 use Carp qw(carp croak);
@@ -14,6 +14,12 @@ use POSIX qw(
 
 use POE qw( Wheel Pipe::TwoWay Pipe::OneWay Driver::SysRW Filter::Line );
 use base qw(POE::Wheel);
+
+# http://rt.cpan.org/Ticket/Display.html?id=50068
+# Avoid using these constants in Windows' subprocesses (actually
+# interpreter threads).  Reported in the above ticket to avoid a
+# memory leak.
+my ($STD_INPUT_HANDLE, $STD_OUTPUT_HANDLE, $STD_ERROR_HANDLE);
 
 BEGIN {
   die "$^O does not support fork()\n" if $^O eq 'MacOS';
@@ -44,6 +50,10 @@ BEGIN {
 
     eval    { require Win32; Win32->import() };
     if ($@) { die "Win32.pm needed for POE::Wheel::Run on $^O:\n$@" }
+
+    $STD_INPUT_HANDLE  = STD_INPUT_HANDLE();
+    $STD_OUTPUT_HANDLE = STD_OUTPUT_HANDLE();
+    $STD_ERROR_HANDLE  = STD_ERROR_HANDLE();
   }
 
   # Determine the most file descriptors we can use.
@@ -1123,17 +1133,17 @@ sub _redirect_child_stdio_in_hell {
   # alternatives?
 
   Win32::Console::_SetStdHandle(
-    STD_INPUT_HANDLE(),
+    $STD_INPUT_HANDLE,
     FdGetOsFHandle(fileno($stdin_read))
   );
 
   Win32::Console::_SetStdHandle(
-    STD_OUTPUT_HANDLE(),
+    $STD_OUTPUT_HANDLE,
     FdGetOsFHandle(fileno($stdout_write))
   );
 
   Win32::Console::_SetStdHandle(
-    STD_ERROR_HANDLE(),
+    $STD_ERROR_HANDLE,
     FdGetOsFHandle(fileno($stderr_write))
   );
 }
@@ -1364,7 +1374,7 @@ available slots in the process table and requiring reboots.
 
 Because process leaks are so severe, POE::Kernel will check for this
 condition on exit and display a notice if it finds that processes are
-leaking.  Develpers should heed these warnings.
+leaking.  Developers should heed these warnings.
 
 POE::Wheel::Run communicates with the child process in a line-based
 fashion by default.  Programs may override this by specifying some
@@ -1390,8 +1400,9 @@ interface for asynchronously interacting with the process.
 Conduit specifies the inter-process communications mechanism that will
 be used to pass data between the parent and child process.  Conduit
 may be one of "pipe", "socketpair", "inet", "pty", or "pty-pipe".
-POE::Wheel::Run will use the most appropriate Conduit for the runtime
-operating system, but this varies from one OS to the next.
+POE::Wheel::Run will use the most appropriate Conduit for the run-time
+(not the compile-time) operating system, but this varies from one OS
+to the next.
 
 Internally, POE::Wheel::Run passes the Conduit type to
 L<POE::Pipe::OneWay> and L<POE::Pipe::TwoWay>.  These helper classes
@@ -1427,7 +1438,7 @@ TODO - Example.
 
 Winsize sets the child process' terminal size.  Its value should be an
 arrayref with two or four elements.  The first two elements must be
-the number of lines and columsn for the child's terminal window,
+the number of lines and columns for the child's terminal window,
 respectively.  The optional pair of elements describe the terminal's X
 and Y dimensions in pixels:
 
@@ -1552,7 +1563,7 @@ A sample error event handler:
     warn "Wheel $wheel_id generated $operation error $errnum: $errstr\n";
   }
 
-Note that unless you deactivate the signal pipe, you might allso see C<EIO>
+Note that unless you deactivate the signal pipe, you might also see C<EIO>
 (5) error during read operations.
 
 =head4 StdinEvent
@@ -1920,7 +1931,7 @@ This will bypass POE::Kernel's DESTROY, and the message it emits.
 
 =head3 Running POE::Kernel in the Child
 
-Calling c<< POE::Kernel->run() >> in the child process effectively
+Calling C<< POE::Kernel->run() >> in the child process effectively
 resumes the copy of the parent process.  This is rarely (if ever)
 desired.
 

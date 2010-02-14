@@ -1,4 +1,153 @@
 ==================================
+2010-02-14T21:37:14.937566Z v1_285
+==================================
+
+  2010-02-14 21:31:55 (r2805) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Loop.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Filter/Stackable.pm M;
+  poe/lib/POE/Filter/Stream.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Resource/Statistics.pm
+  M; poe/lib/POE/Wheel/ListenAccept.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Wheel/ReadLine.pm M;
+  poe/lib/POE/Resource/SIDs.pm M; poe/README M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Loop/IO_Poll.pm M;
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Filter/Line.pm M;
+  poe/lib/POE/Filter/RecordBlock.pm M; poe/lib/POE/Filter/Block.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Resource/Signals.pm
+  M; poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/lib/POE/Component.pm M; poe/lib/POE/Filter/Map.pm M;
+  poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Bump the revision number for a new release.
+
+  2010-02-14 20:18:00 (r2804) by rcaputo; poe/lib/POE/NFA.pm M
+
+    Some code cleanup in POE::NFA.
+    
+    Revision 2803 is mistaken. Rob Hildred reported the problem and
+    provided the test case that was instrumental in helping me resolve
+    it. And the bug report was rt.cpan.org 53517. I mistakenly assumed
+    the currently open tab was the same ticket I was debugging. 
+
+  2010-02-14 20:10:56 (r2803) by rcaputo; poe/lib/POE/NFA.pm M
+
+    Fix state bleed between POE::NFA instances.
+    
+    Resolve rt.cpan.org 53682 reported by Serguei Trouchelle. Thank you,
+    Serguei, for a very useful test case. 
+
+  2010-02-14 08:50:27 (r2802) by rcaputo
+  poe/t/10_units/03_base/19_detach_start.t M
+
+    Replace the detach-during-start test with an enhanced test that
+    Olivier Mengué contributed in rt.cpan.org #54588. 
+
+  2010-02-14 04:41:28 (r2801) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Applied Andrew Feren's patch to avoid a POE::Wheel::Run memory leak
+    when running under Windows. Should resolve rt.cpan.org #50068. 
+
+  2010-02-14 04:29:21 (r2800) by rcaputo
+  poe/t/90_regression/meh-startstop-return.t M
+
+    Remove dependency on Test::Exception (it appears to be unused). Fix a
+    spot of tab damage while I'm in there. 
+
+  2010-02-14 02:52:44 (r2799) by rcaputo; poe/mylib/PoeBuildInfo.pm M
+
+    Rely upon the latest POE::Test::Loops.
+
+  2010-02-14 02:49:12 (r2798) by rcaputo
+  poe/lib/POE/Wheel/FollowTail.pm M
+
+    Resolve rt.cpan.org #54319. In polling mode, the wheel wasn't
+    iterating get_one() for the entire input from get_one_start(). As a
+    result, only one log line was returned per PollInterval. This change
+    iterates through get_one() until all lines are returned. Many thanks
+    to Oleg A. Mamontov for opening the ticket, and to Bazerka on
+    irc.perl.org #poe for supplying the basis for a test case. 
+
+  2010-02-04 20:08:41 (r2796) by apocal; poe/lib/POE/Session.pm M
+
+    Fix a documentation bug, thanks zephg! ( reported by arcanez@irc ) 
+
+  2010-02-03 21:37:13 (r2795) by apocal
+  poe/MANIFEST.SKIP M; poe/t/10_units/01_pod/01_pod.t M;
+  poe/lib/POE/Filter/HTTPD.pm M; poe/t/90_regression/rt47966-sigchld.t M;
+  poe/mylib/preprocessor.perl D; poe/t/10_units/01_pod/03_pod_no404s.t A;
+  poe/MANIFEST M; poe/t/10_units/01_pod/02_pod_coverage.t M
+
+    Added RELEASE_TESTING env var checks Added test for 404 links in POD
+    Cleanup old stuff and fix MANIFEST.SKIP 
+
+  2010-02-02 20:44:36 (r2794) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Correct a type reported by Hinrik Örn Sigurðsson in irc.perl.org
+    #poe. 
+
+  2010-01-27 17:07:07 (r2793) by rcaputo; poe/lib/POE.pm M
+
+    Fix a cpantesters.org link that gcola reported as 404 in irc.perl.org
+    #poe. 
+
+  2010-01-21 12:58:54 (r2792) by gwyn17; poe/lib/POE.pm M
+
+    Add more to what I've done. 
+
+  2010-01-21 06:35:23 (r2791) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Loop.pm M; poe/lib/POE/Filter/RecordBlock.pm M;
+  poe/lib/POE/Kernel.pm M; poe/lib/POE/Wheel/FollowTail.pm M;
+  poe/lib/POE/Resource/Statistics.pm M; poe/lib/POE/Filter/Grep.pm M;
+  poe/lib/POE/Driver/SysRW.pm M; poe/lib/POE/Wheel/ListenAccept.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Pipe/TwoWay.pm M;
+  poe/lib/POE/Wheel/ReadLine.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Component/Server/TCP.pm M;
+  poe/lib/POE/Filter/Map.pm M; poe/lib/POE/Component.pm M;
+  poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    [rt.cpan.org 53757] Apply G. Allen Morris III's spelling patch but
+    not his test based on Test::Spelling. That module doesn't seem to
+    work for me, so I couldn't use it. 
+
+  2010-01-21 06:27:21 (r2790) by rcaputo
+  poe/t/90_regression/meh-startstop-return.t M
+
+    Define a _stop handler to mollify assertions. 
+
+  2010-01-17 19:24:55 (r2789) by rcaputo
+  poe/lib/POE/Kernel.pm M; poe/t/90_regression/meh-startstop-return.t A;
+  poe/MANIFEST M
+
+    [rt.cpan.org 53777] Restore _start & _stop return values. Mikko Ehto
+    reported that _start and _stop don't return values as documented. He
+    also provided a testcase, which was very helpful. I added his test
+    case and fixed the underlying bug during the Perl Oasis hackathon. 
+
+  2010-01-15 17:40:12 (r2788) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Correct a documentation typo reported by jussive in IRC.
+
+  2010-01-14 20:08:24 (r2787) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M
+
+    Fix a typo in a trace message, reported by "jussive" in irc.perl.org
+    #poe.
+
+==================================
 2010-01-14T07:20:50.660659Z v1_284
 ==================================
 

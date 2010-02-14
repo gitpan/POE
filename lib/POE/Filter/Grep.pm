@@ -6,7 +6,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.284'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.285'; # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak carp);
@@ -203,8 +203,8 @@ Enforce read-only behavior:
 
 =head2 modify
 
-modify() changes a POE::Filter::Grep object's behavior at runtime.  It
-accepts the same parameters as new(), and it replaces the existing
+modify() changes a POE::Filter::Grep object's behavior at run-time.
+It accepts the same parameters as new(), and it replaces the existing
 tests with new ones.
 
   # Don't give away our Dialgas.
