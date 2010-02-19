@@ -3,7 +3,7 @@ package POE::Wheel::FollowTail;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.286'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.287'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -517,7 +517,7 @@ sub _generate_filename_timer {
       # Merely EOF.  Check for file rotation.
       my @new_stat = (stat $filename)[0..7];
       unless (@new_stat) {
-        TRACE_POLL and warn "<poll> ", time, " $$handle stat error";
+        TRACE_POLL and warn "<poll> ", time, " $filename stat error: $!";
         if ($! != ENOENT) {
           $$event_error and
             $k->call($ses, $$event_error, 'stat', ($!+0), "$!", $unique_id);
@@ -647,11 +647,11 @@ sub _open_file {
   # FIFOs (named pipes) are opened R/W so they don't report EOF.
   # Everything else is opened read-only.
   if (-p $filename) {
-    return $handle if open $handle, "+<$filename";
+    return $handle if open $handle, "+<", $filename;
     return;
   }
 
-  return $handle if open $handle, "<$filename";
+  return $handle if open $handle, "<", $filename;
   return;
 }
 

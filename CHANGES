@@ -1,4 +1,61 @@
 ==================================
+2010-02-19T06:11:52.979284Z v1_287
+==================================
+
+  2010-02-19 06:10:34 (r2818) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Loop.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Filter/Stackable.pm M;
+  poe/lib/POE/Filter/Stream.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Resource/Statistics.pm
+  M; poe/lib/POE/Wheel/ListenAccept.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Wheel/ReadLine.pm M;
+  poe/lib/POE/Resource/SIDs.pm M; poe/README M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Loop/IO_Poll.pm M;
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Filter/Line.pm M;
+  poe/lib/POE/Filter/RecordBlock.pm M; poe/lib/POE/Filter/Block.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Resource/Signals.pm
+  M; poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/lib/POE/Component.pm M; poe/lib/POE/Filter/Map.pm M;
+  poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Bump revision for new release.
+
+  2010-02-19 05:24:38 (r2817) by rcaputo
+  poe/lib/POE/Resource/Signals.pm M
+
+    Fix a sig_child() race condition discovered by Tom Lanyon and
+    reported (with the help of Jay Hannah) in irc.perl.org #poe. I
+    haven't been able to reproduce the problem in a non-MooseX::Workers
+    test case, but this change resolves Tom's more complex test case and
+    passes tests. 
+
+  2010-02-17 18:33:43 (r2816) by rcaputo
+  poe/lib/POE/Wheel/FollowTail.pm M
+
+    Fix an infinite file rollover when open() succeeds but stat() fails.
+    
+    Jay Hannah discovered a bug when he passed in a filename with
+    trailing whitespace. Two-parameter open() treats trailing whitespace
+    as insignificant, so it passed. On the other hand, trailing
+    whitespace is significant in stat(), so it always failed, triggering
+    an unrelenting stream of file rollover events. Switched to
+    three-parameter open(), which considers trailing whitespace as
+    significant. Now both open() and stat() agree the file doesn't exist.
+    
+    Thanks to Jay and the University of Nebraska at Omaha for securing me
+    some debugging time on their machines. 
+
+==================================
 2010-02-15T06:36:51.553032Z v1_286
 ==================================
 
