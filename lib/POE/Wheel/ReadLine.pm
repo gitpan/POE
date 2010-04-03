@@ -5,7 +5,7 @@ use strict;
 BEGIN { eval { require bytes } and bytes->import; }
 
 use vars qw($VERSION);
-$VERSION = '1.287'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.288'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
@@ -15,6 +15,18 @@ use POSIX ();
 
 if ($^O eq "MSWin32") {
   die "$^O cannot run " . __PACKAGE__;
+}
+
+# After a massive hackathon on Cygwin/perl/windows/POE it was determined that
+# having TERM='dumb' is worthless and VERY problematic to work-around...
+# Actually, the problem lies deep in Term::Cap's internals - it blows up
+# when we try to do "$termcap->Trequire( qw( cl ku kd kl kr) )" in new()
+# eval{} will not catch the croak() in the sub
+# Cygwin v1.7.1-1 on Windows Server 2008 64bit with Perl v5.10.1 with Term::Cap v1.12 with POE v1.287
+# For detailed info, please consult RT#55365
+# sorry about the defined $ENV{TERM} check, it was needed to make sure we spew no warnings...
+if ($^O eq 'cygwin' and defined $ENV{TERM} and $ENV{TERM} eq 'dumb') {
+  die "$^O with TERM='$ENV{TERM}' cannot run " . __PACKAGE__;
 }
 
 # Things we'll need to interact with the terminal.
@@ -2209,7 +2221,7 @@ sub _complete_match {
   my ($self) = @_;
   my $lookfor = substr($self->[SELF_INPUT], 0, $self->[SELF_CURSOR_INPUT]);
   $lookfor =~ /(\S+)$/;
-  $lookfor = $1;
+  $lookfor = defined($1) ? $1 : "";
   my $point = $self->[SELF_CURSOR_INPUT] - length($lookfor);
 
   my @clist = ();
@@ -2269,7 +2281,7 @@ sub rl_complete {
 
   my $lookfor = substr($self->[SELF_INPUT], 0, $self->[SELF_CURSOR_INPUT]);
   $lookfor =~ /(\S+)$/;
-  $lookfor = $1;
+  $lookfor = defined($1) ? $1 : "";
   my $point = $self->[SELF_CURSOR_INPUT] - length($lookfor);
   my @poss = $self->_complete_match;
   if (scalar @poss == 0) {
@@ -3560,6 +3572,34 @@ writing.  They involve writing a special POE::Loop for Windows that
 either uses a Win32-specific module for better multiplexing, that
 polls for input, or that uses blocking I/O watchers in separate
 threads.
+
+=head2 Cygwin Support
+
+Q: Why does POE::Wheel::ReadLine complain about my "dumb" terminal?
+
+A: Do you have Strawberry Perl installed? Due to the way it works, on
+installation it sets a global environment variable in MSWin32 for
+TERM=dumb. ( it may be fixed in a future version, but it's here to stay
+for now, ha! ) In this case, logging into the Cygwin shell via the
+cygwin.bat launcher results in a nonfunctional readline.
+
+Normally, Cygwin will set TERM=cygwin in the launcher. However, if the 
+TERM was already set it will not alter the value. Hence, the "bug"
+appears! What you can do is to hack the cygwin.bat file to add this line:
+
+  SET TERM=cygwin
+
+Other users reported that you can have better results by editing the
+~/.bash_profile file to set TERM=cygwin because on a Cygwin upgrade it
+overwrites the cygwin.bat file.
+
+Alternatively, you could install different terminals like "xterm" or "rxvt"
+as shown here: L<http://c2.com/cgi/wiki?BetterCygwinTerminal>. Please let
+us know if you encounter problems using any terminal other than "dumb".
+
+If you feel brave, you can peruse the RT ticket at 
+L<http://rt.cpan.org/Ticket/Display.html?id=55365> for more information
+on this problem.
 
 =head1 AUTHORS & COPYRIGHTS
 

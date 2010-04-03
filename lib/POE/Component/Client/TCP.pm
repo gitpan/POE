@@ -3,7 +3,7 @@ package POE::Component::Client::TCP;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.287'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.288'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -767,9 +767,9 @@ This sample input handler is an example of most reserved heap members:
 
 The read-only C<server> heap member contains the POE::Wheel object
 used to connect to or talk with the server.  While the component is
-connecting, C<server> will be a POE::Wheel::ReadWrite object.  After
-the connection has been made, it becomes a POE::Wheel::SocketFactory
-object.
+connecting, C<server> will be a L<POE::Wheel::SocketFactory> object.  After
+the connection has been made, C<server> is replaced with a
+L<POE::Wheel::ReadWrite> object.
 
 The most reliable way to avoid prematurely using C<server> is to first
 check the C<connected> reserved heap member.  See the example above.

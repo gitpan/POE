@@ -3,7 +3,7 @@ package POE::Wheel::ReadWrite;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.287'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.288'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use POE qw(Wheel Driver::SysRW Filter::Line);
@@ -875,11 +875,20 @@ error event is dispatched.
 C<ARG3> contains the wheel's unique ID.  The wheel's ID is used to
 differentiate between many wheels managed by a single session.
 
+ErrorEvent may also indicate EOF on a FileHandle by returning
+operation "read" error 0.  For sockets, this means the remote end has
+closed the connection.
+
 A sample ErrorEvent handler:
 
   sub error_state {
     my ($operation, $errnum, $errstr, $id) = @_[ARG0..ARG3];
-    warn "Wheel $id encountered $operation error $errnum: $errstr\n";
+    if ($operation eq "read" and $errnum == 0) {
+      print "EOF from wheel $id\n";
+    }
+    else {
+      warn "Wheel $id encountered $operation error $errnum: $errstr\n";
+    }
     delete $_[HEAP]{wheels}{$id}; # shut down that wheel
   }
 
@@ -1083,7 +1092,7 @@ TODO - Example.
 
 =head2 get_output_handle
 
-get_input_handle() returns the filehandle being watched for input.
+get_output_handle() returns the filehandle being watched for output.
 
 Manipulating filehandles that are managed by POE may cause nasty side
 effects, which may change from one POE release to the next.  Please
