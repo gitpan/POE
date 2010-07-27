@@ -3,7 +3,7 @@ package POE::Wheel::Run;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.289'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.291'; # NOTE - Should be #.### (three decimal places)
 @ISA = 'POE::Wheel';
 
 use Carp qw(carp croak);
@@ -159,10 +159,9 @@ sub new {
     $conduit = "pipe";
   }
 
-  # TODO - $winsize is not actually used anywhere.  WTF?!
-  my $winsize = delete $params{Winsize};
-  croak "Winsize needs to be an array ref"
-    if (defined($winsize) and ref($winsize) ne 'ARRAY');
+  # TODO remove deprecation warning after some time
+  carp "Winsize is deprecated." if exists $params{Winsize};
+  delete $params{Winsize};  # so the unknown arg check doesn't complain
 
   my $stdin_event  = delete $params{StdinEvent};
   my $stdout_event = delete $params{StdoutEvent};
@@ -294,7 +293,11 @@ sub new {
 
   # Child.  Parent side continues after this block.
   unless ($pid) {
-    croak "couldn't fork: $!" unless defined $pid;
+    # removed the croak because it wasn't "safe" RT#56417
+    #croak "couldn't fork: $!" unless defined $pid;
+    # ANY OTHER DIE/CROAK/EXIT/WHATEVER in the child MUST use the helper!
+    __PACKAGE__->_warn_and_exit_child( "couldn't fork: $!", int( $! ) )
+      unless defined $pid;
 
     # Stdio should not be tied.  Resolves rt.cpan.org ticket 1648.
     if (tied *STDOUT) {
@@ -320,7 +323,8 @@ sub new {
 
       # Open the slave side of the pty.
       $stdin_read = $stdout_write = $stdin_write->slave();
-      croak "could not create slave pty: $!" unless defined $stdin_read;
+      __PACKAGE__->_warn_and_exit_child( "could not create slave pty: $!", int( $! ) )
+        unless defined $stdin_read;
 
       # For a simple pty conduit, stderr is wedged into stdout.
       $stderr_write = $stdout_write if $conduit eq 'pty';
@@ -421,14 +425,20 @@ sub new {
         }
       }
 
-      $program->(@$prog_args);
+      # TODO what if the program tries to exit? It needs to use
+      # our _exit_child_any_way_we_can handler...
+      # Should we replace CORE::exit? CORE::die too? blahhhhhh
+      # We've documented that users should not do it, but who knows!
+      eval { $program->(@$prog_args) };
 
-      # Try to force stdio flushing.
-      close STDIN  if defined fileno(STDIN); # Voodoo?
-      close STDOUT if defined fileno(STDOUT);
-      close STDERR if defined fileno(STDERR);
+      my $exitval;
+      if ($@) {
+        chomp $@;
+        warn "$@\n";
+        $exitval = -1;
+      }
 
-      exit __PACKAGE__->_exit_child_any_way_we_can();
+      __PACKAGE__->_exit_child_any_way_we_can( $exitval || 0 );
     }
 
     # Execute an external program.  This gets weird.
@@ -446,12 +456,14 @@ sub new {
     # exec(ARRAY)
     if (ref($program) eq 'ARRAY') {
       exec(@$program, @$prog_args)
-        or die "can't exec (@$program) in child pid $$: $!";
+         or __PACKAGE__->_warn_and_exit_child(
+           "can't exec (@$program) in child pid $$: $!", int( $! ) );
     }
 
     # exec(SCALAR)
     exec(join(" ", $program, @$prog_args))
-      or die "can't exec ($program) in child pid $$: $!";
+      or __PACKAGE__->_warn_and_exit_child(
+        "can't exec ($program) in child pid $$: $!", int( $! ) );
   }
 
   # Parent here.  Close what the parent won't need.
@@ -1153,32 +1165,49 @@ sub _redirect_child_stdio_sanely {
 
   # Redirect STDIN from the read end of the stdin pipe.
   open( STDIN, "<&" . fileno($stdin_read) )
-    or die "can't redirect STDIN in child pid $$: $!";
+    or $class->_warn_and_exit_child(
+      "can't redirect STDIN in child pid $$: $!", int( $! ) );
 
   # Redirect STDOUT to the write end of the stdout pipe.
   open( STDOUT, ">&" . fileno($stdout_write) )
-    or die "can't redirect stdout in child pid $$: $!";
+    or $class->_warn_and_exit_child(
+      "can't redirect stdout in child pid $$: $!", int( $! ) );
 
   # Redirect STDERR to the write end of the stderr pipe.
   open( STDERR, ">&" . fileno($stderr_write) )
-    or die "can't redirect stderr in child: $!";
+    or $class->_warn_and_exit_child(
+      "can't redirect stderr in child pid $$: $!", int( $! ) );
 }
 
 sub _exit_child_any_way_we_can {
   my $class = shift;
+  my $exitval = shift || 0;
+
+  # First make sure stdio are flushed.
+  close STDIN  if defined fileno(STDIN); # Voodoo?
+  close STDOUT if defined fileno(STDOUT);
+  close STDERR if defined fileno(STDERR);
 
   # On Windows, subprocesses run in separate threads.  All the "fancy"
   # methods act on entire processes, so they also exit the parent.
 
   unless (POE::Kernel::RUNNING_IN_HELL) {
     # Try to avoid triggering END blocks and object destructors.
-    eval { POSIX::_exit(0);  };
-    eval { CORE::kill KILL => $$;  };
+    eval { POSIX::_exit( $exitval ); };
+
+    # TODO those methods will not exit with $exitval... what to do?
+    eval { CORE::kill KILL => $$; };
     eval { exec("$^X -e 0"); };
+  } else {
+    eval { CORE::kill( KILL => $$ ); };
+
+    # TODO Interestingly enough, the KILL is not enough to terminate this process...
+    # However, it *is* enough to stop execution of END blocks/etc
+    # So we will end up falling through to the exit( $exitval ) below
   }
 
   # Do what we must.
-  exit(0);
+  exit( $exitval );
 }
 
 # RUNNING_IN_HELL use Win32::Process to create a pucker new shiny
@@ -1189,8 +1218,6 @@ sub _exec_in_hell {
     $class, $close_on_call, $sem_pipe_write,
     $program, $prog_args
   ) = @_;
-
-  my $exitcode = 0;
 
   # Close any close-on-exec file descriptors.
   # Except STDIN, STDOUT, and STDERR, of course.
@@ -1226,9 +1253,10 @@ sub _exec_in_hell {
   my $w32job;
 
   unless ( $w32job = Win32::Job->new() ) {
-    print $sem_pipe_write "go\n\n";
+    print $sem_pipe_write "go\n\n"; # TODO why the double newline?
     close $sem_pipe_write;
-    die Win32::FormatMessage( Win32::GetLastError() );
+    $class->_warn_and_exit_child(
+      Win32::FormatMessage( Win32::GetLastError() ), Win32::GetLastError() );
   }
 
   my $w32pid;
@@ -1236,21 +1264,31 @@ sub _exec_in_hell {
   unless ( $w32pid = $w32job->spawn( $appname, $cmdline ) ) {
     print $sem_pipe_write "go\n";
     close $sem_pipe_write;
-    die Win32::FormatMessage( Win32::GetLastError() );
+    $class->_warn_and_exit_child(
+      Win32::FormatMessage( Win32::GetLastError() ), Win32::GetLastError() );
   }
 
   print $sem_pipe_write "$w32pid\n";
   close $sem_pipe_write;
 
+  # TODO why 60? Why not MAX_INT so we don't do unnecessary work?
   my $ok = $w32job->watch( sub { 0 }, 60 );
   my $hashref = $w32job->status();
-  $exitcode = $hashref->{$w32pid}->{exitcode};
 
   # In case flushing them wasn't good enough.
   close STDOUT if defined fileno(STDOUT);
   close STDERR if defined fileno(STDERR);
 
-  exit($exitcode);
+  $class->_exit_child_any_way_we_can( $hashref->{$w32pid}->{exitcode} );
+}
+
+# Simple helper to ease the pain of warn+exit
+sub _warn_and_exit_child {
+  my( $class, $warning, $exitval ) = @_;
+
+  warn "$warning\n";
+
+  $class->_exit_child_any_way_we_can( $exitval );
 }
 
 1;
@@ -1435,6 +1473,19 @@ It's not a dependency until it's actually needed.
 TODO - Example.
 
 =head4 Winsize
+
+WARNING! This has been deprecated. WARNING!
+
+The reason for the deprecation is that the original code was crufty
+and unmaintained. It caused more problems than it helped. In the
+mists of time, the old code was silently removed. Actually, it was
+replaced with IO::Pty::clone_winsize_from(\*FH) which was more saner.
+Alas, the docs weren't updated and users were led to believe that
+this would do something. Now, POE::Wheel::Run will issue a warning
+if it sees this param. If you want the old behavior back, please help
+us fix it! Patches welcome :)
+
+WARNING! This has been deprecated. WARNING!
 
 Winsize sets the child process' terminal size.  Its value should be an
 arrayref with two or four elements.  The first two elements must be
@@ -1866,6 +1917,40 @@ remaining in POE::Wheel::Run's POE::Driver output queue.  It is often
 used to tell whether the wheel has more input for the child process.
 
 =head1 TIPS AND TRICKS
+
+=head2 MSWin32 Support
+
+In the past POE::Wheel::Run did not support MSWin32 and users had to
+use custom work-arounds. Then Chris Williams ( BINGOS ) arrived and
+saved the day with his L<POE::Wheel::Run::Win32> module. After some
+testing, it was decided to merge the win32 code into POE::Wheel::Run.
+Everyone was happy!
+
+However, after some investigation Apocalypse ( APOCAL ) found out that
+in some situations it still didn't behave properly. The root cause was
+that the win32 code path in POE::Wheel::Run didn't exit cleanly. This
+means DESTROY and END blocks got executed! After talking with more
+people, the solution was not pretty.
+
+The problem is that there is no equivalent of POSIX::_exit() for MSWin32.
+Hopefully, in a future version of Perl this can be fixed! In the meantime,
+POE::Wheel::Run will use CORE::kill() to terminate the child. However,
+this comes with a caveat: you will leak around 1KB per exec. The code
+has been improved so the chance of this happening has been reduced.
+
+As of now the most reliable way to trigger this is to exec an invalid
+binary. The definition of "invalid binary" depends on different things,
+but what it means is that Win32::Job->spawn() failed to run. This will
+force POE::Wheel::Run to use the workaround to exit the child. If this
+happens, a very big warning will be printed to the STDERR of the child
+and the parent process will receive it.
+
+If you are a Perl MSWin32 hacker, PLEASE help us with this situation! Go
+read rt.cpan.org bug #56417 and talk with us/p5p to see where you can
+contribute.
+
+Thanks again for your patience as we continue to improve POE::Wheel::Run
+on MSWin32!
 
 =head2 Execution Environment
 

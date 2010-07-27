@@ -83,6 +83,7 @@ t/00_info.t
 t/10_units/01_pod/01_pod.t
 t/10_units/01_pod/02_pod_coverage.t
 t/10_units/01_pod/03_pod_no404s.t
+t/10_units/01_pod/04_pod_linkcheck.t
 t/10_units/02_pipes/01_base.t
 t/10_units/02_pipes/02_oneway.t
 t/10_units/02_pipes/03_twoway.t
@@ -128,6 +129,7 @@ t/10_units/08_loops/07_kernel_loop_fail.t
 t/10_units/08_loops/08_kernel_loop_search_poll.t
 t/10_units/08_loops/09_naive_loop_load.t
 t/10_units/08_loops/10_naive_loop_load_poll.t
+t/10_units/08_loops/11_double_loop.t
 t/20_resources/00_base/aliases.pm
 t/20_resources/00_base/caller_state.pm
 t/20_resources/00_base/events.pm
@@ -144,6 +146,7 @@ t/90_regression/bingos-followtail.t
 t/90_regression/broeren-win32-nbio.t
 t/90_regression/cfedde-filter-httpd.t
 t/90_regression/ferrari-server-unix.t
+t/90_regression/hinrik-wheel-run-die.t
 t/90_regression/kjeldahl-stop-start-polling.t
 t/90_regression/kjeldahl-stop-start-sig-nopipe.t
 t/90_regression/kjeldahl-stop-start-sig-pipe.t
@@ -154,6 +157,7 @@ t/90_regression/rt1648-tied-stderr.t
 t/90_regression/rt19908-merlyn-stop.t
 t/90_regression/rt23181-sigchld-rc.t
 t/90_regression/rt47966-sigchld.t
+t/90_regression/rt56417-wheel-run.t
 t/90_regression/somni-poco-server-tcp.t
 t/90_regression/steinert-passed-wheel.t
 t/90_regression/suzman_windows.t

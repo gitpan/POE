@@ -3,7 +3,7 @@ package POE::Wheel::SocketFactory;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.289'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.291'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -1518,7 +1518,7 @@ listening or connecting.  See below for the differences.
 
 For INET sockets, C<$_[ARG1]> and C<$_[ARG2]> hold the socket's remote
 address and port, respectively.  The address is packed; see
-L<Socket/inet_nota()> if a human-readable version is needed.
+L<Socket/inet_ntoa> if a human-readable version is needed.
 
   sub handle_new_client {
     my $accepted_socket = $_[ARG0];
@@ -1557,7 +1557,8 @@ holds a Perl built-in function name.
 
 C<$_[ARG1]> and C<$_[ARG2]> describe how the operation failed.  They
 contain the numeric and stringified versions of C<$!>, respectively.
-An application cannot merely check C<$!> because
+An application cannot merely check the global C<$!> variable since it
+may change during event dispatch.
 
 Finally, C<$_[ARG3]> contains the ID for the POE::Wheel::SocketFactory
 instance that generated the event.  See L</ID> and L<POE::Wheel/ID>

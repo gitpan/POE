@@ -1,4 +1,158 @@
 ==================================
+2010-07-27T06:54:51.380682Z v1_291
+==================================
+
+  2010-07-27 06:53:32 (r2906) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Loop.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Filter/Stackable.pm M;
+  poe/lib/POE/Filter/Stream.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Resource/Statistics.pm
+  M; poe/lib/POE/Wheel/ListenAccept.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Wheel/ReadLine.pm M;
+  poe/lib/POE/Resource/SIDs.pm M; poe/README M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Loop/IO_Poll.pm M;
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Filter/Line.pm M;
+  poe/lib/POE/Filter/RecordBlock.pm M; poe/lib/POE/Filter/Block.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Resource/Signals.pm
+  M; poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/lib/POE/Component.pm M; poe/lib/POE/Filter/Map.pm M;
+  poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    New version to spackle over failed one.
+
+  2010-07-27 06:45:14 (r2903) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Version bump for release.
+
+  2010-07-27 03:27:28 (r2902) by rcaputo
+  poe/lib/POE/Wheel/ReadWrite.pm M; poe/t/20_resources/00_base/events.pm
+  M
+
+    Nick Perez pointed out that we don't absolutely need HighEvent, since
+    put() returns the high-water status much more conveniently. Resolve
+    his rt.cpan.org ticket 56432. Oh, and fix an unrelated test plan. 
+
+  2010-07-27 03:10:33 (r2901) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Clarify the refcount_{inc,dec}rement() return values per Olivier
+    'dolmen' Mengué's feedback in rt.cpan.org #57314. 
+
+  2010-07-26 16:51:42 (r2900) by rcaputo
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Kernel.pm M
+
+    Remove some logic that stopped being used. Adjust idle-kernel checks
+    into a slightly more optimal order. 
+
+  2010-07-26 16:50:19 (r2899) by rcaputo
+  poe/lib/POE/Wheel/SocketFactory.pm M
+
+    Finish a sentence. Incomplete docs noted by Hinrik. 
+
+  2010-07-25 22:23:18 (r2898) by rcaputo
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Kernel.pm M;
+  poe/t/20_resources/00_base/events.pm M
+
+    Move non-alarms out of POE::Queue::Array. 
+
+  2010-07-24 22:09:15 (r2897) by rcaputo
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Resource/Sessions.pm M;
+  poe/lib/POE/Queue/Array.pm M
+
+    Reduce calls to get_item_count() by one per _data_ev_dispatch_due().
+    Reduce calls to get_next_priority() by approx. one per
+    _data_ev_dispatch_due(). Micro-optimize get_item_count(). 
+
+  2010-07-24 19:38:53 (r2896) by rcaputo
+  poe/lib/POE/Resource/Events.pm M; poe/t/20_resources/00_base/events.pm
+  M
+
+    Fix tests related to recent POE::Resource::Events optimizations. 
+
+  2010-07-24 19:38:09 (r2895) by rcaputo; poe/lib/POE/Queue/Array.pm M
+
+    At long last, apply Ton Hospel's micro-optimization for
+    get_next_priority(). 
+
+  2010-07-24 18:35:35 (r2894) by rcaputo
+  poe/lib/POE/Resource/Events.pm M
+
+    Small optimizations. Avoid _data_stat_add() calls when not needed.
+    Avoid redundant session refcounts when the source and destination are
+    the same. Breaks some pedantic tests, but we can fix those. 
+
+  2010-06-23 14:52:42 (r2893) by rcaputo
+  poe/t/90_regression/hinrik-wheel-run-die.t M
+
+    Apply Hinrik's test changes from http://gist.github.com/449231 
+
+  2010-06-22 20:57:27 (r2892) by rcaputo
+  poe/lib/POE/Wheel/Run.pm M; poe/t/90_regression/hinrik-wheel-run-die.t
+  A; poe/MANIFEST M
+
+    Apply Hinrik's patch to catch die() and his test case for proper
+    shutdown if a child coderef process dies. 
+
+  2010-06-22 15:47:35 (r2891) by rcaputo; poe/lib/POE/Wheel/Run.pm M
+
+    Fix a method typo at Hinrik Örn Sigurðsson's prompting. Also improve
+    stdio closing on exec() errors, just in case. 
+
+  2010-06-21 18:01:49 (r2890) by apocal
+  poe/t/10_units/08_loops/11_double_loop.t A; poe/MANIFEST M
+
+    Add TODO test for double POE::Loop loading 
+
+  2010-06-09 18:18:00 (r2889) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Add support for POE_CATCH_EXCEPTIONS environment variable. Apply
+    Justin Hunter's doc patch for POE::XS::Loop::EPoll. 
+
+  2010-05-28 18:50:05 (r2888) by apocal
+  poe/t/10_units/01_pod/04_pod_linkcheck.t M
+
+    Tweak the test so it uses RELEASE_TESTING 
+
+  2010-05-28 04:15:55 (r2887) by apocal
+  poe/lib/POE/Wheel/ReadLine.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Component/Server/TCP.pm M;
+  poe/lib/POE/Kernel.pm M; poe/lib/POE.pm M; poe/MANIFEST M;
+  poe/lib/POE/Session.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M;
+  poe/t/10_units/01_pod/04_pod_linkcheck.t A
+
+    Fix invalid POD links 
+
+  2010-05-16 01:23:13 (r2886) by apocal; poe/lib/POE/Wheel/Run.pm M
+
+    Remove the obnoxious warning about the win32 leak in Wheel::Run 
+
+  2010-04-11 02:55:48 (r2877) by apocal
+  poe/lib/POE/Wheel/Run.pm M; poe/t/90_regression/rt56417-wheel-run.t M
+
+    Add proper exitval handling to POE::Wheel::Run, the previous patch
+    munged it :( 
+
+  2010-04-09 07:54:35 (r2876) by apocal; poe/lib/POE/Wheel/Run.pm M
+
+    Add deprecation warning for 'Winsize' to POE::Wheel::Run->new 
+
+  2010-04-09 07:32:26 (r2875) by apocal
+  poe/lib/POE/Wheel/Run.pm M; poe/t/90_regression/rt56417-wheel-run.t A;
+  poe/MANIFEST M
+
+    Patch POE::Wheel::Run for RT#56417 and add a test+more docs 
+
+==================================
 2010-04-03T20:03:35.441534Z v1_289
 ==================================
 
@@ -1825,51 +1979,6 @@
   poe/lib/POE/Component/Server/TCP.pm M
 
     Fix a minor doc typo, thanks to Hinrik.
-
-==================================
-2009-05-30T23:08:36.045620Z v1_006
-==================================
-
-  2009-05-30 22:26:28 (r2546) by rcaputo; poe/lib/POE.pm M
-
-    Time for 1.006.
-
-  2009-05-30 18:11:30 (r2545) by rcaputo
-  poe/t/90_regression/rt39872-sigchld.t M
-
-    This test had a race condition when run on SunOS. It is fixed, with
-    thanks to Gérard Henry forhis donation of time on a SunOS machine. 
-
-  2009-05-30 17:30:33 (r2544) by rcaputo
-  poe/t/10_units/04_drivers/01_sysrw.t M
-
-    Some systems, especially SunOS, may return nothing on a sysread()
-    while a pipe still contains data. Subsequent reads get the remaining
-    data, however. Resolve rt.cpan.org ticket 43252 by retrying a limited
-    number of times when sysread() reports that the pipe is empty. 
-
-==================================
-2009-04-21T05:03:17.094558Z v1_005
-==================================
-
-  2009-04-21 04:02:03 (r2525) by rcaputo; poe/lib/POE.pm M
-
-    Time for a new release.
-
-  2009-04-21 04:01:03 (r2524) by rcaputo; poe/mylib/PoeBuildInfo.pm M
-
-    Skip the IO::Tty dependency on MSWin32. Windows doesn't have
-    pseudo-ttys. Resolves bugs reported by Chris Williams, Adam Kennedy,
-    Offer Kaye (rt.cpan.org #44931), and many more. 
-
-  2009-04-15 22:32:14 (r2523) by bingosnet; poe/lib/POE/Session.pm M
-
-    Typo in object_states POD, spotted by Jay Hannah
-
-  2009-03-31 13:01:38 (r2515) by bingosnet
-  poe/mylib/gen-meta.perl M; poe/mylib/PoeBuildInfo.pm M
-
-    Amended the META.yml generation to include repository meta
 
 ==============
 End of Excerpt

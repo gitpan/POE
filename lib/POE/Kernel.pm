@@ -3,7 +3,7 @@ package POE::Kernel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.289'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.291'; # NOTE - Should be #.### (three decimal places)
 
 use POSIX qw(uname);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -116,7 +116,18 @@ BEGIN {
   # automatic exception handling
   { no strict 'refs';
     unless (defined &CATCH_EXCEPTIONS) {
-      *CATCH_EXCEPTIONS = sub () { 1 };
+      my $catch_exceptions = (
+        (exists $ENV{POE_CATCH_EXCEPTIONS})
+        ? $ENV{POE_CATCH_EXCEPTIONS}
+        : 1
+      );
+
+      if ($catch_exceptions) {
+        *CATCH_EXCEPTIONS = sub () { 1 };
+      }
+      else {
+        *CATCH_EXCEPTIONS = sub () { 0 };
+      }
     }
   }
 
@@ -659,7 +670,7 @@ sub _test_if_kernel_is_idle {
   if (TRACE_REFCNT) {
     _warn(
       "<rc> ,----- Kernel Activity -----\n",
-      "<rc> | Events : ", $kr_queue->get_item_count(),
+      "<rc> | Events : ", $self->_data_evget_pending_count(),
       " (vs. idle size = ", $idle_queue_size, ")\n",
       "<rc> | Files  : ", $self->_data_handle_count(), "\n",
       "<rc> | Extra  : ", $self->_data_extref_count(), "\n",
@@ -683,8 +694,8 @@ sub _test_if_kernel_is_idle {
   # that the tests short-circuit quickly.
 
   return if (
+    $self->_data_ev_get_pending_count() > $idle_queue_size or
     $self->_data_handle_count() or
-    $kr_queue->get_item_count() > $idle_queue_size or
     $self->_data_extref_count() or
     $self->_data_sig_child_procs() or
     !$self->_data_ses_count()
@@ -1418,7 +1429,7 @@ sub _invoke_state {
   elsif ($event eq EN_SIGNAL) {
     if ($etc->[0] eq 'IDLE') {
       unless (
-        $kr_queue->get_item_count() > $idle_queue_size or
+        $self->_data_ev_get_pending_count() > $idle_queue_size or
         $self->_data_handle_count()
       ) {
         $self->_data_ev_enqueue(
@@ -1631,12 +1642,12 @@ sub get_active_event {
 
 # FIXME - Should this exist?
 sub get_event_count {
-  return $kr_queue->get_item_count();
+  return shift()->_data_ev_get_pending_count();
 }
 
 # FIXME - Should this exist?
 sub get_next_event_time {
-  return $kr_queue->get_next_priority();
+  return shift()->_data_ev_get_next_due_time();
 }
 
 #==============================================================================
@@ -1834,7 +1845,7 @@ sub alarm {
   }
   else {
     # The event queue has become empty?  Stop the time watcher.
-    $self->loop_pause_time_watcher() unless $kr_queue->get_item_count();
+    $self->loop_pause_time_watcher() unless $self->_data_ev_get_pending_count();
   }
 
   return 0;
@@ -2996,7 +3007,7 @@ toolkit.  Tk has some restrictions that require POE to behave oddly.
 Tk's event loop will not run unless one or more widgets are created.
 POE must therefore create such a widget before it can run. POE::Kernel
 exports $poe_main_window so that the application developer may use the
-widget (which is a L<MainWindow|Tk/MainWindow>), since POE doesn't
+widget (which is a L<MainWindow|Tk::MainWindow>), since POE doesn't
 need it other than for dispatching events.
 
 Creating and using a different MainWindow often has an undesired
@@ -3033,7 +3044,7 @@ applications, such as Padre.
 
 =head3 POE::XS::Loop::EPoll (separate distribution)
 
-L<POE::Loop::EPoll> allows POE components to transparently use the
+L<POE::XS::Loop::EPoll> allows POE components to transparently use the
 EPoll event library on operating systems that support it.
 
 =head3 POE::XS::Loop::Poll (separate distribution)
@@ -3196,8 +3207,8 @@ problematic, it will be removed without much notice.
 stop() is advanced magic.  Programmers who think they need it are
 invited to become familiar with its source.
 
-See L<POE::Wheel::Run/Nested POE Kernel> for an example of how to use this
-facility.
+See L<POE::Wheel::Run/Running POE::Kernel in the Child> for an example
+of how to use this facility.
 
 =head2 Asynchronous Messages (FIFO Events)
 
@@ -3701,7 +3712,7 @@ does.
     }
   );
 
-=head4 delay_adjust EVENT_NAME, SECONDS_FROM_NOW
+=head4 delay_adjust ALARM_ID, SECONDS_FROM_NOW
 
 delay_adjust() changes a timer's due time to be SECONDS_FROM_NOW.
 It's useful for refreshing watchdog- or timeout-style timers.  On
@@ -4116,11 +4127,12 @@ Every session has a parent, even the very first session created.
 Sessions without obvious parents are children of the program's
 POE::Kernel instance.
 
-Child sessions will keep their parents active.  See L<Session
+Child sessions will keep their parents active.  See L</Session
 Lifespans> for more about why sessions stay alive.
 
 The parent/child relationship tree also governs the way many signals
-are dispatched.  See L</Signal Watchers> for more information on that.
+are dispatched.  See L</Common Signal Dispatching> for more
+information on that.
 
 =head3 Session Management Events (_start, _stop, _parent, _child)
 
@@ -4346,7 +4358,7 @@ The CHILD_SESSION exists, but it is not a child of the current session.
 =back
 
 detach_child() will generate L</_parent> and/or L</_child> events to the
-appropriate sessions.  See L</"Session Management Events"> for a detailed
+appropriate sessions.  See L<Session Management Events|/Session Management> for a detailed
 explanation of these events.  See
 L<above|/"When a session is detached from its parent:">
 for the order the events are generated.
@@ -4368,7 +4380,7 @@ child of POE::Kernel, so it may not be detached.
 =back
 
 detach_child() will generate L</_parent> and/or L</_child> events to the
-appropriate sessions.  See L</"Session Management Events"> for a detailed
+appropriate sessions.  See L<Session Management Events|/Session Management> for a detailed
 explanation of these events.  See
 L<above|/"When a session is detached from its parent:">
 for the order the events are generated.
@@ -4540,7 +4552,7 @@ Example:
 
 By default, SIGCHLD is not handled by registering a C<%SIG> handler.
 Rather, waitpid() is called periodically to test for child process
-exits.  See the experimental L<USE_SIGCHLD> option if you would prefer
+exits.  See the experimental L</USE_SIGCHLD> option if you would prefer
 child processes to be reaped in a more timely fashion.
 
 =head4 SIGPIPE
@@ -4934,8 +4946,9 @@ For this to work, the session needs a way to remember the
 $_[SENDER]->ID for a given request.  Customarily the session generates
 a request ID and uses that to track the request until it is fulfilled.
 
-refcount_increment() returns true on success or false on failure.
-Furthermore, $! is set on failure to one of:
+refcount_increment() returns the resulting reference count (which may
+be zero) on success.  On failure, it returns undef and sets $! to be
+the reason for the error.
 
 ESRCH: The SESSION_ID does not refer to a currently active session.
 
@@ -4957,8 +4970,9 @@ The requester's $_[SENDER]->ID is remembered and removed from the heap
 (lest there be memory leaks).  It's used to decrement the reference
 counter that was incremented at the start of the request.
 
-refcount_decrement() returns true on success or false on failure.
-Furthermore, $! is set on failure to one of:
+refcount_decrement() returns the resulting reference count (which may
+be zero) on success.  On failure, it returns undef, and $! will be set
+to the reason for the failure:
 
 ESRCH: The SESSION_ID does not refer to a currently active session.
 
@@ -5078,7 +5092,7 @@ widget to dispatch events.
 
 On a related note, POE will shut down if the widget in
 C<$poe_main_window> is destroyed.  This can be changed with
-POE::Kernel's C</signal_ui_destroy>() method.
+POE::Kernel's L</signal_ui_destroy> method.
 
 =head1 DEBUGGING POE AND PROGRAMS USING IT
 

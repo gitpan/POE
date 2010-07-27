@@ -5,7 +5,7 @@ package POE::Queue::Array;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.289'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.291'; # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Queue);
 
 use Errno qw(ESRCH EPERM);
@@ -107,27 +107,19 @@ sub dequeue_next {
 }
 
 ### Return the next item's priority, undef if the queue is empty.
-
-# Ton Hospel suggests that assignment is relatively slow.  He proposed
-# this instead.  This is perhaps THE hottest function in POE, and the
-# result is an approximately 4% speed improvement in his benchmarks.
-#
-# return (shift->[0] || return undef)->[ITEM_PRIORITY];
-#
-# We can do similar in a lot of places, but at what cost to
-# maintainability?
+# This is POE's most-called method.  We could greatly benefit from
+# finding ways to reduce the number of calls.
 
 sub get_next_priority {
-  my $self = shift;
-  return undef unless @$self;
-  return $self->[0]->[ITEM_PRIORITY];
+  # This is Ton Hospel's optimization.
+  # He measured a 4% improvement by avoiding $self.
+  return (shift->[0] || return undef)->[ITEM_PRIORITY];
 }
 
 ### Return the number of items currently in the queue.
 
 sub get_item_count {
-  my $self = shift;
-  return scalar @$self;
+  return scalar @{$_[0]};
 }
 
 ### Internal method to insert an item using a binary seek and splice.

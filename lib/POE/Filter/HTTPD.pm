@@ -13,7 +13,7 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.289';
+$VERSION = '1.291';
 # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Filter);
 
@@ -421,7 +421,7 @@ On failure, it returns an HTTP::Response object describing the
 failure.  The intention is that application code will notice the
 HTTP::Response and send it back without further processing. The
 erroneous request object is sometimes available via the
-L<HTTP::Response/request> method.  This is illustrated in the
+L<HTTP::Response/$r-E<gt>request> method.  This is illustrated in the
 L</SYNOPSIS>.
 
 For output, POE::Filter::HTTPD accepts HTTP::Response objects and
