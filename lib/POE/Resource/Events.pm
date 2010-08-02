@@ -3,7 +3,7 @@
 package POE::Resource::Events;
 
 use vars qw($VERSION);
-$VERSION = '1.291'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.292'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -72,7 +72,7 @@ sub _data_ev_enqueue {
   my $new_id;
   my $old_head_priority = $self->_data_ev_get_next_due_time();
 
-  if ($type & ET_ALARM) {
+  if ($type & ET_MASK_DELAYED) {
     $new_id = $kr_queue->enqueue($time, $event_to_enqueue);
   }
   else {

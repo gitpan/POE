@@ -1,4 +1,47 @@
 ==================================
+2010-08-02T06:01:19.221768Z v1_292
+==================================
+
+  2010-08-02 05:57:17 (r2910) by rcaputo
+  poe/lib/POE/Component/Client/TCP.pm M; poe/lib/POE/Filter/HTTPD.pm M;
+  poe/lib/POE/Wheel/Curses.pm M; poe/lib/POE/Loop.pm M;
+  poe/lib/POE/Resources.pm M; poe/lib/POE/Filter/Stackable.pm M;
+  poe/lib/POE/Filter/Stream.pm M; poe/lib/POE/Kernel.pm M;
+  poe/lib/POE/Wheel/FollowTail.pm M; poe/lib/POE/Resource/Statistics.pm
+  M; poe/lib/POE/Wheel/ListenAccept.pm M; poe/lib/POE/Session.pm M;
+  poe/lib/POE/Filter.pm M; poe/lib/POE/Wheel/ReadLine.pm M;
+  poe/lib/POE/Resource/SIDs.pm M; poe/README M;
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
+  poe/lib/POE/Resource/Sessions.pm M; poe/lib/POE/Pipe.pm M;
+  poe/lib/POE/Component/Server/TCP.pm M; poe/lib/POE.pm M;
+  poe/lib/POE/Queue/Array.pm M; poe/lib/POE/Loop/IO_Poll.pm M;
+  poe/lib/POE/Resource/Extrefs.pm M; poe/lib/POE/Wheel/Run.pm M;
+  poe/lib/POE/Resource/Aliases.pm M; poe/lib/POE/Filter/Line.pm M;
+  poe/lib/POE/Filter/RecordBlock.pm M; poe/lib/POE/Filter/Block.pm M;
+  poe/lib/POE/Filter/Grep.pm M; poe/lib/POE/Driver/SysRW.pm M;
+  poe/lib/POE/Filter/Reference.pm M; poe/lib/POE/Queue.pm M;
+  poe/lib/POE/Wheel/SocketFactory.pm M; poe/lib/POE/Resource/Signals.pm
+  M; poe/lib/POE/Pipe/TwoWay.pm M; poe/lib/POE/Resource.pm M;
+  poe/lib/POE/Loop/Select.pm M; poe/lib/POE/Wheel/ReadWrite.pm M;
+  poe/lib/POE/Driver.pm M; poe/lib/POE/Pipe/OneWay.pm M;
+  poe/lib/POE/Component.pm M; poe/lib/POE/Filter/Map.pm M;
+  poe/lib/POE/Wheel.pm M; poe/lib/POE/NFA.pm M;
+  poe/lib/POE/Resource/FileHandles.pm M
+
+    Bump revision for release.
+
+  2010-08-02 05:55:27 (r2909) by rcaputo
+  poe/lib/POE/Resource/Events.pm M; poe/lib/POE/Kernel.pm M
+
+    Resolve rt.cpan.org 59925, wherein sig_child() use would increase
+    some events' latency to at 1sec. First reported by Getty, then Avar
+    opened the ticket. Fixed with Hinrik's copious valuable assistance. 
+
+  2010-07-31 21:06:55 (r2908) by rcaputo; poe/lib/POE/Kernel.pm M
+
+    Fix a method name typo in TRACE_REFCNT code.
+
+==================================
 2010-07-27T06:54:51.380682Z v1_291
 ==================================
 
@@ -1798,187 +1841,6 @@
     Furthermore, they may go on to rant about the side effects in obscure
     places. Recommend reading the documentation in one of POE's most
     "infamous" warnings. 
-
-==================================
-2009-07-27T18:53:10.417148Z v1_007
-==================================
-
-  2009-07-27 18:51:38 (r2609) by rcaputo
-  poe/lib/POE.pm M; poe/mylib/PoeBuildInfo.pm M
-
-    Rely on POE::Test::Loops 1.021, which should be everywhere by now.
-    Update links in documentation. 
-
-  2009-07-27 07:57:24 (r2607) by bingosnet
-  poe/mylib/gen-meta.perl M; poe/mylib/PoeBuildInfo.pm M
-
-    Added 'homepage' meta to the META.yml generation code.
-
-  2009-07-27 05:12:48 (r2606) by rcaputo; poe/lib/POE.pm M
-
-    Documented the bug tracker, repository, and other resource URLs. 
-
-  2009-07-25 22:35:58 (r2604) by rcaputo; poe/lib/POE.pm M
-
-    Roll the version back slightly so CPAN can test before an official
-    release.
-
-  2009-07-25 22:28:49 (r2601) by rcaputo
-  poe/lib/POE.pm M; poe/mylib/PoeBuildInfo.pm M
-
-    Set the POE::Test::Loops dependency to 1.020, and bump the version to
-    1.007 for release. 
-
-  2009-07-22 19:03:28 (r2595) by rcaputo
-  poe/lib/POE/Resource/Signals.pm M
-
-    Explain the likely cause and solution for the "Child process (pid)
-    reaped" messages, and why it's important for programs to avoid
-    leaking processes. 
-
-  2009-07-22 15:17:40 (r2594) by rcaputo
-  poe/lib/POE/Resource/Signals.pm M
-
-    Add error number to signal pipe errors. Windows doesn't always have
-    an error string for some of winsock's wacky error numbers.
-
-  2009-07-22 07:45:31 (r2593) by rcaputo; poe/MANIFEST M
-
-    Add rt47966-sigchld.t to the MANIFEST.
-
-  2009-07-22 04:34:06 (r2592) by gwyn17
-  poe/t/90_regression/rt47966-sigchld.t M
-
-    Wait for longer for all children to exit
-
-  2009-07-22 02:56:35 (r2591) by rcaputo
-  poe/t/90_regression/rt47966-sigchld.t M
-
-    Try to speed up the tests by triggering the children to exit upon
-    demand rather than after a certain amount of time. Doesn't seem
-    significant on my G4 laptop, but it might be on faster machines. 
-
-  2009-07-22 02:41:27 (r2590) by rcaputo
-  poe/t/90_regression/rt47966-sigchld.t M
-
-    Run perltidy & convert all tabs to spaces. No actual code changed
-    this time around. It's bad to mix semantic changes with stylistic
-    ones. The semantic changes get lost. 
-
-  2009-07-21 20:27:13 (r2589) by gwyn17
-  poe/t/90_regression/rt47966-sigchld.t A
-
-    Added rt47966-sigchld.t which tortures the signal-pipe with CHLD, for
-    testing
-
-    on win32. Maybe this test should be moved to POE::Test::Loops 
-
-  2009-07-21 19:24:24 (r2588) by gwyn17
-  poe/lib/POE/Resource/Signals.pm M
-
-    Win32 fixes : - Assign fake numbers (>=128) to signals that don't
-    have a SIG* constant - Don't call sigprocmask() and related
-
-  2009-07-21 11:19:37 (r2587) by bingosnet
-  poe/t/90_regression/somni-poco-server-tcp.t M
-
-    Make the somni-poco-server-tcp test explicitly bind to the loopback
-    address It is hit and miss if the OS supports binding client
-    connections to 0.0.0.0 otherwise. 
-
-  2009-07-21 02:22:15 (r2585) by rcaputo
-  poe/lib/POE/Resource/Signals.pm M; poe/lib/POE/Loop/PerlSignals.pm M;
-  poe/lib/POE/Kernel.pm M
-
-    Apply Philip Gwyn's second patch from rt.cpan.org #47966. This one
-    builds upon his earlier patch on the same ticket. It reinitializes
-    POE's signal handlers in child processes after has_forked() is
-    called. It documents has_forked() and USE_SIGNAL_PIPE. It renames the
-    _top methods to _bottom to follow interrupt handler semantics. It
-    avoids a race condition by blocking signals for the duration of pipe
-    rebuilding. 
-
-  2009-07-20 16:27:13 (r2584) by rcaputo
-  poe/lib/POE/Resource/Signals.pm M
-
-    Gcola on IRC discovered that the internal signals socket wasn't
-    compatible with select() on Windows. This patch makes it a plain
-    socket when POE is running on Windows. 
-
-  2009-07-20 06:21:48 (r2581) by rcaputo
-  poe/t/90_regression/rt39872-sigchld.t D;
-  poe/t/90_regression/rt39872-sigchld-stop.t D;
-  poe/t/90_regression/merijn-sigchld-system.t D;
-  poe/t/90_regression/steinert-signal-integrity.t D;
-  poe/t/90_regression/kogman-sig-order.t D; poe/MANIFEST M
-
-    These tests have gone into POE::Test::Loops, where they may be useful
-    for other POE::Loop writers. 
-
-  2009-07-19 07:38:58 (r2576) by rcaputo
-  poe/lib/POE/Loop/IO_Poll.pm M; poe/lib/POE/Resource/Signals.pm M;
-  poe/lib/POE/Loop/Select.pm M;
-  poe/t/90_regression/rt39872-sigchld-stop.t M;
-  poe/lib/POE/Loop/PerlSignals.pm M; poe/lib/POE/Kernel.pm M;
-  poe/lib/POE/Resource/FileHandles.pm M
-
-    Apply Philip Gwyn's patch to deliver signals via pipe rather than
-    directly into the queue. This avoids queue re-entrancy during find or
-    modification operations, which has previously caused inconsistencies
-    in the queue, event enqueuing and event dispatch.
-    
-    Philip's patch may be found along with a great problem description at
-    http://rt.cpan.org/Public/Bug/Display.html?id=47966 
-
-  2009-07-15 10:47:05 (r2571) by bingosnet
-  poe/MANIFEST M; poe/t/90_regression/somni-poco-server-tcp.t A
-
-    RT #47892: added regression test for PoCo-Server-TCP from Michael
-    Fowler. 
-
-  2009-07-14 21:40:50 (r2569) by bingosnet
-  poe/lib/POE/Component/Server/TCP.pm M
-
-    RT #47854: Fix and document the default setting for Port option, by
-    Michael Fowler 
-
-  2009-07-14 20:52:45 (r2568) by bingosnet
-  poe/lib/POE/Component/Server/TCP.pm M
-
-    RT #47853: document Inline/Package/Object states as applying to
-    client sessions not the listening session, by Michael Folwer 
-
-  2009-07-14 16:03:15 (r2567) by bingosnet
-  poe/lib/POE/Component/Server/TCP.pm M
-
-    RT #47852 'POE::Component::Server::TCP - ClientArgs is passed to the
-    listener, too' applied patch from Michael Fowler, signed off by
-    bingos 
-
-  2009-07-09 14:58:31 (r2561) by bingosnet
-  poe/lib/POE/Wheel/FollowTail.pm M
-
-    Fixed typo in FollowTail example code for ErrorEvent
-
-  2009-07-03 07:33:44 (r2560) by rcaputo
-  poe/t/10_units/03_base/13_assert_data.t M
-
-    Resolve a test failure where the error message cannot be recognized
-    on certain systems.
-
-  2009-06-29 18:58:34 (r2559) by rcaputo; poe/lib/POE/Kernel.pm M
-
-    Comment out garbage collection testing at the end of call(). Neither
-    the caller's nor the callee's reference count is affected by the
-    call() itself. Anything that does affect the count should be GC
-    tested separately. All tests pass, which probably means we need new
-    tests. Thanks to DrGeek on IRC for asking an insightful question
-    about call()'s GC. 
-
-  2009-06-04 01:54:32 (r2548) by rcaputo
-  poe/lib/POE/Component/Server/TCP.pm M
-
-    Fix a minor doc typo, thanks to Hinrik.
 
 ==============
 End of Excerpt
