@@ -3,7 +3,7 @@ package POE::Kernel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.293'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.294'; # NOTE - Should be #.### (three decimal places)
 
 use POSIX qw(uname);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -3182,6 +3182,9 @@ has_forked() must be called in the child process if you wish to run the same
 kernel.  However, if you want the child process to have new kernel, you must
 call L</stop> instead.
 
+B<Note:> Since the kernel is initialized when POE::Kernel's C<import> method
+is called, you have to call C<has_forked()> (or C<stop()>) after forking even
+if the only POE-related thing you did beforehand was C<use POE;>.
 
 =head3 stop
 

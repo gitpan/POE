@@ -3,7 +3,7 @@ package POE::Component::Server::TCP;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.293'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.294'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -838,7 +838,7 @@ C<SuccessEvent>.
 
 C<Acceptor> is optional; the default handler will create a new session
 for each connection.  All the "Client" constructor parameters are used
-to customize this session.  In other words, C<CleintInput> and such
+to customize this session.  In other words, C<ClientInput> and such
 B<are not used when C<Acceptor> is set>.
 
 The default C<Acceptor> adds significant convenience and flexibility
