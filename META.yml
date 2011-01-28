@@ -7,7 +7,7 @@ build_requires:
 configure_requires:
   Module::Build: 0.36
   POE::Test::Loops: 1.036
-generated_by: 'Module::Build version 0.3603'
+generated_by: 'Module::Build version 0.3607'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
@@ -20,144 +20,144 @@ no_index:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.294
+    version: 1.294_272
   POE::Component:
     file: lib/POE/Component.pm
-    version: 1.294
+    version: 1.294_272
   POE::Component::Client::TCP:
     file: lib/POE/Component/Client/TCP.pm
-    version: 1.294
+    version: 1.294_272
   POE::Component::Server::TCP:
     file: lib/POE/Component/Server/TCP.pm
-    version: 1.294
+    version: 1.294_272
   POE::Driver:
     file: lib/POE/Driver.pm
-    version: 1.294
+    version: 1.294_272
   POE::Driver::SysRW:
     file: lib/POE/Driver/SysRW.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter:
     file: lib/POE/Filter.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::Block:
     file: lib/POE/Filter/Block.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::Grep:
     file: lib/POE/Filter/Grep.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::HTTPD:
     file: lib/POE/Filter/HTTPD.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::Line:
     file: lib/POE/Filter/Line.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::Map:
     file: lib/POE/Filter/Map.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::RecordBlock:
     file: lib/POE/Filter/RecordBlock.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::Reference:
     file: lib/POE/Filter/Reference.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::Stackable:
     file: lib/POE/Filter/Stackable.pm
-    version: 1.294
+    version: 1.294_272
   POE::Filter::Stream:
     file: lib/POE/Filter/Stream.pm
-    version: 1.294
+    version: 1.294_272
   POE::Kernel:
     file: lib/POE/Kernel.pm
-    version: 1.294
+    version: 1.294_272
   POE::Loop:
     file: lib/POE/Loop.pm
-    version: 1.294
+    version: 1.294_272
   POE::Loop::IO_Poll:
     file: lib/POE/Loop/IO_Poll.pm
-    version: 1.294
+    version: 1.294_272
   POE::Loop::PerlSignals:
     file: lib/POE/Loop/PerlSignals.pm
-    version: 1.294
+    version: 1.294_272
   POE::Loop::Select:
     file: lib/POE/Loop/Select.pm
-    version: 1.294
+    version: 1.294_272
   POE::NFA:
     file: lib/POE/NFA.pm
-    version: 1.294
+    version: 1.294_272
   POE::Pipe:
     file: lib/POE/Pipe.pm
-    version: 1.294
+    version: 1.294_272
   POE::Pipe::OneWay:
     file: lib/POE/Pipe/OneWay.pm
-    version: 1.294
+    version: 1.294_272
   POE::Pipe::TwoWay:
     file: lib/POE/Pipe/TwoWay.pm
-    version: 1.294
+    version: 1.294_272
   POE::Queue:
     file: lib/POE/Queue.pm
-    version: 1.294
+    version: 1.294_272
   POE::Queue::Array:
     file: lib/POE/Queue/Array.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource:
     file: lib/POE/Resource.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource::Aliases:
     file: lib/POE/Resource/Aliases.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource::Events:
     file: lib/POE/Resource/Events.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource::Extrefs:
     file: lib/POE/Resource/Extrefs.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource::FileHandles:
     file: lib/POE/Resource/FileHandles.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource::SIDs:
     file: lib/POE/Resource/SIDs.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource::Sessions:
     file: lib/POE/Resource/Sessions.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource::Signals:
     file: lib/POE/Resource/Signals.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resource::Statistics:
     file: lib/POE/Resource/Statistics.pm
-    version: 1.294
+    version: 1.294_272
   POE::Resources:
     file: lib/POE/Resources.pm
-    version: 1.294
+    version: 1.294_272
   POE::Session:
     file: lib/POE/Session.pm
-    version: 1.294
+    version: 1.294_272
   POE::Wheel:
     file: lib/POE/Wheel.pm
-    version: 1.294
+    version: 1.294_272
   POE::Wheel::Curses:
     file: lib/POE/Wheel/Curses.pm
-    version: 1.294
+    version: 1.294_272
   POE::Wheel::FollowTail:
     file: lib/POE/Wheel/FollowTail.pm
-    version: 1.294
+    version: 1.294_272
   POE::Wheel::ListenAccept:
     file: lib/POE/Wheel/ListenAccept.pm
-    version: 1.294
+    version: 1.294_272
   POE::Wheel::ReadLine:
     file: lib/POE/Wheel/ReadLine.pm
-    version: 1.294
+    version: 1.294_272
   POE::Wheel::ReadLine::Keymap:
     file: lib/POE/Wheel/ReadLine.pm
   POE::Wheel::ReadWrite:
     file: lib/POE/Wheel/ReadWrite.pm
-    version: 1.294
+    version: 1.294_272
   POE::Wheel::Run:
     file: lib/POE/Wheel/Run.pm
-    version: 1.294
+    version: 1.294_272
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
-    version: 1.294
+    version: 1.294_272
 recommends:
   Time::HiRes: 1.59
 requires:
@@ -176,4 +176,4 @@ resources:
   homepage: http://poe.perl.org/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/rcaputo/poe
-version: 1.294
+version: 1.294_272

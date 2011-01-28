@@ -3,7 +3,7 @@ package POE::Component::Server::TCP;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.294'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.294_272'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -264,8 +264,9 @@ sub new {
                 $heap->{remote_ip} = inet_ntoa($remote_addr);
               }
               else {
-                $heap->{remote_ip} =
-                  Socket6::inet_ntop($domain, $remote_addr);
+                $heap->{remote_ip} = (
+                  Socket::GetAddrInfo::getaddrinfo($remote_addr)
+                )[1];
               }
 
               $heap->{remote_port} = $remote_port;
@@ -822,7 +823,7 @@ session that will be listening for new connections.
 Many of the constructor parameters have been previously described.
 They are covered briefly again below.
 
-=head3 Server Sesson Configuration
+=head3 Server Session Configuration
 
 These constructor parameters affect POE::Component::Server::TCP's main
 listening session.
@@ -931,8 +932,9 @@ C<Domain> sets the address or protocol family within which to operate.
 The C<Domain> may be any value that POE::Wheel::SocketFactory
 supports.  AF_INET (Internet address space) is used by default.
 
-Use AF_INET6 for IPv6 support.  This constant is exported by Socket6,
-which must be loaded B<before> POE::Component::Server::TCP.
+Use AF_INET6 for IPv6 support.  This constant is exported by Socket.
+Also be sure to have Socket::GetAddrInfo installed, which is required
+by POE::Wheel::SocketFactory for IPv6 support.
 
 =head4 Error
 

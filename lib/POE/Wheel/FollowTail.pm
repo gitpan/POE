@@ -3,7 +3,7 @@ package POE::Wheel::FollowTail;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.294'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.294_272'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -352,9 +352,13 @@ sub _generate_filehandle_timer {
       if (defined(my $raw_input = $driver->get($$handle))) {
         TRACE_POLL and warn "<poll> " . time . " raw input";
         $filter->get_one_start($raw_input);
-        foreach my $cooked_input (@{$filter->get_one()}) {
-          TRACE_POLL and warn "<poll> " . time . " cooked input";
-          $k->call($ses, $$event_input, $cooked_input, $unique_id);
+        while (1) {
+          my $next_rec = $filter->get_one();
+          last unless @$next_rec;
+          foreach my $cooked_input (@$next_rec) {
+            TRACE_POLL and warn "<poll> " . time . " cooked input";
+            $k->call($ses, $$event_input, $cooked_input, $unique_id);
+          }
         }
 
         # Clear the filehandle's EOF status, if any.
