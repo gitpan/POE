@@ -2,6 +2,12 @@
 9999-99-99 99:99:99 +0000 HEAD
 ==============================
 
+  commit 409e9d00271e8446fdb06fa6193e70c325dec40a
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jan 28 21:37:25 2011 -0500
+  
+    Bump dependency.
+
   commit 36dfdc6e774d34436a0961fd6ef0f3c026a79053
   Author: Perl Whore <whoreperl@gmail.com>
   Date:   Thu Jan 27 17:54:37 2011 -0500
