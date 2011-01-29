@@ -2,6 +2,12 @@
 9999-99-99 99:99:99 +0000 HEAD
 ==============================
 
+  commit 673d82e3c08a2c392bf13fc326f89b0db740b2aa
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jan 29 12:14:56 2011 -0500
+  
+    Try Sucket6 if Socket doesn't provide IPv6 address families.
+
   commit 409e9d00271e8446fdb06fa6193e70c325dec40a
   Author: Rocco Caputo <rcaputo@cpan.org>
   Date:   Fri Jan 28 21:37:25 2011 -0500
