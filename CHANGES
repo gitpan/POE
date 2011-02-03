@@ -1,6 +1,19 @@
-==============================
-9999-99-99 99:99:99 +0000 HEAD
-==============================
+================================
+2011-02-02 20:13:22 -0500 v1_299
+================================
+
+  commit fb2c015dd7bcfce3e234ee430591040c45dd07fc
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed Feb 2 20:13:22 2011 -0500
+  
+    Bump version for release.
+
+  commit 639344263a60e050bb17e21df8e51115d9415591
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jan 29 14:33:49 2011 -0500
+  
+    Bump the version. Dist::Zilla would make this a lot less noisy in the
+    changelog.
 
   commit 673d82e3c08a2c392bf13fc326f89b0db740b2aa
   Author: Rocco Caputo <rcaputo@cpan.org>
