@@ -3,10 +3,10 @@ abstract: 'Portable, event-loop agnostic eventy networking and multitasking.'
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 build_requires:
-  POE::Test::Loops: 1.040
+  POE::Test::Loops: 1.050
 configure_requires:
   Module::Build: 0.36
-  POE::Test::Loops: 1.040
+  POE::Test::Loops: 1.050
 generated_by: 'Module::Build version 0.3607'
 license: perl
 meta-spec:
@@ -20,7 +20,7 @@ no_index:
 provides:
   POE:
     file: lib/POE.pm
-    version: 1.299
+    version: 1.310
   POE::Component:
     file: lib/POE/Component.pm
     version: 1.299
@@ -123,9 +123,6 @@ provides:
   POE::Resource::Signals:
     file: lib/POE/Resource/Signals.pm
     version: 1.299
-  POE::Resource::Statistics:
-    file: lib/POE/Resource/Statistics.pm
-    version: 1.299
   POE::Resources:
     file: lib/POE/Resources.pm
     version: 1.299
@@ -158,22 +155,22 @@ provides:
   POE::Wheel::SocketFactory:
     file: lib/POE/Wheel/SocketFactory.pm
     version: 1.299
-recommends:
-  Time::HiRes: 1.59
 requires:
   Carp: 0
   Errno: 1.09
   Exporter: 0
   File::Spec: 0.87
+  IO: 1.24
   IO::Handle: 1.27
   IO::Tty: 1.08
-  POE::Test::Loops: 1.040
+  POE::Test::Loops: 1.050
   POSIX: 1.02
   Socket: 1.7
   Storable: 2.16
   Test::Harness: 2.26
+  Time::HiRes: 1.59
 resources:
   homepage: http://poe.perl.org/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/rcaputo/poe
-version: 1.299
+version: 1.310

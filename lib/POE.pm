@@ -6,7 +6,7 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION);
-$VERSION = '1.299'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.310'; # NOTE - Should be #.### (three decimal places)
 
 sub import {
   my $self = shift;
@@ -220,11 +220,11 @@ L<POE::Component::IKC|POE::Component::IKC> and L<POE::TIKC|POE::TIKC>.
 
 =head2 Layer 0: POE's Internals
 
-POE's layered architecture continues below the surface.  POE's guts are
-broken into specific L<POE::Loop|POE::Loop> classes for each event loop it supports. 
-Internals are divided up by type, giving L<POE::Resource|POE::Resource> classes for
-Aliases, Controls, Events, Extrefs, FileHandles, SIDs, Sessions, Signals,
-and Statistics.
+POE's layered architecture continues below the surface.  POE's guts
+are broken into specific L<POE::Loop|POE::Loop> classes for each event
+loop it supports.  Internals are divided up by type, giving
+L<POE::Resource|POE::Resource> classes for Aliases, Controls, Events,
+Extrefs, FileHandles, SIDs, Sessions and Signals.
 
 POE::Kernel's APIs are extensible through POE::API mix-in classes.
 Some brave souls have even published new APIs on CPAN, such as
@@ -374,10 +374,11 @@ seems to be testing there anymore.  Reports and patches are still
 welcome.
 
 Past versions of POE have been tested with Perl versions as far back
-as 5.004_03 and as recent as "blead", today's development build.  We
+as 5.6.2 and as recent as "blead", today's development build.  We
 can no longer guarantee each release will work everywhere, but we will
 be happy to work with you if you need special support for a really old
-system.
+system. You can always use older POE releases that works on your version,
+please check L<BackPAN|http://backpan.perl.org/authors/id/R/RC/RCAPUTO/>.
 
 POE's quality is due in large part to the fine work of Chris Williams
 and the other CPAN testers.  They have dedicated resources towards
@@ -635,6 +636,12 @@ Japanese nicknames.  Dieter's current area of expertise is in Wheels and
 Filters.  He greatly improved L<POE::Wheel::FollowTail|POE::Wheel::FollowTail>, and his Filter
 contributions include the basic Block filter, as well as Stackable,
 RecordBlock, Grep and Map.
+
+=item Plixer International
+
+Plixer International is at L<http://plixer.com/>.  Their sponsorship
+has helped POE 1.300 and beyond be significantly more robust using
+iThreads, especially when using fork() in Windows.
 
 =item Robert Seifer
 

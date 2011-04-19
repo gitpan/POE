@@ -4,13 +4,13 @@ use warnings;
 use strict;
 BEGIN { eval { require bytes } and bytes->import; }
 
-use vars qw($VERSION);
+use vars qw($VERSION @ISA);
 $VERSION = '1.299'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw(gensym);
 use POE qw( Wheel );
-use base qw(POE::Wheel);
+push @ISA, qw(POE::Wheel);
 use POSIX ();
 
 if ($^O eq "MSWin32") {
@@ -1054,7 +1054,16 @@ sub get {
   my ($self, $prompt) = @_;
 
   # Already reading a line here, people.  Sheesh!
-  return if $self->[SELF_READING_LINE];
+  if ($self->[SELF_READING_LINE]) {
+    # Let's update the prompt if the user changed it
+    if (defined $prompt && $prompt ne $self->[SELF_PROMPT]) {
+      $self->_wipe_input_line;
+      $self->[SELF_PROMPT] = $prompt;
+      $self->_repaint_input_line;
+    }
+    return;
+  }
+
   # recheck the terminal size every prompt, in case the size
   # has changed
   eval { ($trk_cols, $trk_rows) = GetTerminalSize($stdout) };
@@ -1066,7 +1075,7 @@ sub get {
 
   # Set up for the read.
   $self->[SELF_READING_LINE]   = 1;
-  $self->[SELF_PROMPT]         = $prompt;
+  $self->[SELF_PROMPT]         = $prompt if defined $prompt;
   $self->[SELF_INPUT]          = '';
   $self->[SELF_CURSOR_INPUT]   = 0;
   $self->[SELF_CURSOR_DISPLAY] = 0;
@@ -1082,7 +1091,7 @@ sub get {
   $poe_kernel->select($stdin, $self->[SELF_STATE_READ]);
   $stdin->blocking(1) unless $^O eq 'aix';
 
-  my $sp = $prompt;
+  my $sp = $self->[SELF_PROMPT];
   $sp =~ s{\\[\[\]]}{}g;
 
   print $stdout $sp;
@@ -1848,7 +1857,12 @@ sub rl_clear_screen {
 
 sub rl_transpose_chars {
   my ($self, $key) = @_;
-  if ($self->[SELF_CURSOR_INPUT] > 0 and $self->[SELF_CURSOR_INPUT] < length($self->[SELF_INPUT])) {
+  if (length($self->[SELF_INPUT]) > 1 && length($self->[SELF_INPUT]) == $self->[SELF_CURSOR_INPUT]) {
+    my $transposition = reverse substr($self->[SELF_INPUT], -2, 2);
+    substr($self->[SELF_INPUT], -2, 2) = $transposition;
+    _curs_left(_display_width($transposition));
+    print $stdout _normalize($transposition);
+  } elsif (length($self->[SELF_INPUT]) > 1 && $self->[SELF_CURSOR_INPUT] > 0) {
     my $width_left = _display_width(substr($self->[SELF_INPUT], $self->[SELF_CURSOR_INPUT] - 1, 1));
 
     my $transposition = reverse substr($self->[SELF_INPUT], $self->[SELF_CURSOR_INPUT] - 1, 2);
@@ -1864,51 +1878,16 @@ sub rl_transpose_chars {
 
 sub rl_transpose_words {
   my ($self, $key) = @_;
-  my ($previous, $left, $space, $right, $rest);
 
-  # This bolus of code was written to replace a single
-  # regexp after finding out that the regexp's negative
-  # zero-width look-behind assertion doesn't work in
-  # perl 5.004_05.  For the record, this is that regexp:
-  # s/^(.{0,$cursor_sub_one})(?<!\S)(\S+)(\s+)(\S+)/$1$4$3$2/
-
-  if (substr($self->[SELF_INPUT], $self->[SELF_CURSOR_INPUT], 1) =~ /\s/) {
-    my ($left_space, $right_space);
-    ($previous, $left, $left_space) = (
-      substr($self->[SELF_INPUT], 0, $self->[SELF_CURSOR_INPUT]) =~ /^(.*?)(\S+)(\s*)$/
-    );
-    ($right_space, $right, $rest) = (
-      substr($self->[SELF_INPUT], $self->[SELF_CURSOR_INPUT]) =~ /^(\s+)(\S+)(.*)$/
-    );
-    $space = $left_space . $right_space;
-  } elsif ( substr($self->[SELF_INPUT], 0, $self->[SELF_CURSOR_INPUT]) =~ /^(.*?)(\S+)(\s+)(\S*)$/ ) {
-    ($previous, $left, $space, $right) = ($1, $2, $3, $4);
-    if (substr($self->[SELF_INPUT], $self->[SELF_CURSOR_INPUT]) =~ /^(\S*)(.*)$/) {
-      $right .= $1 if defined $1;
-      $rest = $2;
-    }
-  } elsif ( substr($self->[SELF_INPUT], $self->[SELF_CURSOR_INPUT]) =~ /^(\S+)(\s+)(\S+)(.*)$/ ) {
-    ($left, $space, $right, $rest) = ($1, $2, $3, $4);
-    if ( substr($self->[SELF_INPUT], 0, $self->[SELF_CURSOR_INPUT]) =~ /^(.*?)(\S+)$/ ) {
-      $previous = $1;
-      $left = $2 . $left;
-    }
+  my $cursor_sub_one = $self->[SELF_CURSOR_INPUT] - 1;
+  if ($self->[SELF_INPUT] =~ s/^(.{0,$cursor_sub_one})(?<!\S)(\S+)(\s+)(\S+)/$1$4$3$2/) {
+    $termcap->Tgoto('LE', 1, $self->[SELF_CURSOR_DISPLAY] - _display_width($1), $stdout);
+    print $stdout _normalize($4 . $3 . $2);
+    $self->[SELF_CURSOR_INPUT] = length($1 . $2 . $3 . $4);
+    $self->[SELF_CURSOR_DISPLAY] = _display_width($1 . $2 . $3 . $4);
   } else {
     $self->rl_ding;
-    next;
   }
-
-  $previous = '' unless defined $previous;
-  $rest     = '' unless defined $rest;
-
-  $self->[SELF_INPUT] = $previous . $right . $space . $left . $rest;
-
-  if ($self->[SELF_CURSOR_DISPLAY] - _display_width($previous)) {
-    _curs_left($self->[SELF_CURSOR_DISPLAY] - _display_width($previous));
-  }
-  print $stdout _normalize($right . $space . $left);
-  $self->[SELF_CURSOR_INPUT] = length($previous. $left . $space . $right);
-  $self->[SELF_CURSOR_DISPLAY] = _display_width($previous . $left . $space . $right);
 }
 
 sub rl_unix_line_discard {
@@ -3337,6 +3316,10 @@ After get() is called, the next line of input or exception on the
 console will trigger an C<InputEvent> with the appropriate parameters.
 POE::Wheel::ReadLine will then enter an inactive state until get() is
 called again.
+
+Calls to get() without an argument will preserve the current prompt.
+Calling get() with an argument before a whole line of input is
+received will change the prompt on the fly.
 
 See the L</SYNOPSIS> for sample usage.
 

@@ -8,8 +8,8 @@ package PoeBuildInfo;
 use strict;
 
 use Exporter;
-use base qw(Exporter);
-use vars qw(@EXPORT_OK);
+use vars qw(@ISA @EXPORT_OK);
+push @ISA, qw(Exporter);
 
 @EXPORT_OK = qw(
   TEST_FILES
@@ -17,7 +17,6 @@ use vars qw(@EXPORT_OK);
   CORE_REQUIREMENTS
   DIST_ABSTRACT
   DIST_AUTHOR
-  RECOMMENDED_TIME_HIRES
   CONFIG_REQUIREMENTS
   REPOSITORY
   HOMEPAGE
@@ -25,7 +24,7 @@ use vars qw(@EXPORT_OK);
 
 
 sub CONFIG_REQUIREMENTS () {
-  ("POE::Test::Loops"  => '1.040')
+  ("POE::Test::Loops"  => '1.050')
 }
 
 sub CORE_REQUIREMENTS () {
@@ -34,11 +33,13 @@ sub CORE_REQUIREMENTS () {
     "Errno"             => 1.09,
     "Exporter"          => 0,
     "File::Spec"        => 0.87,
+    "IO"                => 1.24,  # MSWin32 blocking(0)
     "IO::Handle"        => 1.27,
     "POSIX"             => 1.02,
     "Socket"            => 1.7,
-    "Test::Harness"     => 2.26,
     "Storable"          => 2.16,
+    "Test::Harness"     => 2.26,
+    "Time::HiRes"       => 1.59,
     (
       ($^O eq "MSWin32")
       ? (
@@ -54,10 +55,6 @@ sub CORE_REQUIREMENTS () {
     ),
     CONFIG_REQUIREMENTS,
   )
-}
-
-sub RECOMMENDED_TIME_HIRES () {
-  ( "Time::HiRes" => 1.59 )
 }
 
 sub DIST_AUTHOR () {

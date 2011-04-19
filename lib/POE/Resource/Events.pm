@@ -14,12 +14,12 @@ use strict;
 my $kr_queue;
 
 my %event_count;
-#  ( $session => $count,
+#  ( $session_id => $count,
 #    ...,
 #  );
 
 my %post_count;
-#  ( $session => $count,
+#  ( $session_id => $count,
 #    ...,
 #  );
 
@@ -32,16 +32,25 @@ sub _data_ev_initialize {
 
 ### End-run leak checking.
 
+sub _data_ev_relocate_kernel_id {
+  my ($self, $old_id, $new_id) = @_;
+
+  $event_count{$new_id} = delete $event_count{$old_id}
+    if exists $event_count{$old_id};
+  $post_count{$new_id} = delete $post_count{$old_id}
+    if exists $post_count{$old_id};
+}
+
 sub _data_ev_finalize {
   my $finalized_ok = 1;
-  while (my ($ses, $cnt) = each(%event_count)) {
+  while (my ($ses_id, $cnt) = each(%event_count)) {
     $finalized_ok = 0;
-    _warn("!!! Leaked event-to count: $ses = $cnt\n");
+    _warn("!!! Leaked event-to count: $ses_id = $cnt\n");
   }
 
-  while (my ($ses, $cnt) = each(%post_count)) {
+  while (my ($ses_id, $cnt) = each(%post_count)) {
     $finalized_ok = 0;
-    _warn("!!! Leaked event-from count: $ses = $cnt\n");
+    _warn("!!! Leaked event-from count: $ses_id = $cnt\n");
   }
   return $finalized_ok;
 }
@@ -58,10 +67,13 @@ sub _data_ev_enqueue {
     $file, $line, $fromstate, $time
   ) = @_;
 
+  my $sid = $session->ID;
+
   if (ASSERT_DATA) {
-    unless ($self->_data_ses_exists($session)) {
+    unless ($self->_data_ses_exists($sid)) {
       _trap(
-        "<ev> can't enqueue event ``$event'' for nonexistent session $session\n"
+        "<ev> can't enqueue event ``$event'' for nonexistent",
+        $self->_data_alias_loggable($sid)
       );
     }
   }
@@ -82,8 +94,8 @@ sub _data_ev_enqueue {
   if (TRACE_EVENTS) {
     _warn(
       "<ev> enqueued event $new_id ``$event'' from ",
-      $self->_data_alias_loggable($source_session), " to ",
-      $self->_data_alias_loggable($session),
+      $self->_data_alias_loggable($source_session->ID), " to ",
+      $self->_data_alias_loggable($sid),
       " at $time"
     );
   }
@@ -98,12 +110,12 @@ sub _data_ev_enqueue {
   # This is the counterpart to _data_ev_refcount_dec().  It's only
   # used in one place, so it's not in its own function.
 
-  $self->_data_ses_refcount_inc($session) unless $event_count{$session}++;
+  $self->_data_ses_refcount_inc($sid) unless $event_count{$sid}++;
 
-  return $new_id if $session == $source_session;
+  return $new_id if $sid eq $source_session->ID();
 
-  $self->_data_ses_refcount_inc($source_session) unless (
-    $post_count{$source_session}++
+  $self->_data_ses_refcount_inc($source_session->ID) unless (
+    $post_count{$source_session->ID}++
   );
 
   return $new_id;
@@ -112,16 +124,16 @@ sub _data_ev_enqueue {
 ### Remove events sent to or from a specific session.
 
 sub _data_ev_clear_session {
-  my ($self, $session) = @_;
+  my ($self, $sid) = @_;
 
   # Events sent to the session.
   PENDING: {
-    my $pending_count = $event_count{$session};
+    my $pending_count = $event_count{$sid};
     last PENDING unless $pending_count;
 
     foreach (
       $kr_queue->remove_items(
-        sub { $_[0][EV_SESSION] == $session },
+        sub { $_[0][EV_SESSION]->ID() eq $sid },
         $pending_count
       )
     ) {
@@ -139,12 +151,12 @@ sub _data_ev_clear_session {
 
   # Events sent by the session.
   SENT: {
-    my $sent_count = $post_count{$session};
+    my $sent_count = $post_count{$sid};
     last SENT unless $sent_count;
 
     foreach (
       $kr_queue->remove_items(
-        sub { $_[0][EV_SOURCE] == $session },
+        sub { $_[0][EV_SOURCE]->ID() eq $sid },
         $sent_count
       )
     ) {
@@ -159,8 +171,8 @@ sub _data_ev_clear_session {
     croak "lingering sent count: $sent_count" if $sent_count;
   }
 
-  croak "lingering event count" if delete $event_count{$session};
-  croak "lingering post count" if delete $post_count{$session};
+  croak "lingering event count" if delete $event_count{$sid};
+  croak "lingering post count" if delete $post_count{$sid};
 }
 
 # TODO Alarm maintenance functions may move out to a separate
@@ -174,11 +186,11 @@ sub _data_ev_clear_session {
 ### future due times.
 
 sub _data_ev_clear_alarm_by_name {
-  my ($self, $session, $alarm_name) = @_;
+  my ($self, $sid, $alarm_name) = @_;
 
   my $my_alarm = sub {
     return 0 unless $_[0]->[EV_TYPE] & ET_ALARM;
-    return 0 unless $_[0]->[EV_SESSION] == $session;
+    return 0 unless $_[0]->[EV_SESSION]->ID() eq $sid;
     return 0 unless $_[0]->[EV_NAME] eq $alarm_name;
     return 1;
   };
@@ -193,10 +205,10 @@ sub _data_ev_clear_alarm_by_name {
 ### times.  TODO It's possible to remove non-alarms; is that wrong?
 
 sub _data_ev_clear_alarm_by_id {
-  my ($self, $session, $alarm_id) = @_;
+  my ($self, $sid, $alarm_id) = @_;
 
   my $my_alarm = sub {
-    $_[0]->[EV_SESSION] == $session;
+    $_[0]->[EV_SESSION]->ID() eq $sid;
   };
 
   my ($time, $id, $event) = $kr_queue->remove_item($alarm_id, $my_alarm);
@@ -205,7 +217,7 @@ sub _data_ev_clear_alarm_by_id {
   if (TRACE_EVENTS) {
     _warn(
       "<ev> removed event $id ``", $event->[EV_NAME], "'' to ",
-      $self->_data_alias_loggable($session), " at $time"
+      $self->_data_alias_loggable($sid), " at $time"
     );
   }
 
@@ -216,11 +228,11 @@ sub _data_ev_clear_alarm_by_id {
 ### Remove all the alarms for a session.  Whoot!
 
 sub _data_ev_clear_alarm_by_session {
-  my ($self, $session) = @_;
+  my ($self, $sid) = @_;
 
   my $my_alarm = sub {
     return 0 unless $_[0]->[EV_TYPE] & ET_ALARM;
-    return 0 unless $_[0]->[EV_SESSION] == $session;
+    return 0 unless $_[0]->[EV_SESSION]->ID() eq $sid;
     return 1;
   };
 
@@ -239,37 +251,35 @@ sub _data_ev_clear_alarm_by_session {
 sub _data_ev_refcount_dec {
   my ($self, $source_session, $dest_session) = @_;
 
-  if (ASSERT_DATA) {
-    _trap $dest_session unless exists $event_count{$dest_session};
-  }
-
-  $self->_data_ses_refcount_dec($dest_session) unless (
-    --$event_count{$dest_session}
-  );
-
-  return if $dest_session == $source_session;
+  my ($source_id, $dest_id) = ($source_session->ID, $dest_session->ID);
 
   if (ASSERT_DATA) {
-    _trap $source_session unless exists $post_count{$source_session};
+    _trap $dest_session unless exists $event_count{$dest_id};
   }
 
-  $self->_data_ses_refcount_dec($source_session) unless (
-    --$post_count{$source_session}
-  );
+  $self->_data_ses_refcount_dec($dest_id) unless --$event_count{$dest_id};
+
+  return if $dest_id eq $source_id;
+
+  if (ASSERT_DATA) {
+    _trap $source_session unless exists $post_count{$source_id};
+  }
+
+  $self->_data_ses_refcount_dec($source_id) unless --$post_count{$source_id};
 }
 
 ### Fetch the number of pending events sent to a session.
 
 sub _data_ev_get_count_to {
-  my ($self, $session) = @_;
-  return $event_count{$session} || 0;
+  my ($self, $sid) = @_;
+  return $event_count{$sid} || 0;
 }
 
 ### Fetch the number of pending events sent from a session.
 
 sub _data_ev_get_count_from {
-  my ($self, $session) = @_;
-  return $post_count{$session} || 0;
+  my ($self, $sid) = @_;
+  return $post_count{$sid} || 0;
 }
 
 ### Dispatch events that are due for "now" or earlier.
@@ -297,18 +307,6 @@ sub _data_ev_dispatch_due {
 
     if (TRACE_EVENTS) {
       _warn("<ev> dispatching event $id ($event->[EV_NAME])");
-    }
-
-    # An event is "blocked" if its due time is earlier than the
-    # current time.  This means that the event has had to wait before
-    # being dispatched.  As far as I can tell, all events will be
-    # "blocked" according to these rules.
-
-    if (TRACE_STATISTICS) {
-      if ($due_time < $now) {
-        $self->_data_stat_add('blocked', 1);
-        $self->_data_stat_add('blocked_seconds', $now - $due_time);
-      }
     }
 
     # TODO - Why can't we reverse these two lines?

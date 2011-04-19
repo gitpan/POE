@@ -17,7 +17,9 @@ package POE::Kernel;
 =for poe_tests
 
 sub skip_tests {
-  return "IO::Poll is not 100% compatible with $^O" if $^O eq "MSWin32";
+  return "IO::Poll is not 100% compatible with $^O" if (
+    $^O eq "MSWin32" and not $ENV{POE_DANTIC}
+  );
   return "IO::Poll tests require the IO::Poll module" if (
     do { eval "use IO::Poll"; $@ }
   );
@@ -34,7 +36,7 @@ use IO::Poll 0.01;
 
 # Hand off to POE::Loop::Select if we're running under ActivePerl.
 BEGIN {
-  if ($^O eq "MSWin32") {
+  if ($^O eq "MSWin32" and not $ENV{POE_DANTIC}) {
     warn "IO::Poll is defective on $^O.  Falling back to IO::Select.\n";
     require POE::Loop::Select;
     POE::Loop::Select->import();
@@ -368,10 +370,6 @@ sub loop_do_timeslice {
     else {
       CORE::select(undef, undef, undef, $timeout);
     }
-  }
-
-  if (TRACE_STATISTICS) {
-    $self->_data_stat_add('idle_seconds', time() - $now);
   }
 
   # Dispatch whatever events are due.

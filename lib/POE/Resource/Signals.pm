@@ -18,17 +18,29 @@ use POSIX qw(:sys_wait_h sigprocmask SIG_SETMASK);
 ### Map watched signal names to the sessions that are watching them
 ### and the events that must be delivered when they occur.
 
+sub SEV_EVENT   () { 0 }
+sub SEV_ARGS    () { 1 }
+sub SEV_SESSION () { 2 }
+
 my %kr_signals;
 #  ( $signal_name =>
-#    { $session_reference => [ $event_name, $event_args, ],
+#    { $session_id =>
+#     [ $event_name,    SEV_EVENT
+#       $event_args,    SEV_ARGS
+#       $session_ref,   SEV_SESSION
+#     ],
 #      ...,
 #    },
 #    ...,
 #  );
 
 my %kr_sessions_to_signals;
-#  ( $session =>
-#    { $signal_name => [ $event_name, $event_args ],
+#  ( $session_id =>
+#    { $signal_name =>
+#      [ $event_name,   SEV_EVENT
+#        $event_args,   SEV_ARGS
+#        $session_ref,  SEV_SESSION
+#      ],
 #      ...,
 #    },
 #    ...,
@@ -36,7 +48,7 @@ my %kr_sessions_to_signals;
 
 my %kr_pids_to_events;
 # { $pid =>
-#   { $session =>
+#   { $session_id =>
 #     [ $blessed_session,   # PID_SESSION
 #       $event_name,        # PID_EVENT
 #       $args,              # PID_ARGS
@@ -45,14 +57,35 @@ my %kr_pids_to_events;
 # }
 
 my %kr_sessions_to_pids;
-# { $session => { $pid => 1 } }
+# { $session_id => { $pid => 1 } }
 
 sub PID_SESSION () { 0 }
 sub PID_EVENT   () { 1 }
 sub PID_ARGS    () { 2 }
 
+sub _data_sig_relocate_kernel_id {
+  my ($self, $old_id, $new_id) = @_;
+
+  while (my ($signal, $sig_rec) = each %kr_signals) {
+    next unless exists $sig_rec->{$old_id};
+    $sig_rec->{$new_id} = delete $sig_rec->{$old_id};
+  }
+
+  $kr_sessions_to_signals{$new_id} = delete $kr_sessions_to_signals{$old_id}
+    if exists $kr_sessions_to_signals{$old_id};
+
+  while (my ($pid, $pid_rec) = each %kr_pids_to_events) {
+    next unless exists $pid_rec->{$old_id};
+    $pid_rec->{$new_id} = delete $pid_rec->{$old_id};
+  }
+
+  $kr_sessions_to_pids{$new_id} = delete $kr_sessions_to_pids{$old_id}
+    if exists $kr_sessions_to_pids{$old_id};
+}
+
 # Bookkeeping per dispatched signal.
 
+# TODO - Why not lexicals?
 use vars (
  '@kr_signaled_sessions',            # The sessions touched by a signal.
  '$kr_signal_total_handled',         # How many sessions handled a signal.
@@ -186,31 +219,31 @@ sub _data_sig_finalize {
   while (my ($sig, $sig_rec) = each(%kr_signals)) {
     $finalized_ok = 0;
     _warn "!!! Leaked signal $sig\n";
-    while (my ($ses, $ses_rec) = each(%{$kr_signals{$sig}})) {
-      my ($event, $args) = @$ses_rec;
-      _warn "!!!\t$ses = $event (@$args)\n";
+    while (my ($sid, $ses_rec) = each(%{$kr_signals{$sig}})) {
+      my ($event, $args, $session) = @$ses_rec;
+      _warn "!!!\t$sid = $session -> $event (@$args)\n";
     }
   }
 
-  while (my ($ses, $ses_rec) = each(%kr_sessions_to_signals)) {
+  while (my ($sid, $ses_rec) = each(%kr_sessions_to_signals)) {
     $finalized_ok = 0;
-    _warn "!!! Leaked signal cross-reference: $ses\n";
-    while (my ($sig, $sig_rec) = each(%{$kr_signals{$ses}})) {
+    _warn "!!! Leaked signal cross-reference: $sid\n";
+    while (my ($sig, $sig_rec) = each(%{$kr_signals{$sid}})) {
       my ($event, $args) = @$sig_rec;
       _warn "!!!\t$sig = $event (@$args)\n";
     }
   }
 
-  while (my ($ses, $pid_rec) = each(%kr_sessions_to_pids)) {
+  while (my ($sid, $pid_rec) = each(%kr_sessions_to_pids)) {
     $finalized_ok = 0;
     my @pids = keys %$pid_rec;
-    _warn "!!! Leaked session to PID map: $ses -> (@pids)\n";
+    _warn "!!! Leaked session to PID map: $sid -> (@pids)\n";
   }
 
   while (my ($pid, $ses_rec) = each(%kr_pids_to_events)) {
     $finalized_ok = 0;
     _warn "!!! Leaked PID to event map: $pid\n";
-    while (my ($ses, $ev_rec) = each %$ses_rec) {
+    while (my ($sid, $ev_rec, $ses) = each %$ses_rec) {
       _warn "!!!\t$ses -> $ev_rec->[PID_EVENT] (@{$ev_rec->[PID_ARGS]})\n";
     }
   }
@@ -246,13 +279,16 @@ sub _data_sig_finalize {
 sub _data_sig_add {
   my ($self, $session, $signal, $event, $args) = @_;
 
-  $kr_sessions_to_signals{$session}->{$signal} = [ $event, $args || [] ];
-  $self->_data_sig_signal_watch($session, $signal);
-  $kr_signals{$signal}->{$session} = [ $event, $args || [] ];
+  my $sid = $session->ID;
+  $kr_sessions_to_signals{$sid}->{$signal} = [ $event, $args || [], $session ];
+  $self->_data_sig_signal_watch($sid, $signal);
+  $kr_signals{$signal}->{$sid} = [ $event, $args || [], $session ];
 }
 
 sub _data_sig_signal_watch {
-  my ($self, $session, $signal) = @_;
+  my ($self, $sid, $signal) = @_;
+
+  # TODO - $sid not used?
 
   # First session to watch the signal.
   # Ask the event loop to watch the signal.
@@ -266,7 +302,9 @@ sub _data_sig_signal_watch {
 }
 
 sub _data_sig_signal_ignore {
-  my ($self, $session, $signal) = @_;
+  my ($self, $sid, $signal) = @_;
+
+  # TODO - $sid not used?
 
   if (
     !exists($kr_signals{$signal}) and
@@ -280,18 +318,18 @@ sub _data_sig_signal_ignore {
 ### Remove a signal from a session.
 
 sub _data_sig_remove {
-  my ($self, $session, $signal) = @_;
+  my ($self, $sid, $signal) = @_;
 
-  delete $kr_sessions_to_signals{$session}->{$signal};
-  delete $kr_sessions_to_signals{$session}
-    unless keys(%{$kr_sessions_to_signals{$session}});
+  delete $kr_sessions_to_signals{$sid}->{$signal};
+  delete $kr_sessions_to_signals{$sid}
+    unless keys(%{$kr_sessions_to_signals{$sid}});
 
-  delete $kr_signals{$signal}->{$session};
+  delete $kr_signals{$signal}->{$sid};
 
   # Last watcher for that signal.  Stop watching it internally.
   unless (keys %{$kr_signals{$signal}}) {
     delete $kr_signals{$signal};
-    $self->_data_sig_signal_ignore($session, $signal);
+    $self->_data_sig_signal_ignore($sid, $signal);
   }
 }
 
@@ -302,17 +340,17 @@ sub _data_sig_remove {
 # mean that the session really doesn't exist.  Should we care?
 
 sub _data_sig_clear_session {
-  my ($self, $session) = @_;
+  my ($self, $sid) = @_;
 
-  if (exists $kr_sessions_to_signals{$session}) { # avoid autoviv
-    foreach (keys %{$kr_sessions_to_signals{$session}}) {
-      $self->_data_sig_remove($session, $_);
+  if (exists $kr_sessions_to_signals{$sid}) { # avoid autoviv
+    foreach (keys %{$kr_sessions_to_signals{$sid}}) {
+      $self->_data_sig_remove($sid, $_);
     }
   }
 
-  if (exists $kr_sessions_to_pids{$session}) { # avoid autoviv
-    foreach (keys %{$kr_sessions_to_pids{$session}}) {
-      $self->_data_sig_pid_ignore($session, $_);
+  if (exists $kr_sessions_to_pids{$sid}) { # avoid autoviv
+    foreach (keys %{$kr_sessions_to_pids{$sid}}) {
+      $self->_data_sig_pid_ignore($sid, $_);
     }
   }
 }
@@ -322,16 +360,18 @@ sub _data_sig_clear_session {
 sub _data_sig_pid_watch {
   my ($self, $session, $pid, $event, $args) = @_;
 
-  $kr_pids_to_events{$pid}{$session} = [
+  my $sid = $session->ID;
+
+  $kr_pids_to_events{$pid}{$sid} = [
     $session, # PID_SESSION
     $event,   # PID_EVENT
     $args,    # PID_ARGS
   ];
 
-  $self->_data_sig_signal_watch($session, "CHLD");
+  $self->_data_sig_signal_watch($sid, "CHLD");
 
-  $kr_sessions_to_pids{$session}{$pid} = 1;
-  $self->_data_ses_refcount_inc($session);
+  $kr_sessions_to_pids{$sid}{$pid} = 1;
+  $self->_data_ses_refcount_inc($sid);
 
   # Assume there's a child process.  This will be corrected on the
   # next polling interval.
@@ -339,37 +379,37 @@ sub _data_sig_pid_watch {
 }
 
 sub _data_sig_pid_ignore {
-  my ($self, $session, $pid) = @_;
+  my ($self, $sid, $pid) = @_;
 
   # Remove PID to event mapping.
 
-  delete $kr_pids_to_events{$pid}{$session};
+  delete $kr_pids_to_events{$pid}{$sid};
   delete $kr_pids_to_events{$pid} unless (
     keys %{$kr_pids_to_events{$pid}}
   );
 
   # Remove session to PID mapping.
 
-  delete $kr_sessions_to_pids{$session}{$pid};
-  unless (keys %{$kr_sessions_to_pids{$session}}) {
-    delete $kr_sessions_to_pids{$session};
-    $self->_data_sig_signal_ignore($session, "CHLD");
+  delete $kr_sessions_to_pids{$sid}{$pid};
+  unless (keys %{$kr_sessions_to_pids{$sid}}) {
+    delete $kr_sessions_to_pids{$sid};
+    $self->_data_sig_signal_ignore($sid, "CHLD");
   }
 
-  $self->_data_ses_refcount_dec($session);
+  $self->_data_ses_refcount_dec($sid);
 }
 
 sub _data_sig_pids_ses {
-  my ($self, $session) = @_;
-  return 0 unless exists $kr_sessions_to_pids{$session};
-  return scalar keys %{$kr_sessions_to_pids{$session}};
+  my ($self, $sid) = @_;
+  return 0 unless exists $kr_sessions_to_pids{$sid};
+  return scalar keys %{$kr_sessions_to_pids{$sid}};
 }
 
 sub _data_sig_pids_is_ses_watching {
-  my ($self, $session, $pid) = @_;
+  my ($self, $sid, $pid) = @_;
   return(
-    exists($kr_sessions_to_pids{$session}) &&
-    exists($kr_sessions_to_pids{$session}{$pid})
+    exists($kr_sessions_to_pids{$sid}) &&
+    exists($kr_sessions_to_pids{$sid}{$pid})
   );
 }
 
@@ -408,8 +448,9 @@ sub _data_sig_explicitly_watched {
 ### for introspection.
 
 sub _data_sig_watched_by_session {
-  my ($self, $session) = @_;
-  return %{$kr_sessions_to_signals{$session}};
+  my ($self, $sid) = @_;
+  return unless exists $kr_sessions_to_signals{$sid};
+  return %{$kr_sessions_to_signals{$sid}};
 }
 
 ### Which sessions are watching a signal?
@@ -435,10 +476,10 @@ sub _data_sig_handled_status {
 ### the shorter one.
 
 sub _data_sig_is_watched_by_session {
-  my ($self, $signal, $session) = @_;
+  my ($self, $signal, $sid) = @_;
   return(
     exists($kr_signals{$signal}) &&
-    exists($kr_signals{$signal}->{$session})
+    exists($kr_signals{$signal}->{$sid})
   );
 }
 
@@ -454,21 +495,22 @@ sub _data_sig_free_terminated_sessions {
     ($kr_signal_type & SIGTYPE_TERMINAL and !$kr_signal_total_handled)
   ) {
     foreach my $dead_session (@kr_signaled_sessions) {
-      next unless $self->_data_ses_exists($dead_session);
+      next unless $self->_data_ses_exists($dead_session->ID);
+
       if (TRACE_SIGNALS) {
         _warn(
           "<sg> stopping signaled session ",
-          $self->_data_alias_loggable($dead_session)
+          $self->_data_alias_loggable($dead_session->ID)
         );
       }
 
-      $self->_data_ses_stop($dead_session);
+      $self->_data_ses_stop($dead_session->ID);
     }
   }
 
   # Erase @kr_signaled_sessions, or they will leak until the next
   # signal.
-  undef @kr_signaled_sessions;
+  @kr_signaled_sessions = ();
 }
 
 ### A signal has touched a session.  Record this fact for later
@@ -553,13 +595,13 @@ sub _data_sig_handle_poll_event {
 
         if (exists $kr_pids_to_events{$pid}) {
           my @sessions_to_clear;
-          while (my ($ses_key, $ses_rec) = each %{$kr_pids_to_events{$pid}}) {
+          while (my ($sid, $ses_rec) = each %{$kr_pids_to_events{$pid}}) {
             $self->_data_ev_enqueue(
               $ses_rec->[PID_SESSION], $self, $ses_rec->[PID_EVENT], ET_SIGCLD,
               [ 'CHLD', $pid, $?, @{$ses_rec->[PID_ARGS]} ],
               __FILE__, __LINE__, undef, time(),
             );
-            push @sessions_to_clear, $ses_rec->[PID_SESSION];
+            push @sessions_to_clear, $sid;
           }
           $self->_data_sig_pid_ignore($_, $pid) foreach @sessions_to_clear;
         }

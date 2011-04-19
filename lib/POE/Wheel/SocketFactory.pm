@@ -2,7 +2,7 @@ package POE::Wheel::SocketFactory;
 
 use strict;
 
-use vars qw($VERSION);
+use vars qw($VERSION @ISA);
 $VERSION = '1.299'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( carp croak );
@@ -24,7 +24,7 @@ use Socket qw(
 use IO::Handle ();
 use FileHandle ();
 use POE qw( Wheel );
-use base qw(POE::Wheel);
+push @ISA, qw(POE::Wheel);
 
 sub CRIMSON_SCOPE_HACK ($) { 0 }
 sub DEBUG () { 0 }
@@ -60,19 +60,25 @@ BEGIN {
   }
 
   # Socket6 provides AF_INET6 and PF_INET6 where earlier Perls' Socket don't.
-  eval "use Socket qw(AF_INET6)";
-  if ($@) {
-    eval "use Socket6 qw(AF_INET6)";
+  {
+    # under perl-5.6.2 the warning "leaks" from the eval, while newer versions don't...
+    # it's due to Exporter.pm behaving differently, so we have to shut it up
+    no warnings 'redefine';
+    local *Carp::carp = sub { die @_ };
+    eval { require Socket; Socket->import('AF_INET6') };
     if ($@) {
-      *AF_INET6 = sub { ~0 };
+      eval { require Socket6; Socket6->import('AF_INET6') };
+      if ($@) {
+        *AF_INET6 = sub { ~0 };
+      }
     }
-  }
 
-  eval "use Socket qw(PF_INET6)";
-  if ($@) {
-    eval "use Socket6 qw(PF_INET6)";
+    eval { require Socket; Socket->import('PF_INET6') };
     if ($@) {
-      *PF_INET6 = sub { ~0 };
+      eval { require Socket6; Socket6->import('PF_INET6') };
+      if ($@) {
+        *PF_INET6 = sub { ~0 };
+      }
     }
   }
 }
@@ -329,9 +335,9 @@ sub _define_connect_state {
     }
   );
 
-  # Cygwin expects an error state registered to expedite.  This code
-  # is nearly identical the stuff above.
-  if ($^O eq "cygwin") {
+  # Cygwin and Windows expect an error state registered to expedite.
+  # This code is nearly identical the stuff above.
+  if ($^O eq "cygwin" or $^O eq "MSWin32") {
     $poe_kernel->state(
       $self->[MY_STATE_ERROR] = (
         ref($self) .  "($unique_id) -> connect error"
@@ -423,7 +429,7 @@ sub event {
       $self->[MY_SOCKET_HANDLE],
       $self->[MY_STATE_CONNECT]
     );
-    if ($^O eq "cygwin") {
+    if ($^O eq "cygwin" or $^O eq "MSWin32") {
       $poe_kernel->select_expedite(
         $self->[MY_SOCKET_HANDLE],
         $self->[MY_STATE_ERROR]
@@ -439,7 +445,10 @@ sub event {
 
 sub getsockname {
   my $self = shift;
-  return undef unless defined $self->[MY_SOCKET_HANDLE];
+  return undef unless (
+    defined $self->[MY_SOCKET_HANDLE] and
+    fileno($self->[MY_SOCKET_HANDLE])
+  );
   return getsockname($self->[MY_SOCKET_HANDLE]);
 }
 
@@ -646,58 +655,7 @@ sub new {
 
   # Don't block on socket operations, because the socket will be
   # driven by a select loop.
-
-  # RCC 2002-12-19: Replace the complex blocking checks and methods
-  # with IO::Handle's blocking(0) method.  This is theoretically more
-  # portable and less maintenance than rolling our own.  If things
-  # work out, we'll remove the commented out code.
-
-  # RCC 2003-01-20: Unfortunately, blocking() isn't available in perl
-  # 5.005_03, and people still use that.  We'll use blocking() for
-  # Perl 5.8.0 and beyond, since that's the first version of
-  # ActivePerl that has a problem.
-
-  if ($] >= 5.008) {
-    $socket_handle->blocking(0);
-  }
-  else {
-    # Do it the Win32 way.  XXX This is incomplete.
-    if ($^O eq 'MSWin32') {
-      my $set_it = "1";
-
-      # 126 is FIONBIO (some docs say 0x7F << 16)
-      ioctl(
-        $socket_handle,
-        0x80000000 | (4 << 16) | (ord('f') << 8) | 126,
-        \$set_it
-      ) or do {
-        $poe_kernel->yield(
-          $event_failure,
-          'ioctl', $!+0, $!, $self->[MY_UNIQUE_ID]
-        );
-        return $self;
-      };
-    }
-
-    # Do it the way everyone else does.
-    else {
-      my $flags = fcntl($socket_handle, F_GETFL, 0) or do {
-        $poe_kernel->yield(
-          $event_failure,
-          'fcntl', $!+0, $!, $self->[MY_UNIQUE_ID]
-        );
-        return $self;
-      };
-
-      $flags = fcntl($socket_handle, F_SETFL, $flags | O_NONBLOCK) or do {
-        $poe_kernel->yield(
-          $event_failure,
-          'fcntl', $!+0, $!, $self->[MY_UNIQUE_ID]
-        );
-        return $self;
-      };
-    }
-  }
+  $socket_handle->blocking(0);
 
   # Make the socket reusable, if requested.
   if (

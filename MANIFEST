@@ -57,7 +57,6 @@ lib/POE/Resource/FileHandles.pm
 lib/POE/Resource/SIDs.pm
 lib/POE/Resource/Sessions.pm
 lib/POE/Resource/Signals.pm
-lib/POE/Resource/Statistics.pm
 lib/POE/Resources.pm
 lib/POE/Session.pm
 lib/POE/Wheel.pm
@@ -77,6 +76,7 @@ mylib/events_per_second.pl
 mylib/gen-meta.perl
 mylib/gen-tests.perl
 mylib/svn-log.perl
+mylib/ForkingDaemon.pm
 t/00_info.t
 t/10_units/01_pod/01_pod.t
 t/10_units/01_pod/02_pod_coverage.t
@@ -137,7 +137,6 @@ t/20_resources/00_base/filehandles.pm
 t/20_resources/00_base/sessions.pm
 t/20_resources/00_base/sids.pm
 t/20_resources/00_base/signals.pm
-t/20_resources/00_base/statistics.pm
 t/90_regression/agaran-filter-httpd.t
 t/90_regression/averell-callback-ret.t
 t/90_regression/bingos-followtail.t
@@ -156,9 +155,12 @@ t/90_regression/rt19908-merlyn-stop.t
 t/90_regression/rt23181-sigchld-rc.t
 t/90_regression/rt47966-sigchld.t
 t/90_regression/rt56417-wheel-run.t
+t/90_regression/rt65460-forking.t
 t/90_regression/somni-poco-server-tcp.t
 t/90_regression/steinert-passed-wheel.t
 t/90_regression/suzman_windows.t
 t/90_regression/ton-stop-corruption.t
 t/90_regression/whelan-dieprop.t
 t/90_regression/whjackson-followtail.t
+t/90_regression/tracing-sane-exit.t
+t/90_regression/socketfactory-timeout.t

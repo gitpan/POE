@@ -15,11 +15,8 @@ BEGIN { use_ok("POE") }
 
 sub BOGUS_SESSION () { 31415 }
 
-my $baseline_event = 0;
-$baseline_event++ if POE::Kernel::TRACE_STATISTICS; # stat poll event
-
+my $baseline_event    = 0;
 my $baseline_refcount = 0;
-$baseline_refcount += 2 if POE::Kernel::TRACE_STATISTICS; # stat poll event
 
 # This subsystem is still very closely tied to POE::Kernel, so we
 # can't call initialize ourselves.  TODO Separate it, if possible,
@@ -49,12 +46,12 @@ $baseline_refcount += 2 if POE::Kernel::TRACE_STATISTICS; # stat poll event
   # A nonexistent session should have zero.
 
   is(
-    $poe_kernel->_data_ev_get_count_from($poe_kernel), $baseline_event,
+    $poe_kernel->_data_ev_get_count_from($poe_kernel->ID), $baseline_event,
     "POE::Kernel has enqueued correct number of events"
   );
 
   is(
-    $poe_kernel->_data_ev_get_count_to($poe_kernel), $baseline_event + 1,
+    $poe_kernel->_data_ev_get_count_to($poe_kernel->ID), $baseline_event + 1,
     "POE::Kernel has three events enqueued for it"
   );
 
@@ -71,7 +68,7 @@ $baseline_refcount += 2 if POE::Kernel::TRACE_STATISTICS; # stat poll event
   # Performance timer only counts once now.
 
   is(
-    $poe_kernel->_data_ses_refcount($poe_kernel), $baseline_refcount + 1,
+    $poe_kernel->_data_ses_refcount($poe_kernel->ID), $baseline_refcount + 1,
     "POE::Kernel's timer count is correct"
   );
 }
@@ -121,7 +118,7 @@ check_references(
 { # Remove one of the alarms by its ID.
 
   my ($time, $event) = $poe_kernel->_data_ev_clear_alarm_by_id(
-    $poe_kernel, $ids[1]
+    $poe_kernel->ID(), $ids[1]
   );
 
   is($time, 2, "removed event has the expected due time");
@@ -139,7 +136,7 @@ check_references(
   # did exist, except it doesn't.
 
   my ($time, $event) = $poe_kernel->_data_ev_clear_alarm_by_id(
-    $poe_kernel, 8675309
+    $poe_kernel->ID(), 8675309
   );
 
   ok(!defined($time), "can't clear bogus alarm by nonexistent ID");
@@ -169,7 +166,7 @@ is(
 # Remove the alarm by name, for real.  We should be down to one timer
 # (the original poll thing).
 
-$poe_kernel->_data_ev_clear_alarm_by_name($poe_kernel, "timer");
+$poe_kernel->_data_ev_clear_alarm_by_name($poe_kernel->ID(), "timer");
 check_references(
   $poe_kernel, 0, 0, 1, "after removing 'timer' by name"
 );
@@ -184,7 +181,7 @@ check_references(
 { # Remove the last of the timers.  The Kernel session is the only
   # reference left for it.
 
-  my @removed = $poe_kernel->_data_ev_clear_alarm_by_session($poe_kernel);
+  my @removed = $poe_kernel->_data_ev_clear_alarm_by_session($poe_kernel->ID());
   is(@removed, 1, "removed the last alarm successfully");
 
   # Verify that the removed timer is the correct one.  We still have
@@ -218,7 +215,7 @@ $poe_kernel->_data_ev_clear_session($poe_kernel);
     );
   };
   ok(
-    $@ && $@ =~ /can't enqueue event .*? for nonexistent session/,
+    $@ && $@ =~ /Can't locate object method "ID"/,
     "trap while enqueuing event for non-existent session"
   );
 }
@@ -261,13 +258,13 @@ $poe_kernel->_data_ev_clear_session($poe_kernel);
     $poe_kernel, 1, 1, 1, "after creating inter-session messages"
   );
 
-  $poe_kernel->_data_ev_clear_session($session);
+  $poe_kernel->_data_ev_clear_session($session->ID());
 
   check_references(
     $poe_kernel, 1, 0, 0, "after clearing inter-session messages"
   );
 
-  $poe_kernel->_data_ev_clear_session($poe_kernel);
+  $poe_kernel->_data_ev_clear_session($poe_kernel->ID());
 
   check_references(
     $poe_kernel, 1, 0, 0, "after clearing kernel messages"
@@ -296,11 +293,11 @@ ok(
 sub check_references {
   my ($session, $base_ref, $expected_from, $expected_to, $when) = @_;
 
-  my $from_count = $poe_kernel->_data_ev_get_count_from($session);
-  my $to_count   = $poe_kernel->_data_ev_get_count_to($session);
+  my $from_count = $poe_kernel->_data_ev_get_count_from($session->ID);
+  my $to_count   = $poe_kernel->_data_ev_get_count_to($session->ID);
 
   # Reference count stopped being simply the from + to + base counts.
-  #my $ref_count  = $poe_kernel->_data_ses_refcount($session);
+  #my $ref_count  = $poe_kernel->_data_ses_refcount($session->ID);
   #my $check_sum  = $from_count + $to_count + $base_ref;
   #is($check_sum, $ref_count, "refcnts $ref_count == $check_sum $when");
 
