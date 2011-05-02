@@ -1,4 +1,102 @@
 ================================
+2011-05-02 19:03:35 -0400 v1_311
+================================
+
+  commit 96afc60e9d18b3b4657f10ec3266afc604a5e7fd
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon May 2 19:03:35 2011 -0400
+  
+    Comment out a well-meaning warning that breaks all related tests.
+
+  commit 06a6722a46866759b10910f56783fc1b29b77cc6
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon May 2 19:03:13 2011 -0400
+  
+    Rely on new POE::Test::Loops.
+
+  commit 3235c524fa3cef7f483bebe7dbc26e9ccb6f35f0
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon May 2 18:56:19 2011 -0400
+  
+    Version bump for release.
+
+  commit 8c2ab4868bf60f362f6da48073c247d29432eb25
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun May 1 18:49:50 2011 -0400
+  
+    Document why POE doesn't use Dist::Zilla, so I have something to
+    reference when someone else suggests that it would be totally rad.
+
+  commit a67aa0e4053bb5eb2658c83366b678c0a510c3b1
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Apr 30 16:40:24 2011 -0400
+  
+    Avoid silent POE::Wheel::Run failures when stdio has been relocated.
+
+    If using POE::Wheel::Run to exec() a program, throw an error if
+    STDIN, STDOUT and STDERR do not have respective file descriptors 0, 1
+    and 2. Previously, POE::Wheel::Run would just fail to work without
+    any indication why. Makes the mysterious issue Hinrik found in
+    rt.cpan.org ticket 67798 less so.
+
+  commit 828b3239e6a222a6bfd6e04fa851c76440803daf
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Fri Apr 29 11:49:44 2011 -0700
+  
+    Bump Term::Cap prereq to 1.10, thanks Hinrik and Chris Cobucci for
+    tracking it down
+
+  commit 05578718bfc80db22fcf56ef3d9675b9f0be0c61
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Tue Apr 26 13:10:38 2011 -0700
+  
+    add TODO about possible improvement to ->kill on MSWin32
+
+  commit 4c04368123976ecd342cd6f4bd0be1f7996d6610
+  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
+  Date:   Sat Apr 23 23:58:08 2011 +0000
+  
+    Small grammar fix in Pod
+
+  commit 5c2367d830051321fbf256bfab91beb843d30c40
+  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
+  Date:   Sat Apr 23 20:21:18 2011 +0000
+  
+    Use Z<> to remove all TODOs from formatted Pod
+
+  commit 88db91a2921f11a94335c2361a622ccb120af5d1
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Tue Apr 19 21:39:37 2011 -0700
+  
+    add proper checks for ipv6 stuff in Makefile.PL
+
+  commit e57754aa7a3c91231cc965034101551d6514e8d5
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Tue Apr 19 21:22:24 2011 -0700
+  
+    re-tweak the ipv6 stuff *AGAIN* so it checks Socket.pm for
+    getaddrinfo to be future-compatible with 5.14
+
+  commit a12120d1e6af19c419b5ef299c3bffcedc652b0d
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Tue Apr 19 20:22:11 2011 -0700
+  
+    make the ipv6 stuff confess if it isnt available
+
+  commit da04c721880406bd1fd5f4bc0200724eeac726c8
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Mon Apr 18 23:57:10 2011 -0700
+  
+    add todo to poco-client-tcp about missing (input|output)filter param
+
+  commit 374c897ef32ef77deb1fbdc0928b06ffaf5f95c4
+  Author: Apocalypse <perl@0ne.us>
+  Date:   Mon Apr 18 23:49:43 2011 -0700
+  
+    make code follow what docs say regarding usage of
+    ClientFilter/ClientInputFilter/ClientOutputFilter 
+
+================================
 2011-04-19 12:48:40 -0400 v1_310
 ================================
 

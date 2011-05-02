@@ -6,7 +6,7 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION);
-$VERSION = '1.310'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.311'; # NOTE - Should be #.### (three decimal places)
 
 sub import {
   my $self = shift;
@@ -685,8 +685,8 @@ author of L<Sprocket>, a networking framework built on POE.
 Please contact the author if you've been forgotten and would like to
 be included here.
 
-TODO - This section has fallen into disrepair.  A POE historian needs
-to cull the CHANGES for the names of major contributors.
+Z<TODO - This section has fallen into disrepair.  A POE historian needs
+to cull the CHANGES for the names of major contributors.>
 
 =back
 

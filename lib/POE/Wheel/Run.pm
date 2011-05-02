@@ -3,7 +3,7 @@ package POE::Wheel::Run;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.299'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.311'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -255,6 +255,17 @@ sub new {
       join(', ', sort keys %params)
     );
   }
+
+#  # Did the user mangle stdio?
+#  # TODO - This means well, but it doesn't realy work.
+#  unless (ref($program) eq 'CODE') {
+#    croak "Someone has closed or moved STDIN... exec() won't find it"
+#      unless fileno(STDIN) or fileno(STDIN) != 0;
+#    croak "Someone has closed or moved STDOUT... exec() won't find it"
+#      unless fileno(STDOUT) or fileno(STDOUT) != 1;
+#    croak "Someone has closed or moved STDERR... exec() won't find it"
+#      unless fileno(STDERR) or fileno(STDERR) != 2;
+#  }
 
   my (
     $stdin_read, $stdout_write, $stdout_read, $stdin_write,
@@ -1135,6 +1146,7 @@ sub kill {
   my ($self, $signal) = @_;
   $signal = 'TERM' unless defined $signal;
   if ( $self->[MSWIN32_GROUP_PID] ) {
+    # TODO use https://rt.cpan.org/Ticket/Display.html?id=67774 when available :)
     Win32::Process::KillProcess( $self->[MSWIN32_GROUP_PID], 293 ) ? 1 : 0;
   }
   else {
@@ -1500,7 +1512,7 @@ from STDOUT.
 The L<IO::Pty> module is only loaded if "pty" or "pty-pipe" is used.
 It's not a dependency until it's actually needed.
 
-TODO - Example.
+Z<TODO - Example.>
 
 =head4 Winsize
 

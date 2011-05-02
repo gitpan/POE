@@ -3,11 +3,28 @@ package POE::Component::Server::TCP;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.299'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.311'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
 use Errno qw(ECONNABORTED ECONNRESET);
+
+BEGIN {
+  # under perl-5.6.2 the warning "leaks" from the eval, while newer versions don't...
+  # it's due to Exporter.pm behaving differently, so we have to shut it up
+  no warnings 'redefine';
+  local *Carp::carp = sub { die @_ };
+
+  # Socket::GetAddrInfo provides getaddrinfo where earlier Perls' Socket don't.
+  eval { Socket->import('getaddrinfo') };
+  if ($@) {
+    # :newapi is legacy, but we include it to be sure in case the user has an old version of GAI
+    eval { require Socket::GetAddrInfo; Socket::GetAddrInfo->import( qw(:newapi getaddrinfo) ) };
+    if ($@) {
+      *getaddrinfo = sub { Carp::confess("Unable to use IPv6: Socket::GetAddrInfo not available") };
+    }
+  }
+}
 
 # Explicit use to import the parameter constants.
 use POE::Session;
@@ -116,6 +133,16 @@ sub new {
   }
 
   my $client_args = delete($param{ClientArgs}) || delete($param{Args});
+
+  if ( (defined $client_infilter and ! defined $client_outfilter) or
+    (defined $client_outfilter and ! defined $client_infilter) ) {
+    croak "ClientInputFilter must be used with ClientOutputFilter";
+  }
+
+  if (defined $client_filter and defined $client_infilter) {
+    carp "ClientFilter ignored with ClientInputFilter and ClientOutputFilter";
+    undef $client_filter;
+  }
 
   # Defaults.
 
@@ -264,9 +291,7 @@ sub new {
                 $heap->{remote_ip} = inet_ntoa($remote_addr);
               }
               else {
-                $heap->{remote_ip} = (
-                  Socket::GetAddrInfo::getaddrinfo($remote_addr)
-                )[1];
+                $heap->{remote_ip} = ( getaddrinfo($remote_addr) )[1];
               }
 
               $heap->{remote_port} = $remote_port;
@@ -534,14 +559,9 @@ sub _get_filters {
         "InputFilter"  => _load_filter($client_infilter),
         "OutputFilter" => _load_filter($client_outfilter)
       );
-      if (defined $client_filter) {
-        carp(
-          "ClientFilter ignored with ClientInputFilter or ClientOutputFilter"
-        );
-      }
     }
     elsif (defined $client_filter) {
-     return ( "Filter" => _load_filter($client_filter) );
+      return ( "Filter" => _load_filter($client_filter) );
     }
     else {
       return ( Filter => POE::Filter::Line->new(), );
@@ -724,8 +744,8 @@ connection---and not in the master listening session.  This has been a
 major point of confusion.  We welcome suggestions for making this
 clearer.
 
-TODO - Document some of the implications of having each connection
-handled by a separate session.
+Z<TODO - Document some of the implications of having each connection
+handled by a separate session.>
 
 The component's C<ClientInput> callback defines how child sessions
 will handle input from their clients.  Its parameters are that of
@@ -828,7 +848,7 @@ They are covered briefly again below.
 These constructor parameters affect POE::Component::Server::TCP's main
 listening session.
 
-TODO - Document the shutdown procedure somewhere.
+Z<TODO - Document the shutdown procedure somewhere.>
 
 =head4 Acceptor
 
@@ -865,7 +885,7 @@ supports.  At the time of this writing, that may be a dotted IPv4
 quad, an IPv6 address, a host name, or a packed Internet address.  See
 also L</Hostname>.
 
-TODO - Example, using the lines below.
+Z<TODO - Example, using the lines below.>
 
   Address => '127.0.0.1'   # Localhost IPv4
   Address => "::1"         # Localhost IPv6
@@ -932,9 +952,10 @@ C<Domain> sets the address or protocol family within which to operate.
 The C<Domain> may be any value that POE::Wheel::SocketFactory
 supports.  AF_INET (Internet address space) is used by default.
 
-Use AF_INET6 for IPv6 support.  This constant is exported by Socket.
-Also be sure to have Socket::GetAddrInfo installed, which is required
-by POE::Wheel::SocketFactory for IPv6 support.
+Use AF_INET6 for IPv6 support.  This constant is exported by L<Socket>
+or L<Socket6>, depending on your version of Perl. Also be sure to have
+L<Socket::GetAddrInfo> installed, which is required by
+L<POE::Wheel::SocketFactory> for IPv6 support.
 
 =head4 Error
 
@@ -1123,7 +1144,9 @@ given object.
   ClientFilter => POE::Filter::Line->new(Literal => "\n"),
 
 C<ClientFilter> is optional.  The component will use
-"POE::Filter::Line" if it is omitted.
+"POE::Filter::Line" if it is omitted.  There is L</ClientInputFilter>
+and L</ClientOutputFilter> if you want to specify a different filter
+for both directions.
 
 Filter modules are not automatically loaded.  Be sure that the program
 loads the class before using it.
@@ -1174,7 +1197,8 @@ prohibits the other.
 
 C<ClientInputFilter> is used with C<ClientOutputFilter> to specify
 different protocols for input and output.  Both must be used together.
-Both follow the same usage as L</ClientFilter>.
+Both follow the same usage as L</ClientFilter>.  Overrides the filter set
+by L</ClientFilter>.
 
   ClientInputFilter  => [ "POE::Filter::Line", Literal => "\n" ],
   ClientOutputFilter => 'POE::Filter::Stream',
@@ -1183,7 +1207,8 @@ Both follow the same usage as L</ClientFilter>.
 
 C<ClientOutputFilter> is used with C<ClientInputFilter> to specify
 different protocols for input and output.  Both must be used together.
-Both follow the same usage as L</ClientFilter>.
+Both follow the same usage as L</ClientFilter>.  Overrides the filter set
+by L</ClientFilter>.
 
   ClientInputFilter  => POE::Filter::Line->new(Literal => "\n"),
   ClientOutputFilter => 'POE::Filter::Stream',
@@ -1385,7 +1410,7 @@ Some use cases require different session classes for the listener and
 the connection handlers.  This isn't currently supported.  Please send
 patches. :)
 
-TODO - Document that Reuse is set implicitly.
+Z<TODO - Document that Reuse is set implicitly.>
 
 =head1 AUTHORS & COPYRIGHTS
 
