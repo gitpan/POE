@@ -1,4 +1,82 @@
 ================================
+2011-07-28 22:34:13 -0400 v1_312
+================================
+
+  commit 6ec943edbcfea9d299bc3da8e453ae4edc76627f
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Jul 28 22:34:13 2011 -0400
+  
+    Bump the version.
+
+  commit a4b961a547bb32d4bd9057fb9e0501aa138f602a
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Jul 28 01:52:35 2011 -0400
+  
+    Apply Stephen Oberholtzer's patch to fix a test freeze.
+
+    IO::Handle->blocking() is broken on MSWin32, locking up
+    t/10_units/04_drivers/01_sysrw.t in some cases. Stephen provided a
+    patch to Perl and to POE to work around the issue. It's portable
+    enough that things shouldn't immediately break after Perl is fixed.
+
+    Resolves rt.cpan.org ticket #69769.
+
+  commit 2cd1404a6fc0d6ed0e6361d75e1e9d67837889db
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed Jul 27 02:27:29 2011 -0400
+  
+    getnameinfo() returns host and port in the opposite order of
+    unpack_sockaddr_in(). Swap the return values so the right ones appear
+    in ARG1 and ARG2. Thanks to Luiz Eduardo Roncato Cordeiro at CERT
+    Brazil for spotting the problem and suggesting the fix. This should
+    resolve his rt.cpan.org ticket, #68959.
+
+  commit b17a3d894fa6f11deef4e7187e87fd5061058cb9
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed Jul 27 01:50:25 2011 -0400
+  
+    Add stack traces to _data_handle_remove() failures.
+
+  commit 9bcbb9098bf12139b4f80ef96650eafba3e1d95b
+  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
+  Date:   Tue Jun 21 21:07:37 2011 +0000
+  
+    Add note about Perl 5.6 issues with '>&' open mode
+
+  commit 937f52e99ce487326a176c0742fb20fc71b32bf1
+  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
+  Date:   Sun May 22 06:37:34 2011 +0000
+  
+    Document using getsockname to verify a listening socket
+
+  commit f0eff5d176cd9e5522bd8d2d2461396f704f2429
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed May 18 14:07:20 2011 -0400
+  
+    Localize $SIG{__DIE__} when rethrowing userspace exceptions from a
+    safe point. Avoids shenanigans at a distance when reporting on
+    userspace errors. May thwart someone's exception handling, but I
+    don't know a good way to satisfy everyone here. Suggestions?
+
+  commit 9a8c4a3871456ef70ecf82085b4af2f6bc0e1509
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat May 14 17:23:41 2011 -0400
+  
+    Don't fail t/00_info.t if POE::Test::Loops is unavailable.
+
+    This test dependency is intended to be optional, and the loop tests
+    should be skipped if the user doesn't want them. Problem reported by
+    skbz in irc.perl.org #poe, related to cpanm installing
+    POE::Test:Loops in a user-local directory but not looking there when
+    installing POE.
+
+  commit e6887bddb925a775960a168e4dabcf700b2c376c
+  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
+  Date:   Tue May 3 00:04:26 2011 +0000
+  
+    Fix mangled stdio checks. This one passes all tests. 
+
+================================
 2011-05-02 19:03:35 -0400 v1_311
 ================================
 
@@ -735,155 +813,6 @@
   Date:   Sat Jul 31 21:06:55 2010 -0400
   
     Fix a method name typo in TRACE_REFCNT code. 
-
-================================
-2010-07-27 06:53:32 -0400 v1_291
-================================
-
-  commit df209368632f8bee8e09f4b017d50b62d1b6e0f8
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Jul 27 06:53:32 2010 -0400
-  
-    New version to spackle over failed one.
-
-  commit 7fed29a69cba29f750343a97485e849bf6fdc5f2
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Jul 27 06:45:14 2010 -0400
-  
-    Version bump for release.
-
-  commit bc22cf37259ed0e9d02a38cd290c720bb4e6f72d
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Jul 27 03:27:28 2010 -0400
-  
-    Nick Perez pointed out that we don't absolutely need HighEvent, since
-    put() returns the high-water status much more conveniently. Resolve
-    his rt.cpan.org ticket 56432. Oh, and fix an unrelated test plan.
-
-  commit 408f95a049c9ccfe1953dbe8dae49ffda3145c4e
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Jul 27 03:10:33 2010 -0400
-  
-    Clarify the refcount_{inc,dec}rement() return values per Olivier
-    'dolmen' Mengué's feedback in rt.cpan.org #57314.
-
-  commit c3c9baf7608d649370912015b6f4d7275f44ec4c
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Jul 26 16:51:42 2010 -0400
-  
-    Remove some logic that stopped being used. Adjust idle-kernel checks
-    into a slightly more optimal order.
-
-  commit 9875a762b1c562edcd29b160abb8f564fc610c70
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Jul 26 16:50:19 2010 -0400
-  
-    Finish a sentence. Incomplete docs noted by Hinrik.
-
-  commit 4667e71ad75ae0a12514af8cbb0b10b00b1144c9
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Jul 25 22:23:18 2010 -0400
-  
-    Move non-alarms out of POE::Queue::Array.
-
-  commit 8179ee15387851215f0f5c0b218dccc61485f788
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jul 24 22:09:15 2010 -0400
-  
-    Reduce calls to get_item_count() by one per _data_ev_dispatch_due().
-    Reduce calls to get_next_priority() by approx. one per
-    _data_ev_dispatch_due(). Micro-optimize get_item_count().
-
-  commit cdc090b32dc6d3307317eba948dc23b4d751398b
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jul 24 19:38:53 2010 -0400
-  
-    Fix tests related to recent POE::Resource::Events optimizations.
-
-  commit 629ad38844641ae289b212732f3f7f2802c7c5fb
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jul 24 19:38:09 2010 -0400
-  
-    At long last, apply Ton Hospel's micro-optimization for
-    get_next_priority().
-
-  commit 2b188737c30978eff9b275ace592368ce31afda4
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jul 24 18:35:35 2010 -0400
-  
-    Small optimizations. Avoid _data_stat_add() calls when not needed.
-    Avoid redundant session refcounts when the source and destination are
-    the same. Breaks some pedantic tests, but we can fix those.
-
-  commit ceca5b87d171121a299e7ad611dd1cdf80c19376
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Jun 23 14:52:42 2010 -0400
-  
-    Apply Hinrik's test changes from http://gist.github.com/449231
-
-  commit b25e3127f6f750a2ef61dffe4b06d6daf60a1a52
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Jun 22 20:57:27 2010 -0400
-  
-    Apply Hinrik's patch to catch die() and his test case for proper
-    shutdown if a child coderef process dies.
-
-  commit 2817b50d86e8a34fa139283d44965e2afb1e5815
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Jun 22 15:47:35 2010 -0400
-  
-    Fix a method typo at Hinrik Örn Sigurðsson's prompting. Also
-    improve stdio closing on exec() errors, just in case.
-
-  commit ee6f8bd9ae7000b3ac498070a94df405726bdb67
-  Author: Larwan Berke <larwan@0ne.us>
-  Date:   Mon Jun 21 18:01:49 2010 -0400
-  
-    Add TODO test for double POE::Loop loading
-
-  commit ddab68974e70ee359bd0e72e4f6f46cfaca255ea
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Jun 9 18:18:00 2010 -0400
-  
-    Add support for POE_CATCH_EXCEPTIONS environment variable. Apply
-    Justin Hunter's doc patch for POE::XS::Loop::EPoll.
-
-  commit 5b63048ea760c96d4d60f2dd30e36358115b71ff
-  Author: Larwan Berke <larwan@0ne.us>
-  Date:   Fri May 28 18:50:05 2010 -0400
-  
-    Tweak the test so it uses RELEASE_TESTING
-
-  commit e979f83499bdce5f21bc74ea7b569ae7b07c0e4e
-  Author: Larwan Berke <larwan@0ne.us>
-  Date:   Fri May 28 04:15:55 2010 -0400
-  
-    Fix invalid POD links
-
-  commit bf4640378815e8d00a84e5252aa8b5a8062190ac
-  Author: Larwan Berke <larwan@0ne.us>
-  Date:   Sun May 16 01:23:13 2010 -0400
-  
-    Remove the obnoxious warning about the win32 leak in Wheel::Run
-
-  commit 5ac44caa0e87efd0893ae70e360f49a82a02def5
-  Author: Larwan Berke <larwan@0ne.us>
-  Date:   Sun Apr 11 02:55:48 2010 -0400
-  
-    Add proper exitval handling to POE::Wheel::Run, the previous patch
-    munged it :(
-
-  commit 1dc680feb5ac1f3e07ae759ff80263929c6c0b37
-  Author: Larwan Berke <larwan@0ne.us>
-  Date:   Fri Apr 9 07:54:35 2010 -0400
-  
-    Add deprecation warning for 'Winsize' to POE::Wheel::Run->new
-
-  commit 933bcd90aad5b30909da7d154bdea3b86ca6b127
-  Author: Larwan Berke <larwan@0ne.us>
-  Date:   Fri Apr 9 07:32:26 2010 -0400
-  
-    Patch POE::Wheel::Run for RT#56417 and add a test+more docs 
 
 ==============
 End of Excerpt

@@ -3,7 +3,7 @@ package POE::Wheel::SocketFactory;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.311'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.312'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -189,7 +189,7 @@ sub _define_accept_state {
         }
         elsif ( $domain eq DOM_INET6 ) {
           $peer = getpeername($new_socket);
-          ((my $error), $peer_port, $peer_addr) =  getnameinfo($peer);
+          ((my $error), $peer_addr, $peer_port) =  getnameinfo($peer);
           warn $error if $error;
         }
         else {
@@ -309,7 +309,7 @@ sub _define_connect_state {
       # INET6 socket stacks tend not to.
       elsif ($domain eq DOM_INET6) {
         if (defined $peer) {
-          ((my $error), $peer_port, $peer_addr) = getnameinfo($peer);
+          ((my $error), $peer_addr, $peer_port) = getnameinfo($peer);
           if ($error) {
             warn $error;
             $peer_port = $peer_addr = undef;
@@ -1443,7 +1443,20 @@ to which POE::Wheel::SocketFactory has bound its listening socket.
 Test applications may use getsockname() to find the server socket
 after POE::Wheel::SocketFactory has bound to INADDR_ANY port 0.
 
-Z<TODO - Example.>
+Since there is no event fired immediately after a successful creation of a
+listening socket, applications can use getsockname() to verify this.
+
+ use Socket 'unpack_sockaddr_in';
+
+ my $listener = POE::Wheel::SocketFactory->new(
+     BindPort     => 123,
+     SuccessEvent => 'got_client',
+     FailureEvent => 'listener_failed',
+     Reuse        => 'on',
+ );
+
+ my ($port, $addr) = unpack_sockaddr_in($listener->getsockname);
+ print "Socket successfully bound\n" if $port;
 
 =head2 ID
 
