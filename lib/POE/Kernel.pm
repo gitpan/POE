@@ -3,7 +3,7 @@ package POE::Kernel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.312'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.350'; # NOTE - Should be #.### (three decimal places)
 
 use POSIX qw(uname);
 use Errno qw(ESRCH EINTR ECHILD EPERM EINVAL EEXIST EAGAIN EWOULDBLOCK);
@@ -496,7 +496,7 @@ sub _load_loop {
 
 sub _test_loop {
   my $used_first = shift;
-  local $SIG{__DIE__} = "DEFAULT";
+  local $SIG{__DIE__};
 
   # First see if someone wants to load a POE::Loop or XS version
   # explicitly.
@@ -602,7 +602,7 @@ sub _test_if_kernel_is_idle {
       " (vs. idle size = ", $idle_queue_size, ")\n",
       "<rc> | Files  : ", $self->_data_handle_count(), "\n",
       "<rc> | Extra  : ", $self->_data_extref_count(), "\n",
-      "<rc> | Procs  : ", $self->_data_sig_child_procs(), "\n",
+      "<rc> | Procs  : ", $self->_data_sig_kernel_awaits_pids(), "\n",
       "<rc> | Sess   : ", $self->_data_ses_count(), "\n",
       "<rc> `---------------------------\n",
       "<rc> ..."
@@ -626,7 +626,7 @@ sub _test_if_kernel_is_idle {
     $kr_queue->get_item_count() > $idle_queue_size or
     $self->_data_handle_count() or
     $self->_data_extref_count() or
-    $self->_data_sig_child_procs() or
+    $self->_data_sig_kernel_awaits_pids() or
     !$self->_data_ses_count()
   );
 
@@ -1014,7 +1014,11 @@ sub _dispatch_event {
     defined $session
   );
 
+  my $new_sig_die;
   if ($type & (ET_CALL | ET_START | ET_STOP)) {
+    # Don't trigger $SIG{__DIE__} until we're ready to rethrow it.
+    local $SIG{__DIE__};
+
     eval {
       if ($wantarray) {
         $return = [
@@ -1034,14 +1038,25 @@ sub _dispatch_event {
         );
       }
     };
+
+    $new_sig_die = $SIG{__DIE__};
   }
   else {
+    # Don't trigger $SIG{__DIE__} until we're ready to rethrow it.
+    local $SIG{__DIE__};
+
     eval {
       $session->_invoke_state(
         $source_session, $event, $etc, $file, $line, $fromstate
       );
     };
+
+    $new_sig_die = $SIG{__DIE__};
   }
+
+  # If the user changed $SIG{__DIE__}, then we should honor that.
+  # Otherwise, by the time we get here, the last one is restored.
+  $SIG{__DIE__} = $new_sig_die if defined $new_sig_die;
 
   # local $@ doesn't work quite the way I expect, but there is a
   # bit of a problem if an eval{} occurs here because a signal is
@@ -1059,7 +1074,9 @@ sub _dispatch_event {
 
       # Exceptions in _stop are rethrown unconditionally.
       # We can't enqueue them--the session is about to go away.
-      if ($type & ET_STOP) {
+      # Also if the active session has been forced back to $self via
+      # POE::Kernel->stop().
+      if ($type & ET_STOP or $kr_active_session eq $self) {
         $kr_exception = $exception;
       }
       else {
@@ -1079,12 +1096,12 @@ sub _dispatch_event {
       }
     }
   }
-  else {
-    if (ref($@) or $@ ne '') {
-      # Avoid shenanigans at a distance.
-      local $SIG{__DIE__};
-      die "$@\n";
-    }
+  elsif (ref $@) {
+    die $@;
+  }
+  elsif ($@ ne '') {
+    # Stringification hides "...propagated at".
+    die $@;
   }
 
   # Call with exception catching.
@@ -1284,10 +1301,9 @@ sub stop {
   $poe_kernel->has_forked() if $kr_pid != $$;
 
   # TODO - If we're polling for signals, then the reset gets it wrong.
-  # The reset only counts statistics tracing, not sigchld polling.  If
-  # we must put this back, it MUST account for all internal events
-  # currently in play, or the child process will stall if it reruns
-  # POE::Kernel's loop.
+  # The reset doesn't count sigchld polling.  If we must put this
+  # back, it MUST account for all internal events currently in play,
+  # or the child process will stall if it reruns POE::Kernel's loop.
   #_idle_queue_reset();
 
   return;

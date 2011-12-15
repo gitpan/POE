@@ -3,7 +3,7 @@
 package POE::Resource::Sessions;
 
 use vars qw($VERSION);
-$VERSION = '1.312'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.350'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -477,11 +477,11 @@ sub _data_ses_dump_refcounts {
     "<rc> | handles in use: ", $self->_data_handle_count_ses($sid), "\n",
     "<rc> | aliases in use: ", $self->_data_alias_count_ses($sid), "\n",
     "<rc> | extra refs    : ", $self->_data_extref_count_ses($sid), "\n",
-    "<rc> | pid count     : ", $self->_data_sig_pids_ses($sid), "\n",
+    "<rc> | pid count     : ", $self->_data_sig_session_awaits_pids($sid), "\n",
     "<rc> +---------------------------------------------------\n",
   );
 
-  unless ($ss->[SS_REFCOUNT]) {
+  unless ($ss->[SS_REFCOUNT] and $self->_data_sig_session_awaits_pids($sid)) {
     _warn(
       "<rc> | ", $self->_data_alias_loggable($sid),
       " is eligible for garbage collection.\n",

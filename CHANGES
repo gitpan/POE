@@ -1,4 +1,44 @@
 ================================
+2011-12-15 15:53:01 -0500 v1_350
+================================
+
+  commit ba53ec4bdd9cacbb18cd3cb82c944ad40739240f
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Dec 15 15:53:01 2011 -0500
+  
+    Bump revision to 1.350.
+
+  commit eae7a261fc6cf5b2950b5cd92fd8d394f078688c
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed Dec 7 10:06:29 2011 -0500
+  
+    Don't block on active child processes at endtime.
+
+    It's important to note that child processes exist, but we don't need
+    to wait around for them. Reap the ones that have already exited, and
+    alert the user if at least one active process remains after that.
+    Return immediately; don't wait for it/them to exit.
+
+  commit ecd5a778a807dad3d820f3537967d972877f560c
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed Aug 17 15:10:11 2011 -0400
+  
+    Avoid trying to dispatch SIGDIE to sessions in a POE::Kernel that has
+    been made defunct by the stop() method. This resolves at least one
+    "please report this stacktrace" bug.
+
+  commit 8e782eba985c85f6e074ca59b17e773c687f097e
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Aug 5 14:32:50 2011 -0400
+  
+    Allow event handlers to persistently alter $SIG{__DIE__}.
+
+    Prior to this change, modifications to $SIG{__DIE__} in event
+    handlers would be lost due to that signal entry being localized. This
+    brings up an interesting question: Should the rest of %SIG be
+    localized? 
+
+================================
 2011-07-28 22:34:13 -0400 v1_312
 ================================
 
@@ -712,107 +752,6 @@
   Date:   Fri Dec 3 23:42:02 2010 -0500
   
     Convert the changelog and repository metadata to Git. 
-
-================================
-2010-11-18 22:38:33 -0500 v1_294
-================================
-
-  commit 8f2bd20e7c319aae4f7b3fb2a1955398df0946e0
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Nov 18 22:38:33 2010 -0500
-  
-    New version for a new release. Require a new POE::Test::Loops.
-
-  commit 5d0c406bd1bcf20503447d9f49b92656cfd2c06e
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Sat Oct 2 22:47:11 2010 +0000
-  
-    Mention that "use POE;" warrants has_forked() after forking
-
-  commit 2c5706cc158accc76f31bb86fc74dd9caf1c21d8
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Mon Sep 27 16:05:58 2010 +0000
-  
-    Fix 'CleintInput' typo in poco-server-tcp's Pod 
-
-================================
-2010-09-04 19:18:59 -0400 v1_293
-================================
-
-  commit 21c4dc16468003c4574b74566db0c27d52241cd2
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Sep 4 19:18:59 2010 -0400
-  
-    Bump version for release.
-
-  commit 058fb2126d9dd76ef173402ba80563c67c916dfa
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Sep 4 06:51:47 2010 -0400
-  
-    Add user continuation parameters to sig() and sig_child().
-
-    Roll back most of the lexical FIFO event arrays. Going through a
-    POE::Queue for this will be a bit slower, but POE::XS::Queue::Array
-    may be fast enough.
-
-    Continue to guarantee FIFO event ordering despite the rollback to
-    dumping them in a time-ordered queue. Detect minor time regressions,
-    and use the last time value plus a small number when needed.
-
-  commit a0abb628ed2bdb7b37bf2a16c4630ee91f80e16c
-  Author: Chris Williams <chris@bingosnet.co.uk>
-  Date:   Fri Aug 27 12:28:15 2010 -0400
-  
-    Fixed a mistake in the alias_list() example code in POE::Kernel
-    documentation, spotted by Paul G Webster
-
-  commit 35b797f750e656b5c328f45b5e130b71b15c57c6
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Aug 13 18:32:41 2010 -0400
-  
-    Chris Benedict reported that Mac OS X returns ESPIPE when accept() is
-    aborted, rather than ECONNABORTED everywhere else. Add ESPIPE to the
-    list of harmless accept() errors.
-
-  commit 8876a82acd39ce434a58f75252e76d7611a09a89
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Aug 13 17:42:03 2010 -0400
-  
-    Chris Benedict reported that nmap will crash Wheel::SocketFactory
-    based things. nmap disconnects before accept() can be called, so
-    accept() returns ECONNABORTED. Technically applications can handle
-    this themselves and not destroy the wheel, but the wheel maybe
-    shouldn't report harmless errors.
-
-  commit 3f5fc1e371769e4f82694c345dfcb6c2135b361c
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Aug 3 16:17:10 2010 -0400
-  
-    Apply Hinrik's patch to increase test failure verbosity. 
-
-================================
-2010-08-02 05:57:17 -0400 v1_292
-================================
-
-  commit 1d6d7b68a73b556a447303cc44528ea5535560cb
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Aug 2 05:57:17 2010 -0400
-  
-    Bump revision for release.
-
-  commit d18f718b0bc090792740160460953ab57492c00b
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Aug 2 05:55:27 2010 -0400
-  
-    Resolve rt.cpan.org 59925, wherein sig_child() use would increase
-    some events' latency to at 1sec. First reported by Getty, then Avar
-    opened the ticket. Fixed with Hinrik's copious valuable assistance.
-
-  commit d8bf3d465c2ada17a42fd487fb03840414014d92
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jul 31 21:06:55 2010 -0400
-  
-    Fix a method name typo in TRACE_REFCNT code. 
 
 ==============
 End of Excerpt
