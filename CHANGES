@@ -1,4 +1,73 @@
 ================================
+2012-03-11 14:40:57 -0400 v1_351
+================================
+
+  commit 476c7e5d79b6935218d8ec048a191ddd974b4c24
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Mar 11 14:40:57 2012 -0400
+  
+    Bump versions for release.
+
+  commit 8a0894ef9c2be24d9681c166d2fbfb1970a02fbb
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Mar 11 11:32:46 2012 -0400
+  
+    [rt.cpan.org 67680] Use IO::Handle::blocking() rather than
+    $fh->blocking().
+
+    Some file handles, such as my $fh = do { no warnings; local *FH };
+    can't be used as IO::Handle objects. IO::Handle::blocking($fh) seems
+    to work, though.
+
+    This was caught by Troy, who was nice enough to open the bug. Thanks!
+
+  commit 61da9a35079aa61cdcbcf2ed3345d91d4baac218
+  Author: Mark Nunberg <mnunberg@haskalah.org>
+  Date:   Mon Dec 19 00:18:34 2011 -0800
+  
+    STDIN stays open by default
+
+  commit b21285bb449f39dec8c507b595bda0a389cd485d
+  Author: Mark Nunberg <mnunberg@haskalah.org>
+  Date:   Thu Dec 15 13:29:34 2011 -0800
+  
+    Allow ::Run to discard stdio file descriptors
+
+    - Std{in|out|err}Event no longer required - Stdio file descriptor
+    discarded for each stdio
+
+    which lacks a corresponding event (except read) - Added option to not
+    open stdin - Added option to redirect stdio to/from other filenames
+    or filehandles
+
+    - Corresponding fix needed for test-loops
+
+  commit d78e3d2fdcd999375fbb496fd206e64c649ebe55
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Jan 24 23:28:44 2012 -0500
+  
+    Work around a consistent timeout issue in Hinrik's POE::Wheel::Run
+    test.
+
+    There is a mysterious 5sec delay when starting processes on some
+    Windows machines. The consistent, roundish number of seconds makes me
+    suspect something environmental, like an antivirus program, but
+    that's just a wild guess.
+
+    Thanks to ultramantis on irc.perl.org #poe or letting me access their
+    machine with teamviewer. I couldn't reproduce the problem on my own
+    systems, so it was vital to see it failing somewhere.
+
+  commit 054da731ea9eb83ff7c21343c2538ab9db29ad13
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Dec 18 15:40:57 2011 -0500
+  
+    Remove Module::Build usage.
+
+    It adds itself to META.yml, but its presence is misleading for POE's
+    purposes. POE doesn't need it to be built, configured, or installed. 
+
+================================
 2011-12-15 15:53:01 -0500 v1_350
 ================================
 
@@ -609,149 +678,6 @@
   Date:   Thu Feb 3 14:43:55 2011 -0500
   
     Add CLONE to POE::Kernel, for better fork() support in Windows. 
-
-================================
-2011-02-02 20:13:22 -0500 v1_299
-================================
-
-  commit fb2c015dd7bcfce3e234ee430591040c45dd07fc
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Feb 2 20:13:22 2011 -0500
-  
-    Bump version for release.
-
-  commit 639344263a60e050bb17e21df8e51115d9415591
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jan 29 14:33:49 2011 -0500
-  
-    Bump the version. Dist::Zilla would make this a lot less noisy in the
-    changelog.
-
-  commit 673d82e3c08a2c392bf13fc326f89b0db740b2aa
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jan 29 12:14:56 2011 -0500
-  
-    Try Sucket6 if Socket doesn't provide IPv6 address families.
-
-  commit 409e9d00271e8446fdb06fa6193e70c325dec40a
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Jan 28 21:37:25 2011 -0500
-  
-    Bump dependency.
-
-  commit 36dfdc6e774d34436a0961fd6ef0f3c026a79053
-  Author: Perl Whore <whoreperl@gmail.com>
-  Date:   Thu Jan 27 17:54:37 2011 -0500
-  
-    Resolve a test failure on CentOS, which appears to be a race
-    condition in the test itself. Resolves rt.cpan.org #61727.
-
-  commit 5b8b526dfc0983cbc339e3c4f1cfe52a906d1133
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Jan 27 17:33:54 2011 -0500
-  
-    Fix Apocalypse's MSWin32 TODO for non-Windows machines. Unless I've
-    secretly broken it. :)
-
-  commit 8ebd9cf2aaf1fd0e460ad4597de862608b8bed36
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Jan 27 16:33:49 2011 -0500
-  
-    Work around the possibility that Socket::GetAddrInfo isn't loaded
-    when someone needs IPv6. Reported by Apocalypse in irc.perl.org.
-
-  commit 866e817027b8cac0ee1d8ffcd9af3ad0efd807b8
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Thu Jan 27 14:10:19 2011 -0700
-  
-    Tweak the PWR exitval test for MSWin32, turning it into a TODO so we
-    can study what the heck happens
-
-  commit 581b0ae7187cb736b24b629cb7cc99af5860d7e0
-  Merge: 806cb18 6c34eeb
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Jan 27 14:49:14 2011 -0500
-  
-    Merge branch 'master' of
-    ssh://poe.git.sourceforge.net/gitroot/poe/poe into wtf
-
-  commit 806cb182fc370c277bc34f7abf12ebabb7dcbcc3
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Jan 27 14:48:15 2011 -0500
-  
-    Upgrade IPv6 support from Socket6 to Socket::GetAddrInfo.
-
-  commit 48d36620428fd2d40621cc2c5423a8d57d2d2737
-  Author: David Webb <david.webb@blishmize.com>
-  Date:   Thu Jan 27 02:52:32 2011 -0500
-  
-    Resolve a race condition that caused the last line of rapid input to
-    be delayed. Resolves rt.cpan.org ticket #63242.
-
-  commit 6c34eeb26c620091f051bbe53e59354ebfd69d64
-  Author: Philip Gwyn <gwyn@cpan.org>
-  Date:   Wed Jan 26 20:57:13 2011 -0500
-  
-    Delete $ENV{POE_ASSERT_USAGE} so that 12_assert_retval.t always
-    works.
-
-  commit 8b09fb6776640da642c93dff581edbd2a023a26c
-  Author: Philip Gwyn <gwyn@cpan.org>
-  Date:   Wed Jan 26 20:55:33 2011 -0500
-  
-    delete $ENV{POE_ASSERT_USAGE} so that 11_assert_usage.t and
-    13_assert_data.t can do their thing.
-
-  commit e7667081e2685de144941bfe003f38f57a74a10d
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Wed Jan 26 14:25:58 2011 -0700
-  
-    Add doc blurb about pty issues on linux
-
-  commit 04cad87e74762c0c7496a37d02b82cbb049a4610
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Jan 26 14:20:03 2011 -0500
-  
-    Deprecate Perl 5.4. Next step will be Dist::Zilla for building
-    distros.
-
-  commit 31c0c9efa69a836a100206a9742b7525d71b50ad
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Jan 26 00:09:27 2011 -0500
-  
-    Remove alias_resolve()'s warning if the resolution failed.
-
-  commit d47ecb3257812ba616259051f8d1d51332d3a8bd
-  Author: Philip Gwyn <gwyn@cpan.org>
-  Date:   Tue Jan 25 22:07:59 2011 -0500
-  
-    Added a guard to the signal pipe
-
-  commit d71a66f90844712b92087b79fee09446f0114b12
-  Merge: 9d6dc25 7cc62e9
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Jan 12 18:14:42 2011 -0500
-  
-    Merge branch 'master' of github.com:rcaputo/poe
-
-  commit 9d6dc25f40af2bbda5d2658d8c5715b312456549
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Jan 12 14:32:34 2011 -0500
-  
-    Allow call to POE::Kernel methods by class instead of by object.
-
-  commit 7cc62e992a9689a8ba398e3c9b6ebce479df75c9
-  Author: Chris 'BinGOs' Williams <chris@bingosnet.co.uk>
-  Date:   Mon Jan 10 14:29:47 2011 +0000
-  
-    Fix two typos in PoCo-(Client|Server)-TCP documentation, spotted by
-    Maddingue
-
-  commit 41f3b9eca45a2314a6f43723e5e9f71731ef7b3e
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Dec 3 23:42:02 2010 -0500
-  
-    Convert the changelog and repository metadata to Git. 
 
 ==============
 End of Excerpt
