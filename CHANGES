@@ -1,4 +1,26 @@
 ================================
+2012-03-22 22:26:33 -0400 v1_352
+================================
+
+  commit cfce866c4c08967bb0c7cd198a02eef342f4d21d
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Mar 22 22:26:33 2012 -0400
+  
+    Bump version for release. *sigh*
+
+  commit 6f719e9175695d8a456c37bf907a08d32f730d06
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Mar 22 22:15:30 2012 -0400
+  
+    Very large select() timeouts can trigger EINVAL on Mac OSX.
+
+    Sérgio Bernardino reported that POE::Component::Server::IRC's
+    synopsis would go into a busy loop when a client tried to connect. It
+    turns out that POE::Loop::Select would fail when the component set a
+    timeout for a very long time in the future. Cap select() timeouts to
+    an hour to avoid the problem. 
+
+================================
 2012-03-11 14:40:57 -0400 v1_351
 ================================
 

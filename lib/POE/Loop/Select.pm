@@ -9,7 +9,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = '1.351'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.352'; # NOTE - Should be #.### (three decimal places)
 
 =for poe_tests
 
@@ -160,6 +160,9 @@ sub loop_do_timeslice {
   if (defined $timeout) {
     $timeout -= $now;
     $timeout = 0 if $timeout < 0;
+
+    # Very large timeouts can trigger EINVAL on Mac OSX.
+    $timeout = 3600 if $timeout > 3600;
   }
   else {
     die "shouldn't happen" if ASSERT_DATA;
