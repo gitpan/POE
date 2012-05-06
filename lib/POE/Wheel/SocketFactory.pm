@@ -3,7 +3,7 @@ package POE::Wheel::SocketFactory;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.352'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.353'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -495,7 +495,13 @@ sub new {
 
   # Default to Internet sockets.
   my $domain = delete $params{SocketDomain};
-  $domain = AF_INET unless defined $domain;
+  if (defined $domain) {
+    # [rt.cpan.org 76314] Untaint the domain.
+    ($domain) = ($domain =~ /\A(.*)\z/);
+  }
+  else {
+    $domain = AF_INET;
+  }
   $self->[MY_SOCKET_DOMAIN] = $domain;
 
   # Abstract the socket domain into something we don't have to keep

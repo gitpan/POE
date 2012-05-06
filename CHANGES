@@ -1,4 +1,77 @@
 ================================
+2012-05-06 18:29:51 -0400 v1_353
+================================
+
+  commit e7a90bebb55dca81d2373cef0a39e0d80fdf59c2
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun May 6 18:29:51 2012 -0400
+  
+    Bump the version for release.
+
+  commit 2b27ce2c0edecb73af625bf921e7e4758a0adfc1
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun May 6 16:41:14 2012 -0400
+  
+    Add Paul Webster's test for edge-case YAML input.
+
+  commit 23a38aa8a5a201f8974f7c806934311ce936cb1e
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun May 6 13:51:48 2012 -0400
+  
+    Allow POE::Filter::Reference to not die on bad wire data.
+
+    Paul Webster discovered that YAML from other languages can cause the
+    YAML module to die. For robustness, POE::Filter::Reference needs to
+    catch and return those errors gracefully. This commit adds thaw()
+    exception handling per Paul's specifications.
+
+  commit 5f22fcada8b4493dcbcd83c5716c929dc56949f6
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Apr 29 18:44:46 2012 -0400
+  
+    [rt.cpan.org 76314] Untaint externally supplied domains.
+
+    Resolves part of the ticket reported by Dylan Doxey. Thank you for
+    the test case, Dylan!
+
+  commit 71b16471861a87cbf0fe519b18c421d936392884
+  Author: David Huebner <david.huebner@bolderthinking.com>
+  Date:   Tue Apr 24 11:06:02 2012 -0500
+  
+    Moved documentation change to a less illogical spot.
+
+  commit ffbd225a86a8ce5b919afa576a610c8cd0af33fc
+  Author: David Huebner <david.huebner@bolderthinking.com>
+  Date:   Tue Apr 24 10:29:06 2012 -0500
+  
+    Added a bit of documentation about the new immediate option as well
+    as how POE::NFA operates by default.
+
+  commit 7f09336ff35176f8702b20ce12b2dcd145711ba8
+  Author: David Huebner <david.huebner@bolderthinking.com>
+  Date:   Thu Apr 19 15:06:51 2012 -0500
+  
+    Added 'immediate' option for changing states immediately. [call
+    rather than post]
+
+  commit 3444b1668e6c1c49562dc9d1a267da368ef29861
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Apr 8 09:54:14 2012 -0400
+  
+    Include the unknown or illegal alias in error messages about them.
+
+  commit dae42ae88e2ddbe261bb1cc217ede562397dfaf0
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Apr 7 23:24:56 2012 -0400
+  
+    Remove test reliance on deterministic _stop order.
+
+    Stephan Jauernick discovered that the order of _stop calls is not
+    necessarily deterministic, and it depends on the speed of the machine
+    under test. I relaxed the timing requirements of the neyuki_detach
+    regression test to account for the variation. 
+
+================================
 2012-03-22 22:26:33 -0400 v1_352
 ================================
 
@@ -206,500 +279,6 @@
   Date:   Tue May 3 00:04:26 2011 +0000
   
     Fix mangled stdio checks. This one passes all tests. 
-
-================================
-2011-05-02 19:03:35 -0400 v1_311
-================================
-
-  commit 96afc60e9d18b3b4657f10ec3266afc604a5e7fd
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon May 2 19:03:35 2011 -0400
-  
-    Comment out a well-meaning warning that breaks all related tests.
-
-  commit 06a6722a46866759b10910f56783fc1b29b77cc6
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon May 2 19:03:13 2011 -0400
-  
-    Rely on new POE::Test::Loops.
-
-  commit 3235c524fa3cef7f483bebe7dbc26e9ccb6f35f0
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon May 2 18:56:19 2011 -0400
-  
-    Version bump for release.
-
-  commit 8c2ab4868bf60f362f6da48073c247d29432eb25
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun May 1 18:49:50 2011 -0400
-  
-    Document why POE doesn't use Dist::Zilla, so I have something to
-    reference when someone else suggests that it would be totally rad.
-
-  commit a67aa0e4053bb5eb2658c83366b678c0a510c3b1
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Apr 30 16:40:24 2011 -0400
-  
-    Avoid silent POE::Wheel::Run failures when stdio has been relocated.
-
-    If using POE::Wheel::Run to exec() a program, throw an error if
-    STDIN, STDOUT and STDERR do not have respective file descriptors 0, 1
-    and 2. Previously, POE::Wheel::Run would just fail to work without
-    any indication why. Makes the mysterious issue Hinrik found in
-    rt.cpan.org ticket 67798 less so.
-
-  commit 828b3239e6a222a6bfd6e04fa851c76440803daf
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Fri Apr 29 11:49:44 2011 -0700
-  
-    Bump Term::Cap prereq to 1.10, thanks Hinrik and Chris Cobucci for
-    tracking it down
-
-  commit 05578718bfc80db22fcf56ef3d9675b9f0be0c61
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Tue Apr 26 13:10:38 2011 -0700
-  
-    add TODO about possible improvement to ->kill on MSWin32
-
-  commit 4c04368123976ecd342cd6f4bd0be1f7996d6610
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Sat Apr 23 23:58:08 2011 +0000
-  
-    Small grammar fix in Pod
-
-  commit 5c2367d830051321fbf256bfab91beb843d30c40
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Sat Apr 23 20:21:18 2011 +0000
-  
-    Use Z<> to remove all TODOs from formatted Pod
-
-  commit 88db91a2921f11a94335c2361a622ccb120af5d1
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Tue Apr 19 21:39:37 2011 -0700
-  
-    add proper checks for ipv6 stuff in Makefile.PL
-
-  commit e57754aa7a3c91231cc965034101551d6514e8d5
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Tue Apr 19 21:22:24 2011 -0700
-  
-    re-tweak the ipv6 stuff *AGAIN* so it checks Socket.pm for
-    getaddrinfo to be future-compatible with 5.14
-
-  commit a12120d1e6af19c419b5ef299c3bffcedc652b0d
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Tue Apr 19 20:22:11 2011 -0700
-  
-    make the ipv6 stuff confess if it isnt available
-
-  commit da04c721880406bd1fd5f4bc0200724eeac726c8
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Mon Apr 18 23:57:10 2011 -0700
-  
-    add todo to poco-client-tcp about missing (input|output)filter param
-
-  commit 374c897ef32ef77deb1fbdc0928b06ffaf5f95c4
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Mon Apr 18 23:49:43 2011 -0700
-  
-    make code follow what docs say regarding usage of
-    ClientFilter/ClientInputFilter/ClientOutputFilter 
-
-================================
-2011-04-19 12:48:40 -0400 v1_310
-================================
-
-  commit d84a71001af0e70ee2d0e8c65193f2388a8384e0
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Apr 19 12:48:40 2011 -0400
-  
-    Bump version & dependency for release.
-
-  commit c592f2e0924a97d27be579f3ea4f22601f08611a
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Apr 17 21:58:31 2011 -0400
-  
-    Rework Apocalypse's blocking(0) change to avoid code BLOCKs.
-
-  commit de7200ea6ccf466f1a6d74cd86e3b53b590c2c43
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Mon Apr 18 17:01:12 2011 +0000
-  
-    Make transpose-chars work when cursor is at end of line
-
-    The TODO item about moving the cursor forward was bogus. I misread
-    the GNU ReadLine docs.
-
-  commit d90d020f237fea0e3aa929b2dbf5053253794e3e
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Mon Apr 18 16:29:11 2011 +0000
-  
-    Use $stdout instead of *STDOUT, fixes transpose-words
-
-  commit c3f8bc24cbef1a1949d0779f92529dcc8e6174cf
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Mon Apr 18 16:28:26 2011 +0000
-  
-    Move the TODO items to the transpose-chars where they belong
-
-  commit 39df607d774b9237795dde0ebc52e42ceba22f8f
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Mon Apr 18 16:14:48 2011 +0000
-  
-    Add TODO about missing features in transpose-chars
-
-  commit b3c39542143a6a02960a8a454427247055052cee
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Mon Apr 18 15:47:11 2011 +0000
-  
-    Reinstate transposition regex which failed on 5.004_05
-
-  commit 0edb49d73037f49dc97bd4c0d9f7ffcbe6fcbf04
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Mon Apr 18 15:39:06 2011 +0000
-  
-    Return from sub via "return", not "next"
-
-  commit 1aae186f2b8c5b81e4c50996a73e747723140512
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 21:26:21 2011 -0700
-  
-    remove comments pertaining perl-5.004
-
-  commit f6e81b65f14aa2b8e2d7d677769d18677cf0cfcd
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 21:20:17 2011 -0700
-  
-    remove obsolete code and comments pertaining perl-5.005
-
-  commit 0471c4f74771c3367110f6d2ee0948c84340adb0
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 20:44:39 2011 -0700
-  
-    add missing POE_DANTIC env check
-
-  commit 79735143de9cfdfee529fa659681b32c3db9723c
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 19:34:10 2011 -0700
-  
-    remove Storable from optional prereqs as its already in required
-    prereq list
-
-  commit 4785b0577916f7fd2ac56f8e5f42f23a7c2d4430
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 19:13:56 2011 -0700
-  
-    apparently something in 5.6.2 exports NULL, arg
-
-  commit 27754307b3356fe21b8a2036bc9ee680de912ee9
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 19:04:39 2011 -0700
-  
-    add note about NEVER doing ->autoflush, thanks dngor
-
-  commit 9ab4f8d4dc156a8c35c507a300ccacea91d21b63
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 18:47:49 2011 -0700
-  
-    remove t/20_resources/00_base/statistics.pm as we ripped out stat
-    support in 2e5258fd1c98c4ed676befc30a6f0f67855d0e97
-
-  commit 90457966cb908ed5788ea7488a918245c7b2e38e
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 18:39:57 2011 -0700
-  
-    fix incorrect Time::HiRes pod link
-
-  commit 184b9542c89eb0a35f23cf7ef275ac0eb4a6ab6a
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 18:30:26 2011 -0700
-  
-    add doc blurb about tied fh woes on 5.6.2
-
-  commit 0e41c9b6043b21b5b36758362b391f66d9d59a1a
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sun Apr 17 18:10:22 2011 -0700
-  
-    be more careful when doing ->blocking(0) on perls older than 5.8.1 as
-    apparently they dont like tied FHs
-
-  commit 423b97d9740e668616eb0f359f7246123c5e6e9d
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Apr 17 18:01:40 2011 -0400
-  
-    Quiet a warning when calling getsockname() on an unopened socket.
-
-  commit 9d6c4e00cc32b7135965082abde2584f89f13c2c
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Sun Apr 17 07:47:05 2011 +0000
-  
-    Make get() preserve ReadLine's current prompt
-
-  commit 38647c086643575d5c1bba814c8967bd1fc59683
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Apr 17 02:28:01 2011 -0400
-  
-    Make Time::HiRes a mandatory dependency. Perl has included it for
-    several years now, and even older versions of Perl can install it
-    from CPAN.
-
-  commit 18433975dd6b6fd45996edd202ca20f6dd03cd41
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Sun Apr 17 05:52:37 2011 +0000
-  
-    Allow changing the ReadLine prompt on the fly
-
-  commit 0cff421e44bdaccc355bd165290bc7c9ea48e029
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sat Apr 16 22:34:53 2011 -0700
-  
-    rip out use of base.pm to be more compatible with 5.6.2
-
-  commit 4ebeb9fcd88f9453f4cea9bca3c91bb1591804ca
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sat Apr 16 19:27:16 2011 -0700
-  
-    shut up warning about constant in void context on old perls
-
-  commit c6695f49e7d485e9aba43b0ac37afe55149cf8cc
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sat Apr 16 19:11:43 2011 -0700
-  
-    stylistic tweaks to the recent AF_INET6 patch
-
-  commit aac9aa9135fb2ea6d32d6ab6e405afcbec17faa2
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sat Apr 16 18:48:49 2011 -0700
-  
-    finalize the AF_INET6 woes
-
-  commit c866a64a5993c48a2f6ae6ae08b78ddba0aa794b
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Sat Apr 16 15:16:54 2011 -0700
-  
-    squash the AF_INET6 warning for good
-
-  commit 08e2529dd942e178d68b53183a32de385e390d68
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Apr 16 17:17:38 2011 -0400
-  
-    Silence AF_INET6 warnings, per Apocalypse's research.
-
-  commit 24d334afabdbac37f2f837235175aed61fc61038
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Apr 16 04:20:33 2011 -0400
-  
-    Begin modernizing.
-
-    Wow, I haven't touched this in several years. A bunch of things are
-    done in POE and Reflex, and other stuff's just seriously behind the
-    times. Start off with things we discussed today in irc.perl.org #poe.
-    Delete obsolete ideas. Begin porting the remainders into Vim Outliner
-    format.
-
-  commit 721bd616063929799634bc7e0da263d1bac0682a
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Fri Apr 15 22:46:31 2011 -0700
-  
-    add socketfactor-timeout.t to MANIFEST
-
-  commit 94125118cf6190dfb3c19ee9a27cd249edb7638c
-  Merge: 6298d6a 0c862f0
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Apr 16 01:05:32 2011 -0400
-  
-    Merge branch 'master' of github.com:rcaputo/poe
-
-  commit 6298d6a97295228e18ff49834608a0e3e67bdd19
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Thu Feb 10 10:27:54 2011 -0700
-  
-    add POD blurb about smart has_forked management
-
-  commit 4d4af1e1546950b21d9d21151817e40019c8b15d
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Thu Feb 10 09:50:49 2011 -0700
-  
-    add tests and smart has_forked() behavior to simplify fork management
-
-  commit ca40719e7d2f95ce62f58acc0eb7432eab8045c4
-  Author: jmadler <jordan.m.adler@gmail.com>
-  Date:   Thu Apr 7 04:28:27 2011 -0400
-  
-    Adding table to compare delay/alarm and related methods.
-
-  commit 0c862f0e9d602b26c6b6ea442b7b57e8515c83fc
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Fri Apr 15 19:01:36 2011 +0000
-  
-    Add test for Win32 socket bugfix in commit 8265022
-
-  commit d65590f5c0c065d49a342e94e48b8167f4f5c633
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Apr 15 10:33:48 2011 -0400
-  
-    Resolve a GC timing issue with call(), discovered by flw and
-    diagnosed by Nick Perez on POE's mailing list. This passes "make
-    test" and should be safe---GC will still be triggered on the next
-    sweep if side effects occurred in the called session.
-
-  commit 8265022983656ed2b31bf010c4726462efc9566e
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Apr 15 09:02:51 2011 -0400
-  
-    Fix an indefinite hang in non-blocking connect() failures on Windows.
-    Hinrik discovered this in a POE::Component::IRC test case. Apparently
-    MSWin32 and Cygwin have more in common than originally expected.
-
-  commit 393b332e05819f7f9e2e8293558da312583fd7ff
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Mar 25 18:13:47 2011 -0400
-  
-    Rekey POE::Resource::FileHandles on file descriptor instead of
-    handle.
-
-    iThreads changed filehandle stringification. This change works around
-    the issue, making POE that much more iThread-safe (and therefore
-    fork-tender on Windows). Thanks, Plixer International for sponsoring
-    this and the several recent iThreads/Windows related changes.
-
-  commit 965458107d2730428ecaf23b94ef29069cbf61a4
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Mar 25 14:41:31 2011 -0400
-  
-    Clear out the event queue by session ID rather than reference.
-
-    I suspect this was causing defunct parent-process events to linger in
-    the child-process queue after POE::Kernel->stop() was called. Their
-    dispatch in the child process may have caused the "hilarity" I have
-    seen in the wild.
-
-  commit 32f642c3a6453c67c1be32b26a626487846ae623
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Mar 9 12:36:23 2011 -0500
-  
-    Don't always require IO::Tty's TIOCSWINSZ.
-
-  commit b4284705a5a69e22e7019e79130d1a2fcdc5e643
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Thu Feb 10 13:22:08 2011 -0700
-  
-    add tracing regression test
-
-  commit d0b28de1edea42b90dba1f6bc3e324361790d98c
-  Author: Tom Feist <shabble@metavore.org>
-  Date:   Sun Feb 20 13:46:39 2011 +0000
-  
-    Modified Wheel::Run to accept winsize argument again, using Termios
-    TIOCSWINSZ ioctl.
-
-    Probably not portable from *nix, but it's a start.
-
-  commit 4350625ff3db9c4773261aa5bc4b09b1bdfe0e0b
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Feb 16 13:59:08 2011 -0500
-  
-    Add process IDs to _warn(), _die(), etc. Remove $SIG{__WARN_} and
-    $SIG{__DIE__} handlers---they seem to be support for pre-5.6 Perl.
-
-  commit 0e9ebf86286681999e5d997558683b8040a30caf
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Feb 11 17:56:25 2011 -0500
-  
-    Require a version of IO documented to support blocking(0) on Windows.
-
-  commit 322bb80a55c74b2918bc1eacf67a17cbdf1905a0
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Feb 11 17:39:52 2011 -0500
-  
-    Standardize non-blocking on IO::Handle's blocking(0) call. This may
-    cause problems for systems using Perl older than 5.8.1.
-
-  commit 3a670b1a7c425088d1a63b1058939844a6a72ff3
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Feb 11 10:15:24 2011 -0500
-  
-    SIGCHLD appears not to work in hell (MSWin32).
-
-  commit c4c179f780cfca48b8c0b99e37a8d2e63c2aac38
-  Author: Apocalypse <perl@0ne.us>
-  Date:   Thu Feb 3 22:06:34 2011 -0700
-  
-    Enable USE_SIGCHLD on perls >= 5.8.1, as they support safe signal
-    handling.
-
-  commit 9964752f3c62f3cc897bc2ac55c29f19ca7d6d76
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Feb 9 17:01:06 2011 -0500
-  
-    Honor the POE_DANTIC environment variable in POE::Loop::IO_Poll.
-
-  commit 1a2d3006cf3c02989ab56e3f81ab3a2e5bba621a
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Feb 9 16:31:56 2011 -0500
-  
-    During Kernel ID recalculation, walk POE::Resource::*'s data, fixing
-    up the old IDs.
-
-  commit cde579c3147bf4151a8454f0791f457d190bca84
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Feb 8 14:03:26 2011 -0500
-  
-    Remove POE::Resource::Statistics. Move POE::Resource::FileHandles,
-    POE::Resource::Sessions and POE::Resource::Signals data structures
-    from session references to session IDs.
-
-  commit fddf887fcb72d1cd1ffb982ee90998d31ff81fff
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Feb 7 22:53:33 2011 -0500
-  
-    Migrate from Session to SID keys for POE::Resource::Events.
-
-  commit c62e248a13b7054b8d6181f599cbdbb244217c32
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Feb 7 18:34:58 2011 -0500
-  
-    Remove Session references from POE::Resource::SIDs hash keys.
-
-  commit 1b2caa74f457c8cfe5c77b70373e43af5df23b69
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Feb 7 15:37:45 2011 -0500
-  
-    Add a sequence number to POE::Kernel's ID.
-
-    Kernels need unique IDs each time they're started, even within the
-    same process. Kernels need unique IDs in each thread.
-
-  commit 0295c0bcb63934a752cfd5ca8b9407fd306a0fb3
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Feb 7 15:02:05 2011 -0500
-  
-    Move POE::Resource::Extrefs to session IDs.
-
-  commit b99c7d46a3e6e2a414e5031b9a32bab2af6c4453
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Feb 7 13:20:42 2011 -0500
-  
-    Key POE::Resource::Aliases on session ID, not object. Makes alias
-    data iThread-safe.
-
-  commit 4c4398c7aebb175761032cb07698529a9fda22b2
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Feb 4 17:05:22 2011 -0500
-  
-    Move session IDs into session objects.
-
-  commit 0e838985b686010d514f23280fa01d5854ebaf8e
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Feb 4 15:28:05 2011 -0500
-  
-    Fix a "panic: top_env" occurring during CLONE on MSWin32.
-
-  commit b04e3cfbfd115e02ebb03badca71575b755eb121
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Feb 3 14:43:55 2011 -0500
-  
-    Add CLONE to POE::Kernel, for better fork() support in Windows. 
 
 ==============
 End of Excerpt
