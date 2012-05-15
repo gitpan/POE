@@ -36,4 +36,4 @@ resources:
   homepage: http://poe.perl.org/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/rcaputo/poe
-version: 1.353
+version: 1.354

@@ -1,4 +1,23 @@
 ================================
+2012-05-15 11:15:41 -0400 v1_354
+================================
+
+  commit 9bb1bd72cf14cd50e8ddf74870d219c2da4d659f
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue May 15 11:15:41 2012 -0400
+  
+    Bump the version for release.
+
+  commit fffbf328e75b3cfc068d731f3bfea885b3874201
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue May 15 11:15:05 2012 -0400
+  
+    Fix address untainting error.
+
+    Reported by Alberto Simões on irc.perl.org and diagnosted with
+    copious help from Chris Williams. Thanks, guys! 
+
+================================
 2012-05-06 18:29:51 -0400 v1_353
 ================================
 
