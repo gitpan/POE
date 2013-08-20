@@ -9,7 +9,7 @@ use strict;
 use POE::Loop::PerlSignals;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 =for poe_tests
 
@@ -37,7 +37,7 @@ my @loop_vectors = ("", "", "");
 my %loop_filenos;
 
 # Allow $^T to change without affecting our internals.
-my $start_time = $^T;
+my $start_time = monotime();
 
 #------------------------------------------------------------------------------
 # Loop construction and destruction.
@@ -86,7 +86,7 @@ sub loop_attach_uidestroy {
 # value.  A "paused" time watcher is just a timeout for some future
 # time.
 
-my $_next_event_time = time();
+my $_next_event_time = monotime();
 
 sub loop_resume_time_watcher {
   $_next_event_time = $_[1];
@@ -97,7 +97,7 @@ sub loop_reset_time_watcher {
 }
 
 sub loop_pause_time_watcher {
-  $_next_event_time = time() + 3600;
+  $_next_event_time = monotime() + 3600;
 }
 
 #------------------------------------------------------------------------------
@@ -156,7 +156,7 @@ sub loop_do_timeslice {
 
   my $timeout = $_next_event_time;
 
-  my $now = time();
+  my $now = monotime();
   if (defined $timeout) {
     $timeout -= $now;
     $timeout = 0 if $timeout < 0;

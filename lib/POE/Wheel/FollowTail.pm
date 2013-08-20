@@ -3,7 +3,7 @@ package POE::Wheel::FollowTail;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -318,6 +318,7 @@ sub _generate_filehandle_timer {
   my $poll_interval = $self->[SELF_INTERVAL];
   my $last_stat     = $self->[SELF_LAST_STAT];
 
+  my $filename      = \$self->[SELF_FILENAME];
   my $handle        = \$self->[SELF_HANDLE];
   my $event_input   = \$self->[SELF_EVENT_INPUT];
   my $event_error   = \$self->[SELF_EVENT_ERROR];
@@ -379,7 +380,12 @@ sub _generate_filehandle_timer {
 
       # Merely EOF.  Check for file rotation.
 
-      my @new_stat = (stat $$handle)[0..7];
+      my @new_stat = (
+        (defined $$filename)
+        ? ((stat $$filename)[0..7])
+        : ((stat $$handle)[0..7])
+      );
+
       unless (@new_stat) {
         TRACE_POLL and warn "<poll> ", time, " $$handle stat error";
         $$event_error and
@@ -482,7 +488,7 @@ sub _generate_filename_timer {
         TRACE_RESET and warn "<reset> file name has reset";
         $$event_reset and $k->call($ses, $$event_reset, $unique_id);
 
-        @$last_stat = (stat $$handle)[0..7];
+        @$last_stat = (stat $filename)[0..7];
       }
       else {
         # Reset position.
@@ -770,7 +776,8 @@ C<Seek> may also be used with the wheel's tell() method to restore the
 file position after a program restart.  Save the tell() value prior to
 exiting, and load and C<Seek> back to it on subsequent start-up.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head3 SeekBack
 
@@ -784,7 +791,8 @@ C<Seek> and C<SeekBack> are mutually exclusive.
 See L</Seek> for caveats, techniques, and an explanation of the magic
 that happens when neither C<Seek> nor C<SeekBack> is specified.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head3 Handle
 
@@ -800,7 +808,8 @@ purview.
 C<Handle> and C<Filename> are mutually exclusive.  One of them is
 required, however.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head3 Filename
 

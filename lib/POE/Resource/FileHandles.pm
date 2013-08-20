@@ -4,7 +4,7 @@
 package POE::Resource::FileHandles;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -202,7 +202,7 @@ sub _data_handle_finalize {
 sub _data_handle_enqueue_ready {
   my ($self, $mode) = splice(@_, 0, 2);
 
-  my $now = time();
+  my $now = monotime();
   foreach my $fileno (@_) {
     if (ASSERT_DATA) {
       _trap "internal inconsistency: undefined fileno" unless defined $fileno;

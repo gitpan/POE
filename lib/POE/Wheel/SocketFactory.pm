@@ -3,7 +3,7 @@ package POE::Wheel::SocketFactory;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -62,8 +62,8 @@ BEGIN {
     # :newapi is legacy, but we include it to be sure in case the user has an old version of GAI
     eval { require Socket::GetAddrInfo; Socket::GetAddrInfo->import( qw(:newapi getaddrinfo getnameinfo) ) };
     if ($@) {
-      *getaddrinfo = sub { Carp::confess("Unable to use IPv6: Socket::GetAddrInfo not available") };
-      *getnameinfo = sub { Carp::confess("Unable to use IPv6: Socket::GetAddrInfo not available") };
+      *getaddrinfo = sub { Carp::confess("Unable to use IPv6: Neither Socket nor Socket::GetAddrInfo provides getaddrinfo()") };
+      *getnameinfo = sub { Carp::confess("Unable to use IPv6: Neither Socket nor Socket::GetAddrInfo provides getnameinfo()") };
     }
   }
 
@@ -72,8 +72,8 @@ BEGIN {
   if ($@) {
     eval { require Socket6; Socket6->import( qw(AF_INET6 PF_INET6) ) };
     if ($@) {
-      *AF_INET6 = sub { Carp::confess("Unable to use IPv6: Socket6 not available") };
-      *PF_INET6 = sub { Carp::confess("Unable to use IPv6: Socket6 not available") };
+      *AF_INET6 = sub { -1 };
+      *PF_INET6 = sub { -1 };
     }
   }
 }
@@ -509,7 +509,11 @@ sub new {
   my $abstract_domain = $map_family_to_domain{$self->[MY_SOCKET_DOMAIN]};
   unless (defined $abstract_domain) {
     $poe_kernel->yield(
-      $event_failure, 'domain', 0, '', $self->[MY_UNIQUE_ID]
+      $event_failure,
+      'domain',
+      0,
+      "SocketDomain $domain is currently unsupported on this platform",
+      $self->[MY_UNIQUE_ID]
     );
     return $self;
   }
@@ -1244,7 +1248,8 @@ should not attempt to use IPv6 until someone contributes a workaround.
 IPv6 support requires a 21st century Socket module and the presence of
 Socket::GetAddrInfo to resolve host names to IPv6 addresses.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head4 SocketType
 
@@ -1252,7 +1257,8 @@ C<SocketType> supplies the socket() call with a particular socket
 type, which may be C<SOCK_STREAM> or C<SOCK_DGRAM>.  C<SOCK_STREAM> is
 the default if C<SocketType> is not supplied.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head4 SocketProtocol
 
@@ -1263,7 +1269,8 @@ domain sockets.
 The protocol defaults to "tcp" for INET domain sockets.  There is no
 default for other socket domains.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head3 Setting Socket Options
 
@@ -1312,7 +1319,8 @@ contain a path describing the socket's filename.  This is required for
 server sockets and datagram client sockets.  C<BindAddress> has no
 default value for UNIX sockets.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head4 BindPort
 
@@ -1324,7 +1332,8 @@ choose an indeterminate unallocated port.
 C<BindPort> may be a port number or a name that can be looked up in
 the system's services (or equivalent) database.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head3 Connectionless Sockets
 
@@ -1333,7 +1342,8 @@ needing to listen() for connections or connect() to remote addresses.
 
 This class of sockets is complete after the bind() call.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head3 Connecting the Socket to a Remote Endpoint
 
@@ -1364,7 +1374,8 @@ Internet address, or a UNIX socket path.  It will be packed, with or
 without an accompanying C<RemotePort>, as necessary for the socket
 domain.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head4 RemotePort
 
@@ -1375,7 +1386,8 @@ contain both an address and a port.
 The remote port may be numeric, or it may be a symbolic name found in
 /etc/services or the equivalent for your operating system.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head3 Listening for Connections
 
@@ -1395,7 +1407,8 @@ than C<SOMAXCONN> will be clipped to C<SOMAXCONN>.  Excessively large
 C<ListenQueue> values are not necessarily portable, and may cause
 errors in some rare cases.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head3 Emitting Events
 
@@ -1435,7 +1448,8 @@ disable those events.
 
 event() is described in more depth in L<POE::Wheel>.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head2 getsockname
 
@@ -1470,7 +1484,8 @@ ID() returns the wheel's unique ID.  The ID will also be included in
 every event the wheel generates.  Applications can match events back
 to the objects that generated them.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head2 pause_accept
 
@@ -1487,7 +1502,8 @@ pause_accept() and resume_accept() is quicker and more reliable than
 dynamically destroying and re-creating a POE::Wheel::SocketFactory
 object.
 
-Z<TODO - Example.>
+=for comment
+TODO - Example.
 
 =head2 resume_accept
 

@@ -8,7 +8,7 @@ package POE::Loop::PerlSignals;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 # Everything plugs into POE::Kernel.
 package POE::Kernel;
@@ -39,7 +39,7 @@ sub _loop_signal_handler_generic_bottom {
 
   $poe_kernel->_data_ev_enqueue(
     $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-    __FILE__, __LINE__, undef, time()
+    __FILE__, __LINE__, undef
   );
   $SIG{$_[0]} = \&_loop_signal_handler_generic;
 }
@@ -62,7 +62,7 @@ sub _loop_signal_handler_pipe_bottom {
 
   $poe_kernel->_data_ev_enqueue(
     $poe_kernel, $poe_kernel, EN_SIGNAL, ET_SIGNAL, [ $_[0] ],
-    __FILE__, __LINE__, undef, time()
+    __FILE__, __LINE__, undef
   );
   $SIG{$_[0]} = \&_loop_signal_handler_pipe;
 }

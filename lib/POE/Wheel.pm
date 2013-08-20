@@ -3,7 +3,7 @@ package POE::Wheel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(croak);
 
@@ -324,7 +324,8 @@ L<POE::Wheel::Run> - Non-blocking process creation and management.
 L<POE::Wheel::SocketFactory> - Non-blocking socket creation,
 supporting most protocols and modes.
 
-Z<TODO - Link to POE::Wheel search.cpan.org module search.>
+=for comment
+TODO - Link to POE::Wheel search.cpan.org module search.
 
 =head1 BUGS
 

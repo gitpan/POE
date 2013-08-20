@@ -6,7 +6,9 @@ use strict;
 use Carp qw( croak );
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
+
+use POE::Resource::Clock qw( monotime time walltime sleep mono2wall wall2mono );
 
 sub import {
   my $self = shift;
@@ -121,7 +123,7 @@ L<Wx>, and L<Gtk2>.  Many of these event loop interfaces were written
 by others, with the help of POE::Test::Loops.  They may be found on
 the CPAN.
 
-POE achieves its its high degree of portability to different operating
+POE achieves its high degree of portability to different operating
 systems and Perl versions by being written entirely in Perl.  CPAN
 hosts optional XS modules for POE if speed is more desirable than
 portability.
@@ -529,13 +531,27 @@ http://poe.perl.org/
 
 https://rt.cpan.org/Dist/Display.html?Status=Active&Queue=POE
 
-=head2 Repository
+=head2 Repositories and Changes
 
-https://poe.svn.sourceforge.net/svnroot/poe/trunk/poe
+Thanks to the magic of distributed version control, POE is hosted at
+three locations for redundancy.  You can browse the source at any one
+of:
+
+https://github.com/rcaputo/poe
+
+https://gitorious.org/poe
+
+http://poe.git.sourceforge.net/git/gitweb-index.cgi
+
+Complete change logs can also be browsed at those sites.  They all
+provide RSS news feeds for those who want to follow development in
+near-realtime.
 
 =head2 Other Resources
 
-http://search.cpan.org/dist/POE/
+https://metacpan.org/module/POE
+
+http://search.cpan.org/dist/POE
 
 =head1 AUTHORS & COPYRIGHT
 
@@ -685,8 +701,9 @@ author of L<Sprocket>, a networking framework built on POE.
 Please contact the author if you've been forgotten and would like to
 be included here.
 
-Z<TODO - This section has fallen into disrepair.  A POE historian needs
-to cull the CHANGES for the names of major contributors.>
+=for comment
+TODO - This section has fallen into disrepair.  A POE historian needs
+to cull the CHANGES for the names of major contributors.
 
 =back
 
@@ -701,7 +718,7 @@ to thank you for your interest, and he has more thanks than he can
 count for all the people who have contributed.  POE would not be
 nearly as cool without you.
 
-Except where otherwise noted, POE is Copyright 1998-2009 Rocco Caputo.
+Except where otherwise noted, POE is Copyright 1998-2013 Rocco Caputo.
 All rights reserved.  POE is free software; you may redistribute it
 and/or modify it under the same terms as Perl itself.
 

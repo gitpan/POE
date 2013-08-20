@@ -1,303 +1,325 @@
 ================================
-2012-05-15 11:15:41 -0400 v1_354
+2013-08-20 13:23:05 -0400 v1_355
 ================================
 
-  commit 9bb1bd72cf14cd50e8ddf74870d219c2da4d659f
+  commit e408a83c9a5342887954800c9ec9b109aeb8bc1d
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue May 15 11:15:41 2012 -0400
+  Date:   Tue Aug 20 13:23:05 2013 -0400
   
-    Bump the version for release.
+    Bump version and dependencies for release.
 
-  commit fffbf328e75b3cfc068d731f3bfea885b3874201
+  commit 012098ebc019e1cd1c74d23fab7b4e7112a3adec
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue May 15 11:15:05 2012 -0400
+  Date:   Mon Aug 19 18:39:56 2013 -0400
   
-    Fix address untainting error.
+    [rt.cpan.org 87931] Redo _data_ev_adjust in terms of peek_items().
 
-    Reported by Alberto Simões on irc.perl.org and diagnosted with
-    copious help from Chris Williams. Thanks, guys! 
+    We can't add to the POE::Queue API without breaking third-party
+    extensions. This takes the performance hit to avoid breaking other
+    CPAN modules.
 
-================================
-2012-05-06 18:29:51 -0400 v1_353
-================================
-
-  commit e7a90bebb55dca81d2373cef0a39e0d80fdf59c2
+  commit 810cba7763ac815b914af3967b8d33b0a84aca13
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun May 6 18:29:51 2012 -0400
+  Date:   Mon Aug 19 17:32:28 2013 -0400
   
-    Bump the version for release.
+    [rt.cpan.org 87928] POE::Queue::Array didn't need
+    POE::Resource::Clock?
 
-  commit 2b27ce2c0edecb73af625bf921e7e4758a0adfc1
+  commit dea8746ea464ea343389d2bf604cc5bd9cf78a0f
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun May 6 16:41:14 2012 -0400
+  Date:   Mon Aug 19 03:51:46 2013 -0400
   
-    Add Paul Webster's test for edge-case YAML input.
+    Skip POD::Coverage checks for POE::Pipe::OneWay and TwoWay.
 
-  commit 23a38aa8a5a201f8974f7c806934311ce936cb1e
+    The documentation has been replaced by deprecations. POD coverage is
+    moot.
+
+  commit deccbf370f3b2a2d89c5331acf1b4d84d972a61d
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun May 6 13:51:48 2012 -0400
+  Date:   Mon Aug 19 03:50:06 2013 -0400
   
-    Allow POE::Filter::Reference to not die on bad wire data.
+    Remove unused code from POE::Resource::Clock.
 
-    Paul Webster discovered that YAML from other languages can cause the
-    YAML module to die. For robustness, POE::Filter::Reference needs to
-    catch and return those errors gracefully. This commit adds thaw()
-    exception handling per Paul's specifications.
+    A number of functions aren't being used. More are only being used
+    privately within the module. Comment out some of the unused ones
+    (more dead code checking is needed). Add leading underscores to the
+    private ones.
 
-  commit 5f22fcada8b4493dcbcd83c5716c929dc56949f6
+  commit 9c34ae0c06d339c5de81a538f05847bbf61ff5c5
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Apr 29 18:44:46 2012 -0400
+  Date:   Mon Aug 19 03:47:48 2013 -0400
   
-    [rt.cpan.org 76314] Untaint externally supplied domains.
+    Make a new POE::Queue::Array method private.
 
-    Resolves part of the ticket reported by Dylan Doxey. Thank you for
-    the test case, Dylan!
+    It's currently experimental, and it currently breaks other event
+    queue nimplementations, so it has to go. Making it private will
+    temporarily reduce temptation to use it, and it helps the POD
+    coverage tests pass.
 
-  commit 71b16471861a87cbf0fe519b18c421d936392884
-  Author: David Huebner <david.huebner@bolderthinking.com>
-  Date:   Tue Apr 24 11:06:02 2012 -0500
+  commit bcf5d4451637bab12a2c20ccbc028d042323389b
+  Author: Joseph Huckaby <jhuckaby@gmail.com>
+  Date:   Mon Aug 19 01:04:45 2013 -0400
   
-    Moved documentation change to a less illogical spot.
+    [rt.cpan.org 87922] Don't crash when ClientPreConnect returns undef.
 
-  commit ffbd225a86a8ce5b919afa576a610c8cd0af33fc
-  Author: David Huebner <david.huebner@bolderthinking.com>
-  Date:   Tue Apr 24 10:29:06 2012 -0500
+    ClientPreConnect should be allowed to return an undefined value to
+    abort the client connection. Instead, it caused PoCo::Server::TCP to
+    crash. This change catches that condition.
+
+  commit f42a26db921db2bbbb951a1becd02800d8ceb2d2
+  Author: Nicko Dehaine <nicko@phone.com>
+  Date:   Mon Aug 19 00:03:29 2013 -0400
   
-    Added a bit of documentation about the new immediate option as well
-    as how POE::NFA operates by default.
+    [rt.cpan.org 87721] Clear $! in Driver::SysRW::flush().
 
-  commit 7f09336ff35176f8702b20ce12b2dcd145711ba8
-  Author: David Huebner <david.huebner@bolderthinking.com>
-  Date:   Thu Apr 19 15:06:51 2012 -0500
+    Nothing prevents the user from calling flush() when there is nothing
+    to flush. In these cases, $! remained unchanged, which could lead to
+    detection of false error conditions. This change clears $! to avoid
+    the problem.
+
+  commit 4e7961d6370cef5741d4ac2f9023fb7e2dad309d
+  Author: Markus Müller <privi@cpan.org>
+  Date:   Sun Aug 18 21:52:36 2013 -0400
   
-    Added 'immediate' option for changing states immediately. [call
-    rather than post]
+    [rt.cpan.org 87635] Fix PoCo::Client::TCP "Connected" event
+    w/watermarks.
 
-  commit 3444b1668e6c1c49562dc9d1a267da368ef29861
+    If you use watermarks, the Connected Event will not get triggert
+    because of a wrong return. This change corrects that.
+
+  commit 7bce20d1366f2bb3e6014a8d4db19aa93c00e9aa
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Apr 8 09:54:14 2012 -0400
+  Date:   Sun Aug 18 04:44:12 2013 -0400
   
-    Include the unknown or illegal alias in error messages about them.
+    Eliminate an uninitialized value warning in the tests.
 
-  commit dae42ae88e2ddbe261bb1cc217ede562397dfaf0
+  commit cb8a944db305c3d9adb1752d2d730bdec192cfd7
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Apr 7 23:24:56 2012 -0400
+  Date:   Sun Aug 18 03:35:25 2013 -0400
   
-    Remove test reliance on deterministic _stop order.
+    Add t/10_units/05_filters/51_reference_die.t to MANIFEST.
 
-    Stephan Jauernick discovered that the order of _stop calls is not
-    necessarily deterministic, and it depends on the speed of the machine
-    under test. I relaxed the timing requirements of the neyuki_detach
-    regression test to account for the variation. 
-
-================================
-2012-03-22 22:26:33 -0400 v1_352
-================================
-
-  commit cfce866c4c08967bb0c7cd198a02eef342f4d21d
+  commit b07d2ccdc10c19f087166125ca91fc8b8468d417
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Mar 22 22:26:33 2012 -0400
+  Date:   Sun Aug 18 02:50:22 2013 -0400
   
-    Bump version for release. *sigh*
+    Replace POE::Pipe::* guts with IO::Pipely.
 
-  commit 6f719e9175695d8a456c37bf907a08d32f730d06
+    This change doesn't change the way POE or its tests use POE::Pipe::*.
+    All tests pass in my development environment, so I expect no obvious
+    problems using IO::Pipely.
+
+  commit c8974aa92080b684a2976c7574b80ca7cac00c6a
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Mar 22 22:15:30 2012 -0400
+  Date:   Sun Aug 18 02:19:15 2013 -0400
   
-    Very large select() timeouts can trigger EINVAL on Mac OSX.
+    Update copyright dates.
 
-    Sérgio Bernardino reported that POE::Component::Server::IRC's
-    synopsis would go into a busy loop when a client tried to connect. It
-    turns out that POE::Loop::Select would fail when the component set a
-    timeout for a very long time in the future. Cap select() timeouts to
-    an hour to avoid the problem. 
-
-================================
-2012-03-11 14:40:57 -0400 v1_351
-================================
-
-  commit 476c7e5d79b6935218d8ec048a191ddd974b4c24
+  commit 890244dd7b20a86301c024b9e994c36d993f9180
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Mar 11 14:40:57 2012 -0400
+  Date:   Sun Aug 18 02:08:45 2013 -0400
   
-    Bump versions for release.
+    Move the signal information out of the signal pipe.
 
-  commit 8a0894ef9c2be24d9681c166d2fbfb1970a02fbb
+    The signal pipe included all signal information. This reduces the
+    number of signals that can be dispatched in a single event loop
+    iteration. It also limits the amount and/or type of information we
+    can include in the signal.
+
+    This change puts the signal information in a plain Perl list and only
+    uses the signal pipe to wake up the event loop to dispatch the
+    signals in a safer place.
+
+  commit c88d1d20c151909b823e279af95a1d826368cc46
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Mar 11 11:32:46 2012 -0400
+  Date:   Sun Aug 18 01:59:15 2013 -0400
   
-    [rt.cpan.org 67680] Use IO::Handle::blocking() rather than
-    $fh->blocking().
+    Update sample programs.
 
-    Some file handles, such as my $fh = do { no warnings; local *FH };
-    can't be used as IO::Handle objects. IO::Handle::blocking($fh) seems
-    to work, though.
-
-    This was caught by Troy, who was nice enough to open the bug. Thanks!
-
-  commit 61da9a35079aa61cdcbcf2ed3345d91d4baac218
-  Author: Mark Nunberg <mnunberg@haskalah.org>
-  Date:   Mon Dec 19 00:18:34 2011 -0800
-  
-    STDIN stays open by default
-
-  commit b21285bb449f39dec8c507b595bda0a389cd485d
-  Author: Mark Nunberg <mnunberg@haskalah.org>
-  Date:   Thu Dec 15 13:29:34 2011 -0800
-  
-    Allow ::Run to discard stdio file descriptors
-
-    - Std{in|out|err}Event no longer required - Stdio file descriptor
-    discarded for each stdio
-
-    which lacks a corresponding event (except read) - Added option to not
-    open stdin - Added option to redirect stdio to/from other filenames
-    or filehandles
-
-    - Corresponding fix needed for test-loops
-
-  commit d78e3d2fdcd999375fbb496fd206e64c649ebe55
+  commit 78722c75e36ccd9ae8280a3202adb9840a7bedbe
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Jan 24 23:28:44 2012 -0500
+  Date:   Sat Aug 17 17:19:24 2013 -0400
   
-    Work around a consistent timeout issue in Hinrik's POE::Wheel::Run
-    test.
+    Add lib/POE/Resource/Clock.pm to MANIFEST.
 
-    There is a mysterious 5sec delay when starting processes on some
-    Windows machines. The consistent, roundish number of seconds makes me
-    suspect something environmental, like an antivirus program, but
-    that's just a wild guess.
+    Help wanted: Migrate build/release process to Dist::Zilla, or advise
+    on same. It's complicated right now. Probably too complicated.
 
-    Thanks to ultramantis on irc.perl.org #poe or letting me access their
-    machine with teamviewer. I couldn't reproduce the problem on my own
-    systems, so it was vital to see it failing somewhere.
-
-  commit 054da731ea9eb83ff7c21343c2538ab9db29ad13
+  commit 3fb1edba213e10ef85559eabfbbf3e9790841564
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Dec 18 15:40:57 2011 -0500
+  Date:   Tue Jul 16 00:55:03 2013 -0400
   
-    Remove Module::Build usage.
+    [rt.cpan.org 81550] Untaint %ENV as it's examined for TRACE/ASSERTs.
 
-    It adds itself to META.yml, but its presence is misleading for POE's
-    purposes. POE doesn't need it to be built, configured, or installed. 
-
-================================
-2011-12-15 15:53:01 -0500 v1_350
-================================
-
-  commit ba53ec4bdd9cacbb18cd3cb82c944ad40739240f
+  commit 055ccf3a4eb5645272c3a076641f9ca89e5d88fa
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Dec 15 15:53:01 2011 -0500
+  Date:   Mon Jul 15 22:39:15 2013 -0400
   
-    Bump revision to 1.350.
+    Fix a typo introduced in an earlier commit.
 
-  commit eae7a261fc6cf5b2950b5cd92fd8d394f078688c
+  commit 0f36f724df6c77d0c53d248fc74e71e7cbdf8057
+  Author: Mike <pru-mike@mail.ru>
+  Date:   Sat Jul 6 15:10:38 2013 -0400
+  
+    Add a test case for the MSWin32 stat() bug fixed a few commits ago.
+
+  commit 6ecb93be7fc24fadf5efd1d351e69070d37a2cab
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Dec 7 10:06:29 2011 -0500
+  Date:   Sat Jul 6 15:09:47 2013 -0400
   
-    Don't block on active child processes at endtime.
+    Turn off debugging.
 
-    It's important to note that child processes exist, but we don't need
-    to wait around for them. Reap the ones that have already exited, and
-    alert the user if at least one active process remains after that.
-    Return immediately; don't wait for it/them to exit.
-
-  commit ecd5a778a807dad3d820f3537967d972877f560c
+  commit bf9514fbddfc5e954b3c2f5e54724ee2da3868fe
+  Merge: 223a8cc 940189d
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Aug 17 15:10:11 2011 -0400
+  Date:   Sat Jun 8 21:54:52 2013 -0400
   
-    Avoid trying to dispatch SIGDIE to sessions in a POE::Kernel that has
-    been made defunct by the stop() method. This resolves at least one
-    "please report this stacktrace" bug.
+    Merge remote-tracking branch 'remotes/sf/master'
 
-  commit 8e782eba985c85f6e074ca59b17e773c687f097e
+  commit 940189dfb8177e3685bc46fcf256bf6752024f32
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Sat Jun 8 12:36:31 2013 -0400
+  
+    Added POE::Resource::Clock
+
+  commit 223a8cca126e70aed5f15979cb3ea9fc661909b1
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Aug 5 14:32:50 2011 -0400
+  Date:   Fri Jun 7 17:08:20 2013 -0400
   
-    Allow event handlers to persistently alter $SIG{__DIE__}.
+    Consistently stat file names or handles.
 
-    Prior to this change, modifications to $SIG{__DIE__} in event
-    handlers would be lost due to that signal entry being localized. This
-    brings up an interesting question: Should the rest of %SIG be
-    localized? 
+    stat() on Windows reports different device IDs for a file depending
+    whether it was stat()ed via name or opened handle. If used
+    inconsistently, stat() will always report differences. Discovered by
+    "pru-mike" at
+    blogs.perl.org/users/pru-mike/2013/06/creepy-perl-stat-functions-on-w
+    indows.html
 
-================================
-2011-07-28 22:34:13 -0400 v1_312
-================================
-
-  commit 6ec943edbcfea9d299bc3da8e453ae4edc76627f
+  commit 0aa938883c65605c057f7d234b2f2fd01cafad74
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Jul 28 22:34:13 2011 -0400
+  Date:   Thu May 2 22:10:22 2013 -0400
   
-    Bump the version.
+    Fix iThread-safety issue in POE::Component docs.
 
-  commit a4b961a547bb32d4bd9057fb9e0501aa138f602a
+    Stringified object references aren't iThread-safe. Spawn a new
+    interpreter, and copies of object have different memory addresses.
+    Previously stringified versions are not fixed to match. Thanks to
+    Paul Evans for pointing it out.
+
+  commit 219f5e1f4e526905d452d6112924224a2568e5da
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Jul 28 01:52:35 2011 -0400
+  Date:   Sun Apr 28 16:29:27 2013 -0400
   
-    Apply Stephen Oberholtzer's patch to fix a test freeze.
+    Note how to get ClosedEvent when killing processes in Windows.
 
-    IO::Handle->blocking() is broken on MSWin32, locking up
-    t/10_units/04_drivers/01_sysrw.t in some cases. Stephen provided a
-    patch to Perl and to POE to work around the issue. It's portable
-    enough that things shouldn't immediately break after Perl is fixed.
+    Rafael Kitover provided a test case where kill() would prevent
+    ClosedEvent from firing on Winodws. We worked out a work-around,
+    which he'll be using in MooseX::Workers. I've documented it here for
+    others.
 
-    Resolves rt.cpan.org ticket #69769.
-
-  commit 2cd1404a6fc0d6ed0e6361d75e1e9d67837889db
+  commit 42a5f9cae2d6cc29339d022153d44926a8ac4711
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Jul 27 02:27:29 2011 -0400
+  Date:   Sat Apr 20 22:50:37 2013 -0400
   
-    getnameinfo() returns host and port in the opposite order of
-    unpack_sockaddr_in(). Swap the return values so the right ones appear
-    in ARG1 and ARG2. Thanks to Luiz Eduardo Roncato Cordeiro at CERT
-    Brazil for spotting the problem and suggesting the fix. This should
-    resolve his rt.cpan.org ticket, #68959.
+    Replace Z<comment> with =for comment, per perlpod.
 
-  commit b17a3d894fa6f11deef4e7187e87fd5061058cb9
+  commit b7eec09b0f052c210925999b09a921a165b24f0f
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed Jul 27 01:50:25 2011 -0400
+  Date:   Tue Dec 18 01:37:52 2012 -0500
   
-    Add stack traces to _data_handle_remove() failures.
+    [rt.cpan.org 77907] Apply Alexander Becker's documentation
+    suggestion.
 
-  commit 9bcbb9098bf12139b4f80ef96650eafba3e1d95b
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Tue Jun 21 21:07:37 2011 +0000
-  
-    Add note about Perl 5.6 issues with '>&' open mode
-
-  commit 937f52e99ce487326a176c0742fb20fc71b32bf1
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Sun May 22 06:37:34 2011 +0000
-  
-    Document using getsockname to verify a listening socket
-
-  commit f0eff5d176cd9e5522bd8d2d2461396f704f2429
+  commit 032420f716604cac2914d692e3c5d3c8a7dbeefa
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Wed May 18 14:07:20 2011 -0400
+  Date:   Tue Dec 18 01:34:44 2012 -0500
   
-    Localize $SIG{__DIE__} when rethrowing userspace exceptions from a
-    safe point. Avoids shenanigans at a distance when reporting on
-    userspace errors. May thwart someone's exception handling, but I
-    don't know a good way to satisfy everyone here. Suggestions?
+    [rt.cpan.org 77233] Apply Lukas Mai's suggested POD fix.
 
-  commit 9a8c4a3871456ef70ecf82085b4af2f6bc0e1509
+  commit 814486ce85ac3846267a4e3aeb85c5f62c4c0e5c
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Tue Dec 4 17:13:32 2012 -0500
+  
+    Added POE::Resource::Clock which exports monotime() and walltime()
+    The Queue uses monotime() as a priority, but the public API uses
+    walltime() Fixed EV_TIME to EV_FROMSTATE EV_SEQ is set again
+
+  commit 513999b229c682a25773be4199f93685223957ee
   Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat May 14 17:23:41 2011 -0400
+  Date:   Mon Oct 29 18:27:52 2012 -0400
   
-    Don't fail t/00_info.t if POE::Test::Loops is unavailable.
+    Don't bother with IO::Tty on Cygwin.
 
-    This test dependency is intended to be optional, and the loop tests
-    should be skipped if the user doesn't want them. Problem reported by
-    skbz in irc.perl.org #poe, related to cpanm installing
-    POE::Test:Loops in a user-local directory but not looking there when
-    installing POE.
+    average_drifter on freenode #perl-cats pointed out that IO::Tty fails
+    to install on contemporary Cygwin. This change skips that requirement
+    when $^O eq 'cygwin'.
 
-  commit e6887bddb925a775960a168e4dabcf700b2c376c
-  Author: Hinrik Örn Sigurðsson <hinrik.sig@gmail.com>
-  Date:   Tue May 3 00:04:26 2011 +0000
+    After investigating, I found and reported two problems. These must be
+    resolved before undoing this work-around:
+
+    IO::Tty compile failure:
+    https://rt.cpan.org/Ticket/Display.html?id=80477
+
+    App::cpanminus conrigure timeout is too short:
+    https://rt.cpan.org/Ticket/Display.html?id=80478
+
+  commit ec43fcdf40ff511de6cd08785298670181a6b7e6
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Oct 11 09:26:16 2012 -0400
   
-    Fix mangled stdio checks. This one passes all tests. 
+    Don't confess on the use of AF_INET6 or PF_INET6 in SocketFactory.
+
+    SocketFactory uses those constants unconditionally during
+    initialization, so things that don't even need them fail.
+
+    http://www.cpantesters.org/cpan/report/9c1ad42e-12dc-11e2-81a5-a3382b
+    22a531 is a Perl 5.6.2 test failure, but as far as I can tell all the
+    errors are due to missing IPv6 support on that platform.
+
+  commit d8eec5291a94ad006e4f98d43db11a7d1821627b
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Oct 11 01:31:26 2012 -0400
+  
+    [rt.cpan.org 79379] Document repositories and online change log
+    browsers.
+
+    Greg Sabino Mullane pointed out the difficulty of finding a complete,
+    up to date change log. The CHANGES file distributed with POE only
+    goes back a year, and he needed to go farther back.
+
+  commit 616bb1050e8f01150c6db1a02570d6dff9c0320c
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Thu Sep 27 15:33:33 2012 -0400
+  
+    [rt.cpan.org 79886] Fix SIGDIE handler save/restore for Perl 5.8.8.
+
+    Applied a modified version of the patch and test case included in the
+    RT ticket.
+
+  commit cb4f65f0aefdf7ed7b22d5db8ea8f0773f47d41b
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Aug 31 11:09:35 2012 -0400
+  
+    Optionally export FIRST_UNUSED so subclasses know where in @$self to
+    start.
+
+  commit f7f761cd596cafac6d86e3d69e74965f9747bf9b
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Jun 28 00:17:40 2012 -0400
+  
+    Add more signal handling diagnostics when asserting data at shutdown.
+
+  commit f27fa471d95ac270c1a927a27438587cc92bccf8
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Jun 28 00:13:31 2012 -0400
+  
+    Docment that waitpid() calls interfere with sig_child().
+
+    Programs that reap their own child processes AND use sig_child() to
+    watch for those processes MUST call sig_child($pid, undef) to clear
+    the watchers. sig_child() only notifies programs after some event
+    loop reaps the process. If an application reaps it first, POE may
+    never know the child went away. 
 
 ==============
 End of Excerpt

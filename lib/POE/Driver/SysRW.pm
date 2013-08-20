@@ -1,4 +1,4 @@
-# Copyright 1998 Rocco Caputo <rcaputo@cpan.org>.  All rights
+# Copyright 1998-2013 Rocco Caputo <rcaputo@cpan.org>.  All rights
 # reserved.  This program is free software; you can redistribute it
 # and/or modify it under the same terms as Perl itself.
 
@@ -7,7 +7,7 @@ package POE::Driver::SysRW;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 use Errno qw(EAGAIN EWOULDBLOCK);
 use Carp qw(croak);
@@ -119,6 +119,10 @@ sub flush {
 
   # Need to check lengths in octets, not characters.
   BEGIN { eval { require bytes } and bytes->import; }
+
+  # Reset errno in case there is nothing to write.
+  # https://rt.cpan.org/Public/Bug/Display.html?id=87721
+  $! = 0;
 
   # syswrite() it, like we're supposed to
   while (@{$self->[OUTPUT_QUEUE]}) {

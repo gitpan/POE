@@ -3,7 +3,7 @@ package POE::Loop;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 1;
 
@@ -315,7 +315,7 @@ Here's Gtk's:
           $self->_dispatch_event(
             $self, $self,
             EN_SIGNAL, ET_SIGNAL, [ 'UIDESTROY' ],
-            __FILE__, __LINE__, undef, time(), -__LINE__
+            __FILE__, __LINE__, undef, monotime(), -__LINE__
           );
         }
         return 0;
@@ -555,13 +555,15 @@ L<POE::Test::Loops> is POE's event loop tests released as a separate,
 reusable distribution.  POE::Loop authors are encouraged to use the
 tests for their own distributions.
 
-Z<TODO - Link to CPAN for POE::Loop modules.>
+=for comment
+TODO - Link to CPAN for POE::Loop modules.
 
 =head1 BUGS
 
 None known.
 
-Z<TODO - Link to POE bug queue.>
+=for comment
+TODO - Link to POE bug queue.
 
 =head1 AUTHORS & LICENSING
 

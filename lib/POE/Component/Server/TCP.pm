@@ -3,7 +3,7 @@ package POE::Component::Server::TCP;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -299,9 +299,11 @@ sub new {
               my $socket = $_[ARG0];
               if ($client_pre_connect) {
                 $socket = $client_pre_connect->(@_);
-                unless (fileno($socket)) {
-                  # TODO - Error callback?  Disconnected callback?
-                  # TODO - Should we do this before starting the child?
+                unless (defined($socket) and ref($socket) and fileno($socket)) {
+                  # TODO - The user ought to know what's going on
+                  # here, since it's triggered by something their
+                  # callback has done.  Should we expose a callback
+                  # anyway to avoid potential confusion?
                   return;
                 }
               }
@@ -744,8 +746,9 @@ connection---and not in the master listening session.  This has been a
 major point of confusion.  We welcome suggestions for making this
 clearer.
 
-Z<TODO - Document some of the implications of having each connection
-handled by a separate session.>
+=for comment
+TODO - Document some of the implications of having each connection
+handled by a separate session.
 
 The component's C<ClientInput> callback defines how child sessions
 will handle input from their clients.  Its parameters are that of
@@ -762,15 +765,21 @@ included in C<ClientConnected>'s parameters as @_[ARG0..$#_].
     ...
   }
 
-C<ClientPreConnect> is called before C<ClientConnected>, and it has
-different parameters: $_[ARG0] contains a copy of the client socket
-before it's given to POE::Wheel::ReadWrite for management.  Most HEAP
-members are set, except of course $_[HEAP]{client}, because the
-POE::Wheel::ReadWrite has not yet been created yet.
-C<ClientPreConnect> may enable SSL on the socket, using
-POE::Component::SSLify.  C<ClientPreConnect> must return a valid
-socket to complete the connection; the client will be disconnected if
-anything else is returned.
+C<ClientPreConnect> is called before C<ClientConnected>, and its
+purpose is to allow programs to reject connections or condition
+sockets before they're given to POE::Wheel::ReadWrite for management.
+
+The C<ClientPreConnect> handler is called with the client socket in
+$_[ARG0], and its return value is significant.  It must return a
+valid client socket if the connection is acceptable.  It must return
+undef to reject the connection.
+
+Most $_[HEAP] values are valid in the C<ClientPreConnect> handler.
+Obviously, $_[HEAP]{client} is not because that wheel hasn't been
+created yet.
+
+In the following example, the C<ClientPreConnect> handler returns the
+client socket after it has been upgraded to an SSL connection.
 
   sub handle_client_pre_connect {
 
@@ -848,7 +857,8 @@ They are covered briefly again below.
 These constructor parameters affect POE::Component::Server::TCP's main
 listening session.
 
-Z<TODO - Document the shutdown procedure somewhere.>
+=for comment
+TODO - Document the shutdown procedure somewhere.
 
 =head4 Acceptor
 
@@ -885,7 +895,8 @@ supports.  At the time of this writing, that may be a dotted IPv4
 quad, an IPv6 address, a host name, or a packed Internet address.  See
 also L</Hostname>.
 
-Z<TODO - Example, using the lines below.>
+=for comment
+TODO - Example, using the lines below.
 
   Address => '127.0.0.1'   # Localhost IPv4
   Address => "::1"         # Localhost IPv6
@@ -1410,11 +1421,12 @@ Some use cases require different session classes for the listener and
 the connection handlers.  This isn't currently supported.  Please send
 patches. :)
 
-Z<TODO - Document that Reuse is set implicitly.>
+=for comment
+TODO - Document that Reuse is set implicitly.
 
 =head1 AUTHORS & COPYRIGHTS
 
-POE::Component::Server::TCP is Copyright 2000-2009 by Rocco Caputo.
+POE::Component::Server::TCP is Copyright 2000-2013 by Rocco Caputo.
 All rights are reserved.  POE::Component::Server::TCP is free
 software, and it may be redistributed and/or modified under the same
 terms as Perl itself.

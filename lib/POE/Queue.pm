@@ -1,7 +1,7 @@
 package POE::Queue;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(croak);
 
@@ -290,10 +290,12 @@ L<POE>, L<POE::Queue::Array>
 
 None known.
 
-Z<TODO - Should set_priority return the old priority instead of the new
-one?>
+=for comment
+TODO - Should set_priority return the old priority instead of the new
+one?
 
-Z<TODO - Rename and repackage as its own distribution.>
+=for comment
+TODO - Rename and repackage as its own distribution.
 
 =head1 AUTHORS & COPYRIGHTS
 

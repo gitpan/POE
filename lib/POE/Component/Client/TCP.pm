@@ -3,7 +3,7 @@ package POE::Component::Client::TCP;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -210,14 +210,16 @@ sub new {
               InputEvent   => 'got_server_input',
               ErrorEvent   => 'got_server_error',
               FlushedEvent => 'got_server_flush',
-              do {
-                  $using_watermarks ? return (
-                    HighMark => $high_mark_level,
-                    HighEvent => 'got_high',
-                    LowMark => $low_mark_level,
-                    LowEvent => 'got_low',
-                  ) : ();
-                },
+              (
+                $using_watermarks
+                ? (
+                  HighMark  => $high_mark_level,
+                  HighEvent => 'got_high',
+                  LowMark   => $low_mark_level,
+                  LowEvent  => 'got_low',
+                )
+                : ()
+              )
             );
 
           $heap->{connected} = 1;
@@ -820,7 +822,7 @@ and with a minimum of code, it may not be suitable for everything.
 
 =head1 AUTHORS & COPYRIGHTS
 
-POE::Component::Client::TCP is Copyright 2001-2009 by Rocco Caputo.
+POE::Component::Client::TCP is Copyright 2001-2013 by Rocco Caputo.
 All rights are reserved.  POE::Component::Client::TCP is free
 software, and it may be redistributed and/or modified under the same
 terms as Perl itself.

@@ -5,7 +5,7 @@ package POE::Queue::Array;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.354'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.355'; # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Queue);
 
 use Errno qw(ESRCH EPERM);
@@ -191,7 +191,6 @@ sub _find_item {
   }
 
   die "should never get here... maybe the queue is out of order";
-
 }
 
 ### Remove an item by its ID.  Takes a coderef filter, too, for
@@ -448,7 +447,7 @@ L<POE>, L<POE::Queue>
 
 =head1 BUGS
 
-None known.
+None currently known.
 
 =head1 AUTHORS & COPYRIGHTS
 
