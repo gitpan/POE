@@ -1,3 +1,36 @@
+==============================
+9999-99-99 99:99:99 +0000 HEAD
+==============================
+
+  commit 35e779316e1de7293401c57f6e9652e66cab28c6
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Aug 20 16:36:06 2013 -0400
+  
+    Another day, another release. Or at least another four hours. Bump
+    version.
+
+  commit b81670f1b41aab62aeb9828407c038258a9a2518
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Aug 20 16:27:22 2013 -0400
+  
+    [rt.cpan.org 1648] Tk may also tie STDIN to an object.
+
+    Tied file handles must be untied before they can be redirected.
+    Otherwise, as in the case of Tk-wrapped handles, there's no OPEN()
+    implementation, and the redirection fails.
+
+  commit de91fb45e6d35dae71011a7bfa45c7a9eb63b8ad
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Aug 20 16:19:21 2013 -0400
+  
+    Remove trailing whitespace.
+
+  commit 5282c8e449b32d77eece3fe7857f115bb58adfc7
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Aug 20 16:17:47 2013 -0400
+  
+    I think it should be _filespec_to_fh() since it returns a handle. 
+
 ================================
 2013-08-20 13:23:05 -0400 v1_355
 ================================
