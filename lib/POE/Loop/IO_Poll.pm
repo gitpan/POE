@@ -6,7 +6,7 @@
 package POE::Loop::IO_Poll;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 # Include common signal handling.
 use POE::Loop::PerlSignals;
@@ -30,7 +30,7 @@ sub skip_tests {
 use strict;
 
 # Be sure we're using a contemporary version of IO::Poll.  There were
-# issues with certain versios of IO::Poll prior to 0.05.  The latest
+# issues with certain versions of IO::Poll prior to 0.05.  The latest
 # version is 0.01, however.
 use IO::Poll 0.01;
 

@@ -4,7 +4,7 @@
       "Rocco Caputo <rcaputo@cpan.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.72, CPAN::Meta::Converter version 2.132140",
+   "generated_by" : "ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.120921",
    "license" : [
       "perl_5"
    ],
@@ -60,5 +60,5 @@
          "url" : "https://github.com/rcaputo/poe"
       }
    },
-   "version" : "1.356"
+   "version" : "1.357"
 }

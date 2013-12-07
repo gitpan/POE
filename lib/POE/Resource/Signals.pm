@@ -4,7 +4,7 @@
 package POE::Resource::Signals;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -101,12 +101,14 @@ use vars (
 # already been queued.
 my $polling_for_signals = 0;
 
-# A flag determining whether there are child processes.
-use constant BASE_SIGNAL_COUNT => (
-  exists($INC{'Apache.pm'}) ? 0 : ( USE_SIGCHLD ? 0 : 1 )
-);
+# There may be latent subprocesses in some environments.
+# Or we may need to "always loop once" if we're polling for SIGCHLD.
+# This constant lets us define those exceptional cases.
+# We had some in the past, but as of 2013-10-06 we seem to have
+# eliminated those special cases.
+use constant BASE_SIGCHLD_COUNT => 0;
 
-my $kr_has_child_procs = BASE_SIGNAL_COUNT;
+my $kr_has_child_procs = BASE_SIGCHLD_COUNT;
 
 # A list of special signal types.  Signals that aren't listed here are
 # benign (they do not kill sessions at all).  "Terminal" signals are
@@ -199,7 +201,7 @@ sub _data_sig_reset_procs {
   # least once.  Starts false when running in an Apache handler so our
   # SIGCHLD hijinks don't interfere with the web server.
   $self->_data_sig_cease_polling();
-  $kr_has_child_procs = BASE_SIGNAL_COUNT;
+  $kr_has_child_procs = BASE_SIGCHLD_COUNT;
 }
 
 
@@ -253,7 +255,7 @@ sub _data_sig_finalize {
   }
 
   if ($kr_has_child_procs) {
-    _warn "!!! Kernel has child processes.\n";
+    _warn "!!! Kernel has $kr_has_child_procs child process(es).\n";
   }
 
   if ($polling_for_signals) {
@@ -1048,7 +1050,7 @@ handling.
 See L<POE::Kernel/Signal Watcher Methods> for POE's public signals
 API.
 
-See L<POE::Kernel/Resources> for for public information about POE
+See L<POE::Kernel/Resources> for public information about POE
 resources.
 
 See L<POE::Resource> for general discussion about resources and the

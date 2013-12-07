@@ -3,7 +3,7 @@ package POE::Component::Server::TCP;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Socket qw(INADDR_ANY inet_ntoa inet_aton AF_INET AF_UNIX PF_UNIX);
@@ -116,6 +116,7 @@ sub new {
   my $session_type        = delete $param{SessionType};
   my $session_params      = delete $param{SessionParams};
   my $server_started      = delete $param{Started};
+  my $server_stopped      = delete $param{Stopped};
   my $listener_args       = delete $param{ListenerArgs};
 
   $listener_args = [] unless defined $listener_args;
@@ -482,7 +483,7 @@ sub new {
       # We accepted a connection.  Do something with it.
       tcp_server_got_connection => $accept_callback,
 
-      # conncurrency on close.
+      # concurrency on close.
       disconnected => sub {
         $_[HEAP]->{connections}--;
         DEBUG and warn(
@@ -541,6 +542,7 @@ sub new {
       # Dummy states to prevent warnings.
       _stop   => sub {
         DEBUG and warn "$$: $_[HEAP]->{alias} _stop";
+        $server_stopped and $server_stopped->(@_);
         undef($accept_session_id);
         return 0;
       },
@@ -725,6 +727,10 @@ master session's start-up routine.  The @_[ARG0..$#_] parameters are
 set to a copy of the values in the server's C<ListenerArgs>
 constructor parameter.  The other parameters are standard for
 POE::Session's _start handlers.
+
+The component's C<Stopped> callback is invoked at the beginning of the
+master session's _stop routine. The parameters are standard for
+POE::Session's _stop handlers.
 
 The component's C<Error> callback is invoked when the server has a
 problem listening for connections.  C<Error> may also be called if the
@@ -977,8 +983,7 @@ parameters as discussed there.
 
 A default error handler will be provided if Error is omitted.  The
 default handler will log the error to STDERR and shut down the server.
-Active connections will be permitted to to complete their
-transactions.
+Active connections will be permitted to complete their transactions.
 
   Error => sub {
     my ($syscall_name, $err_num, $err_str) = @_[ARG0..ARG2];
@@ -1009,7 +1014,8 @@ will not reach these handlers.
 
 If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
 detects a state that it uses internally. For example, please use the "Started"
-callback if you want to specify your own "_start" event.
+and "Stopped" callbacks if you want to specify your own "_start" and "_stop"
+events respectively.
 
 =head4 ObjectStates
 
@@ -1023,7 +1029,8 @@ will not reach these handlers.
 
 If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
 detects a state that it uses internally. For example, please use the "Started"
-callback if you want to specify your own "_start" event.
+and "Stopped" callbacks if you want to specify your own "_start" and "_stop"
+events respectively.
 
 =head4 PackageStates
 
@@ -1038,7 +1045,8 @@ will not reach these handlers.
 
 If POE::Kernel::ASSERT_USAGE is enabled, the constructor will croak() if it
 detects a state that it uses internally. For example, please use the "Started"
-callback if you want to specify your own "_start" event.
+and "Stopped" callbacks if you want to specify your own "_start" and "_stop"
+events respectively.
 
 =head4 Port
 
@@ -1057,10 +1065,17 @@ main server session's context.  It notifies the server that it has
 fully started.  The callback's parameters are the usual for a
 session's _start handler.
 
+=head4 Stopped
+
+C<Stopped> sets an optional callback that will be invoked within the
+main server session's context.  It notifies the server that it has
+fully stopped.  The callback's parameters are the usual for a
+session's _stop handler.
+
 =head4 ListenerArgs
 
 C<ListenerArgs> is passed to the listener session as the C<args> parameter.  In
-other words, it must be an arrayref, and the values are are passed into the
+other words, it must be an arrayref, and the values are passed into the
 C<Started> handler as ARG0, ARG1, etc.
 
 =head3 Connection Session Configuration

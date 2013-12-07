@@ -4,7 +4,7 @@
 package POE::Resource::Aliases;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -155,7 +155,7 @@ POE::Kernel, so it has no public interface.
 See L<POE::Kernel/Session Identifiers (IDs and Aliases)> for the
 public alias API.
 
-See L<POE::Kernel/Resources> for for public information about POE
+See L<POE::Kernel/Resources> for public information about POE
 resources.
 
 See L<POE::Resource> for general discussion about resources and the

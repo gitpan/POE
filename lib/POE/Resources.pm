@@ -3,7 +3,7 @@ package POE::Resources;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 my @resources = qw(
   POE::XS::Resource::Aliases
@@ -69,7 +69,7 @@ load() falls back to C<POE::Resource::...>.
 
 =head1 SEE ALSO
 
-See L<POE::Kernel/Resources> for for public information about POE
+See L<POE::Kernel/Resources> for public information about POE
 resources.
 
 See L<POE::Resource> for general discussion about resources and the

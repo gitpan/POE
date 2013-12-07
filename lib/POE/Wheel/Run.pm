@@ -3,7 +3,7 @@ package POE::Wheel::Run;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use POSIX qw(
@@ -498,7 +498,7 @@ sub new {
     # The child doesn't need to read from the semaphore pipe.
     $sem_pipe_read = undef;
 
-    # Run Perl code.  This is farily consistent across most systems.
+    # Run Perl code.  This is fairly consistent across most systems.
 
     if (ref($program) eq 'CODE') {
 

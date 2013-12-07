@@ -7,10 +7,10 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Filter);
 
-use Carp qw(carp croak);
+use Carp qw(carp croak confess);
 
 sub BUFFER    () { 0 }
 sub FREEZE    () { 1 }
@@ -215,6 +215,7 @@ sub put {
   BEGIN { eval { require bytes } and bytes->import; }
 
   my @raw = map {
+    confess "Choking on a non-reference ($_)" unless ref();
     my $frozen = $self->[FREEZE]->($_);
     $frozen = compress($frozen) if $self->[COMPRESS];
     length($frozen) . "\0" . $frozen;

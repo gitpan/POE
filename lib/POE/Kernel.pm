@@ -3,7 +3,7 @@ package POE::Kernel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 use POE::Resource::Clock qw( monotime sleep mono2wall wall2mono walltime time );
 
@@ -95,69 +95,67 @@ BEGIN {
 }
 
 BEGIN {
-  # Set up a "constant" sub that lets the user deactivate
-  # automatic exception handling
-  { no strict 'refs';
-    unless (defined &CATCH_EXCEPTIONS) {
-      my $catch_exceptions = (
-        (exists $ENV{POE_CATCH_EXCEPTIONS})
-        ? $ENV{POE_CATCH_EXCEPTIONS}
-        : 1
-      );
+  # The entire BEGIN block is a no-strict-refs zone.
 
-      if ($catch_exceptions) {
-        *CATCH_EXCEPTIONS = sub () { 1 };
-      }
-      else {
-        *CATCH_EXCEPTIONS = sub () { 0 };
-      }
+  no strict 'refs';
+
+  # Set up a constant that lets the user deactivate automatic
+  # exception handling.
+
+  unless (defined &CATCH_EXCEPTIONS) {
+    my $catch_exceptions = (
+      (exists $ENV{POE_CATCH_EXCEPTIONS})
+      ? $ENV{POE_CATCH_EXCEPTIONS}
+      : 1
+    );
+
+    if ($catch_exceptions) {
+      *CATCH_EXCEPTIONS = sub () { 1 };
+    }
+    else {
+      *CATCH_EXCEPTIONS = sub () { 0 };
     }
   }
 
-  { no strict 'refs';
-    unless (defined &CHILD_POLLING_INTERVAL) {
-      # That's one second, not a true value.
-      *CHILD_POLLING_INTERVAL = sub () { 1 };
+  unless (defined &CHILD_POLLING_INTERVAL) {
+    # That's one second, not a true value.
+    *CHILD_POLLING_INTERVAL = sub () { 1 };
+  }
+
+  unless (defined &USE_SIGCHLD) {
+    # Perl >= 5.7.3 has safe signals support
+    # perlipc.pod#Deferred_Signals_(Safe_Signals)
+    # We decided to target 5.8.1 just to be safe :)
+    if ( $] >= 5.008001 and not RUNNING_IN_HELL ) {
+      *USE_SIGCHLD = sub () { 1 };
+    } else {
+      *USE_SIGCHLD = sub () { 0 };
     }
   }
 
-  { no strict 'refs';
-    unless (defined &USE_SIGCHLD) {
-      # Perl >= 5.7.3 has safe signals support
-      # perlipc.pod#Deferred_Signals_(Safe_Signals)
-      # We decided to target 5.8.1 just to be safe :)
-      if ( $] >= 5.008001 and not RUNNING_IN_HELL ) {
-        *USE_SIGCHLD = sub () { 1 };
-      } else {
-        *USE_SIGCHLD = sub () { 0 };
-      }
+  unless (defined &USE_SIGNAL_PIPE) {
+    my $use_signal_pipe;
+    if ( exists $ENV{POE_USE_SIGNAL_PIPE} ) {
+      $use_signal_pipe = $ENV{POE_USE_SIGNAL_PIPE};
     }
-  }
-  { no strict 'refs';
-    unless (defined &USE_SIGNAL_PIPE) {
-      my $use_signal_pipe;
-      if ( exists $ENV{POE_USE_SIGNAL_PIPE} ) {
-        $use_signal_pipe = $ENV{POE_USE_SIGNAL_PIPE};
+
+    if (RUNNING_IN_HELL) {
+      if ($use_signal_pipe) {
+        _warn(
+          "Sorry, disabling USE_SIGNAL_PIPE on $^O.\n",
+          "Programs are reported to hang when it's enabled.\n",
+        );
       }
 
-      if (RUNNING_IN_HELL) {
-        if ($use_signal_pipe) {
-          _warn(
-            "Sorry, disabling USE_SIGNAL_PIPE on $^O.\n",
-            "Programs are reported to hang when it's enabled.\n",
-          );
-        }
+      # Must be defined to supersede the default.
+      $use_signal_pipe = 0;
+    }
 
-        # Must be defined to supersede the default.
-        $use_signal_pipe = 0;
-      }
-
-      if ($use_signal_pipe or not defined $use_signal_pipe) {
-        *USE_SIGNAL_PIPE = sub () { 1 };
-      }
-      else {
-        *USE_SIGNAL_PIPE = sub () { 0 };
-      }
+    if ($use_signal_pipe or not defined $use_signal_pipe) {
+      *USE_SIGNAL_PIPE = sub () { 1 };
+    }
+    else {
+      *USE_SIGNAL_PIPE = sub () { 0 };
     }
   }
 }
@@ -420,51 +418,61 @@ sub _trap {
   local *STDERR = $trace_file_handle || *STDERR;
 
   confess(
-    "=== ($$) ===\n",
-    "Please address any warnings or errors above this message, and try\n",
-    "again.  If there are none, or those messages are from within POE,\n",
-    "then please mail them along with the following information\n",
-    "to bug-POE\@rt.cpan.org:\n---\n@_\n-----\n"
+    "=== $$ === Please address any warnings or errors above this message,\n",
+    "=== $$ === and try again.  If there are no previous messages, or they\n",
+    "=== $$ === are from within POE, then please mail them along with the\n",
+    "=== $$ === following information to bug-POE\@rt.cpan.org:\n",
+    "---\n@_\n-----\n"
   );
 }
 
 sub _croak {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = $trace_file_handle || *STDERR;
-  croak "($$) ", @_;
+  my $message = join("", @_);
+  $message =~ s/^/=== $$ === /mg;
+  croak $message;
 }
 
 sub _confess {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = $trace_file_handle || *STDERR;
-  confess "($$) ", @_;
+  my $message = join("", @_);
+  $message =~ s/^/=== $$ === /mg;
+  confess $message;
 }
 
 sub _cluck {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = $trace_file_handle || *STDERR;
-  cluck "($$) ", @_;
+  my $message = join("", @_);
+  $message =~ s/^/=== $$ === /mg;
+  cluck $message;
 }
 
 sub _carp {
   local $Carp::CarpLevel = $Carp::CarpLevel + 1;
   local *STDERR = $trace_file_handle || *STDERR;
-  carp "($$) ", @_;
+  my $message = join("", @_);
+  $message =~ s/^/=== $$ === /mg;
+  carp $message;
 }
 
 sub _warn {
   my ($package, $file, $line) = caller();
   my $message = join("", @_);
   $message .= " at $file line $line\n" unless $message =~ /\n$/;
-  warn "=== $$ === $message";
+  $message =~ s/^/=== $$ === /mg;
+  warn $message;
 }
 
 sub _die {
   my ($package, $file, $line) = caller();
   my $message = join("", @_);
   $message .= " at $file line $line\n" unless $message =~ /\n$/;
+  $message =~ s/^/=== $$ === /mg;
   local *STDERR = $trace_file_handle || *STDERR;
-  die "($$) $message";
+  die $message;
 }
 
 #------------------------------------------------------------------------------
@@ -862,6 +870,124 @@ sub CLONE {
 
 sub _dummy_sigdie_handler { 1 }
 
+sub _dispatch_signal_event {
+  my (
+    $self,
+    $session, $source_session, $event, $type, $etc,
+    $file, $line, $fromstate, $priority, $seq
+  ) = @_;
+
+  # TODO - Regrettably, duplicate checking code in:
+  # _dispatch_signal_event(), _dispatch_event().
+
+  if (ASSERT_EVENTS) {
+    _confess "<ev> undefined dest session" unless defined $session;
+    _confess "<ev> undefined source session" unless defined $source_session;
+  };
+
+  if (TRACE_EVENTS) {
+    my $log_session = $session;
+    $log_session =  $self->_data_alias_loggable($session->ID) unless (
+      $type & ET_START
+    );
+    my $string_etc = join(" ", map { defined() ? $_ : "(undef)" } @$etc);
+    _warn(
+      "<ev> Dispatching event $seq ``$event'' ($string_etc) from ",
+      $self->_data_alias_loggable($source_session->ID), " to $log_session"
+    );
+  }
+
+  my $signal = $etc->[0];
+
+  if (TRACE_SIGNALS) {
+    _warn(
+      "<sg> dispatching ET_SIGNAL ($signal) to ",
+      $self->_data_alias_loggable($session->ID)
+    );
+  }
+
+  # Step 1a: Reset the handled-signal flags.
+
+  local @POE::Kernel::kr_signaled_sessions;
+  local $POE::Kernel::kr_signal_total_handled;
+  local $POE::Kernel::kr_signal_type;
+
+  $self->_data_sig_reset_handled($signal);
+
+  # Step 1b: Collect a list of sessions to receive the signal.
+
+  my @touched_sessions = ($session);
+  my $touched_index = 0;
+  while ($touched_index < @touched_sessions) {
+    my $next_target = $touched_sessions[$touched_index]->ID;
+    push @touched_sessions, $self->_data_ses_get_children($next_target);
+    $touched_index++;
+  }
+
+  # Step 1c: The DIE signal propagates up through parents, too.
+
+  if ($signal eq "DIE") {
+    my $next_target = $self->_data_ses_get_parent($session->ID);
+    while (defined($next_target) and $next_target != $self) {
+      unshift @touched_sessions, $next_target;
+      $next_target = $self->_data_ses_get_parent($next_target->ID);
+    }
+  }
+
+  # Step 2: Propagate the signal to the explicit watchers in the
+  # child tree.  Ensure the full tree is touched regardless
+  # whether there are explicit watchers.
+
+  if ($self->_data_sig_explicitly_watched($signal)) {
+    my %signal_watchers = $self->_data_sig_watchers($signal);
+
+    $touched_index = @touched_sessions;
+    while ($touched_index--) {
+      my $target_session = $touched_sessions[$touched_index];
+      $self->_data_sig_touched_session($target_session);
+
+      my $target_sid = $target_session->ID;
+      next unless exists $signal_watchers{$target_sid};
+      my ($target_event, $target_etc) = @{$signal_watchers{$target_sid}};
+
+      if (TRACE_SIGNALS) {
+        _warn(
+          "<sg> propagating explicit signal $target_event ($signal) ",
+          "(@$target_etc) to ", $self->_data_alias_loggable($target_sid)
+        );
+      }
+
+      # ET_SIGNAL_RECURSIVE is used here to avoid repropagating
+      # the signal ad nauseam.
+      $self->_dispatch_event(
+        $target_session, $self,
+        $target_event, ET_SIGNAL_RECURSIVE, [ @$etc, @$target_etc ],
+        $file, $line, $fromstate, monotime(), -__LINE__
+      );
+    }
+  }
+  else {
+    $touched_index = @touched_sessions;
+    while ($touched_index--) {
+      $self->_data_sig_touched_session($touched_sessions[$touched_index]);
+    }
+  }
+
+  # Step 3: Check to see if the signal was handled.
+
+  $self->_data_sig_free_terminated_sessions();
+
+  # If the signal was SIGDIE, then propagate the exception.
+
+  my $handled_session_count = (_data_sig_handled_status())[0];
+  if ($signal eq "DIE" and !$handled_session_count) {
+    $kr_exception = $etc->[1]{error_str};
+  }
+
+  # Signal completely dispatched.  Thanks for flying!
+  return;
+}
+
 sub _dispatch_event {
   my (
     $self,
@@ -899,98 +1025,6 @@ sub _dispatch_event {
   # Preprocess signals.  This is where _signal is translated into
   # its registered handler's event name, if there is one.
 
-  if ($type & ET_SIGNAL) {
-    my $signal = $etc->[0];
-
-    if (TRACE_SIGNALS) {
-      _warn(
-        "<sg> dispatching ET_SIGNAL ($signal) to ",
-        $self->_data_alias_loggable($session->ID)
-      );
-    }
-
-    # Step 1a: Reset the handled-signal flags.
-
-    local @POE::Kernel::kr_signaled_sessions;
-    local $POE::Kernel::kr_signal_total_handled;
-    local $POE::Kernel::kr_signal_type;
-
-    $self->_data_sig_reset_handled($signal);
-
-    # Step 1b: Collect a list of sessions to receive the signal.
-
-    my @touched_sessions = ($session);
-    my $touched_index = 0;
-    while ($touched_index < @touched_sessions) {
-      my $next_target = $touched_sessions[$touched_index]->ID;
-      push @touched_sessions, $self->_data_ses_get_children($next_target);
-      $touched_index++;
-    }
-
-    # Step 1c: The DIE signal propagates up through parents, too.
-
-    if ($signal eq "DIE") {
-      my $next_target = $self->_data_ses_get_parent($session->ID);
-      while (defined($next_target) and $next_target != $self) {
-        unshift @touched_sessions, $next_target;
-        $next_target = $self->_data_ses_get_parent($next_target->ID);
-      }
-    }
-
-    # Step 2: Propagate the signal to the explicit watchers in the
-    # child tree.  Ensure the full tree is touched regardless
-    # whether there are explicit watchers.
-
-    if ($self->_data_sig_explicitly_watched($signal)) {
-      my %signal_watchers = $self->_data_sig_watchers($signal);
-
-      $touched_index = @touched_sessions;
-      while ($touched_index--) {
-        my $target_session = $touched_sessions[$touched_index];
-        $self->_data_sig_touched_session($target_session);
-
-        my $target_sid = $target_session->ID;
-        next unless exists $signal_watchers{$target_sid};
-        my ($target_event, $target_etc) = @{$signal_watchers{$target_sid}};
-
-        if (TRACE_SIGNALS) {
-          _warn(
-            "<sg> propagating explicit signal $target_event ($signal) ",
-            "(@$target_etc) to ", $self->_data_alias_loggable($target_sid)
-          );
-        }
-
-        # ET_SIGNAL_RECURSIVE is used here to avoid repropagating
-        # the signal ad nauseam.
-        $self->_dispatch_event(
-          $target_session, $self,
-          $target_event, ET_SIGNAL_RECURSIVE, [ @$etc, @$target_etc ],
-          $file, $line, $fromstate, monotime(), -__LINE__
-        );
-      }
-    }
-    else {
-      $touched_index = @touched_sessions;
-      while ($touched_index--) {
-        $self->_data_sig_touched_session($touched_sessions[$touched_index]);
-      }
-    }
-
-    # Step 3: Check to see if the signal was handled.
-
-    $self->_data_sig_free_terminated_sessions();
-
-    # If the signal was SIGDIE, then propagate the exception.
-
-    my $handled_session_count = (_data_sig_handled_status())[0];
-    if ($signal eq "DIE" and !$handled_session_count) {
-      $kr_exception = $etc->[1]{error_str};
-    }
-
-    # Signal completely dispatched.  Thanks for flying!
-    return;
-  }
-
   if (TRACE_EVENTS) {
     _warn(
     "<ev> dispatching event $seq ``$event'' to ",
@@ -1021,60 +1055,42 @@ sub _dispatch_event {
     defined $session
   );
 
-  my $new_sig_die;
-  if ($type & (ET_CALL | ET_START | ET_STOP)) {
-    # Don't trigger $SIG{__DIE__} until we're ready to rethrow it.
-    local $SIG{__DIE__} = \&_dummy_sigdie_handler;
+  # Quiet SIGDIE if it's DEFAULT.  If it's something special, then
+  # someone had better know what they're doing.
 
-    eval {
-      if ($wantarray) {
-        $return = [
-          $session->_invoke_state(
-            $source_session, $event, $etc, $file, $line, $fromstate
-          )
-        ];
-      }
-      elsif (defined $wantarray) {
-        $return = $session->_invoke_state(
-          $source_session, $event, $etc, $file, $line, $fromstate
-        );
-      }
-      else {
+  my $old_sig_die = $SIG{__DIE__};
+  $SIG{__DIE__} = \&_dummy_sigdie_handler if (
+    not defined $old_sig_die or $old_sig_die eq 'DEFAULT'
+  );
+
+  eval {
+    if ($wantarray) {
+      $return = [
         $session->_invoke_state(
           $source_session, $event, $etc, $file, $line, $fromstate
-        );
-      }
-    };
-
-    # Save the __DIE__ handler so we can check it outside this scope.
-    $new_sig_die = $SIG{__DIE__};
-  }
-  else {
-    # Don't trigger $SIG{__DIE__} until we're ready to rethrow it.
-    local $SIG{__DIE__} = \&_dummy_sigdie_handler;
-
-    eval {
+        )
+      ];
+    }
+    elsif (defined $wantarray) {
+      $return = $session->_invoke_state(
+        $source_session, $event, $etc, $file, $line, $fromstate
+      );
+    }
+    else {
       $session->_invoke_state(
         $source_session, $event, $etc, $file, $line, $fromstate
       );
-    };
+    }
+  };
 
-    # Save the __DIE__ handler so we can check it outside this scope.
-    $new_sig_die = $SIG{__DIE__};
-  }
+  # An exception happened?
+  # It was intially thrown under the $SIG{__DIE__} conditions that the
+  # user wanted.  Any formatting, logging, etc. is already done.
 
-  # If the user changed $SIG{__DIE__}, then we should honor that.
-  # Otherwise, by the time we get here, the last one has been restored.
-  $SIG{__DIE__} = $new_sig_die if $new_sig_die ne \&_dummy_sigdie_handler;
+  if (ref($@) or $@ ne '') {
 
-  # local $@ doesn't work quite the way I expect, but there is a
-  # bit of a problem if an eval{} occurs here because a signal is
-  # dispatched or something.
-
-  if (CATCH_EXCEPTIONS) {
-    if (ref($@) or $@ ne '') {
-      my $exception = $@;
-      if(TRACE_EVENTS) {
+    if (CATCH_EXCEPTIONS) {
+      if (TRACE_EVENTS) {
         _warn(
           "<ev> exception occurred in $event when invoked on ",
           $self->_data_alias_loggable($session->ID)
@@ -1086,7 +1102,8 @@ sub _dispatch_event {
       # Also if the active session has been forced back to $self via
       # POE::Kernel->stop().
       if ($type & ET_STOP or $kr_active_session eq $self) {
-        $kr_exception = $exception;
+        # Propagate the exception up to the safe rethrow point.
+        $kr_exception = $@;
       }
       else {
         $self->_data_ev_enqueue(
@@ -1098,22 +1115,35 @@ sub _dispatch_event {
               file => $file,
               line => $line,
               from_state => $fromstate,
-              error_str => $exception,
+              error_str => $@,
             },
           ], __FILE__, __LINE__, undef
         );
       }
     }
-  }
-  elsif (ref $@) {
-    die $@;
-  }
-  elsif ($@ ne '') {
-    # Stringification hides "...propagated at".
-    die $@;
+    else {
+      # Propagate the exception up to the safe rethrow point.
+      $kr_exception = $@;
+    }
   }
 
-  # Call with exception catching.
+  # Global $sig{__DIE__} changed?  For shame!
+  # TODO - This warning is only needed if a SIGDIE handler is active.
+  # TODO - Likewise, setting a SIGDIE with a __DIE__ handler in play
+  # will be tricky or impossible.  There should be some message.
+
+  if (
+    (not defined $old_sig_die or $old_sig_die eq 'DEFAULT') and
+    $SIG{__DIE__} ne \&_dummy_sigdie_handler
+  ) {
+    _warn(
+      "<sg> Event handler redefined global __DIE__ signal handler.\n",
+      "<sg> This may conflict with CATCH_EXCEPTIONS handling.\n",
+      "<sg> If global redefinition is necessary, do it in global code.\n",
+    );
+
+    $SIG{__DIE__} = $old_sig_die;
+  }
 
   # Clear out the event arguments list, in case there are POE-ish
   # things in it. This allows them to destruct happily before we set
@@ -1256,13 +1286,17 @@ sub run {
 sub _rethrow_kr_exception {
   my $self = shift;
 
-  # Save the exception lexically.
-  # Clear it so it doesn't linger if run() is called again.
+  # It's quite common to see people wrap POE::Kernel->run() in an eval
+  # block and start things again if an exception is caught.
+  #
+  # This little lexical dance is actually important.  It allows
+  # $kr_exception to be cleared if the die() is caught.
+
   my $exception = $kr_exception;
   $kr_exception = undef;
 
-  # Rethrow it.
-  die $exception if $exception;
+  # The die is cast.
+  die $exception;
 }
 
 # Stops the kernel cold.  XXX Experimental!
@@ -1696,7 +1730,7 @@ sub call {
 
   # TODO The difference between synchronous and asynchronous events
   # should be made more clear in the documentation, so that people
-  # have a tendency not to abuse them.  I discovered in xws that that
+  # have a tendency not to abuse them.  I discovered in xws that
   # mixing the two types makes it harder than necessary to write
   # deterministic programs, but the difficulty can be ameliorated if
   # programmers set some base rules and stick to them.

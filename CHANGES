@@ -1,6 +1,282 @@
-==============================
-9999-99-99 99:99:99 +0000 HEAD
-==============================
+================================
+2013-12-07 02:42:06 -0500 v1_357
+================================
+
+  commit 7f2c8d2f932cc2a260bcaecf2a455f844649334b
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Dec 7 02:42:06 2013 -0500
+  
+    Bump version for release.
+
+  commit a34a625af7c96806ab131a36332a91d554159774
+  Merge: f69cf46 ee6d097
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Nov 26 09:52:31 2013 -0500
+  
+    Merge branch 'master' of gitorious.org:poe/poe
+
+  commit f69cf46cccf85e218dd317c0278ee5b69c90fc21
+  Merge: ebc911e 8005d23
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Nov 26 06:30:51 2013 -0800
+  
+    Merge pull request #16 from dsteinbrunner/patch-1
+
+    typo fixes
+
+  commit ebc911ef3d368e19e77cf16a6284ce7d57cfe713
+  Merge: d3cb2fb af5deb2
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Nov 26 05:57:07 2013 -0800
+  
+    Merge pull request #15 from
+    nkukard/tcp-server-component-stopped-event
+
+    Added support for Stopped callback in TCP server.
+
+  commit ee6d09745f2a37ece85a170df195a7a52c3c8ba5
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Oct 20 13:34:18 2013 -0400
+  
+    [rt.cpan.org 89627] Documentation typo fixes.
+
+    Apply a patch from CPAN user ID DAM, and then some. Thanks!
+
+  commit d3cb2fbfb53799ab22754b900fc47af703758910
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Oct 6 16:58:28 2013 -0400
+  
+    Fix a "Kernel has child processes" warning even when it doesn't.
+
+    Michel Schrameck reported that the above warning was coming from a
+    very simple, obviously not fork()ing test program. I was able to
+    reproduce the problem with the test case when USE_SIGCHLD was turned
+    off. This fix changes the way first polling of SIGCHLD happens. It
+    passes all known tests, but it may negatively affect older programs.
+    Please report any problems.
+
+  commit 8005d23aa5380f7359315417e097b543058d583c
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:39:03 2013 -0400
+  
+    typo fixes
+
+  commit 3418f32ee2922df476b9865a4de6fe540a85ac67
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:34:39 2013 -0400
+  
+    typo fix
+
+  commit 3cc2f92488f9eacea3266b300f3abd5c9bb53df6
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:33:22 2013 -0400
+  
+    typo fix
+
+  commit 3d96b8c4d20ede2acf3b67ec1398eff72e921d26
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:32:18 2013 -0400
+  
+    typo fix
+
+  commit 53f4c1eebd795adc621e15a61c81e6b1b6204e45
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:29:36 2013 -0400
+  
+    typo fix
+
+  commit 56c2e2855ed01b792bc1dcd8691fc34a07e0dd83
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:28:55 2013 -0400
+  
+    typo fix
+
+  commit bd94d7e5dc70b0701b56c3761659369e73a13294
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:28:07 2013 -0400
+  
+    typo fixes
+
+  commit 1ad2fbe711a4e99b56b76d12ebfc75496c328b1a
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:22:54 2013 -0400
+  
+    typo fix
+
+  commit 033a0bd4c6408f3fddf851364b681a8993409481
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:22:29 2013 -0400
+  
+    typo fix
+
+  commit fd911b1ca90c99fa1e9ad2f8ef1cf3c2676a07fd
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:22:01 2013 -0400
+  
+    typo fix
+
+  commit 87263f4f0909d11823f17ab2bddbb931b9c80142
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:21:29 2013 -0400
+  
+    typo fix
+
+  commit be10d35944696a2ed0edf1ad33491d87e5671648
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:20:51 2013 -0400
+  
+    typo fix
+
+  commit bb9004867045a1e25a6aa935d859c2e60578b222
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:19:56 2013 -0400
+  
+    typo fix
+
+  commit 1e37402ef70fc416ba5bc0f41964158c853fbeec
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:16:30 2013 -0400
+  
+    typo fix
+
+  commit 65499de54269592cd0b7515ed23c1b57eb321aac
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:15:10 2013 -0400
+  
+    typo fix
+
+  commit 42203296e67176efbff11db438cdd0f06172f1fa
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:14:17 2013 -0400
+  
+    typo fix
+
+  commit 620b3ba9f8f980252ad535399a575f4f608d0914
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:12:49 2013 -0400
+  
+    typo fixes
+
+  commit 3cde88f27957015cbe48cee99c92d42f31d5d052
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:10:36 2013 -0400
+  
+    typo fix
+
+  commit a6273522e272aaeb8517d036bc552894bb5abe25
+  Author: David Steinbrunner <dsteinbrunner@pobox.com>
+  Date:   Mon Sep 9 07:09:29 2013 -0400
+  
+    typo fixes
+
+  commit af5deb2720f60351a09c9c004a0e4263707f9a48
+  Author: Nigel Kukard <nkukard@lbsd.net>
+  Date:   Sun Sep 8 16:50:11 2013 +0200
+  
+    Added support for Stopped callback in TCP server
+
+  commit 52487325a316b2bcc945f0a1f344556b58760ef3
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Sep 5 18:52:13 2013 -0400
+  
+    !!! CATCH_EXCEPTIONS revamp.
+
+    May be slightly backwards incompatible. I expect more good to come
+    from it than harm.
+
+    POE should hide error messages less often. Its usage of eval() and
+    propagation of exceptions have been simplified somewhat.
+
+    !!! This change reverses POE's stance on user-defined $SIG{__DIE__}
+    handlers. Now they are honored inside event handlers. Code that does
+    this is expected to know what it's doing. Perl's global special
+    variables, including %SIG, have spooky action at a distance.
+
+    Modifying $SIG{__DIE__} locally shouldn't cause any problems. The
+    original value will be restored at the end of the local scope.
+
+    I changed this because reasons:
+
+    1. Silent side effects suck. Previously, POE would silently overrule
+    global changes to $SIG{__DIE__}. This change makes things a little
+    more comprehensible.
+
+    2. $SIG{__DIE__} handlers are very useful for logging and debugging.
+    Setting them should be permissible.
+
+    3. If CATCH_EXCEPTIONS is on, and $SIG{__DIE__} is redefined in an
+    event handler, the programmer is told about the potential side
+    effects. This is an experimental warning and is subject to change
+    more than most things.
+
+    4. Error messages were being hidden at work, and it was confounding
+    development.
+
+  commit bae8c6e8dd4184ec0ad5dec9d41da4229a5831c5
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Sep 5 18:21:47 2013 -0400
+  
+    Switch some signal regression tests from ok() to is() for more
+    detailed failures.
+
+  commit 1779588cc430e911b2b657fcf2e6ae89008f0ef4
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Sep 5 15:23:52 2013 -0400
+  
+    Remove some redundant C<no strict 'refs'>.
+
+  commit 254205621c086e25cdc8c22994703a5f0ac4bada
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Sep 5 14:40:20 2013 -0400
+  
+    Refactor _dispatch_event(), extracting _dispatch_signal_event().
+
+    _dispatch_event() was rather large, and there was an isolated section
+    for recursive signal dispatch. That has been extracted into its own
+    method, _dispatch_signal_event() so the basic event dispatcher can be
+    smaller and more focused. This should make it easier to improve
+    exception handling in _dispatch_event().
+
+  commit e2ea58bb392c2268b7fdca0bb208e16c6f47d465
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Sep 5 14:38:20 2013 -0400
+  
+    Make _trap(), _warn(), etc. a little more consistent.
+
+    Put the process ID at the start of every line of error messages,
+    rather than just the beginning of the first line. We deal with
+    subprocesses a lot at work, and this helps tease apart interleaved
+    messages.
+
+  commit b81728e7d1b76be619c34c0f2940dcbbd44970b8
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Sep 5 14:36:12 2013 -0400
+  
+    Fail better if asked to serialize a non-reference.
+
+    A component was trying to serialize undef() rather than a reference
+    to something undefined. It was causing failure attributed to this
+    filter, rather than the user. Now there's a stack trace to help
+    spread the blame.
+
+  commit eeadb7caf72f510e44ec445261144a7b33dd8749
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Aug 27 20:47:56 2013 -0400
+  
+    Add David Webb's regression test to the MANIFEST.
+
+  commit bf55543ef0465fa57b8752970ef499c3640acb30
+  Author: David Webb <david.webb@blishmize.com>
+  Date:   Mon Aug 26 11:26:11 2013 -0500
+  
+    Fix read bug in select based polling loop
+
+    FollowTail does not trigger multiple input events when multiple lines
+    are written to the followed file at the same time. 
+
+================================
+2013-08-20 16:36:06 -0400 v1_356
+================================
 
   commit 35e779316e1de7293401c57f6e9652e66cab28c6
   Author: Rocco Caputo <rcaputo@cpan.org>

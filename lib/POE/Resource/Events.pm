@@ -3,7 +3,7 @@
 package POE::Resource::Events;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 # These methods are folded into POE::Kernel;
 package POE::Kernel;
@@ -348,7 +348,13 @@ sub _data_ev_dispatch_due {
     # TODO - Why can't we reverse these two lines?
     # TODO - Reversing them could avoid entering and removing GC marks.
     $self->_data_ev_refcount_dec($event->[EV_SOURCE], $event->[EV_SESSION]);
-    $self->_dispatch_event(@{$event}[EV_SESSION..EV_FROMSTATE], $priority, $id);
+
+    if ($event->[EV_TYPE] & ET_SIGNAL) {
+      $self->_dispatch_signal_event(@{$event}[EV_SESSION..EV_FROMSTATE], $priority, $id);
+    }
+    else {
+      $self->_dispatch_event(@{$event}[EV_SESSION..EV_FROMSTATE], $priority, $id);
+    }
 
     # Stop the system if an unhandled exception occurred.
     # This wipes out all sessions and associated resources.
@@ -395,7 +401,7 @@ internally by POE::Kernel, so it has no public interface.
 See L<POE::Kernel/Asynchronous Messages (FIFO Events)> for one public
 events API.
 
-See L<POE::Kernel/Resources> for for public information about POE
+See L<POE::Kernel/Resources> for public information about POE
 resources.
 
 See L<POE::Resource> for general discussion about resources and the

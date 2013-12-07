@@ -1,7 +1,7 @@
 package POE::Resource;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 1;
 
@@ -64,7 +64,7 @@ L<POE::Resource::SIDs>,
 L<POE::Resource::Sessions>,
 L<POE::Resource::Signals>
 
-Also see L<POE::Kernel/Resources> for for public information about POE
+Also see L<POE::Kernel/Resources> for public information about POE
 resources.
 
 =head1 BUGS

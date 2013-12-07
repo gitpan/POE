@@ -3,7 +3,7 @@ package POE::Component::Client::TCP;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.356'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(carp croak);
 use Errno qw(ETIMEDOUT ECONNRESET);
@@ -439,7 +439,7 @@ inline_states parameter.
 
 =head4 ObjectStates
 
-If C<ObjectStates> is specified, it must holde an arrayref of objects
+If C<ObjectStates> is specified, it must hold an arrayref of objects
 and the events they will handle.  The arrayref must follow the syntax
 for POE::Session->create()'s object_states parameter.
 
