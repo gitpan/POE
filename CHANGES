@@ -1,3 +1,23 @@
+==============================
+9999-99-99 99:99:99 +0000 HEAD
+==============================
+
+  commit 189d17148acd03df579dd12d043486d97db0c7cf
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Dec 8 03:10:49 2013 -0500
+  
+    Bump version for release.
+
+  commit 2e2f94348f7645091e4160cc103d5a4d77dce6d9
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Dec 8 03:08:56 2013 -0500
+  
+    Rethrow exceptions that occur during call().
+
+    The previous exceptions revamp ate exceptions that occurred during
+    call(). Chris Williams spotted this happening in tests for
+    POE::Component::Client::DNS. 
+
 ================================
 2013-12-07 02:42:06 -0500 v1_357
 ================================

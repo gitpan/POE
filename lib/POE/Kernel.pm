@@ -3,7 +3,7 @@ package POE::Kernel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.357'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.358'; # NOTE - Should be #.### (three decimal places)
 
 use POE::Resource::Clock qw( monotime sleep mono2wall wall2mono walltime time );
 
@@ -1088,7 +1088,6 @@ sub _dispatch_event {
   # user wanted.  Any formatting, logging, etc. is already done.
 
   if (ref($@) or $@ ne '') {
-
     if (CATCH_EXCEPTIONS) {
       if (TRACE_EVENTS) {
         _warn(
@@ -1749,6 +1748,8 @@ sub call {
       )
     );
 
+    $kr_exception and $self->_rethrow_kr_exception();
+
     $! = 0;
     return @return_value;
   }
@@ -1767,6 +1768,8 @@ sub call {
       )
     );
 
+    $kr_exception and $self->_rethrow_kr_exception();
+
     $! = 0;
     return $return_value;
   }
@@ -1784,6 +1787,8 @@ sub call {
       (caller)[1,2], $kr_active_event, monotime(), -__LINE__
     );
   }
+
+  $kr_exception and $self->_rethrow_kr_exception();
 
   $! = 0;
   return;
