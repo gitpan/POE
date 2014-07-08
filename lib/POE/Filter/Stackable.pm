@@ -12,12 +12,17 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.358'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.359'; # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Filter);
 
 use Carp qw(croak);
 
 sub FILTERS () { 0 }
+
+sub FIRST_UNUSED () { 1 }  # First unused $self offset.
+
+use base 'Exporter';
+our @EXPORT_OK = qw( FIRST_UNUSED );
 
 #------------------------------------------------------------------------------
 

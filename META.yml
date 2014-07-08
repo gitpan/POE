@@ -3,15 +3,15 @@ abstract: 'Portable, event-loop agnostic eventy networking and multitasking.'
 author:
   - 'Rocco Caputo <rcaputo@cpan.org>'
 build_requires:
-  POE::Test::Loops: 1.352
+  POE::Test::Loops: '1.355'
 configure_requires:
-  POE::Test::Loops: 1.352
+  POE::Test::Loops: '1.355'
 dynamic_config: 1
-generated_by: 'ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.132830'
+generated_by: 'ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.141520'
 license: perl
 meta-spec:
   url: http://module-build.sourceforge.net/META-spec-v1.4.html
-  version: 1.4
+  version: '1.4'
 name: POE
 no_index:
   directory:
@@ -19,22 +19,22 @@ no_index:
     - inc
     - mylib
 requires:
-  Carp: 0
-  Errno: 1.09
-  Exporter: 0
-  File::Spec: 0.87
-  IO: 1.24
-  IO::Handle: 1.27
-  IO::Pipely: 0.005
-  IO::Tty: 1.08
-  POE::Test::Loops: 1.352
-  POSIX: 1.02
-  Socket: 1.7
-  Storable: 2.16
-  Test::Harness: 2.26
-  Time::HiRes: 1.59
+  Carp: '0'
+  Errno: '1.09'
+  Exporter: '0'
+  File::Spec: '0.87'
+  IO: '1.24'
+  IO::Handle: '1.27'
+  IO::Pipely: '0.005'
+  IO::Tty: '1.08'
+  POE::Test::Loops: '1.355'
+  POSIX: '1.02'
+  Socket: '1.7'
+  Storable: '2.16'
+  Test::Harness: '2.26'
+  Time::HiRes: '1.59'
 resources:
   homepage: http://poe.perl.org/
   license: http://dev.perl.org/licenses/
   repository: https://github.com/rcaputo/poe
-version: 1.358
+version: '1.359'

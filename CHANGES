@@ -1,6 +1,259 @@
-==============================
-9999-99-99 99:99:99 +0000 HEAD
-==============================
+================================
+2014-07-08 00:47:19 -0400 v1_359
+================================
+
+  commit 4dcc5e6866d3675bc87574a72258375ffcf47dc1
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Jul 8 00:47:19 2014 -0400
+  
+    Update POE::Test::Loops dependency.
+
+  commit 153fadad2c77b3e1c14e539d8ca64de28a34ccdb
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon Jul 7 23:07:28 2014 -0400
+  
+    Version bump.
+
+  commit adaa221878dfa42c854adc498e3734021ab88b92
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon Jul 7 22:47:36 2014 -0400
+  
+    rt.cpan.org 91374. Clarify a warning when an optional dependency is
+    needed but absent.
+
+  commit 5e21f99ecabaab4b1dfe8ecf53488c30b2655999
+  Merge: 8c98157 f3e987d
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon Jul 7 20:38:14 2014 -0400
+  
+    Merge remote-tracking branch 'remotes/gh/master'
+
+  commit f3e987d634d98d28f73b38d72b2f1d0dfe268cf6
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon Jul 7 16:25:22 2014 -0400
+  
+    Windows reports local address 0 as 0.0.0.0, and then the test canot
+    connect to itself.
+
+  commit 8c98157d46d7839181456de2c283604bd20f57e5
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Thu May 22 12:39:25 2014 -0400
+  
+    Fixed the doco
+
+  commit 8de5712496e49d07904ca61a16d369b25fd4cc7f
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun May 4 16:37:24 2014 -0400
+  
+    Revert "Convert POE::Resource::SIDs into a proper class."
+
+    This reverts commit 68089ffe81a2dd1e39c07288ba1723d74165523f.
+
+  commit b8bc1e1fe916e31ac663e29af614553eb0aa5956
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun May 4 16:37:15 2014 -0400
+  
+    Revert "Convert POE::Resource::Extrefs into a proper class."
+
+    This reverts commit 3ae646376bd89572e9a61ae1d10d0609d0cdc025.
+
+  commit b1e052e77580d51e9f9879044d15c4c6bc682507
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun May 4 16:37:04 2014 -0400
+  
+    Revert "Convert POE::Resource::Aliases into a proper class."
+
+    This reverts commit f8e8c694d00c3cecf50c2a4d120ee67d7024c42d.
+
+  commit 9bb7c26ad0e11d182e51bc28ed5625c620c16c08
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Thu Apr 10 13:56:32 2014 -0400
+  
+    POE::Filter::HTTPD will use Email::MIME::RFC2047::Encoder to convert
+
+    UTF-8 headers into MIME entities Documentation for above Tests for
+    above Added exceptions to 02_pod_coverage.t for POE::Filter::HTTPD
+
+  commit dc5cbb25c5ed91a1f1165062664ac9e3bebbea84
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Wed Apr 9 15:21:22 2014 -0400
+  
+    POE::Filter::Block->new complains about unknown params
+    POE::Filter::Grep->new complains about unknown params
+    POE::Filter::Map->new complains about unknown params Added
+    POE::Filter::Map::FIRST_UNUSED Added
+    POE::Filter::Stackable::FIRST_UNUSED
+
+  commit c149a72e0f9c3cd3fa70760056d45209d197b7ba
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Wed Apr 9 15:08:30 2014 -0400
+  
+    Added POE::Filter::BlockRecord::FIRST_UNUSED
+    POE::Filter::BlockRecord->new now checks for unknown params
+
+  commit b49ccba376012704149991a7bbad17ee6f2a9567
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Wed Apr 9 14:07:04 2014 -0400
+  
+    Added MaxBuffer support Created a constructor that takes named
+    parameters. Above constructor will also accept the old syntax
+    Documentation for above Test cases for above Added
+    POE::Fitler::Reference::FIRST_UNUSED
+
+  commit a9742150086d7a9bba7a0e7f9e96cb7b5588ad99
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Wed Apr 9 14:01:33 2014 -0400
+  
+    Added FIRST_UNUSED
+
+  commit 489d8be032999de120dbcbb8379dabc59d90e539
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Wed Apr 9 12:52:45 2014 -0400
+  
+    Added MaxBuffer to POE::Filter::HTTPD Document above Tests for above
+    POE::Filter::HTTPD->new now complain about unknown parameters Get
+    MaxContent via POE::Filter->__param_max() Added
+    POE::Filter::HTTPD::FIRST_UNUSED
+
+  commit 3110b479e14d2a5a553a298454cffaee844ae389
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Wed Apr 9 12:20:43 2014 -0400
+  
+    Added DEBUG constant Used above to help me figure some crap for
+    POEx::HTTP::Server
+
+  commit 1472d98b7355f0356e293dac4282faec603b75d4
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Wed Apr 9 12:19:50 2014 -0400
+  
+    Added MaxLength and MaxBuffer to POE::Filter::Line Tests for above
+    Documented above
+
+  commit 036525b5c8906193d1596d6723ffa07af252301d
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Wed Apr 9 12:11:09 2014 -0400
+  
+    Added MaxBuffer and MaxLength parameters to POE::Filter::Block Added
+    POE::Filter->__param_max for above Added unit tests for MaxBuffer and
+    MaxLength Document the above Added POE::Filter::Block::FIRST_UNUSED
+    because there wasn't one
+
+  commit 0fae143ab3d3c76a54ad9dd25eef27c2eccdb950
+  Merge: ff6d5f8 f8e8c69
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Tue Apr 8 17:01:59 2014 -0400
+  
+    Merge branch 'master' of ssh://git.code.sf.net/p/poe/poe
+
+  commit ff6d5f8d48860b68647224a9005438a9afd9431e
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Tue Apr 8 16:59:40 2014 -0400
+  
+    POE::Filter::HTTPD Streaming mode no longer requires switching
+    filters t/90_regression/leolo-filter-httpd.t tests the above
+
+  commit f8e8c694d00c3cecf50c2a4d120ee67d7024c42d
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Apr 8 12:16:30 2014 -0400
+  
+    Convert POE::Resource::Aliases into a proper class.
+
+  commit 6434f8a8a97668d303e834038d0f23f801b90dd1
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Mon Apr 7 16:11:20 2014 -0400
+  
+    Added POE::Filter::HTTPD->get_pending Added tests for Streaming
+    requests This time remember to commit the unit test
+
+  commit b1e6ab1ae698acd21573adf81363731c40305df5
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Mon Apr 7 16:03:19 2014 -0400
+  
+    Make sure Content-Length is a number Added tests for Content-Length
+    changes
+
+  commit 2f9cb24ab7482b7357afb027f133aaa9bc36c901
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Mon Apr 7 15:37:30 2014 -0400
+  
+    Added Streaming and MaxContent to POE::Filter::HTTPD
+
+  commit 3ae646376bd89572e9a61ae1d10d0609d0cdc025
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon Apr 7 02:12:51 2014 -0400
+  
+    Convert POE::Resource::Extrefs into a proper class.
+
+  commit 68089ffe81a2dd1e39c07288ba1723d74165523f
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Apr 6 21:21:52 2014 -0400
+  
+    Convert POE::Resource::SIDs into a proper class.
+
+  commit 32ff484caef4bbdea1b36b42b3cf59f9e86d0793
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Apr 6 17:32:25 2014 -0400
+  
+    Add parens to method invocations. Comment some internal methods.
+
+  commit a71ac22e55e0f4577bb90f3a18cb1e7500e56cc1
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sun Apr 6 15:47:48 2014 -0400
+  
+    Crudely benchmark the machine under test.
+
+    A lot of POE's tests work around slow machines by unconditionally
+    delaying a lot. This makes the tests feel ponderous on fast systems,
+    and it thwarts Continuous Integration.
+
+    Benchmarking machines under test will help me tell how much the
+    work-around is needed. It may eventually hint to other tests how long
+    they need to wait.
+
+  commit 4a97b6befde298936bfa6bedfb5e3f0a1afae0ad
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Fri Apr 4 14:34:03 2014 -0400
+  
+    Fixed previous patch for delay_adjust( $id, 0 ), which means the
+    delay happens now.
+
+  commit 5d656bae46101c2fa74775960bbe084b9a597379
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Fri Apr 4 14:13:11 2014 -0400
+  
+    Fixed POE::Kernel->delay_adjust() Added
+    POE::Resource::Events->_data_ev_set() for above Tweaked
+    POE::Resource::Events->_data_ev_adjust() in case it is called with
+    $time
+
+  commit b3f89d3386fc685440a4193c46713cb5cbf7aeae
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Fri Apr 4 13:53:53 2014 -0400
+  
+    Fixed my regression test
+
+  commit 9c6a69289fea5f4a93f9464a4efea0011fd08804
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Fri Apr 4 13:51:01 2014 -0400
+  
+    Added leolo-alarm-adjust.t to test alarm_adjust() and delay_adjust()
+
+  commit e3db9b7c0dff9e46811f200507f5307aee6b1b80
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Thu Mar 27 12:09:54 2014 -0400
+  
+    Calculate window pixel size from columns, lines. Doco changes for
+    above. Don't complain about Winsize for pty-pipe conduit.
+
+  commit 1f63f16144151c334b6ade0a12a02d58fa80387a
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Feb 28 11:33:02 2014 -0500
+  
+    Socket.pm supports unpack_sockaddr_in6() now. 
+
+================================
+2013-12-08 03:10:49 -0500 v1_358
+================================
 
   commit 189d17148acd03df579dd12d043486d97db0c7cf
   Author: Rocco Caputo <rcaputo@cpan.org>

@@ -24,7 +24,7 @@ BEGIN {
 }
 
 BEGIN {
-  plan tests => 112;
+  plan tests => 137;
 }
 
 use_ok('POE::Filter::HTTPD');
@@ -408,6 +408,29 @@ SKIP: { # wishlist for supporting get_pending! {{{
   is(ref($chunks), 'ARRAY', 'put: returns arrayref');
 } # }}}
 
+SKIP:
+{ # make sure the headers are encoded {{{
+    eval "use utf8";
+    skip "Don't have utf8", 5 if $@;
+
+    my $utf8 = "En \xE9t\xE9";
+    utf8::upgrade( $utf8 );
+    ok( utf8::is_utf8( $utf8 ), "Make sure this is utf8" );
+
+    my $resp = HTTP::Response->new( "200", "OK" );
+    $resp->header( "X-Subject", $utf8 );
+    $resp->content( "\x00\xC3\xE7\xFF\x00" );
+
+    my $filter = POE::Filter::HTTPD->new;
+
+    my $chunks = $filter->put([$resp]);
+    is(ref($chunks), 'ARRAY', 'put: returns arrayref');
+    is( $#$chunks, 0, "One chunk" );
+    ok( !utf8::is_utf8( $chunks->[0] ), "Header was converted to iso-latin-1" );
+    like( $chunks->[0], qr/\x00\xC3\xE7\xFF\x00/, "Content wasn't corrupted" );
+} # }}}
+
+
 { # really, really garbage requests get rejected, but goofy ones accepted {{{
   {
     my $filter = POE::Filter::HTTPD->new;
@@ -518,3 +541,96 @@ SKIP: { # wishlist for supporting get_pending! {{{
     "HEAD with body"
   );
 } # }}}
+
+
+{ # bad request: POST with a content-length {{{
+  my $filter = POE::Filter::HTTPD->new; # default 1 mb max
+
+  my $req = HTTP::Request->new("POST", "/");
+  $req->protocol('HTTP/1.1');
+
+  $req->header( 'Content-Length' => 1024*1024*1024 );   # 1 GB
+  $req->header( 'Content-Type' => 'text/plain' );
+  $req->content( "Nothing much" );  # but don't put a real 1 GB into content
+                                    # (yes, the Content-Length is a lie!) 
+  my $data = $filter->get( [ $req->as_string ] );
+  use Data::Dump qw( pp );
+  isa_ok( $data->[0], 'HTTP::Response' );
+  ok( !$data->[0]->is_success, "Failed" );
+  is( $data->[0]->code, 413, "Content to big" );
+
+  # now try setting a different max size
+  $filter = POE::Filter::HTTPD->new( MaxContent => 10 );
+
+  # make sure it stuck
+  $req->header( 'Content-Length' => 5 );
+  $req->content( "honk\x0a" );
+  $data = $filter->get( [ $req->as_string ] );
+  isa_ok( $data->[0], 'HTTP::Request' );
+  is( $data->[0]->content, "honk\x0a", "Correct content" );
+
+  # make sure it fails
+  $req->header( 'Content-Length' => 15 ); # doesn't take much to go over
+  $req->content( "honk honk honk\x0a" );
+  $data = $filter->get( [ $req->as_string ] );
+  isa_ok( $data->[0], 'HTTP::Response' );
+  is( $data->[0]->code, 413, "Content to big" );
+
+  # now we play with a bad content-length
+  $req->header( 'Content-Length' => 'fifteen' );
+  $data = $filter->get( [ $req->as_string ] );
+  isa_ok( $data->[0], 'HTTP::Response' );
+  is( $data->[0]->code, 400, "Bad request" );
+} # }}}
+
+
+{ # Streaming content upload {{{
+
+  my $filter = POE::Filter::HTTPD->new( Streaming=>1 ); # default 1 mb max
+
+  my $req = HTTP::Request->new("POST", "/");
+  $req->protocol('HTTP/1.1');
+
+  $req->header( 'Content-Length' => 13 );
+  $req->header( 'Content-Type' => 'text/plain' );
+  $req->content( "Nothing much\n" );
+
+  my $data = $filter->get( [ $req->as_string ] );
+  isa_ok( $data->[0], 'HTTP::Request' );
+  is( $data->[0]->content, "", "No content" );
+  is( $data->[1], "Nothing much\n", "The content comes next" );
+} # }}}
+
+# Test param constraints
+{
+    my $filter = eval {
+            new POE::Filter::HTTPD(
+                        MaxLength => 10,
+                        MaxBuffer => 5 );
+        };
+    ok( $@, "MaxContent must not exceed MaxBuffer" );
+    ok( !$filter, "No object on error" );
+
+    $filter = eval { new POE::Filter::HTTPD( MaxContent => -1 ) };
+    ok( $@, "MaxContent must be positive" );
+
+    $filter = eval { new POE::Filter::HTTPD( MaxContent => 'something' ) };
+    ok( $@, "MaxContent must be a number" );
+
+    $filter = eval { new POE::Filter::HTTPD( MaxBuffer => 0 ) };
+    ok( $@, "MaxBuffer must be positive" );
+
+    $filter = eval { new POE::Filter::HTTPD( MaxBuffer => 'something' ) };
+    ok( $@, "MaxBuffer must be a number" );
+}
+
+# Test MaxBuffer
+{
+    my $filter = new POE::Filter::HTTPD( MaxBuffer => 10,
+                                         MaxContent => 5 );
+    isa_ok( $filter, 'POE::Filter::HTTPD' );
+
+    my $data = "This line is going to be to long for our filter\n";
+    my $blocks = eval { $filter->get( [ $data ] ) };
+    like( $@, qr/buffer exceeds/, "buffer grew to large" );
+}

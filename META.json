@@ -4,7 +4,7 @@
       "Rocco Caputo <rcaputo@cpan.org>"
    ],
    "dynamic_config" : 1,
-   "generated_by" : "ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.132830",
+   "generated_by" : "ExtUtils::MakeMaker version 6.6302, CPAN::Meta::Converter version 2.141520",
    "license" : [
       "perl_5"
    ],
@@ -23,12 +23,12 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "POE::Test::Loops" : "1.352"
+            "POE::Test::Loops" : "1.355"
          }
       },
       "configure" : {
          "requires" : {
-            "POE::Test::Loops" : "1.352"
+            "POE::Test::Loops" : "1.355"
          }
       },
       "runtime" : {
@@ -41,7 +41,7 @@
             "IO::Handle" : "1.27",
             "IO::Pipely" : "0.005",
             "IO::Tty" : "1.08",
-            "POE::Test::Loops" : "1.352",
+            "POE::Test::Loops" : "1.355",
             "POSIX" : "1.02",
             "Socket" : "1.7",
             "Storable" : "2.16",
@@ -60,5 +60,5 @@
          "url" : "https://github.com/rcaputo/poe"
       }
    },
-   "version" : "1.358"
+   "version" : "1.359"
 }

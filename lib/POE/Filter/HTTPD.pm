@@ -13,9 +13,11 @@ use strict;
 use POE::Filter;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.358';
+$VERSION = '1.359';
 # NOTE - Should be #.### (three decimal places)
 @ISA = qw(POE::Filter);
+
+sub DEBUG () { 0 }
 
 sub BUFFER        () { 0 } # raw data buffer to build requests
 sub STATE         () { 1 } # built a full request
@@ -23,6 +25,10 @@ sub REQUEST       () { 2 } # partial request being built
 sub CLIENT_PROTO  () { 3 } # client protocol version requested
 sub CONTENT_LEN   () { 4 } # expected content length
 sub CONTENT_ADDED () { 5 } # amount of content added to request
+sub CONTENT_MAX   () { 6 } # max amount of content
+sub STREAMING     () { 7 } # we want to work in streaming mode
+sub MAX_BUFFER    () { 8 } # max size of framing buffer
+sub FIRST_UNUSED  () { 9 }
 
 sub ST_HEADERS    () { 0x01 } # waiting for complete header block
 sub ST_CONTENT    () { 0x02 } # waiting for complete body
@@ -38,10 +44,67 @@ use URI ();
 my $HTTP_1_0 = _http_version("HTTP/1.0");
 my $HTTP_1_1 = _http_version("HTTP/1.1");
 
+use base 'Exporter';
+our @EXPORT_OK = qw( FIRST_UNUSED );
+
+
+
+#------------------------------------------------------------------------------
+# Set up some routines for convert wide chars (which aren't allowed in HTTP headers)
+# into MIME encoded equivalents.
+# See ->headers_as_strings
+BEGIN {
+    eval "use utf8";
+    if( $@ ) {
+        DEBUG and warn "We don't have utf8.";
+        *HAVE_UTF8 = sub { 0 };
+    }
+    else {        
+        *HAVE_UTF8 = sub { 1 };
+        my $downgrade = sub {   
+                        my $ret = $_[0];
+                        utf8::downgrade( $ret );
+                        return $ret 
+                    };
+        eval "use Email::MIME::RFC2047::Encoder";
+        if( $@ ) {
+            DEBUG and warn "We don't have Email::MIME::RFC2047::Encoder";
+            *encode_value = sub {
+              Carp::cluck(
+                "Downgrading wide characters in HTTP header. " .
+                "Consier installing Email::MIME::RFC2047::Encoder"
+              );
+              $downgrade->( @_ );
+            };
+        }
+        else {
+            my $encoder = Email::MIME::RFC2047::Encoder->new( encoding => 'iso-8859-1', 
+                                                              method => 'Q'
+                                                            );
+            *encode_value = sub { $downgrade->( $encoder->encode_text( @_ ) ) };
+        }
+    }
+}
+
+
 #------------------------------------------------------------------------------
 
 sub new {
   my $type = shift;
+  croak "$type requires an even number of parameters" if @_ and @_ & 1;
+  my %params = @_;
+
+  my $max_content = $type->__param_max( MaxContent => 1024*1024, \%params );
+  my $max_buffer = $type->__param_max( MaxBuffer => 512*1024*1024, \%params );
+  my $streaming = $params{Streaming} || 0;
+
+  croak "MaxBuffer is not large enough for MaxContent"
+        unless $max_buffer >= $max_content + length( $max_content ) + 1;
+
+  delete @params{qw(MaxContent MaxBuffer Streaming)};
+  carp("$type ignores unknown parameters: ", join(', ', sort keys %params))
+    if scalar keys %params;
+
   return bless(
     [
       '',         # BUFFER
@@ -50,6 +113,9 @@ sub new {
       undef,      # CLIENT_PROTO
       0,          # CONTENT_LEN
       0,          # CONTENT_ADDED
+      $max_content, # CONTENT_MAX
+      $streaming, # STREAMING
+      $max_buffer # MAX_BUFFER
     ],
     $type
   );
@@ -59,7 +125,11 @@ sub new {
 
 sub get_one_start {
   my ($self, $stream) = @_;
+    
   $self->[BUFFER] .= join( '', @$stream );
+  DEBUG and warn "$$:poe-filter-httpd: Buffered ".length( $self->[BUFFER] )." bytes";
+  die "Framing buffer exceeds the limit"
+    if $self->[MAX_BUFFER] < length( $self->[BUFFER] );
 }
 
 sub get_one {
@@ -70,6 +140,7 @@ sub get_one {
 
   # Waiting for a complete suite of headers.
   if ($self->[STATE] & ST_HEADERS) {
+    DEBUG and warn "$$:poe-filter-httpd: Looking for headers";
     # Strip leading whitespace.
     $self->[BUFFER] =~ s/^\s+//;
 
@@ -125,8 +196,15 @@ sub get_one {
 
     my $cl = $r->content_length();
     if( defined $cl ) {
-        $cl =~ s/\D.*$//;
-        $cl ||= 0;
+        unless( $cl =~ /^\s*(\d+)\s*$/ ) {
+            $r = $self->_build_error(RC_BAD_REQUEST, 
+                                 "Content-Length is not a number.",
+                                 $r);
+            $self->[BUFFER] = '';
+            $self->_reset();
+            return [ $r ];
+        }
+        $cl = $1 || 0;
     }
     my $ce = $r->content_encoding();
     
@@ -182,8 +260,19 @@ sub get_one {
                                  "No content length found.",
                                  $r);
       }
+      $self->[BUFFER] = '';
       $self->_reset();
       return [ $r ];
+    }
+
+    # Prevent DOS of a server by malicious clients
+    if( not $self->[STREAMING] and $cl > $self->[CONTENT_MAX] ) {
+        $r = $self->_build_error(RC_REQUEST_ENTITY_TOO_LARGE, 
+                                 "Content of $cl octets not accepted.",
+                                 $r);
+        $self->[BUFFER] = '';
+        $self->_reset();
+        return [ $r ];
     }
 
     $self->[REQUEST] = $r;
@@ -197,6 +286,33 @@ sub get_one {
     my $r         = $self->[REQUEST];
     my $cl_needed = $self->[CONTENT_LEN] - $self->[CONTENT_ADDED];
     die "already got enough content ($cl_needed needed)" if $cl_needed < 1;
+
+    if( $self->[STREAMING] ) {
+        DEBUG and warn "$$:poe-filter-httpd: Streaming request content";
+        my @ret;
+        # do we have a request?
+        if( $self->[REQUEST] ) {
+            DEBUG and warn "$$:poe-filter-httpd: Sending request";
+            push @ret, $self->[REQUEST];    # send it to the wheel
+            $self->[REQUEST] = undef;
+        }
+        # do we have some content ?
+        if( length( $self->[BUFFER] ) ) {   # send it to the wheel
+            my $more = substr($self->[BUFFER], 0, $cl_needed);
+            DEBUG and warn "$$:poe-filter-httpd: Sending content";
+            push @ret, $more;
+            $self->[CONTENT_ADDED] += length($more);
+            substr( $self->[BUFFER], 0, length($more) ) = "";
+            # is that enough content?
+            if( $self->[CONTENT_ADDED] >= $self->[CONTENT_LEN] ) {
+                DEBUG and warn "$$:poe-filter-httpd: All content received ($self->[CONTENT_ADDED] >= $self->[CONTENT_LEN])";
+                # Strip MSIE 5.01's extra CRLFs
+                $self->[BUFFER] =~ s/^\s+//;
+                $self->_reset;
+            } 
+        }
+        return \@ret;
+    }
 
     # Not enough content to complete the request.  Add it to the
     # request content, and return an incomplete status.
@@ -270,20 +386,93 @@ sub put {
 
     my @headers;
     push @headers, $status_line;
-    push @headers, $_->headers_as_string("\x0D\x0A");
 
-    push @raw, join("\x0D\x0A", @headers, "") . $_->content;
+    # Perl can magically promote a string to UTF-8 if it is concatinated
+    # with another UTF-8 string.  This behaviour changed between 5.8.8 and
+    # 5.10.1.  This is normaly not a problem, but POE::Driver::SysRW uses
+    # syswrite(), which sends POE's internal buffer as-is.  
+    # In other words, if the header contains UTF-8, the content will be
+    # promoted to UTF-8 and syswrite() will send those wide bytes, which
+    # will corrupt any images.
+    # For instance, 00 e7 ff 00 00 00 05
+    # will become,  00 c3 a7 c3 bf 00 00 00 05
+    #
+    # The real bug is in HTTP::Message->headers_as_string, which doesn't respect
+    # the following:
+    # 
+    # "The TEXT rule is only used for descriptive field contents and values
+    #  that are not intended to be interpreted by the message parser.  Words
+    #  of *TEXT MAY contain characters from character sets other than ISO-
+    #  8859-1 [22] only when encoded according to the rules of RFC 2047
+    #  [14]. " -- RFC2616 section 2.2
+    # http://www.ietf.org/rfc/rfc2616.txt
+    # http://www.ietf.org/rfc/rfc2047.txt
+    my $endl = "\x0D\x0A";
+    push @headers, $self->headers_as_strings( $_->headers, $endl );
+    push @raw, join( $endl, @headers, "", "") . $_->content;
   }
 
   \@raw;
+}
+
+sub headers_as_strings
+{
+    my( $self, $H, $endl ) = @_;
+    my @ret;
+    # $H is a HTTP::Headers object
+    foreach my $name ( $H->header_field_names ) {
+        # message-header = field-name ":" [ field-value ]
+        # field-name     = token
+        # RFC2616 section 4.2
+        #
+        # token          = 1*<any CHAR except CTLs or separators>
+        # separators     = "(" | ")" | "<" | ">" | "@"
+        #                  | "," | ";" | ":" | "\" | <">
+        #                  | "/" | "[" | "]" | "?" | "="
+        #                  | "{" | "}" | SP | HT
+        # CHAR           = <any US-ASCII character (octets 0 - 127)>        
+        # CTL            = <any US-ASCII control character
+        #                                (octets 0 - 31) and DEL (127)> 
+        # SP             = <US-ASCII SP, space (32)> 
+        # HT             = <US-ASCII HT, horizontal-tab (9)>
+        # RFC2616 section 2.2 
+
+        # In other words, plain ascii text.  HTTP::Headers doesn't check for
+        # this, of course.  So if we complain here, the cluck ends up in
+        # the wrong place.  Doing the simplest thing
+        utf8::downgrade( $name ) if HAVE_UTF8;
+
+        # Deal with header values
+        foreach my $value ( $H->header( $name ) ) {
+            if( HAVE_UTF8 and utf8::is_utf8( $value ) ) {
+                DEBUG and warn "$$: Header $name is UTF-8";
+                $value = encode_value( $value );
+            }
+            
+            push @ret, join ": ", $name, _process_newline( $value, $endl );
+        }
+    }
+    return @ret;
+}
+
+# This routine is lifted as-is from HTTP::Headers
+sub _process_newline {
+    local $_ = shift;
+    my $endl = shift;
+    # must handle header values with embedded newlines with care
+    s/\s+$//;        # trailing newlines and space must go
+    s/\n(\x0d?\n)+/\n/g;     # no empty lines
+    s/\n([^\040\t])/\n $1/g; # initial space for continuation
+    s/\n/$endl/g;    # substitute with requested line ending
+    $_;
 }
 
 #------------------------------------------------------------------------------
 
 sub get_pending {
   my $self = shift;
-  croak ref($self)." does not support the get_pending() method\n";
-  return;
+  return [ $self->[BUFFER] ] if length $self->[BUFFER];
+  return undef;
 }
 
 #------------------------------------------------------------------------------
@@ -430,9 +619,40 @@ returns their corresponding streams.
 Please see L<HTTP::Request> and L<HTTP::Response> for details about
 how to use these objects.
 
+HTTP headers are not allowed to have UTF-8 characters; they must be
+ISO-8859-1.  POE::Filter::HTTPD will convert all UTF-8 into the MIME encoded
+equivalent.  It uses L<utf8::is_utf8> for detection-8 and
+L<Email::MIME::RFC2047::Encoder> for convertion.  If L<utf8> is not
+installed, no conversion happens.  If L<Email::MIME::RFC2047::Encoder> is
+not installed, L<utf8::downgrade> is used instead.  In this last case, you will
+see a warning if you try to send UTF-8 headers.
+
+
 =head1 PUBLIC FILTER METHODS
 
 POE::Filter::HTTPD implements the basic POE::Filter interface.
+
+=head2 new
+
+new() accepts a list of named parameters.
+
+C<MaxBuffer> sets the maximum amount of data the filter will hold in memory. 
+Defaults to 512 MB (536870912 octets).  Because POE::Filter::HTTPD copies
+all data into memory, setting this number to high would allow a malicious
+HTTPD client to fill all server memory and swap.
+
+C<MaxContent> sets the maximum size of the content of an HTTP request. 
+Defaults to 1 MB (1038336 octets).  Because POE::Filter::HTTPD copies all
+data into memory, setting this number to high would allow a malicious HTTPD
+client to fill all server memory and swap.  Ignored if L</Streaming> is set.
+
+C<Streaming> turns on request streaming mode.  Defaults to off.  In
+streaming mode this filter will return either an HTTP::Request object or a
+block of content.  The HTTP::Request object's content will return empty. 
+The blocks of content will be parts of the request's body, up to
+Content-Length in size.  You distinguish between request objects and content
+blocks using C<Scalar::Util/bless> (See L</Streaming request> below).  This
+option superceeds L</MaxContent>.
 
 =head1 CAVEATS
 
@@ -464,14 +684,147 @@ Upon handling a request error, it is most expedient and reliable to
 respond with the error and shut down the connection.  Invalid HTTP
 requests may corrupt the request stream.  For example, the absence of
 a Content-Length header signals that a request has no content.
-Requests with content but not that header will be broken into a
+Requests with content but without that header will be broken into a
 content-less request and invalid data.  The invalid data may also
 appear to be a request!  Hilarity will ensue, possibly repeatedly,
 until the filter can find the next valid request.  By shutting down
 the connection on the first sign of error, the client can retry its
 request with a clean connection and filter.
 
-=head1 Streaming Media
+
+=head1 Streaming Request
+
+Normally POE::Filter::HTTPD reads the entire request content into memory
+before returning the HTTP::Request to your code.  In streaming mode, it will
+return the content seprately, as unblessed scalars.  The content may be
+split up into blocks of varying sizes, depending on OS and transport
+constraints.  Your code can distinguish the request object from the content
+blocks using L<Scalar::Util/blessed>.
+
+    use Scalar::Util;
+    use POE::Wheel::ReadWrite;
+    use POE::Filter:HTTPD;
+
+    $heap->{wheel} = POE::Wheel::ReadWrite->new( 
+                        InputEvent => 'http_input',
+                        Filter => POE::Filter::HTTPD->new( Streaming => 1 ),
+                        # ....
+                );
+
+    sub http_input_handler
+    {
+        my( $heap, $req_or_data ) = @_[ HEAP, ARG0 ];
+        if( blessed $req_or_data ) {
+            my $request = $req_or_data;
+            if( $request->isa( 'HTTP::Response') ) {
+                # HTTP error
+                $heap->{wheel}->put( $request );
+            }
+            else {
+                # HTTP request
+                # ....
+            }
+        }
+        else {
+            my $data = $req_or_data;
+            # ....
+        }
+    }
+
+You may trivally create a DoS bug if you hold all content in memory but do
+not impose a maximum Content-Length.  An attacker could send
+C<Content-Length: 1099511627776> (aka 1 TB) and keep sending data until all
+your system's memory and swap is filled.
+
+Content-Length has been sanitized by POE::Filter::HTTPD so checking it is trivial :
+
+    if( $request->headers( 'Content-Length' ) > 1024*1024 ) {
+        my $resp = HTTP::Response->new( RC_REQUEST_ENTITY_TOO_LARGE ), 
+                                             "So much content!" ) 
+        $heap->{wheel}->put( $resp );
+        return;
+    }
+    
+If you want to handle large amounts of data, you should save the content to a file 
+before processing it.  You still need to check Content-Length or an attacker might
+fill up the partition.
+
+    use File::Temp qw(tempfile);
+
+    if( blessed $_[ARG0] ) {
+        $heap->{request} = $_[ARG0];
+        if( $heap->{request}->method eq 'GET' ) {
+            handle_get( $heap );
+            delete $heap->{request};
+            return;
+        }
+        my( $fh, $file ) = tempfile( "httpd-XXXXXXXX", TMPDIR=>1 );
+        $heap->{content_file} = $file;
+        $heap->{content_fh} = $fh;
+        $heap->{content_size} = 0;
+    }
+    else {
+        return unless $heap->{request};
+
+        $heap->{content_size} += length( $_[ARG0] );
+        $heap->{content_fh}->print( $_[ARG0] );
+        if( $heap->{content_size} >= $heap->{request}->headers( 'content-length' ) ) {
+            delete $heap->{content_fh};
+            delete $heap->{content_size};
+
+            # Now we can parse $heap->{content_file}
+            if( $heap->{request}->method eq 'POST' ) {
+                handle_post( $heap );
+            }
+            else {
+                # error ...
+            }
+        }
+    }
+
+    sub handle_post
+    {
+        my( $heap ) = @_;
+        # Now we have to load and parse $heap->{content_file}            
+
+        # Next 6 lines make the data available to CGI->init
+        local $ENV{REQUEST_METHOD} = 'POST';
+        local $CGI::PERLEX = $CGI::PERLEX = "CGI-PerlEx/Fake";
+        local $ENV{CONTENT_TYPE} = $heap->{req}->header( 'content-type' );
+        local $ENV{CONTENT_LENGTH} = $heap->{req}->header( 'content-length' );
+        my $keep = IO::File->new( "<&STDIN" ) or die "Unable to reopen STDIN: $!";
+        open STDIN, "<$heap->{content_file}" or die "Reopening STDIN failed: $!";
+
+        my $qcgi = CGI->new();
+
+        # cleanup
+        open STDIN, "<&".$keep->fileno or die "Unable to reopen $keep: $!";
+        undef $keep;
+        unlink delete $heap->{content_file};
+
+        # now use $q as you would normaly
+        my $file = $q->upload( 'field_name' );
+        
+        # ....
+    }
+
+    sub handle_get
+    {
+        my( $heap ) = @_;
+
+        # 4 lines to get data into CGI->init
+        local $ENV{REQUEST_METHOD} = 'GET';
+        local $CGI::PERLEX = $CGI::PERLEX = "CGI-PerlEx/Fake";   
+        local $ENV{CONTENT_TYPE} = $heap->{req}->header( 'content-type' );
+        local $ENV{'QUERY_STRING'} = $heap->{req}->uri->query;
+
+        my $q = CGI->new();
+
+        # now use $q as you would normaly
+        # ....
+    }
+
+=head1 Streaming Response
 
 It is possible to use POE::Filter::HTTPD for streaming content, but an
 application can use it to send headers and then switch to

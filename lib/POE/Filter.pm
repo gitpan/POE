@@ -3,7 +3,7 @@ package POE::Filter;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.358'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.359'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw(croak);
 
@@ -41,6 +41,23 @@ sub clone {
   ], ref $self;
   return $nself;
 }
+
+
+sub __param_max
+
+{
+    my( $type, $name, $default, $params ) = @_;
+    return $default    # 512 MB
+        unless defined $params->{$name};
+
+    my $ret = $params->{$name};
+    croak "$name must be a number"
+            unless $ret =~ /^\d+$/;
+    croak "$name must greater then 0"
+            unless $ret > 0;
+    return $ret;
+}
+
 
 1;
 
