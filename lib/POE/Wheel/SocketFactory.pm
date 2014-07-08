@@ -3,7 +3,7 @@ package POE::Wheel::SocketFactory;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.359'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.360'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( carp croak );
 use Symbol qw( gensym );
@@ -52,9 +52,10 @@ sub MY_SOCKET_SELECTED () { 12 }
 # least compiles.  Suggested in rt.cpan.org 27250.
 BEGIN {
 
-  eval { Socket->import( qw(getaddrinfo unpack_sockaddr_in6) ) };
+  eval { Socket->import( qw(getaddrinfo getnameinfo unpack_sockaddr_in6) ) };
   if ($@) {
     *getaddrinfo = sub { Carp::confess("Unable to use IPv6: Socket doesn't provide getaddrinfo()") };
+    *getnameinfo = sub { Carp::confess("Unable to use IPv6: Socket doesn't provide getnameinfo()") };
     *unpack_sockaddr_in6 = sub { Carp::confess("Unable to use IPv6: Socket doesn't provide unpack_sockaddr_in6()") };
   }
 

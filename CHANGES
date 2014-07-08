@@ -1,18 +1,34 @@
 ================================
-2014-07-08 00:47:19 -0400 v1_359
+2014-07-08 08:20:30 -0400 v1_360
 ================================
 
-  commit 4dcc5e6866d3675bc87574a72258375ffcf47dc1
+  commit b14098d84f61e3cfd24acaf77d3ed805eff20992
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Tue Jul 8 08:20:30 2014 -0400
+  
+    Version bump to trigger a new release with Chris' regression fix.
+
+  commit 3f672f6fde0a70a560888c4691bb83f03ae38e6e
   Author: Rocco Caputo <rcaputo@cpan.org>
   Date:   Tue Jul 8 00:47:19 2014 -0400
   
-    Update POE::Test::Loops dependency.
+    Update POE::Test::Loops dependency. 
 
-  commit 153fadad2c77b3e1c14e539d8ca64de28a34ccdb
+================================
+2014-07-08 08:16:28 -0400 v1_359
+================================
+
+  commit 712e3905fbfe1b55ade59366d1c798964f38e6bd
   Author: Rocco Caputo <rcaputo@cpan.org>
   Date:   Mon Jul 7 23:07:28 2014 -0400
   
     Version bump.
+
+  commit 20b920f6fa6bb225cc91da0ec2c368bdca7aabd7
+  Author: Chris 'BinGOs' Williams <chris@bingosnet.co.uk>
+  Date:   Tue Jul 8 12:44:48 2014 +0100
+  
+    Fix regression in SocketFactory with getnameinfo()
 
   commit adaa221878dfa42c854adc498e3734021ab88b92
   Author: Rocco Caputo <rcaputo@cpan.org>
