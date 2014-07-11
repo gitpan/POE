@@ -1,4 +1,20 @@
 ================================
+2014-07-11 09:31:29 -0400 v1_361
+================================
+
+  commit 4d439d921fd0d8b0b7d40cf423c45e3a78e23fa6
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 09:31:29 2014 -0400
+  
+    Version bump for release.
+
+  commit 3ab670538cb23ef4a4f6f003a63aae9ac708fd0e
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 09:25:45 2014 -0400
+  
+    Fix a test hang on Windows. 
+
+================================
 2014-07-08 08:20:30 -0400 v1_360
 ================================
 
