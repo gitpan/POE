@@ -1,4 +1,30 @@
 ================================
+2014-07-12 18:24:36 -0400 v1_364
+================================
+
+  commit 7d8713c1fad195f6ad0bf9dc55855e3162cc4838
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jul 12 18:24:36 2014 -0400
+  
+    Version bump for release.
+
+  commit e55f062ea7019c907f6503c55f3be39caf05d74a
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jul 12 14:35:28 2014 -0400
+  
+    Stop loading Data::Dump. It wasn't even being used.
+
+    Address
+    http://www.cpantesters.org/cpan/report/15547962-09ee-11e4-941a-988245
+    14c1bc
+
+  commit 95dfad133b07402744a0e9f77987b9c90d3e2177
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jul 12 14:33:04 2014 -0400
+  
+    Replace // with || for that CPAN smoke box running Perl 5.8.9. 
+
+================================
 2014-07-12 02:41:55 -0400 v1_363
 ================================
 
