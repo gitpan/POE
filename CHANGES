@@ -1,4 +1,58 @@
 ================================
+2014-07-11 23:16:32 -0400 v1_362
+================================
+
+  commit 66e54c7933be4b571d20eb638aaafd4502a06c43
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 23:16:32 2014 -0400
+  
+    Bump version for release.
+
+  commit ec6842f343367e2b49c5d21ae93df4fab99dd91e
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 22:56:04 2014 -0400
+  
+    Reduce the time for another FollowTail test from ~5sec to ~0.2sec.
+
+  commit 9e042d00f54896e735f425b90195ec00243d5552
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 22:42:28 2014 -0400
+  
+    Don't fire undefined FollowTail idle events.
+
+  commit 31396d74dad0c1b552b8f468968f1a9fa976b169
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 21:12:00 2014 -0400
+  
+    Abstract the regression test sequence helper into
+    POE::Test::Sequence.
+
+  commit 65cf8fc77ce18a7d803a70f6fc9dd7a91f687aec
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 19:26:35 2014 -0400
+  
+    Speed up a test by adding an idle event to POE::Wheel::FollowTail.
+
+    Rather than wait for several seconds to elapse, tests can set a low
+    PollInterval and use IdleEvent handlers to tell when it's ready to
+    move on.
+
+    As a proof of concept, this commit also removes about 8 seconds from
+    a regression test using the new IdleEvent.
+
+  commit d30f5b361699c00ef539499bac35c3f5cbd5ef66
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 13:13:02 2014 -0400
+  
+    Avoid uninitialized value warnings when testing in development.
+
+  commit caaa3ad01136522e3f6a470d9e05d6c373fa1a81
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Jul 11 09:41:20 2014 -0400
+  
+    Remove a harmless(?) debugging print() from a test. 
+
+================================
 2014-07-11 09:31:29 -0400 v1_361
 ================================
 
