@@ -1,4 +1,45 @@
 ================================
+2014-07-12 02:41:55 -0400 v1_363
+================================
+
+  commit a4fb23c2afebe1aba411dba2d3623ea25bf64d95
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jul 12 02:41:55 2014 -0400
+  
+    Bump version for release.
+
+  commit d68983dbb5ef4ed6de27c7433ee31d09e4f2474c
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jul 12 02:02:30 2014 -0400
+  
+    Take about 1sec off a regression test.
+
+  commit d00cd369b9f12df5f2b59bf91807243a72fe189a
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jul 12 01:54:27 2014 -0400
+  
+    Add POE::Test::Sequence::create_generic_session().
+
+    A generic session runs all the events it receives through the test
+    sequence. It seems like something that might be common for simple
+    tests.
+
+    t/90_regression/leolo-alarm-adjust.t uses it as a proof of concept, a
+    future documentation example, and to shave about 2sec off the test.
+
+  commit 903492af7d00400a86dab68a574cc0510ec73cea
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jul 12 01:30:49 2014 -0400
+  
+    Shave about 3sec off a regression test.
+
+  commit ba28c4e87622035e0a80325d3a9f5026ed3cd333
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Sat Jul 12 01:26:27 2014 -0400
+  
+    Shave 2.5 seconds off a regression test. 
+
+================================
 2014-07-11 23:16:32 -0400 v1_362
 ================================
 

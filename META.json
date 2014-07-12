@@ -23,12 +23,12 @@
    "prereqs" : {
       "build" : {
          "requires" : {
-            "POE::Test::Loops" : "1.356"
+            "POE::Test::Loops" : "1.357"
          }
       },
       "configure" : {
          "requires" : {
-            "POE::Test::Loops" : "1.356"
+            "POE::Test::Loops" : "1.357"
          }
       },
       "runtime" : {
@@ -41,7 +41,7 @@
             "IO::Handle" : "1.27",
             "IO::Pipely" : "0.005",
             "IO::Tty" : "1.08",
-            "POE::Test::Loops" : "1.356",
+            "POE::Test::Loops" : "1.357",
             "POSIX" : "1.02",
             "Socket" : "1.7",
             "Storable" : "2.16",
@@ -60,5 +60,5 @@
          "url" : "https://github.com/rcaputo/poe"
       }
    },
-   "version" : "1.362"
+   "version" : "1.363"
 }
