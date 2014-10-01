@@ -1,4 +1,59 @@
 ================================
+2014-10-01 19:38:47 -0400 v1_365
+================================
+
+  commit ac32695a49330c0543eb985c7e7024f29b14ea28
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed Oct 1 19:38:47 2014 -0400
+  
+    Bump the version for release.
+
+  commit 0ffe08ceb164a53003a28364b9a9e3012961ecbb
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed Oct 1 19:28:11 2014 -0400
+  
+    Expose exceptions thrown from SIGDIE handlers.
+
+    This change causes both the error that triggered a SIGDIE and the
+    error within the SIGDIE handler to be rethrown together.
+
+  commit 786a6080bf3df744ad91d0b108ea2e4143a59e07
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Wed Oct 1 19:22:25 2014 -0400
+  
+    Add a failing test case for reporting die() from within SIGDIE.
+
+    Grinnz provided this test case on Freenode #perl. It shows that die()
+    within a SIGDIE handler is not reported. Instead, the original error
+    is thrown without any indication why it wasn't handled as intended.
+
+  commit 2eacf6bb69ab0843ed02a842a58de676c1cde06e
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon Sep 29 08:58:50 2014 -0400
+  
+    SeekBack of 0 is fine on special files.
+
+    Problem found by coworkers at Plixer International.
+
+  commit 1092eff5dfde3ebc9db1f7e0948e332d794b38a7
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Sep 12 13:57:31 2014 -0400
+  
+    Import carp() into POE::Filter::HTTPD.
+
+    Passing a bogus parameter to POE::Filter::HTTPD->new() caused a
+    complaint that carp() wasn't defined, rather than the proper
+    complaint the carp() call was making.
+
+    Thanks go to gbjk for passing on an anonymous report in IRC.
+
+  commit 3155fff17f189be2674fb7870c8fc9d289392c37
+  Author: Brian Fraser <fraserbn@gmail.com>
+  Date:   Sun Jul 27 03:25:47 2014 +0200
+  
+    Workaround for systems without getprotobyn* (e.g. android) 
+
+================================
 2014-07-12 18:24:36 -0400 v1_364
 ================================
 
@@ -699,362 +754,6 @@
 
     FollowTail does not trigger multiple input events when multiple lines
     are written to the followed file at the same time. 
-
-================================
-2013-08-20 16:36:06 -0400 v1_356
-================================
-
-  commit 35e779316e1de7293401c57f6e9652e66cab28c6
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Aug 20 16:36:06 2013 -0400
-  
-    Another day, another release. Or at least another four hours. Bump
-    version.
-
-  commit b81670f1b41aab62aeb9828407c038258a9a2518
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Aug 20 16:27:22 2013 -0400
-  
-    [rt.cpan.org 1648] Tk may also tie STDIN to an object.
-
-    Tied file handles must be untied before they can be redirected.
-    Otherwise, as in the case of Tk-wrapped handles, there's no OPEN()
-    implementation, and the redirection fails.
-
-  commit de91fb45e6d35dae71011a7bfa45c7a9eb63b8ad
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Aug 20 16:19:21 2013 -0400
-  
-    Remove trailing whitespace.
-
-  commit 5282c8e449b32d77eece3fe7857f115bb58adfc7
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Aug 20 16:17:47 2013 -0400
-  
-    I think it should be _filespec_to_fh() since it returns a handle. 
-
-================================
-2013-08-20 13:23:05 -0400 v1_355
-================================
-
-  commit e408a83c9a5342887954800c9ec9b109aeb8bc1d
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Aug 20 13:23:05 2013 -0400
-  
-    Bump version and dependencies for release.
-
-  commit 012098ebc019e1cd1c74d23fab7b4e7112a3adec
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Aug 19 18:39:56 2013 -0400
-  
-    [rt.cpan.org 87931] Redo _data_ev_adjust in terms of peek_items().
-
-    We can't add to the POE::Queue API without breaking third-party
-    extensions. This takes the performance hit to avoid breaking other
-    CPAN modules.
-
-  commit 810cba7763ac815b914af3967b8d33b0a84aca13
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Aug 19 17:32:28 2013 -0400
-  
-    [rt.cpan.org 87928] POE::Queue::Array didn't need
-    POE::Resource::Clock?
-
-  commit dea8746ea464ea343389d2bf604cc5bd9cf78a0f
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Aug 19 03:51:46 2013 -0400
-  
-    Skip POD::Coverage checks for POE::Pipe::OneWay and TwoWay.
-
-    The documentation has been replaced by deprecations. POD coverage is
-    moot.
-
-  commit deccbf370f3b2a2d89c5331acf1b4d84d972a61d
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Aug 19 03:50:06 2013 -0400
-  
-    Remove unused code from POE::Resource::Clock.
-
-    A number of functions aren't being used. More are only being used
-    privately within the module. Comment out some of the unused ones
-    (more dead code checking is needed). Add leading underscores to the
-    private ones.
-
-  commit 9c34ae0c06d339c5de81a538f05847bbf61ff5c5
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Aug 19 03:47:48 2013 -0400
-  
-    Make a new POE::Queue::Array method private.
-
-    It's currently experimental, and it currently breaks other event
-    queue nimplementations, so it has to go. Making it private will
-    temporarily reduce temptation to use it, and it helps the POD
-    coverage tests pass.
-
-  commit bcf5d4451637bab12a2c20ccbc028d042323389b
-  Author: Joseph Huckaby <jhuckaby@gmail.com>
-  Date:   Mon Aug 19 01:04:45 2013 -0400
-  
-    [rt.cpan.org 87922] Don't crash when ClientPreConnect returns undef.
-
-    ClientPreConnect should be allowed to return an undefined value to
-    abort the client connection. Instead, it caused PoCo::Server::TCP to
-    crash. This change catches that condition.
-
-  commit f42a26db921db2bbbb951a1becd02800d8ceb2d2
-  Author: Nicko Dehaine <nicko@phone.com>
-  Date:   Mon Aug 19 00:03:29 2013 -0400
-  
-    [rt.cpan.org 87721] Clear $! in Driver::SysRW::flush().
-
-    Nothing prevents the user from calling flush() when there is nothing
-    to flush. In these cases, $! remained unchanged, which could lead to
-    detection of false error conditions. This change clears $! to avoid
-    the problem.
-
-  commit 4e7961d6370cef5741d4ac2f9023fb7e2dad309d
-  Author: Markus Müller <privi@cpan.org>
-  Date:   Sun Aug 18 21:52:36 2013 -0400
-  
-    [rt.cpan.org 87635] Fix PoCo::Client::TCP "Connected" event
-    w/watermarks.
-
-    If you use watermarks, the Connected Event will not get triggert
-    because of a wrong return. This change corrects that.
-
-  commit 7bce20d1366f2bb3e6014a8d4db19aa93c00e9aa
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Aug 18 04:44:12 2013 -0400
-  
-    Eliminate an uninitialized value warning in the tests.
-
-  commit cb8a944db305c3d9adb1752d2d730bdec192cfd7
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Aug 18 03:35:25 2013 -0400
-  
-    Add t/10_units/05_filters/51_reference_die.t to MANIFEST.
-
-  commit b07d2ccdc10c19f087166125ca91fc8b8468d417
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Aug 18 02:50:22 2013 -0400
-  
-    Replace POE::Pipe::* guts with IO::Pipely.
-
-    This change doesn't change the way POE or its tests use POE::Pipe::*.
-    All tests pass in my development environment, so I expect no obvious
-    problems using IO::Pipely.
-
-  commit c8974aa92080b684a2976c7574b80ca7cac00c6a
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Aug 18 02:19:15 2013 -0400
-  
-    Update copyright dates.
-
-  commit 890244dd7b20a86301c024b9e994c36d993f9180
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Aug 18 02:08:45 2013 -0400
-  
-    Move the signal information out of the signal pipe.
-
-    The signal pipe included all signal information. This reduces the
-    number of signals that can be dispatched in a single event loop
-    iteration. It also limits the amount and/or type of information we
-    can include in the signal.
-
-    This change puts the signal information in a plain Perl list and only
-    uses the signal pipe to wake up the event loop to dispatch the
-    signals in a safer place.
-
-  commit c88d1d20c151909b823e279af95a1d826368cc46
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Aug 18 01:59:15 2013 -0400
-  
-    Update sample programs.
-
-  commit 78722c75e36ccd9ae8280a3202adb9840a7bedbe
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Aug 17 17:19:24 2013 -0400
-  
-    Add lib/POE/Resource/Clock.pm to MANIFEST.
-
-    Help wanted: Migrate build/release process to Dist::Zilla, or advise
-    on same. It's complicated right now. Probably too complicated.
-
-  commit 3fb1edba213e10ef85559eabfbbf3e9790841564
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Jul 16 00:55:03 2013 -0400
-  
-    [rt.cpan.org 81550] Untaint %ENV as it's examined for TRACE/ASSERTs.
-
-  commit 055ccf3a4eb5645272c3a076641f9ca89e5d88fa
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Jul 15 22:39:15 2013 -0400
-  
-    Fix a typo introduced in an earlier commit.
-
-  commit 0f36f724df6c77d0c53d248fc74e71e7cbdf8057
-  Author: Mike <pru-mike@mail.ru>
-  Date:   Sat Jul 6 15:10:38 2013 -0400
-  
-    Add a test case for the MSWin32 stat() bug fixed a few commits ago.
-
-  commit 6ecb93be7fc24fadf5efd1d351e69070d37a2cab
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jul 6 15:09:47 2013 -0400
-  
-    Turn off debugging.
-
-  commit bf9514fbddfc5e954b3c2f5e54724ee2da3868fe
-  Merge: 223a8cc 940189d
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Jun 8 21:54:52 2013 -0400
-  
-    Merge remote-tracking branch 'remotes/sf/master'
-
-  commit 940189dfb8177e3685bc46fcf256bf6752024f32
-  Author: Philip Gwyn <gwyn@cpan.org>
-  Date:   Sat Jun 8 12:36:31 2013 -0400
-  
-    Added POE::Resource::Clock
-
-  commit 223a8cca126e70aed5f15979cb3ea9fc661909b1
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Jun 7 17:08:20 2013 -0400
-  
-    Consistently stat file names or handles.
-
-    stat() on Windows reports different device IDs for a file depending
-    whether it was stat()ed via name or opened handle. If used
-    inconsistently, stat() will always report differences. Discovered by
-    "pru-mike" at
-    blogs.perl.org/users/pru-mike/2013/06/creepy-perl-stat-functions-on-w
-    indows.html
-
-  commit 0aa938883c65605c057f7d234b2f2fd01cafad74
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu May 2 22:10:22 2013 -0400
-  
-    Fix iThread-safety issue in POE::Component docs.
-
-    Stringified object references aren't iThread-safe. Spawn a new
-    interpreter, and copies of object have different memory addresses.
-    Previously stringified versions are not fixed to match. Thanks to
-    Paul Evans for pointing it out.
-
-  commit 219f5e1f4e526905d452d6112924224a2568e5da
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sun Apr 28 16:29:27 2013 -0400
-  
-    Note how to get ClosedEvent when killing processes in Windows.
-
-    Rafael Kitover provided a test case where kill() would prevent
-    ClosedEvent from firing on Winodws. We worked out a work-around,
-    which he'll be using in MooseX::Workers. I've documented it here for
-    others.
-
-  commit 42a5f9cae2d6cc29339d022153d44926a8ac4711
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Sat Apr 20 22:50:37 2013 -0400
-  
-    Replace Z<comment> with =for comment, per perlpod.
-
-  commit b7eec09b0f052c210925999b09a921a165b24f0f
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Dec 18 01:37:52 2012 -0500
-  
-    [rt.cpan.org 77907] Apply Alexander Becker's documentation
-    suggestion.
-
-  commit 032420f716604cac2914d692e3c5d3c8a7dbeefa
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Tue Dec 18 01:34:44 2012 -0500
-  
-    [rt.cpan.org 77233] Apply Lukas Mai's suggested POD fix.
-
-  commit 814486ce85ac3846267a4e3aeb85c5f62c4c0e5c
-  Author: Philip Gwyn <gwyn@cpan.org>
-  Date:   Tue Dec 4 17:13:32 2012 -0500
-  
-    Added POE::Resource::Clock which exports monotime() and walltime()
-    The Queue uses monotime() as a priority, but the public API uses
-    walltime() Fixed EV_TIME to EV_FROMSTATE EV_SEQ is set again
-
-  commit 513999b229c682a25773be4199f93685223957ee
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Mon Oct 29 18:27:52 2012 -0400
-  
-    Don't bother with IO::Tty on Cygwin.
-
-    average_drifter on freenode #perl-cats pointed out that IO::Tty fails
-    to install on contemporary Cygwin. This change skips that requirement
-    when $^O eq 'cygwin'.
-
-    After investigating, I found and reported two problems. These must be
-    resolved before undoing this work-around:
-
-    IO::Tty compile failure:
-    https://rt.cpan.org/Ticket/Display.html?id=80477
-
-    App::cpanminus conrigure timeout is too short:
-    https://rt.cpan.org/Ticket/Display.html?id=80478
-
-  commit ec43fcdf40ff511de6cd08785298670181a6b7e6
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Oct 11 09:26:16 2012 -0400
-  
-    Don't confess on the use of AF_INET6 or PF_INET6 in SocketFactory.
-
-    SocketFactory uses those constants unconditionally during
-    initialization, so things that don't even need them fail.
-
-    http://www.cpantesters.org/cpan/report/9c1ad42e-12dc-11e2-81a5-a3382b
-    22a531 is a Perl 5.6.2 test failure, but as far as I can tell all the
-    errors are due to missing IPv6 support on that platform.
-
-  commit d8eec5291a94ad006e4f98d43db11a7d1821627b
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Oct 11 01:31:26 2012 -0400
-  
-    [rt.cpan.org 79379] Document repositories and online change log
-    browsers.
-
-    Greg Sabino Mullane pointed out the difficulty of finding a complete,
-    up to date change log. The CHANGES file distributed with POE only
-    goes back a year, and he needed to go farther back.
-
-  commit 616bb1050e8f01150c6db1a02570d6dff9c0320c
-  Author: Philip Gwyn <gwyn@cpan.org>
-  Date:   Thu Sep 27 15:33:33 2012 -0400
-  
-    [rt.cpan.org 79886] Fix SIGDIE handler save/restore for Perl 5.8.8.
-
-    Applied a modified version of the patch and test case included in the
-    RT ticket.
-
-  commit cb4f65f0aefdf7ed7b22d5db8ea8f0773f47d41b
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Fri Aug 31 11:09:35 2012 -0400
-  
-    Optionally export FIRST_UNUSED so subclasses know where in @$self to
-    start.
-
-  commit f7f761cd596cafac6d86e3d69e74965f9747bf9b
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Jun 28 00:17:40 2012 -0400
-  
-    Add more signal handling diagnostics when asserting data at shutdown.
-
-  commit f27fa471d95ac270c1a927a27438587cc92bccf8
-  Author: Rocco Caputo <rcaputo@cpan.org>
-  Date:   Thu Jun 28 00:13:31 2012 -0400
-  
-    Docment that waitpid() calls interfere with sig_child().
-
-    Programs that reap their own child processes AND use sig_child() to
-    watch for those processes MUST call sig_child($pid, undef) to clear
-    the watchers. sig_child() only notifies programs after some event
-    loop reaps the process. If an application reaps it first, POE may
-    never know the child went away. 
 
 ==============
 End of Excerpt

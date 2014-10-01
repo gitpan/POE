@@ -3,7 +3,7 @@ package POE::Wheel::FollowTail;
 use strict;
 
 use vars qw($VERSION @ISA);
-$VERSION = '1.364'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.365'; # NOTE - Should be #.### (three decimal places)
 
 use Carp qw( croak carp );
 use Symbol qw( gensym );
@@ -190,10 +190,11 @@ sub new {
       croak "FollowTail does not tail directories";
     }
 
-    # Handle is not a plain file.  Can't honor SeekBack.
+    # Handle is not a plain file.
+    # Can only honor SeekBack if it's zero.
 
     carp "POE::Wheel::FollowTail can't SeekBack special files"
-      if defined $params{SeekBack};
+      if $params{SeekBack};
 
     # The handle isn't legal to multiplex on this platform.
     if (POE::Kernel::RUNNING_IN_HELL and not -S $handle) {
