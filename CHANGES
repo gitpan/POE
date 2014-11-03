@@ -1,4 +1,59 @@
 ================================
+2014-11-03 13:39:18 -0500 v1_366
+================================
+
+  commit 63e55125e55b4220984cc51dc3eb68ae1eb9cb21
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Mon Nov 3 13:39:18 2014 -0500
+  
+    Bump versions and dependencies for release.
+
+  commit b800fb63188ac415b9f706428289d89b9d90e32f
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Fri Oct 31 12:23:41 2014 -0400
+  
+    Fall back to getprotobyname() if Socket doesn't export IPPROTO_TCP or
+    IPPROTO_UDP.
+
+    CPAN testers were failing POE because Socket didn't provide these on
+    the full range of test machines. The common thread seems to be Perl
+    prior to 5.9. While quite old, there's no compelling reason not to
+    support it.
+
+    This change also caches the protocol numbers at startup, rather than
+    looking them up every time. It should be slightly faster as a result.
+
+  commit 90d04a311e463749dfeb10f3032866a723e7ca82
+  Author: Philip Gwyn <gwyn@cpan.org>
+  Date:   Fri Oct 31 11:12:11 2014 -0400
+  
+    [rt.cpan.org 91406] Use empty string instead of undef for __DIE__
+    handler.
+
+    The rt.cpan.org bug alleges that the empty string is more compatible.
+    It doesn't seem to make a difference for contemporary versions of
+    Perl, so why not?
+
+  commit c6f8e4f9dabbef51a75dbb043c01c92807fc604c
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Oct 30 12:26:25 2014 -0400
+  
+    Trigger POE::Session _stop handlers when POE::Kernel->stop() is
+    called.
+
+  commit ad6056b4bf5f928f87694fb274b7f30ae1534eb7
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Oct 30 12:18:00 2014 -0400
+  
+    Remove Data::Dump. It's not used, but use() is FAILing tests.
+
+  commit 4d3cc9fb8310050b4854a5f17ebb3821a870edae
+  Author: Rocco Caputo <rcaputo@cpan.org>
+  Date:   Thu Oct 2 16:12:42 2014 -0400
+  
+    Clarify the "now running in a different process" warning. 
+
+================================
 2014-10-01 19:38:47 -0400 v1_365
 ================================
 

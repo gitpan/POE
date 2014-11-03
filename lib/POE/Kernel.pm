@@ -3,7 +3,7 @@ package POE::Kernel;
 use strict;
 
 use vars qw($VERSION);
-$VERSION = '1.365'; # NOTE - Should be #.### (three decimal places)
+$VERSION = '1.366'; # NOTE - Should be #.### (three decimal places)
 
 use POE::Resource::Clock qw( monotime sleep mono2wall wall2mono walltime time );
 
@@ -1062,10 +1062,11 @@ sub _dispatch_event {
 
   # Quiet SIGDIE if it's DEFAULT.  If it's something special, then
   # someone had better know what they're doing.
+  # 'DEFAULT', undef and '' are all the same.
 
   my $old_sig_die = $SIG{__DIE__};
   $SIG{__DIE__} = \&_dummy_sigdie_handler if (
-    not defined $old_sig_die or $old_sig_die eq 'DEFAULT'
+    not defined $old_sig_die or $old_sig_die eq 'DEFAULT' or $old_sig_die eq ''
   );
 
   eval {
@@ -1327,7 +1328,7 @@ sub stop {
 
     # Walk backwards to avoid inconsistency errors.
     foreach my $session (reverse @children) {
-      $self->_data_ses_free($session->ID);
+      $self->_data_ses_stop($session->ID);
     }
   }
 
